@@ -24,7 +24,10 @@
     "vision:analyze": "tsx --env-file-if-exists=.env packages/vision/scripts/analyze.ts",
     "flats:preview": "tsx packages/flats/scripts/preview.ts",
     "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts",
-    "golden:export": "tsx golden/scripts/export-vision-reports.ts"
+    "golden:export": "tsx golden/scripts/export-vision-reports.ts",
+    "fit:form": "tsx apps/cli/src/form.ts",
+    "fit:score": "tsx apps/cli/src/score.ts",
+    "fit:demo": "tsx golden/scripts/demo-score.ts | xargs -I{} tsx apps/cli/src/score.ts {}"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

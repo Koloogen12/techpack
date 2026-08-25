@@ -40,6 +40,7 @@ packages/vision     Claude API → VisionReport + контент-кэш
 packages/assembly   POM · Construction · BOM · Labels · TechSequence — чистые функции
 packages/flats      параметрический SVG-чертёж
 packages/docgen     StyleSpec → HTML → PDF, выгрузка по ролям, измерение вёрстки
+packages/fit        сравнение факта со спекой: рулетка сейчас, примерки образцов потом
 apps/cli            станок фазы 0
 golden/             сценарии, инварианты, перебор пространства входов
 ```
@@ -65,7 +66,19 @@ pnpm kb:validate         # валидация справочников + бэк�
 pnpm stylespec:examples  # пересборка эталонных примеров спеки
 pnpm flats:preview       # чертежи всех категорий в HTML
 pnpm vision:analyze <фото> --category hoodie   # разбор фотографии, нужен ключ API
+
+pnpm fit:form --category hoodie --out out/бланк.pdf   # печатный бланк замеров
+pnpm fit:score                                        # сравнить документ с реальной вещью
+pnpm fit:demo                                         # то же на синтетике, для показа
 ```
+
+## Врёт ли документ в сантиметрах
+
+Тесты этого не показывают — они говорят «документ внутренне непротиворечив».
+Разница закрывается рулеткой: [docs/RULER-PROTOCOL.md](docs/RULER-PROTOCOL.md).
+
+Метрика — не средняя ошибка в сантиметрах, а доля точек, попавших в допуск,
+который документ сам же объявил. Так работает ОТК на фабрике.
 
 ## Сборка техпака
 
