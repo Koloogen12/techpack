@@ -242,8 +242,31 @@ describe('выгрузка по ролям', () => {
     }
   });
 
-  it('подпись роли попадает в колонтитул', () => {
-    expect(renderHtml(SPEC, { roleLabel: 'ОТК' })).toContain('выгрузка: ОТК');
+  it('подпись роли стоит бейджем в мастхеде, а не в мелком колонтитуле', () => {
+    // Лист расходится по цеху отдельно, и адресат должен быть виден сразу,
+    // а не найден в шестипунктовой строке внизу.
+    const h = renderHtml(SPEC, { roleLabel: 'ОТК' });
+    expect(h).toContain('class="role"');
+    expect(h).toContain('для ОТК');
+  });
+
+  it('мета-полоса и номер листа повторяются на КАЖДОЙ странице', () => {
+    // Закройщик держит один лист, ОТК другой. Лист без артикула и версии
+    // на нём — это лист неизвестно от чего.
+    const pages = pagesOf(html());
+    for (const p of pages) {
+      expect(p).toContain('class="meta"');
+      expect(p).toMatch(/Лист \d+ из \d+/);
+    }
+  });
+
+  it('в мастхеде бренд заказчика, а мы в футере', () => {
+    // Документ принадлежит бренду и показывается фабрике от его имени.
+    const h = renderHtml({ ...SPEC, style: { ...SPEC.style, brand: 'ЧУЖОЙ БРЕНД' } });
+    const masthead = h.slice(h.indexOf('class="masthead"'), h.indexOf('class="meta"'));
+    expect(masthead).toContain('ЧУЖОЙ БРЕНД');
+    expect(masthead).not.toContain('Seamsterly');
+    expect(h).toContain('Seamsterly ·');
   });
 });
 

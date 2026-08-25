@@ -1,25 +1,32 @@
 /**
- * Стили документа.
+ * Печатные стили документа.
  *
- * Токены — из `design_handoff_specform/README.md` (решение CEO D1). Здесь они
- * живут в одном месте, а не разбросаны по разметке: то же требование, что и
- * к веб-интерфейсу (CTO-SPEC.md §4.a п.2).
+ * Полиграфическая система взята с эталона отраслевой вёрстки: мастхед,
+ * мета-полоса, «один смысловой блок — одна страница», холсты-карточки
+ * для чертежей, микро-лейблы капсом в разрядку, чёрные шапки таблиц,
+ * трёхчастный футер. Содержание при этом целиком наше: статусы значений,
+ * допуски, коды швов, примечания.
  *
- * Документ печатается на A4 в альбомной ориентации, секция — страница
- * (knowledge-base/01 §1). Модульность под цех: табель мер уходит в ОТК,
- * спецификация закройщику, расчётник снабжению.
+ * Чего у эталона НЕ берём — его болезни: страницы без данных ради полноты
+ * (заголовок «Grading» над пустым чертежом), дубли строк, тавтологичные
+ * заглушки вроде «Care Label: Care label». У нас заглушка всегда говорит,
+ * что сюда придёт и откуда.
+ *
+ * Токены — из `design_handoff_specform/README.md` (решение CEO D1).
+ * Документ печатается на A4 в альбомной ориентации.
  */
 export const DOC_CSS = `
 :root {
-  --ink: #0E0E0E;
+  --ink: #161616;
   --paper: #FFFFFF;
-  --data-red: #C0392B;
-  --confirm-green: #2F7C5A;
-  --lib-grey: #B0ADA6;
-  --secondary: #6B6B67;
-  --tertiary: #5A5A56;
-  --hairline: #E4E1DC;
-  --hairline-row: #EFEDE9;
+  --secondary: #8A8A85;
+  --hairline: #E3E1DC;
+  --bar: #111111;
+  --canvas: #FBFAF8;
+  --data-red: #B3261E;
+  --confirm-green: #0D6E5F;
+  --photo-blue: #4A6CF7;
+  --lib-grey: #8A8A85;
 }
 
 @page { size: A4 landscape; margin: 0; }
@@ -32,6 +39,7 @@ html, body {
   background: var(--paper);
   color: var(--ink);
   font-family: Sora, "Helvetica Neue", Arial, sans-serif;
+  font-size: 9pt;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -39,7 +47,7 @@ html, body {
 .page {
   width: 297mm;
   height: 210mm;
-  padding: 12mm 14mm;
+  padding: 14mm;
   page-break-after: always;
   break-after: page;
   position: relative;
@@ -48,129 +56,199 @@ html, body {
 }
 .page:last-child { page-break-after: auto; break-after: auto; }
 
-.kicker {
-  font-size: 8.3pt;
-  letter-spacing: 1.4px;
+/* --- Микро-лейбл: главный приём системы. Им подписано всё. --- */
+.ml {
+  font-size: 7pt;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--secondary);
 }
 
-h1 { font-size: 20pt; font-weight: 700; margin: 2mm 0 1mm; letter-spacing: -0.4px; }
-h2 { font-size: 12pt; font-weight: 700; margin: 0 0 3mm; }
-h3 { font-size: 9.5pt; font-weight: 700; margin: 4mm 0 2mm; }
-
-.page-head {
+/* --- Мастхед: бренд КЛИЕНТА слева, раздел справа. --- */
+.masthead {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  border-bottom: 1px solid var(--hairline);
   padding-bottom: 2.5mm;
-  margin-bottom: 4mm;
+  border-bottom: 2pt solid var(--ink);
 }
-.page-head .meta { font-family: "JetBrains Mono", monospace; font-size: 8pt; color: var(--tertiary); }
+.masthead .brand { font-size: 12pt; font-weight: 700; letter-spacing: -0.01em; }
+.masthead .role {
+  display: inline-block;
+  border: 0.5pt solid var(--secondary);
+  border-radius: 1mm;
+  padding: 0.4mm 1.4mm;
+  margin-left: 3mm;
+}
 
-.page-foot {
+/* --- Мета-полоса: документ самоидентифицируется на каждой странице. --- */
+.meta {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4mm;
+  padding: 2.5mm 0;
+  border-bottom: 0.5pt solid var(--hairline);
+  margin-bottom: 5mm;
+}
+.meta .value { font-size: 9pt; margin-top: 0.8mm; }
+
+/* Нижний отступ равен высоте футера: футер позиционирован абсолютно
+   и в поток не входит, поэтому без запаса содержимое ложится на него. */
+.body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: 9mm; }
+
+/* --- Футер: три части. Seamsterly живёт здесь, а не в шапке. --- */
+.foot {
   position: absolute;
-  left: 14mm; right: 14mm; bottom: 6mm;
+  left: 14mm; right: 14mm; bottom: 7mm;
   display: flex;
   justify-content: space-between;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 7pt;
-  color: var(--lib-grey);
-  border-top: 1px solid var(--hairline-row);
+  align-items: baseline;
+  gap: 6mm;
   padding-top: 2mm;
+  border-top: 0.5pt solid var(--hairline);
+  font-size: 6.6pt;
+  letter-spacing: 0.06em;
+  color: var(--secondary);
+}
+.foot .legend { display: flex; gap: 4mm; flex-wrap: wrap; justify-content: center; }
+
+h1 { font-size: 19pt; font-weight: 700; margin: 0 0 2mm; letter-spacing: -0.02em; }
+h2 { font-size: 11pt; font-weight: 700; margin: 0 0 3mm; }
+h3 { font-size: 8.5pt; font-weight: 700; margin: 4mm 0 2mm; }
+
+/*
+ * --- Статус значения: ФОРМА плюс цвет. ---
+ *
+ * Пак печатают на чёрно-белом лазернике в цеху, и статус, отличающийся
+ * только цветом, там исчезает. Поэтому у каждого статуса своя фигура,
+ * и цвет только усиливает её.
+ */
+.dot {
+  display: inline-block;
+  width: 2.2mm;
+  height: 2.2mm;
+  margin-right: 1.4mm;
+  vertical-align: -0.2mm;
+  border: 0.5pt solid var(--ink);
+  border-radius: 50%;
+}
+.dot-fit_confirmed { background: var(--confirm-green); border-color: var(--confirm-green); }
+.dot-user_input {
+  background: radial-gradient(var(--confirm-green) 0 35%, transparent 36%);
+  border-color: var(--confirm-green);
+}
+.dot-measured_by_scale {
+  background: linear-gradient(90deg, var(--photo-blue) 0 50%, transparent 50%);
+  border-color: var(--photo-blue);
+}
+.dot-estimated_from_photo { background: transparent; border-color: var(--ink); }
+.dot-default_from_base { border-radius: 0; border-color: var(--secondary); background: transparent; }
+/* Треугольник: единственная фигура без круга — её видно и краем глаза. */
+.dot-assumption {
+  border: none;
+  border-radius: 0;
+  width: 0; height: 0;
+  border-left: 1.2mm solid transparent;
+  border-right: 1.2mm solid transparent;
+  border-bottom: 2.2mm solid var(--data-red);
 }
 
-/* Данные изделия печатаются красным — сквозная семантика продукта. */
-.v { font-family: Inter, Arial, sans-serif; font-weight: 300; color: var(--data-red); }
-.mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+.legend-item { white-space: nowrap; }
 
-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-th {
+/* --- Данные изделия. Красим ЗНАЧЕНИЕ, а не всю строку. --- */
+.v { font-variant-numeric: tabular-nums; }
+.mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; font-size: 8pt; }
+
+/* --- Таблицы: чёрная шапка, hairline-строки, щедрый паддинг. --- */
+table { width: 100%; border-collapse: collapse; font-size: 8.2pt; }
+thead th {
+  background: var(--bar);
+  color: #fff;
   text-align: left;
-  font-size: 7.4pt;
-  letter-spacing: 0.9px;
+  font-size: 6.8pt;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-weight: 700;
-  color: var(--secondary);
-  padding: 1.6mm 2mm;
-  border-bottom: 1px solid var(--hairline);
+  font-weight: 600;
+  padding: 2mm 2.2mm;
   white-space: nowrap;
 }
-td { padding: 1.4mm 2mm; border-bottom: 1px solid var(--hairline-row); vertical-align: top; }
-td.num { text-align: right; font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
-tr.pro { background: rgba(14,14,14,.02); }
-
-/* Статусы уверенности: точка перед значением, одинаково на всех страницах. */
-.dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-.dot-fit_confirmed { background: var(--confirm-green); }
-.dot-user_input { background: var(--confirm-green); }
-.dot-estimated_from_photo { background: var(--ink); }
-.dot-default_from_base { background: var(--lib-grey); }
-.dot-assumption { background: var(--data-red); box-shadow: 0 0 0 2px rgba(192,57,43,.16); }
-
-.legend { display: flex; gap: 7mm; flex-wrap: wrap; font-size: 8pt; color: var(--tertiary); }
-.legend b { font-weight: 600; color: var(--ink); }
-
-.card {
-  border: 1px solid var(--hairline);
-  border-radius: 3mm;
-  padding: 4mm 5mm;
+tbody td {
+  padding: 2.2mm 2.2mm;
+  border-bottom: 0.5pt solid var(--hairline);
+  vertical-align: top;
+  line-height: 1.35;
 }
-.card.warn { border-color: var(--data-red); }
-.card.warn .kicker { color: var(--data-red); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Значение и его сноска не переносятся: перенос ставит номер сноски
+   на отдельную строку, и он читается как отдельное число. */
+td.nowrap { white-space: nowrap; }
+td.mark { width: 6mm; text-align: center; }
+tr { break-inside: avoid; }
 
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
-.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+/* Плоская таблица без шапки — для паспортов и параметров. */
+table.plain thead th { background: transparent; color: var(--secondary); }
+table.plain td.k { width: 34mm; color: var(--secondary); font-size: 7.6pt; padding-top: 2.4mm; }
 
-.passport { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm 6mm; }
-.passport .label { font-size: 7.4pt; letter-spacing: 0.9px; text-transform: uppercase; color: var(--secondary); }
-.passport .value { font-family: Inter, Arial, sans-serif; font-weight: 300; font-size: 10pt; color: var(--data-red); }
-
-.flat { display: flex; gap: 10mm; align-items: center; justify-content: center; flex: 1; }
-.flat figure { margin: 0; text-align: center; flex: 1; }
-.flat svg { width: 100%; height: auto; max-height: 130mm; }
-.flat figcaption { margin-top: 3mm; font-size: 7.4pt; letter-spacing: 1.4px; text-transform: uppercase; color: var(--secondary); }
-
-.note { font-size: 8pt; color: var(--tertiary); line-height: 1.45; }
-.note.warn { color: var(--data-red); }
-
-/* Внешний вид: визуализация и снимки заказчика рядом. Рядом — намеренно:
-   расхождение между ними человек замечает мгновенно, а порознь не заметит. */
-.preview { display: grid; grid-template-columns: 1.35fr 1fr; gap: 8mm; flex: 1; min-height: 0; }
-.preview figure { margin: 0; display: flex; flex-direction: column; min-height: 0; }
-.preview .frame {
+/* --- Холст-карточка: чертёж «лежит на столе студии». --- */
+.canvas {
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--hairline);
-  border-radius: 3mm;
-  overflow: hidden;
+  border: 0.5pt solid var(--hairline);
+  background: var(--canvas);
+  padding: 6mm;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(14,14,14,.02);
+  gap: 8mm;
+  position: relative;
 }
-.preview .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
-.preview figcaption { margin-top: 2.5mm; font-size: 7.4pt; letter-spacing: 1.4px; text-transform: uppercase; color: var(--secondary); }
-.preview .shots { display: grid; gap: 4mm; min-height: 0; }
+/* Только ПРЯМОЙ потомок: иначе селектор ловит и подписи видов внутри
+   figure, и все они складываются в один угол. */
+.canvas > .ml { position: absolute; top: 4mm; left: 5mm; }
+.canvas figure { margin: 0; flex: 1; text-align: center; min-width: 0; }
+.canvas svg { width: 100%; height: auto; max-height: 118mm; }
+.canvas img { max-width: 100%; max-height: 118mm; object-fit: contain; display: block; margin: 0 auto; }
+.canvas figcaption { margin-top: 3mm; }
 
-/* Одиночный кадр: рамка обхватывает картинку по её пропорциям, а не тянется
-   на всю колонку. Иначе портретный кадр на альбомном листе обрастает
-   пустыми полями с той или другой стороны — по первому прогону сверху и снизу. */
-.preview.single { display: flex; justify-content: center; }
-.preview.single figure { align-items: center; max-width: 100%; }
-.preview.single .frame { width: auto; align-self: center; }
-.preview.single .frame img { height: 100%; width: auto; max-width: 100%; }
-.preview .shots .frame { border-radius: 2mm; }
+.note { font-size: 7.6pt; color: var(--secondary); line-height: 1.45; }
+.note.warn { color: var(--data-red); }
+.note b { color: var(--ink); font-weight: 600; }
 
-ul.plain { margin: 0; padding-left: 4mm; font-size: 8.5pt; line-height: 1.5; }
-ul.plain li { margin-bottom: 1mm; }
+/*
+ * Заглушка всегда называет, ЧТО сюда придёт и ОТКУДА.
+ * «Care label: care label» — это не заглушка, а тавтология.
+ */
+.tbc { color: var(--secondary); font-style: italic; }
+
+/* --- Сноски под таблицей вместо примечаний в ячейках. --- */
+.fn { margin-top: 3mm; font-size: 7pt; color: var(--secondary); line-height: 1.4; }
+.fn li { margin-bottom: 0.6mm; }
+.fn ol { margin: 0; padding-left: 4mm; }
+sup.fn-ref { font-size: 6pt; font-weight: 700; color: var(--ink); margin-left: 0.6mm; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; flex: 1; min-height: 0; }
+.cover { display: grid; grid-template-columns: 1.5fr 1fr; gap: 8mm; flex: 1; min-height: 0; }
+/* Список узлов на обложке — анонс раздела конструкции, где он есть целиком.
+   Поэтому при нехватке места сжимается он, а не описание изделия:
+   описание живёт только здесь. */
+.cover ul.dash { overflow: hidden; min-height: 0; }
+
+.card { border: 0.5pt solid var(--hairline); padding: 5mm; }
+.card.warn { border-color: var(--data-red); }
+
+ul.plain { margin: 0; padding-left: 3.6mm; font-size: 8pt; line-height: 1.5; }
+ul.plain li { margin-bottom: 1.2mm; }
+
+/* Ключевые элементы конструкции — списком с тире, как в эталоне. */
+ul.dash { margin: 0; padding: 0; list-style: none; font-size: 8pt; line-height: 1.45; }
+ul.dash li { margin-bottom: 1.4mm; padding-left: 3.4mm; text-indent: -3.4mm; }
+ul.dash li::before { content: '— '; color: var(--secondary); }
 
 .placeholder {
   flex: 1;
-  border: 1px dashed var(--lib-grey);
-  border-radius: 3mm;
+  border: 0.5pt dashed var(--secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -180,17 +258,52 @@ ul.plain li { margin-bottom: 1mm; }
   padding: 10mm;
 }
 
-.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--hairline); vertical-align: middle; margin-right: 4px; }
+.swatch {
+  display: inline-block;
+  width: 3mm; height: 3mm;
+  border: 0.5pt solid var(--hairline);
+  vertical-align: -0.3mm;
+  margin-right: 1.4mm;
+}
 
 .flag {
   display: inline-block;
-  font-size: 7.4pt;
+  font-size: 6.8pt;
   font-weight: 700;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--data-red);
-  border: 1px solid var(--data-red);
-  border-radius: 2mm;
-  padding: 0.4mm 1.6mm;
+  border: 0.5pt solid var(--data-red);
+  padding: 0.4mm 1.4mm;
   white-space: nowrap;
 }
+
+/* --- Внешний вид: визуализация и снимки заказчика рядом. --- */
+.preview { display: grid; grid-template-columns: 1.35fr 1fr; gap: 8mm; flex: 1; min-height: 0; }
+.preview figure { margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.preview .frame {
+  flex: 1;
+  min-height: 0;
+  border: 0.5pt solid var(--hairline);
+  background: var(--canvas);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.preview figcaption { margin-top: 2.5mm; }
+.preview .shots { display: grid; gap: 4mm; min-height: 0; }
+.preview.single { display: flex; justify-content: center; }
+.preview.single figure { align-items: center; max-width: 100%; }
+.preview.single .frame { width: auto; align-self: center; }
+.preview.single .frame img { height: 100%; width: auto; max-width: 100%; }
+
+/* --- Конструкция: две колонки по зонам, а не простыня. --- */
+.zones { display: grid; grid-template-columns: 26mm 1fr; gap: 3mm 5mm; align-items: start; }
+.node { margin-bottom: 3.5mm; }
+.node .name { font-weight: 600; font-size: 8.4pt; }
+.node .desc { font-size: 7.8pt; color: var(--secondary); line-height: 1.4; margin-top: 0.6mm; }
+.node .params { font-size: 7.8pt; margin-top: 1mm; font-variant-numeric: tabular-nums; }
+.node .params .sep { color: var(--hairline); margin: 0 1.2mm; }
 `;

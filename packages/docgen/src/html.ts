@@ -1,4 +1,4 @@
-import { CONFIDENCE_LABEL_RU, type Confidence } from '@specform/core';
+import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@specform/core';
 import { renderFlatsFromSpec } from '@specform/flats';
 import {
   CATEGORY_LABEL_RU,
@@ -98,12 +98,12 @@ export interface HtmlOptions {
  * Значения подобраны по факту печати с запасом на перенос текста в ячейках.
  */
 const ROWS_PER_PAGE = {
-  measurements: 11,
-  notes: 12,
+  measurements: 15,
+  notes: 17,
   bom: 14,
-  nodes: 8,
-  sequence: 16,
-  sku: 18,
+  nodes: 7,
+  sequence: 17,
+  sku: 17,
 } as const;
 
 const esc = (s: string): string =>
@@ -194,21 +194,11 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   add('labels', 'Маркировка и артикулы', labelsPages(spec));
   add('patterns', 'Лекала и раскладка', [patternsBody()]);
 
-  const html = pages
-    .map(
-      (p) =>
-        `<section class="page" data-section="${p.section}"` +
-        (p.part ? ` data-part="${p.part.index}/${p.part.total}"` : '') +
-        `>` +
-        `<div class="page-head"><div class="kicker">${esc(p.title)}` +
-        (p.part ? ` · лист ${p.part.index} из ${p.part.total}` : '') +
-        `</div>` +
-        `<div class="meta">${esc(spec.style.article)} · ${esc(spec.style.name)}</div></div>` +
-        p.body +
-        foot(spec, options.roleLabel) +
-        `</section>`,
-    )
-    .join('');
+  // Общее число листов известно только когда собраны все: футер печатает
+  // «лист N из M», и документ без M заставляет технолога гадать, всё ли
+  // ему прислали.
+  const total = pages.length;
+  const html = pages.map((p, i) => pageShell(spec, p, i + 1, total, options)).join('');
 
   return (
     `<!doctype html><html lang="ru"><head><meta charset="utf-8">` +
@@ -217,13 +207,75 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   );
 }
 
-function foot(spec: StyleSpec, roleLabel?: string): string {
-  const date = spec.meta.generated_at.slice(0, 10);
-  const role = roleLabel ? ` · выгрузка: ${esc(roleLabel)}` : '';
+/**
+ * Оболочка страницы: мастхед, мета-полоса, содержимое, футер.
+ *
+ * Мастхед несёт бренд КЛИЕНТА, а не наш. Документ принадлежит бренду
+ * и показывается фабрике от его имени; Seamsterly живёт в футере.
+ * У эталона наоборот — своё имя сверху, — и это ровно та мелочь,
+ * из-за которой документ выглядит чужим.
+ *
+ * Мета-полоса повторяется на КАЖДОЙ странице. Листы расходятся по цеху
+ * поодиночке: закройщик держит один, ОТК другой, и лист без артикула
+ * и версии на нём — это лист неизвестно от чего.
+ */
+function pageShell(
+  spec: StyleSpec,
+  page: Page,
+  index: number,
+  total: number,
+  options: HtmlOptions,
+): string {
+  const brand = spec.style.brand?.trim();
+  const part = page.part ? ` · лист ${page.part.index} из ${page.part.total}` : '';
+
+  const meta: [string, string][] = [
+    ['Бренд', brand ? esc(brand) : tbc('профиль бренда')],
+    ['Модель', esc(spec.style.name)],
+    ['Артикул', esc(spec.style.article)],
+    ['Сезон', spec.style.season ? esc(spec.style.season) : tbc('анкета')],
+    ['Базовый размер', `RU ${spec.base.base_size_ru} · рост ${num(spec.base.base_height_cm)}`],
+    [
+      'Версия · тираж',
+      `${esc(spec.spec_version)}${spec.bom?.batch_qty ? ` · ${spec.bom.batch_qty} шт` : ''}`,
+    ],
+  ];
+
   return (
-    `<div class="page-foot"><span>${esc(spec.style.article)} · версия схемы ${spec.spec_version}${role}</span>` +
-    `<span>${date}</span></div>`
+    `<section class="page" data-section="${page.section}"` +
+    (page.part ? ` data-part="${page.part.index}/${page.part.total}"` : '') +
+    `>` +
+    `<div class="masthead">` +
+    `<div class="brand">${brand ? esc(brand) : esc(spec.style.name)}</div>` +
+    `<div class="ml">${esc(page.title)}${esc(part)}` +
+    (options.roleLabel ? `<span class="role">для ${esc(options.roleLabel)}</span>` : '') +
+    `</div></div>` +
+    `<div class="meta">` +
+    meta
+      .map(([k, v]) => `<div><div class="ml">${esc(k)}</div><div class="value">${v}</div></div>`)
+      .join('') +
+    `</div>` +
+    `<div class="body">${page.body}</div>` +
+    `<div class="foot">` +
+    `<span>Seamsterly · ${esc(spec.style.article)}</span>` +
+    `<span class="legend">${statusLegend()}</span>` +
+    `<span>Лист ${index} из ${total}</span>` +
+    `</div></section>`
   );
+}
+
+/** Заглушка всегда говорит, что сюда придёт и откуда. */
+function tbc(source: string): string {
+  return `<span class="tbc">[не заполнено — ${esc(source)}]</span>`;
+}
+
+/** Мини-легенда статусов в футере: она нужна на каждом листе, а не только на первом. */
+function statusLegend(): string {
+  return LEGEND.map(
+    ([c]) =>
+      `<span class="legend-item"><span class="dot dot-${c}"></span>` +
+      `${esc(CONFIDENCE_LABEL_RU[c])}</span>`,
+  ).join('');
 }
 
 // ---------------------------------------------------------------- обложка
@@ -237,82 +289,134 @@ const LEGEND: [Confidence, string][] = [
 ];
 
 function coverBody(spec: StyleSpec): string {
-  const fields: [string, string][] = [
-    ['Наименование', spec.style.name],
-    ['Артикул', spec.style.article],
+  const passport: [string, string][] = [
     ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
-    ['Бренд', spec.style.brand ?? '—'],
-    ['Сезон', spec.style.season ?? '—'],
-    ['Базовый размер', `RU ${spec.base.base_size_ru} · рост ${num(spec.base.base_height_cm)}`],
-    ['Размерный ряд', spec.base.size_range.join(' · ')],
     ['Посадка', FIT_INTENT_LABEL_RU[spec.base.fit_intent as FitIntent]],
-    // Фабрика считает цену от тиража. Раньше расход «на тираж: 130 м» стоял
-    // в спецификации, а сам тираж не был указан нигде.
-    ['Тираж', spec.bom?.batch_qty ? `${spec.bom.batch_qty} шт` : 'не указан'],
+    ['Полотно', shellLine(spec) ?? tbc('спецификация материалов')],
+    ['Размерный ряд', spec.base.size_range.join(' · ')],
+    ['Тираж', spec.bom?.batch_qty ? `${spec.bom.batch_qty} шт` : tbc('анкета')],
   ];
 
-  const assumptions = spec.meta.assumptions_count;
   const sources = countBySource(spec);
+  const assumptions = spec.meta.assumptions_count;
+  const calculated = Object.values(sources).reduce((a, b) => a + b, 0);
 
-  const banner =
-    assumptions > 0
-      ? `<div class="card warn"><div class="kicker">Требуют подтверждения</div>` +
-        `<div style="font-size:26pt;font-weight:700;margin:1mm 0">${assumptions}</div>` +
-        `<div class="note warn">Значения со статусом «предположение» получены не из фотографий ` +
-        `и не от заказчика — это типовые подстановки там, где увидеть правду было нельзя. ` +
-        `Подтвердите их по образцу или у заказчика до запуска партии. В таблицах они помечены ` +
-        `красной точкой.</div>` +
-        `<h3>Откуда взяты значения</h3>` +
-        `<table><tbody>` +
-        LEGEND.filter(([c]) => sources[c] > 0)
-          .map(
-            ([c]) =>
-              `<tr><td><span class="dot dot-${c}"></span>${CONFIDENCE_LABEL_RU[c]}</td>` +
-              `<td class="num v">${sources[c]}</td></tr>`,
-          )
-          .join('') +
-        `</tbody></table></div>`
-      : `<div class="card"><div class="kicker">Готовность</div>` +
-        `<div class="note">Предположений нет: каждое значение подтверждено заказчиком, ` +
-        `получено с фотографий или взято из справочника.</div></div>`;
+  // Ключевые элементы конструкции — то, за что цепляется глаз технолога
+  // на первой странице. Берём видимые узлы: невидимые ему на обложке
+  // ничего не скажут, а место займут.
+  //
+  // Число элементов подстраивается под длину описания. Урезаем именно их,
+  // а не описание: узлы целиком повторены в разделе конструкции, а описание
+  // изделия живёт только здесь — потерять его значило бы потерять данные,
+  // тогда как список тут работает анонсом.
+  const described = spec.style.description?.length ?? 0;
+  const room = Math.max(2, 5 - Math.floor(described / 90));
+  const features = (spec.construction?.nodes ?? [])
+    .filter((n) => n.visible_on_photo)
+    .slice(0, room)
+    .map((n) => `<b>${esc(n.label_ru)}.</b> ${esc(n.plain_ru)}`);
+
+  const flats = renderFlatsFromSpec(spec);
 
   return (
-    `<h1>${esc(spec.style.name)}</h1>` +
+    `<div class="cover">` +
+    // Левая половина — холст с чертежом. Ровно та композиция, которой
+    // эталон обязан своим видом: вещь лежит на столе студии.
+    `<div class="canvas">` +
+    `<div class="ml">Технический чертёж</div>` +
+    `<figure>${flats.front.svg}<figcaption class="ml">Перед</figcaption></figure>` +
+    `<figure>${flats.back.svg}<figcaption class="ml">Спинка</figcaption></figure>` +
+    `</div>` +
+    // Правая — паспорт изделия и сводка честности.
+    `<div style="display:flex;flex-direction:column;min-height:0">` +
+    // Длинное название набирается мельче, а не выталкивает содержимое
+    // за лист: имя изделия придумывает заказчик, и ограничивать его
+    // длину значило бы решать за него.
+    `<h1${spec.style.name.length > 34 ? ' style="font-size:15pt"' : ''}>` +
+    `${esc(spec.style.name)}</h1>` +
+    `<table class="plain"><tbody>` +
+    passport.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${v}</td></tr>`).join('') +
+    `</tbody></table>` +
     (spec.style.description
-      ? `<div class="note" style="margin-bottom:5mm">${esc(spec.style.description)}</div>`
+      ? `<div class="note" style="margin-top:4mm">${esc(spec.style.description)}</div>`
       : '') +
-    `<div class="passport" style="margin-bottom:6mm">` +
-    fields
-      .map(
-        ([k, v]) =>
-          `<div><div class="label">${esc(k)}</div><div class="value">${esc(v)}</div></div>`,
-      )
-      .join('') +
-    `</div>` +
-    `<div class="grid2" style="flex:1">` +
-    `<div class="card"><div class="kicker">Как читать документ</div>` +
-    `<h3>Статусы значений</h3>` +
-    `<div class="legend" style="flex-direction:column;gap:2mm">` +
-    LEGEND.map(
-      ([c, text]) =>
-        `<div><span class="dot dot-${c}"></span><b>${CONFIDENCE_LABEL_RU[c]}</b> — ${text}</div>`,
-    ).join('') +
-    `</div>` +
-    `<div class="note" style="margin-top:5mm">Документ собран из структурированных данных ` +
-    `изделия: чертёж, таблицы и этот файл — проекции одной модели, поэтому они не могут ` +
-    `разойтись между собой. Правка замера перестраивает чертёж.</div>` +
-    `</div>${banner}</div>`
+    (features.length
+      ? `<h3>Ключевые элементы конструкции</h3><ul class="dash">` +
+        features.map((f) => `<li>${f}</li>`).join('') +
+        `</ul>`
+      : '') +
+    `<div style="flex:1"></div>` +
+    honestySummary(calculated, assumptions, sources) +
+    `</div></div>`
   );
 }
 
+/** Полотно одной строкой: то, что фабрика ищет на обложке первым. */
+function shellLine(spec: StyleSpec): string | null {
+  const shell = spec.bom?.lines.find((l) => l.role === 'shell');
+  if (!shell) return null;
+  return (
+    esc(shell.name_ru) +
+    (shell.gsm ? `, ${num(shell.gsm.value)} г/м²` : '') +
+    ` · ${esc(shell.composition.value)}`
+  );
+}
+
+/**
+ * Сводка честности — то, чего нет ни у кого.
+ *
+ * Одной строкой отвечает на вопрос, который технолог задаёт про любой
+ * присланный пак: сколько здесь посчитано, а сколько подставлено.
+ * Легенда рядом, потому что на обложке она читается один раз и дальше
+ * работает памятью — в футере остаётся напоминание.
+ */
+function honestySummary(
+  calculated: number,
+  assumptions: number,
+  sources: Record<Confidence, number>,
+): string {
+  return (
+    `<div class="card${assumptions > 0 ? ' warn' : ''}" style="margin-top:5mm">` +
+    `<div class="ml">Откуда взяты значения</div>` +
+    `<div style="font-size:8.6pt;margin:2mm 0 3mm">` +
+    `<b>${calculated}</b> значений в документе` +
+    (assumptions > 0
+      ? ` · <span class="dot dot-assumption"></span><b>${assumptions}</b> подтвердить по образцу`
+      : ' · предположений нет') +
+    `</div>` +
+    // Легенда здесь компактная: расшифровка каждого статуса повторяется
+    // в футере на всех последующих листах, и печатать её дважды значит
+    // тратить место, которого на обложке и так нет.
+    `<div style="display:grid;grid-template-columns:1fr auto 1fr auto;gap:1.2mm 3mm;font-size:7.6pt">` +
+    LEGEND.filter(([c]) => sources[c] > 0)
+      .map(
+        ([c]) =>
+          `<div><span class="dot dot-${c}"></span>${esc(CONFIDENCE_LABEL_RU[c])}</div>` +
+          `<div class="num v">${sources[c]}</div>`,
+      )
+      .join('') +
+    `</div>` +
+    (assumptions > 0
+      ? `<div class="note warn" style="margin-top:2.5mm">Предположение — типовая подстановка ` +
+        `там, где увидеть правду было нельзя. Подтвердите по образцу до запуска партии.</div>`
+      : '') +
+    `</div>`
+  );
+}
+
+/**
+ * Сколько значений пришло из каждого источника.
+ *
+ * Счётчик строится ИЗ СПИСКА статусов, а не из литерала с перечисленными
+ * ключами. Литерал уже подвёл однажды: при добавлении статуса «измерено
+ * по масштабу» его забыли, и `counts[...]++` на отсутствующем ключе давал
+ * NaN — молча, пока сумму не начали печатать на обложке.
+ */
 function countBySource(spec: StyleSpec): Record<Confidence, number> {
-  const counts = {
-    fit_confirmed: 0,
-    user_input: 0,
-    estimated_from_photo: 0,
-    default_from_base: 0,
-    assumption: 0,
-  } as Record<Confidence, number>;
+  const counts = Object.fromEntries(CONFIDENCE_LEVELS.map((c) => [c, 0])) as Record<
+    Confidence,
+    number
+  >;
 
   for (const p of spec.measurements.points) counts[p.base.confidence]++;
   for (const n of spec.construction?.nodes ?? []) counts[n.presence.confidence]++;
@@ -601,10 +705,13 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
 // ---------------------------------------------------------------- чертёж
 
 function flatsBody(flats: { front: { svg: string }; back: { svg: string } }): string {
+  // Никаких таблиц на этой странице: один смысловой блок — один лист.
+  // Воздух здесь работает — чертёж читают, а не проглядывают.
   return (
-    `<div class="flat">` +
-    `<figure>${flats.front.svg}<figcaption>Перед</figcaption></figure>` +
-    `<figure>${flats.back.svg}<figcaption>Спинка</figcaption></figure>` +
+    `<div class="canvas">` +
+    `<div class="ml">Технический чертёж · масштаб не соблюдён, размеры в табеле мер</div>` +
+    `<figure>${flats.front.svg}<figcaption class="ml">Перед</figcaption></figure>` +
+    `<figure>${flats.back.svg}<figcaption class="ml">Спинка</figcaption></figure>` +
     `</div>` +
     `<div class="note" style="margin-top:3mm">Чертёж построен из таблицы замеров: правка ` +
     `значения перестраивает геометрию. Число пунктирных линий равно числу параллельных ` +
@@ -653,26 +760,40 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
   const graded = spec.base.size_range.filter((ru) => ru !== spec.base.base_size_ru);
   const points = spec.measurements.points.filter((p) => pro || !p.pro_only);
 
+  // Примечания нумеруются ОДИН раз на весь табель и печатаются сносками
+  // под таблицей. В ячейке остаётся только номер: калибровка добавляет
+  // одну и ту же строку ко всем точкам, и восемнадцать одинаковых
+  // примечаний в колонке топят в шуме те, ради которых блок существует.
+  const footnotes = groupNotes(points);
+  const noteNumber = new Map<string, number>();
+  footnotes.forEach((n, i) => noteNumber.set(n.text, i + 1));
+
   const head =
     `<tr><th>Код</th><th>Точка измерения</th><th>Как мерить</th>` +
     `<th class="num">RU ${spec.base.base_size_ru}</th><th class="num">Допуск</th>` +
+    `<th class="mark" title="Статус значения">●</th>` +
     graded.map((ru) => `<th class="num">${ru}</th>`).join('') +
-    `<th>Статус</th></tr>`;
+    `</tr>`;
 
   const tablePages = chunk(points, ROWS_PER_PAGE.measurements).map((rows, i, all) => {
     const body = rows
       .map((p) => {
         const byRu = new Map(p.graded.map((g) => [g.ru, g.value.value]));
+        const ref = p.base.note ? noteNumber.get(p.base.note) : undefined;
         return (
           `<tr${p.pro_only ? ' class="pro"' : ''}>` +
           `<td class="mono">${p.code}</td><td>${esc(p.name_ru)}</td>` +
           `<td class="note">${esc(p.how_to_measure_ru)}</td>` +
-          `<td class="num">${value(p.base)}</td>` +
+          `<td class="num v nowrap">${num(p.base.value)}` +
+          (ref ? `<sup class="fn-ref">${ref}</sup>` : '') +
+          `</td>` +
           `<td class="num v">±${num(p.tolerance.value)}</td>` +
+          `<td class="mark"><span class="dot dot-${p.base.confidence}" ` +
+          `title="${esc(CONFIDENCE_LABEL_RU[p.base.confidence])}"></span></td>` +
           graded
             .map((ru) => `<td class="num v">${byRu.has(ru) ? num(byRu.get(ru)!) : '—'}</td>`)
             .join('') +
-          `<td class="note">${CONFIDENCE_LABEL_RU[p.base.confidence]}</td></tr>`
+          `</tr>`
         );
       })
       .join('');
@@ -684,16 +805,16 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
     );
   });
 
-  // Примечания идут отдельными листами и группируются по тексту.
-  // Калибровка по ручному замеру добавляет одну и ту же строку ко всем точкам —
-  // печатать её восемнадцать раз значит утопить в шуме те примечания,
-  // ради которых блок и существует. Заодно это переполняло лист на 34 пикселя.
-  const notes = groupNotes(points);
-  const notePages = chunk(notes, ROWS_PER_PAGE.notes).map(
-    (group) =>
-      `<h2>Примечания к значениям</h2><ul class="plain">` +
-      group.map((n) => `<li><b>${n.codes}</b> — ${esc(n.text)}</li>`).join('') +
-      `</ul>`,
+  // Сноски идут отдельным листом только если их слишком много для подвала.
+  // Всё, что помещается, печатается прямо под таблицей — там его и ищут.
+  const notePages = chunk(footnotes, ROWS_PER_PAGE.notes).map(
+    (group, i) =>
+      (i === 0 ? `<h2>Примечания к значениям</h2>` : '') +
+      `<div class="fn"><ol>` +
+      group
+        .map((n) => `<li value="${noteNumber.get(n.text)}"><b>${n.codes}</b> — ${esc(n.text)}</li>`)
+        .join('') +
+      `</ol></div>`,
   );
 
   const pages = [...tablePages, ...notePages];
