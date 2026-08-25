@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.1.0",
+  "spec_version": "0.2.0",
   "style": {
     "id": "example-tshirt-women-46",
     "name": "Базовая футболка",
@@ -1040,12 +1040,386 @@
       }
     ]
   },
+  "construction": {
+    "machine_park_profile": "base_shop",
+    "nodes": [
+      {
+        "node_id": "neck_rib_band",
+        "zone": "neckline",
+        "label_ru": "Бейка-риб кольцом",
+        "plain_ru": "Горловина обработана бейкой из рибаны: полоска сшита в кольцо и притачана по краю",
+        "seam_code": "1.01.01",
+        "stitch_code": "504",
+        "spi": 12,
+        "machine": "overlock_3",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 1,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#neck_rib_band.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": {
+          "value": 2,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#neck_rib_band.finished"
+        },
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#neck_rib_band",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "neck_topstitch_tape",
+        "zone": "neckline",
+        "label_ru": "Отстрочка горловины с настрачиванием тесьмы",
+        "plain_ru": "По шву горловины проложена отделочная строчка, изнутри настрочена тесьма",
+        "seam_code": "2.02.01",
+        "stitch_code": "406",
+        "spi": 11,
+        "machine": "coverstitch_2n",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 0.7,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#neck_topstitch_tape.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#neck_topstitch_tape",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "shoulder_seam_overlock",
+        "zone": "shoulders",
+        "label_ru": "Стачной шов оверлоком",
+        "plain_ru": "Плечи стачаны оверлоком — он соединяет и обмётывает срез за один проход",
+        "seam_code": "1.01.01",
+        "stitch_code": "514",
+        "spi": 12,
+        "machine": "overlock_4",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 1,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#shoulder_seam_overlock.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#shoulder_seam_overlock",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "shoulder_stay_tape",
+        "zone": "shoulders",
+        "label_ru": "Усиление плечевого шва долевиком",
+        "plain_ru": "В плечевой шов вложена тесьма, чтобы плечо не растянулось от носки",
+        "seam_code": "1.01.01",
+        "stitch_code": "514",
+        "spi": 12,
+        "machine": "overlock_4",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 1,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#shoulder_stay_tape.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": {
+          "value": 1.2,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#shoulder_stay_tape.finished"
+        },
+        "presence": {
+          "value": true,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#shoulder_stay_tape",
+          "note": "уточнить у заказчика или по образцу"
+        },
+        "visible_on_photo": false,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "sleeve_set_in",
+        "zone": "sleeves",
+        "label_ru": "Втачивание рукава",
+        "plain_ru": "Рукав втачан в пройму оверлоком",
+        "seam_code": "1.01.01",
+        "stitch_code": "514",
+        "spi": 12,
+        "machine": "overlock_4",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 1,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#sleeve_set_in.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#sleeve_set_in",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "side_sleeve_seam",
+        "zone": "sides",
+        "label_ru": "Боковой шов и шов рукава одной строчкой",
+        "plain_ru": "Бок изделия и рукав прострочены одной непрерывной строчкой",
+        "seam_code": "1.01.01",
+        "stitch_code": "514",
+        "spi": 12,
+        "machine": "overlock_4",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 1,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#side_sleeve_seam.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#side_sleeve_seam",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "hem_coverstitch",
+        "zone": "hem",
+        "label_ru": "Подгибка низа распошивом",
+        "plain_ru": "Низ подогнут и прострочен распошивальной машиной — она даёт две параллельные строчки, которые тянутся вместе с полотном",
+        "seam_code": "6.06.01",
+        "stitch_code": "406",
+        "spi": 11,
+        "machine": "coverstitch_2n",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 2,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#hem_coverstitch.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#hem_coverstitch",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "sleeve_hem_coverstitch",
+        "zone": "sleeves",
+        "label_ru": "Подгибка низа рукава распошивом",
+        "plain_ru": "Низ рукава подогнут и прострочен распошивальной машиной",
+        "seam_code": "6.06.01",
+        "stitch_code": "406",
+        "spi": 11,
+        "machine": "coverstitch_2n",
+        "specialty": "S",
+        "seam_allowance_cm": {
+          "value": 2,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#sleeve_hem_coverstitch.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "default_from_base",
+          "source": "kb:construction_nodes#sleeve_hem_coverstitch",
+          "note": "типовой узел категории — подтвердить по образцу"
+        },
+        "visible_on_photo": true,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "size_label_in_seam",
+        "zone": "labels",
+        "label_ru": "Размерник в шов горловины",
+        "plain_ru": "Размерник вложен в шов горловины при отстрочке",
+        "seam_code": "1.01.01",
+        "stitch_code": "301",
+        "spi": 11,
+        "machine": "single_needle_lockstitch",
+        "specialty": "M",
+        "seam_allowance_cm": {
+          "value": 0.7,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#size_label_in_seam.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#size_label_in_seam",
+          "note": "уточнить у заказчика или по образцу"
+        },
+        "visible_on_photo": false,
+        "requires_special_equipment": false,
+        "alternative": null
+      },
+      {
+        "node_id": "care_label_stitched",
+        "zone": "labels",
+        "label_ru": "Притачивание составника",
+        "plain_ru": "Ярлык с составом и уходом притачан в боковой шов изнутри",
+        "seam_code": "2.02.01",
+        "stitch_code": "301",
+        "spi": 11,
+        "machine": "single_needle_lockstitch",
+        "specialty": "M",
+        "seam_allowance_cm": {
+          "value": 0.5,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#care_label_stitched.seam_allowance",
+          "note": "припуски с фото не видны — уточнить у конструктора"
+        },
+        "finished_cm": null,
+        "presence": {
+          "value": true,
+          "confidence": "assumption",
+          "source": "kb:construction_nodes#care_label_stitched",
+          "note": "уточнить у заказчика или по образцу"
+        },
+        "visible_on_photo": false,
+        "requires_special_equipment": false,
+        "alternative": null
+      }
+    ],
+    "sequence": [
+      {
+        "step": 1,
+        "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+        "node_id": "shoulder_seam_overlock",
+        "specialty": "S",
+        "machine": "overlock_4",
+        "time_sec": null
+      },
+      {
+        "step": 2,
+        "operation_ru": "Стачать бейку горловины в кольцо, заутюжить",
+        "node_id": null,
+        "specialty": "M",
+        "machine": "single_needle_lockstitch",
+        "time_sec": null
+      },
+      {
+        "step": 3,
+        "operation_ru": "Втачать бейку в горловину",
+        "node_id": "neck_rib_band",
+        "specialty": "S",
+        "machine": "overlock_3",
+        "time_sec": null
+      },
+      {
+        "step": 4,
+        "operation_ru": "Отстрочить горловину, настрочить тесьму, вложить размерник",
+        "node_id": "neck_topstitch_tape",
+        "specialty": "S",
+        "machine": "coverstitch_2n",
+        "time_sec": null
+      },
+      {
+        "step": 5,
+        "operation_ru": "Втачать рукава в проймы",
+        "node_id": "sleeve_set_in",
+        "specialty": "S",
+        "machine": "overlock_4",
+        "time_sec": null
+      },
+      {
+        "step": 6,
+        "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+        "node_id": "side_sleeve_seam",
+        "specialty": "S",
+        "machine": "overlock_4",
+        "time_sec": null
+      },
+      {
+        "step": 7,
+        "operation_ru": "Подшить низ рукавов",
+        "node_id": "sleeve_hem_coverstitch",
+        "specialty": "S",
+        "machine": "coverstitch_2n",
+        "time_sec": null
+      },
+      {
+        "step": 8,
+        "operation_ru": "Подшить низ изделия",
+        "node_id": "hem_coverstitch",
+        "specialty": "S",
+        "machine": "coverstitch_2n",
+        "time_sec": null
+      },
+      {
+        "step": 9,
+        "operation_ru": "Притачать составник в боковой шов",
+        "node_id": "care_label_stitched",
+        "specialty": "M",
+        "machine": "single_needle_lockstitch",
+        "time_sec": null
+      },
+      {
+        "step": 10,
+        "operation_ru": "Чистка изделия, контроль качества",
+        "node_id": null,
+        "specialty": "R",
+        "machine": "manual",
+        "time_sec": null
+      },
+      {
+        "step": 11,
+        "operation_ru": "Влажно-тепловая обработка, упаковка",
+        "node_id": null,
+        "specialty": "U",
+        "machine": "iron",
+        "time_sec": null
+      }
+    ]
+  },
   "assets": [],
   "meta": {
     "generated_at": "2026-08-25T00:00:00.000Z",
     "kb_versions": {
-      "pom_templates/tshirt": "0.1.0"
+      "pom_templates/tshirt": "0.1.0",
+      "category_defaults/tshirt": "0.1.0"
     },
-    "assumptions_count": 0
+    "assumptions_count": 3
   }
 }

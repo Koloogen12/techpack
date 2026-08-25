@@ -1,6 +1,11 @@
 import { SPEC_VERSION, parseStyleSpec, type StyleSpec } from '@specform/stylespec';
 import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
 import { buildMeasurements, countMeasurementAssumptions, type PomInput } from './pom.js';
+import {
+  buildConstruction,
+  countConstructionAssumptions,
+  type ConstructionInput,
+} from './construction.js';
 
 /**
  * Сборка StyleSpec — детерминированная стадия пайплайна.
@@ -9,7 +14,7 @@ import { buildMeasurements, countMeasurementAssumptions, type PomInput } from '.
  * уже посчитанные пропорции с фото, на выходе — цифровая модель изделия.
  * Из неё рендерятся чертёж, таблицы и PDF (ADR-0003 §1).
  */
-export interface StyleSpecInput extends PomInput {
+export interface StyleSpecInput extends PomInput, Omit<ConstructionInput, 'category'> {
   /** Идентификатор техпака. Приходит извне — движок ничего не выдумывает. */
   id: string;
   name: string;
@@ -35,6 +40,8 @@ export function buildStyleSpec(
   base: KnowledgeBase = defaultKb(),
 ): StyleSpecResult {
   const { measurements, notes } = buildMeasurements(input, base);
+  const construction = buildConstruction(input, base);
+  notes.push(...construction.notes);
 
   const draft = {
     spec_version: SPEC_VERSION,
@@ -56,14 +63,22 @@ export function buildStyleSpec(
       size_range: input.size_range,
     },
     measurements,
+    construction: {
+      machine_park_profile: base.machineParkProfile(input.machine_park).id,
+      nodes: construction.nodes,
+      sequence: construction.sequence,
+    },
     assets: [],
     meta: {
       generated_at: input.generated_at.toISOString(),
       ...(input.vision_cache_key === undefined ? {} : { vision_cache_key: input.vision_cache_key }),
       kb_versions: {
         [measurements.template_id]: measurements.template_version,
+        [`category_defaults/${input.category}`]: base.categoryDefaultsFor(input.category).version,
       },
-      assumptions_count: countMeasurementAssumptions(measurements),
+      assumptions_count:
+        countMeasurementAssumptions(measurements) +
+        countConstructionAssumptions(construction.nodes),
     },
   };
 

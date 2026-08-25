@@ -10,13 +10,13 @@ import { tracked } from './tracked-schema.js';
  * Здесь НЕ хранятся SVG, PDF, HTML и растровые изображения: только ссылки
  * на объекты в хранилище. Правда никогда не живёт в картинке.
  *
- * Версия 0.1.0 покрывает паспорт изделия и табель мер. Разделы конструкции,
- * материалов и маркировки добавляются вместе со своими движками — отдельной
- * минорной версией и миграцией, а не пустыми заготовками «на будущее».
+ * Версия 0.2.0 покрывает паспорт изделия, табель мер и конструкцию.
+ * Разделы материалов и маркировки добавляются вместе со своими движками —
+ * отдельной минорной версией и миграцией, а не пустыми заготовками «на будущее».
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.1.0';
+export const SPEC_VERSION = '0.2.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -84,6 +84,85 @@ export const MeasurementsSchema = z.object({
   points: z.array(PomValueSchema).min(1),
 });
 
+/**
+ * Узел обработки в собранном виде.
+ *
+ * Коды шва и стежка, SPI и тип машины — требование R5: фабрика читает техпак
+ * через свой парк машин, и «сшить как на картинке» её не устраивает.
+ * Поле presence отвечает на вопрос «откуда мы знаем, что этот узел здесь есть»:
+ * увидели на фото, взяли типовым для категории или предположили.
+ */
+export const ConstructionNodeValueSchema = z.object({
+  node_id: z.string().min(1),
+  zone: z.string().min(1),
+  label_ru: z.string().min(1),
+  /** То же простыми словами — для основателя бренда без техбэкграунда. */
+  plain_ru: z.string().min(1),
+  seam_code: z.string().min(3),
+  stitch_code: z.string().regex(/^\d{3}$/),
+  spi: z.number().int().positive(),
+  machine: z.string().min(1),
+  specialty: z.string().min(1),
+  seam_allowance_cm: tracked(z.number().positive()),
+  finished_cm: tracked(z.number().positive()).nullable(),
+  presence: tracked(z.boolean()),
+  visible_on_photo: z.boolean(),
+  /** Узел требует машины вне парка цеха (R6). */
+  requires_special_equipment: z.boolean(),
+  alternative: z
+    .object({
+      node_id: z.string().min(1),
+      label_ru: z.string().min(1),
+      machine: z.string().min(1),
+    })
+    .nullable(),
+});
+
+/** Операция технологической последовательности РФ-формата. */
+export const TechStepSchema = z.object({
+  step: z.number().int().positive(),
+  operation_ru: z.string().min(1),
+  node_id: z.string().nullable(),
+  specialty: z.string().min(1),
+  machine: z.string().min(1),
+  /** Норма времени, секунд. null — данных цеха нет. */
+  time_sec: z.number().positive().nullable(),
+});
+
+export const ConstructionSchema = z
+  .object({
+    /** Профиль парка машин, относительно которого проверялись узлы. */
+    machine_park_profile: z.string().min(1),
+    nodes: z.array(ConstructionNodeValueSchema).min(1),
+    sequence: z.array(TechStepSchema).min(1),
+  })
+  .superRefine((c, ctx) => {
+    // Узел без замены, требующий спецоборудования, — невыполнимое требование
+    // без выхода. Фабрика вернёт документацию.
+    for (const node of c.nodes) {
+      if (node.requires_special_equipment && node.alternative === null) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            `узел ${node.node_id} требует спецоборудования и не предлагает замены — ` +
+            `фабрика получит требование, которое не сможет выполнить`,
+          path: ['nodes'],
+        });
+      }
+    }
+    // Последовательность обязана ссылаться на узлы этого же документа.
+    const ids = new Set(c.nodes.map((n) => n.node_id));
+    for (const step of c.sequence) {
+      if (step.node_id && !ids.has(step.node_id)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `операция ${step.step} ссылается на узел ${step.node_id}, которого нет в документе`,
+          path: ['sequence'],
+        });
+      }
+    }
+  });
+
 /** Ссылка на файл в объектном хранилище. Содержимого файла в спеке нет и не будет. */
 export const AssetRefSchema = z.object({
   key: z.string().min(1),
@@ -114,6 +193,11 @@ export const StyleSpecSchema = z
     style: StyleIdentitySchema,
     base: StyleBaseSchema,
     measurements: MeasurementsSchema,
+    /**
+     * Конструкция. Необязательна: снапшоты версии 0.1.0 её не содержат,
+     * и мигрируют простым повышением версии.
+     */
+    construction: ConstructionSchema.optional(),
     assets: z.array(AssetRefSchema),
     meta: SpecMetaSchema,
   })
@@ -147,9 +231,11 @@ export const StyleSpecSchema = z
 
     // Счётчик предположений — не отдельное поле, а проекция данных.
     // Если он разошёлся с содержимым, документ врёт пользователю.
-    const actual = spec.measurements.points.filter(
-      (p) => p.base.confidence === 'assumption' || p.tolerance.confidence === 'assumption',
-    ).length;
+    const actual =
+      spec.measurements.points.filter(
+        (p) => p.base.confidence === 'assumption' || p.tolerance.confidence === 'assumption',
+      ).length +
+      (spec.construction?.nodes.filter((n) => n.presence.confidence === 'assumption').length ?? 0);
     if (actual !== spec.meta.assumptions_count) {
       ctx.addIssue({
         code: 'custom',
@@ -181,3 +267,6 @@ export type StyleIdentity = z.infer<typeof StyleIdentitySchema>;
 export type Measurements = z.infer<typeof MeasurementsSchema>;
 export type GradedValue = z.infer<typeof GradedValueSchema>;
 export type AssetRef = z.infer<typeof AssetRefSchema>;
+export type Construction = z.infer<typeof ConstructionSchema>;
+export type ConstructionNodeValue = z.infer<typeof ConstructionNodeValueSchema>;
+export type TechStep = z.infer<typeof TechStepSchema>;

@@ -24,10 +24,9 @@ describe('эталонные примеры', () => {
   });
 
   it.each(files)('%s открывается через цепочку миграций', (file) => {
-    const { spec, applied } = migrateToCurrent(load(file));
-    expect(spec.spec_version).toBe(SPEC_VERSION);
-    // Примеры записаны в текущей версии, миграций быть не должно.
-    expect(applied).toEqual([]);
+    // minimal.json намеренно оставлен снапшотом версии 0.1.0: он гоняет
+    // миграции на каждом прогоне тестов, а не только когда о них вспомнят.
+    expect(migrateToCurrent(load(file)).spec.spec_version).toBe(SPEC_VERSION);
   });
 });
 
@@ -130,5 +129,57 @@ describe('смешанные статусы уверенности', () => {
     const clamped = spec.measurements.points.find((p) => p.base.source.includes('clamped'));
     expect(clamped).toBeDefined();
     expect(clamped!.base.note).toContain('диапазон');
+  });
+});
+
+describe('миграция 0.1.0 → 0.2.0', () => {
+  const legacy = { ...(load('minimal.json') as Record<string, unknown>), spec_version: '0.1.0' };
+
+  it('старый снапшот открывается и поднимается до текущей версии', () => {
+    const { spec, applied } = migrateToCurrent(legacy);
+    expect(spec.spec_version).toBe(SPEC_VERSION);
+    expect(applied).toHaveLength(1);
+    expect(applied[0]).toContain('конструкц');
+  });
+
+  it('раздел конструкции у старого снапшота остаётся пустым, а не выдуманным', () => {
+    expect(migrateToCurrent(legacy).spec.construction).toBeUndefined();
+  });
+
+  it('данные старого снапшота переживают миграцию без потерь', () => {
+    const { spec } = migrateToCurrent(legacy);
+    expect(spec.measurements.points).toHaveLength(1);
+    expect(spec.measurements.points[0]!.code).toBe('T03');
+  });
+});
+
+describe('раздел конструкции', () => {
+  const spec = parseStyleSpec(load('tshirt-women-46.json'));
+
+  it('присутствует в свежесобранной спеке', () => {
+    expect(spec.construction).toBeDefined();
+    expect(spec.construction!.nodes.length).toBeGreaterThan(5);
+  });
+
+  it('счётчик предположений учитывает и замеры, и конструкцию', () => {
+    const fromNodes = spec.construction!.nodes.filter(
+      (n) => n.presence.confidence === 'assumption',
+    ).length;
+    expect(fromNodes).toBeGreaterThan(0);
+    expect(spec.meta.assumptions_count).toBeGreaterThanOrEqual(fromNodes);
+  });
+
+  it('узел со спецоборудованием без замены не проходит валидацию', () => {
+    const nodes = [...spec.construction!.nodes];
+    nodes[0] = { ...nodes[0]!, requires_special_equipment: true, alternative: null };
+    const broken = { ...spec, construction: { ...spec.construction!, nodes } };
+    expect(() => parseStyleSpec(broken)).toThrow();
+  });
+
+  it('операция, ссылающаяся на отсутствующий узел, не проходит валидацию', () => {
+    const sequence = [...spec.construction!.sequence];
+    sequence[0] = { ...sequence[0]!, node_id: 'no_such_node' };
+    const broken = { ...spec, construction: { ...spec.construction!, sequence } };
+    expect(() => parseStyleSpec(broken)).toThrow();
   });
 });

@@ -19,10 +19,17 @@ export interface Migration {
 /**
  * Цепочка миграций по возрастанию версий.
  *
- * Пусто: 0.1.0 — первая версия. Каждая следующая добавляет запись сюда
- * ОДНОВРЕМЕННО с изменением схемы, в том же коммите.
+ * Каждая новая версия схемы добавляет запись сюда ОДНОВРЕМЕННО с изменением
+ * самой схемы, в том же коммите. Ломающее изменение без миграции блокирует мерж.
  */
-export const MIGRATIONS: readonly Migration[] = [];
+export const MIGRATIONS: readonly Migration[] = [
+  {
+    from: '0.1.0',
+    to: '0.2.0',
+    describe: 'добавлен раздел конструкции; для старых снапшотов он остаётся пустым',
+    migrate: (snapshot) => ({ ...snapshot, spec_version: '0.2.0' }),
+  },
+];
 
 function versionOf(snapshot: unknown): string {
   if (typeof snapshot !== 'object' || snapshot === null || !('spec_version' in snapshot)) {
