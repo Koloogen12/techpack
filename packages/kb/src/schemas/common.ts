@@ -35,6 +35,14 @@ export const VerifiabilitySchema = z.object({
   source: z.string().min(1),
   /** Почему не проверено и что нужно, чтобы проверить. Обязательно при verified: false. */
   gap: z.string().optional(),
+  /**
+   * Чем именно подтверждено значение. Обязательно при verified: true.
+   *
+   * Флаг «проверено» без объяснения нечем оспорить: через полгода никто
+   * не вспомнит, что именно сошлось, и поднятый флаг станет неотличим
+   * от забытого. Симметрично полю gap.
+   */
+  note_ru: z.string().optional(),
 });
 
 export type Verifiability = z.infer<typeof VerifiabilitySchema>;
@@ -46,6 +54,13 @@ export const verifiabilityRefinement = <T extends Verifiability>(v: T, ctx: z.Re
       code: 'custom',
       message: 'verified: false требует поля gap — что именно нужно, чтобы проверить значение',
       path: ['gap'],
+    });
+  }
+  if (v.verified && !v.note_ru) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'verified: true требует поля note_ru — чем именно значение подтверждено',
+      path: ['note_ru'],
     });
   }
 };

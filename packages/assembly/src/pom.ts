@@ -20,6 +20,7 @@ import {
   type Gender,
   type KnowledgeBase,
   type PomPoint,
+  type ToleranceProfileId,
 } from '@specform/kb';
 import type { GradedValue, Measurements, PomValue } from '@specform/stylespec';
 
@@ -110,6 +111,12 @@ export interface PomInput {
    * Самый дешёвый способ поднять точность, поэтому мастер его предлагает.
    */
   manual?: ManualMeasurement;
+  /**
+   * Набор допусков. По умолчанию ГОСТ 23193-78 — норматив РФ, фабрике привычен
+   * и достижим. `premium` жёстче: осознанный выбор бренда, готового платить
+   * за отбраковку, а не «настройка качества».
+   */
+  tolerance_profile?: ToleranceProfileId;
 }
 
 export interface PomResult {
@@ -278,12 +285,14 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
       how_to_measure_ru: point.how_to_measure_ru,
       measure_kind: point.measure_kind,
       base: { ...value, value: roundCm(value.value) },
-      tolerance: toleranceFor(point, input.fabric_kind, base),
+      tolerance: toleranceFor(point, input.fabric_kind, base, input.tolerance_profile),
       graded: graded.get(point.code)!,
       required: point.required,
       pro_only: point.pro_only,
     };
   });
+
+  notes.push(...separatingPoints(points));
 
   return {
     measurements: {
@@ -604,14 +613,66 @@ function calibrate(
 }
 
 /** Допуск точки. Приоритет: явное значение категории > класс точки. */
-function toleranceFor(point: PomPoint, fabric: FabricKind, base: KnowledgeBase): Tracked<number> {
+function toleranceFor(
+  point: PomPoint,
+  fabric: FabricKind,
+  base: KnowledgeBase,
+  profile: ToleranceProfileId = 'gost',
+): Tracked<number> {
   if (point.tolerance_cm !== undefined) {
     return fromBase(point.tolerance_cm, `kb:pom_templates#${point.code}.tolerance_cm`);
   }
   return fromBase(
-    base.toleranceFor(point.tolerance_class, fabric),
-    `kb:tolerance_classes#${point.tolerance_class}.${fabric}`,
+    base.toleranceFor(point.tolerance_class, fabric, profile),
+    `kb:tolerance_classes#${point.tolerance_class}.${fabric}.${profile}`,
   );
+}
+
+/**
+ * По каким точкам ряд вообще различим.
+ *
+ * Международное правило приёмки: допуск не должен превышать половину шага
+ * градации, иначе диапазоны соседних размеров перекрываются и одно изделие
+ * законно проходит приёмку сразу в двух размерах.
+ *
+ * На трикотажном верхе правило выполнимо не везде: мелкие точки градуируются
+ * на десятые доли, а меряются с погрешностью в полсантиметра. Это свойство
+ * материала, а не ошибка документа, — поэтому здесь предупреждение,
+ * а не отказ собирать спеку.
+ *
+ * Перечисляем НЕ нарушителей, а те точки, по которым размеры различаются:
+ * нарушителей две трети таблицы, и такой список читать никто не станет,
+ * а короткий список «сортируйте по этим двум» — станет.
+ */
+function separatingPoints(points: readonly PomValue[]): string[] {
+  const graded = points.filter((p) => p.graded.length > 0);
+  if (!graded.length) return [];
+
+  const separates = graded.filter((p) => {
+    const values = [p.base.value, ...p.graded.map((g) => g.value.value)].sort((a, b) => a - b);
+    const perSize = (values.at(-1)! - values[0]!) / (values.length - 1);
+    return perSize > 0 && p.tolerance.value <= perSize / 2;
+  });
+
+  if (separates.length === graded.length) return [];
+
+  if (!separates.length) {
+    return [
+      'Ни по одной точке табеля соседние размеры не различаются: допуск везде шире ' +
+        'половины шага градации. Проверьте размерный ряд — возможно, он слишком плотный ' +
+        'для выбранного полотна.',
+    ];
+  }
+
+  return [
+    `Соседние размеры надёжно различаются только по этим точкам: ` +
+      `${separates.map((p) => `${p.code} (${p.name_ru.toLowerCase()})`).join(', ')}. ` +
+      `По остальным допуск шире половины шага градации, и одно изделие законно проходит ` +
+      `приёмку сразу в двух размерах. Для трикотажа это норма: мелкие точки растут ` +
+      `на десятые доли, а рулетка читается с точностью до половины сантиметра. ` +
+      `ОТК: сортируйте ряд по названным точкам, остальные проверяйте на попадание ` +
+      `в допуск своего размера, а не на отличие от соседнего.`,
+  ];
 }
 
 /**

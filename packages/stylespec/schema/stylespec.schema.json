@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "StyleSpec 0.1.0",
+  "title": "StyleSpec 0.4.0",
   "type": "object",
   "properties": {
     "spec_version": {
@@ -241,6 +241,621 @@
         }
       },
       "required": ["template_id", "template_version", "points"],
+      "additionalProperties": false
+    },
+    "construction": {
+      "type": "object",
+      "properties": {
+        "machine_park_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nodes": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "zone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plain_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "seam_code": {
+                "type": "string",
+                "minLength": 3
+              },
+              "stitch_code": {
+                "type": "string",
+                "pattern": "^\\d{3}$"
+              },
+              "spi": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "machine": {
+                "type": "string",
+                "minLength": 1
+              },
+              "specialty": {
+                "type": "string",
+                "minLength": 1
+              },
+              "seam_allowance_cm": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "finished_cm": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "presence": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "boolean"
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "visible_on_photo": {
+                "type": "boolean"
+              },
+              "requires_special_equipment": {
+                "type": "boolean"
+              },
+              "alternative": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "node_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "label_ru": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "machine": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["node_id", "label_ru", "machine"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "node_id",
+              "zone",
+              "label_ru",
+              "plain_ru",
+              "seam_code",
+              "stitch_code",
+              "spi",
+              "machine",
+              "specialty",
+              "seam_allowance_cm",
+              "finished_cm",
+              "presence",
+              "visible_on_photo",
+              "requires_special_equipment",
+              "alternative"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sequence": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "step": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "operation_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "node_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "specialty": {
+                "type": "string",
+                "minLength": 1
+              },
+              "machine": {
+                "type": "string",
+                "minLength": 1
+              },
+              "time_sec": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["step", "operation_ru", "node_id", "specialty", "machine", "time_sec"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["machine_park_profile", "nodes", "sequence"],
+      "additionalProperties": false
+    },
+    "bom": {
+      "type": "object",
+      "properties": {
+        "colorways": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hex_approx": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "name_ru"],
+            "additionalProperties": false
+          }
+        },
+        "lines": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "enum": ["shell", "rib", "interlining", "thread", "label", "packaging"]
+              },
+              "material_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "composition": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "gsm": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "placement_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "consumption": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "consumption_unit": {
+                "type": "string",
+                "enum": ["м", "шт", "компл"]
+              },
+              "supplier_article": {
+                "type": "null"
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "role",
+              "material_id",
+              "name_ru",
+              "name_en",
+              "composition",
+              "gsm",
+              "placement_ru",
+              "consumption",
+              "consumption_unit",
+              "supplier_article"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "fabric_consumption_m": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "confidence": {
+              "type": "string",
+              "enum": [
+                "fit_confirmed",
+                "user_input",
+                "estimated_from_photo",
+                "default_from_base",
+                "assumption"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "note": {
+              "type": "string"
+            }
+          },
+          "required": ["value", "confidence", "source"],
+          "additionalProperties": false
+        },
+        "batch_qty": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "batch_consumption_m": {
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "colorways",
+        "lines",
+        "fabric_consumption_m",
+        "batch_qty",
+        "batch_consumption_m"
+      ],
+      "additionalProperties": false
+    },
+    "labels": {
+      "type": "object",
+      "properties": {
+        "care_symbols": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "group": {
+                "type": "string",
+                "minLength": 1
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_ru": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": ["group", "id", "label_ru"],
+            "additionalProperties": false
+          }
+        },
+        "requisites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "action_ru": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["id", "label_ru", "value", "required", "action_ru"],
+            "additionalProperties": false
+          }
+        },
+        "sku_matrix": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sku": {
+                "type": "string",
+                "minLength": 1
+              },
+              "colorway_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "colorway_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "size_ru": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "gtin": {
+                "type": "null"
+              }
+            },
+            "required": ["sku", "colorway_id", "colorway_ru", "size_ru", "gtin"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["care_symbols", "requisites", "sku_matrix"],
       "additionalProperties": false
     },
     "assets": {

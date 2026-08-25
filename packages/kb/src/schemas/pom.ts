@@ -42,9 +42,58 @@ export const ToleranceClassEntrySchema = z
   .and(VerifiabilitySchema)
   .superRefine(verifiabilityRefinement);
 
+/**
+ * Профиль допусков: дефолтный ГОСТ и опция «жёстче норматива».
+ *
+ * Ужесточение допуска НЕ улучшает пошив: на тех же машинах и том же полотне
+ * оно лишь увеличивает долю изделий, не прошедших приёмку. Поэтому строгий
+ * набор — осознанный выбор бренда, а не «настройка качества».
+ */
+export const ToleranceProfileSchema = z.object({
+  id: z.enum(['gost', 'premium']),
+  label_ru: z.string().min(1),
+  description_ru: z.string().min(1),
+  /** Класс → допуск, ±см. Перечислять все классы не обязательно: чего нет — берётся из classes. */
+  overrides: z.partialRecord(ToleranceClassSchema, z.number().positive()),
+});
+
+/**
+ * Чужие наборы допусков — только для сравнения, в расчёте не участвуют.
+ *
+ * Нужны, чтобы документ мог сказать фабрике «наши допуски строже вашей нормы»
+ * числом, а не на словах. null означает «этот класс в той системе
+ * не нормируется» — не ноль и не «нет данных».
+ */
+export const ToleranceComparisonSchema = z
+  .object({
+    id: z.string().min(1),
+    label_ru: z.string().min(1),
+    values: z.record(ToleranceClassSchema, z.number().positive().nullable()),
+  })
+  .and(VerifiabilitySchema)
+  .superRefine(verifiabilityRefinement);
+
+/** Правила приёмки, которые поточечный допуск не выражает. */
+export const QcRuleSchema = z
+  .object({
+    id: z.string().min(1),
+    text_ru: z.string().min(1),
+  })
+  .and(VerifiabilitySchema)
+  .superRefine(verifiabilityRefinement);
+
 export const ToleranceClassesFileSchema = RefBookMetaSchema.extend({
   classes: z.array(ToleranceClassEntrySchema).length(TOLERANCE_CLASSES.length),
+  profiles: z.array(ToleranceProfileSchema).min(1),
+  comparison_sets: z.array(ToleranceComparisonSchema),
+  qc_rules: z.array(QcRuleSchema),
 });
+
+export type ToleranceProfile = z.infer<typeof ToleranceProfileSchema>;
+export type ToleranceProfileId = ToleranceProfile['id'];
+export const TOLERANCE_PROFILES = ['gost', 'premium'] as const;
+export type ToleranceComparison = z.infer<typeof ToleranceComparisonSchema>;
+export type QcRule = z.infer<typeof QcRuleSchema>;
 
 export type ToleranceClassEntry = z.infer<typeof ToleranceClassEntrySchema>;
 export type ToleranceClassesFile = z.infer<typeof ToleranceClassesFileSchema>;

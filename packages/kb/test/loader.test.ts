@@ -219,16 +219,133 @@ describe('честность справочников', () => {
     for (const g of gaps) expect(g.gap.length).toBeGreaterThan(20);
   });
 
-  it('мужская сетка честно помечена как блокирующий пробел', () => {
-    const menGaps = base.unverified().filter((g) => g.key.startsWith('men/'));
-    expect(menGaps.length).toBeGreaterThan(0);
-    expect(menGaps.some((g) => g.gap.includes('БЛОКИРУЮЩИЙ'))).toBe(true);
+  it('мужская сетка взята из первоисточника, а не выведена', () => {
+    // Блокирующий пробел закрыт калибровкой эталоном v1.0: таблица 3
+    // ГОСТ 31399-2009, 3-я полнотная группа. Раньше здесь стояла оценка
+    // по правилу RU = Ог/2, а талия не заполнялась вовсе.
+    expect(base.unverified().filter((g) => g.key.startsWith('men/'))).toEqual([]);
+    for (const row of base.sizeChart('men').rows) {
+      expect(row.waist, `RU ${row.ru}`).not.toBeNull();
+    }
   });
 
-  it('обхваты талии и бёдер у мужчин не выдуманы', () => {
-    for (const row of base.sizeChart('men').rows) {
-      expect(row.waist).toBeNull();
-      expect(row.hip).toBeNull();
+  it('обхват бёдер у мужчин не выдуман — его нет в стандарте', () => {
+    // ГОСТ 31399 классифицирует мужчин по росту, груди и талии. Бёдер там нет,
+    // и подставить их нечем: пустое поле честнее правдоподобного числа.
+    for (const row of base.sizeChart('men').rows) expect(row.hip).toBeNull();
+  });
+
+  it('обхват талии у женщин помечен как выведенный, а не как ГОСТ', () => {
+    // В женскую классификацию ГОСТ 31396 талия НЕ ВХОДИТ. Значение сведено
+    // из вторичных источников, и таблица обязана это объявлять.
+    const chart = base.sizeChart('women');
+    expect(chart.waist_provenance).toBe('derived');
+    expect(chart.waist_note_ru).toBeTruthy();
+    expect(base.sizeChart('men').waist_provenance).toBe('gost');
+  });
+
+  it('полнотная группа названа явно — «просто размер 46» талию не определяет', () => {
+    // На каждый обхват груди в ГОСТ приходится пять-шесть полнот. Не назвать
+    // группу значит выдать одну из шести таблиц за единственную.
+    expect(base.sizeChart('women').fullness_group).toBe(2);
+    expect(base.sizeChart('men').fullness_group).toBe(3);
+    for (const g of ['women', 'men'] as const) {
+      expect(base.sizeChart(g).fullness_note_ru.length).toBeGreaterThan(20);
     }
+  });
+});
+
+describe('калибровка эталоном v1.0 — числа, которые нельзя поменять молча', () => {
+  /**
+   * Эти значения переписаны по первоисточникам (ГОСТ 23193-78, формулы ЕМКО
+   * через методичку ИВГПУ, немецкая школа градации) и закрыли конкретные
+   * дефекты документов. Тест фиксирует их не ради самих чисел, а чтобы правка
+   * прошла осознанно: справочники — это код, и меняются через PR с причиной.
+   */
+  const rule = (key: string) => base.gradingRule(key);
+
+  it('бицепс растёт вместе с проймой, а не втрое быстрее', () => {
+    // ЕМКО: ΔШОР = ΔШПр. Было 1.6 — разброс рукава 8 см по ряду 42–52
+    // при 10 см по груди.
+    expect(rule('bicep').per_size).toBe(0.5);
+  });
+
+  it('низ рукава не обгоняет сам рукав', () => {
+    expect(rule('sleeve_opening').per_size).toBe(0.25);
+    expect(rule('sleeve_opening').per_size).toBeLessThan(rule('bicep').per_size);
+  });
+
+  it('карман градуируется от горловины, а не пропорционально груди', () => {
+    // Было 0.8 — вчетверо выше нормы. Крупный карман на маленьком размере
+    // это классический визуальный брак градации.
+    expect(rule('pocket_width').per_size).toBe(0.2);
+    expect(rule('pocket_height').per_size).toBeLessThan(rule('pocket_width').per_size);
+    expect(rule('hood_body').per_size).toBe(0.2);
+    expect(rule('hood_opening').per_size).toBeGreaterThan(rule('hood_body').per_size);
+  });
+
+  it('ни одно приращение не превышает ведущую ширину по груди', () => {
+    const width = rule('body_width').per_size;
+    for (const r of base.gradingRules()) {
+      expect(r.per_size, r.key).toBeLessThanOrEqual(width);
+    }
+  });
+
+  it('длина разделена на размерное и ростовое приращение', () => {
+    // Отраслевые «+2–2.5 см на размер» — склейка обоих. При совмещённой
+    // градации она удваивает приращение длины.
+    const len = rule('body_length');
+    expect(len.per_size).toBeGreaterThan(0);
+    expect(len.per_height).toBeGreaterThan(len.per_size);
+  });
+
+  it('наклон плеча и высоты рибан не градуируются', () => {
+    expect(rule('none').per_size).toBe(0);
+  });
+
+  it('допуски — ГОСТ 23193-78, а не то, что казалось строгим', () => {
+    // Прежний дефолт по мелким точкам был ±0.3: строже норматива без основания.
+    // Слишком жёсткий допуск не улучшает пошив, а даёт брак там, где фабрика
+    // работает нормально.
+    expect(base.toleranceFor('minor', 'knit')).toBe(0.5);
+    expect(base.toleranceFor('medium', 'knit')).toBe(0.5);
+    expect(base.toleranceFor('major_width', 'knit')).toBe(1.0);
+    expect(base.toleranceFor('length', 'knit')).toBe(1.0);
+  });
+
+  it('премиальный профиль жёстче ГОСТ, и это выбор бренда', () => {
+    expect(base.toleranceFor('minor', 'knit', 'premium')).toBeLessThan(
+      base.toleranceFor('minor', 'knit', 'gost'),
+    );
+  });
+
+  it('наши допуски строже мировой практики по каждому классу', () => {
+    const intl = base.toleranceComparisons().find((c) => c.id === 'intl_practice')!;
+    for (const [cls, value] of Object.entries(intl.values)) {
+      if (value === null) continue;
+      expect(base.toleranceFor(cls as never, 'knit'), cls).toBeLessThanOrEqual(value);
+    }
+  });
+
+  it('правила приёмки, которые поточечный допуск не выражает, названы', () => {
+    const ids = base.qcRules().map((r) => r.id);
+    expect(ids).toContain('paired_parts');
+    expect(ids).toContain('measurement_error');
+  });
+
+  it('прибавка прилегающей посадки допускает минус — это трикотаж', () => {
+    const fitted = base.easeFor('tshirt', 'fitted', 'knit').entry;
+    expect(fitted.min).toBeLessThan(0);
+    // Но выбрать минус пока нечем: движок берёт default, и справочник об этом
+    // говорит прямо, а не делает вид, что проверка есть.
+    expect(fitted.default).toBeGreaterThan(0);
+    expect(fitted.note).toContain('недостижима');
+  });
+
+  it('мужская сетка несёт китайскую 号型 и полнотную группу', () => {
+    const row = base.bodyMeasurements('men', 48);
+    expect(row.cn).toBe('175/96A');
+    // 型 = обхват груди = RU × 2.
+    expect(row.cn!.split('/')[1]!.replace(/\D/g, '')).toBe(String(row.chest));
   });
 });

@@ -49,6 +49,10 @@ import {
   type SizeChartsFile,
   type ToleranceClass,
   type ToleranceClassEntry,
+  type ToleranceComparison,
+  type ToleranceProfile,
+  type ToleranceProfileId,
+  type QcRule,
   type ToleranceClassesFile,
   type VisibilityMapFile,
 } from './schemas/index.js';
@@ -162,10 +166,38 @@ export class KnowledgeBase {
     return found;
   }
 
-  /** Допуск по умолчанию для класса точки, ±см. */
-  toleranceFor(name: ToleranceClass, fabric: FabricKind): number {
+  /**
+   * Допуск по умолчанию для класса точки, ±см.
+   *
+   * Профиль `premium` жёстче ГОСТ. Это выбор бренда, а не «настройка качества»:
+   * на тех же машинах и том же полотне ужесточение допуска не улучшает пошив,
+   * а увеличивает долю изделий, не прошедших приёмку.
+   */
+  toleranceFor(
+    name: ToleranceClass,
+    fabric: FabricKind,
+    profile: ToleranceProfileId = 'gost',
+  ): number {
     const cls = this.toleranceClass(name);
-    return fabric === 'knit' ? cls.knit.default : cls.woven.default;
+    const base = fabric === 'knit' ? cls.knit.default : cls.woven.default;
+    const override = this.toleranceProfile(profile).overrides[name];
+    return override ?? base;
+  }
+
+  toleranceProfile(id: ToleranceProfileId): ToleranceProfile {
+    const found = this.tolerances.profiles.find((p) => p.id === id);
+    if (!found) throw new Error(`неизвестный профиль допусков: ${id}`);
+    return found;
+  }
+
+  /** Чужие наборы допусков — только для сравнения в документе. */
+  toleranceComparisons(): readonly ToleranceComparison[] {
+    return this.tolerances.comparison_sets;
+  }
+
+  /** Правила приёмки, которые поточечный допуск не выражает. */
+  qcRules(): readonly QcRule[] {
+    return this.tolerances.qc_rules;
   }
 
   sizeChart(gender: Gender): SizeChart {
@@ -215,6 +247,11 @@ export class KnowledgeBase {
       userAction: 'Выберите другую посадку или напишите нам — добавим.',
       details: { category, fit, fabric },
     });
+  }
+
+  /** Все правила приращений — для проверок, которые смотрят на набор целиком. */
+  gradingRules(): readonly GradingRule[] {
+    return this.grading.rules;
   }
 
   gradingRule(key: string): GradingRule {

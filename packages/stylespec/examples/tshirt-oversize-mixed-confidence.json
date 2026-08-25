@@ -32,13 +32,13 @@
         "tolerance": {
           "value": 1,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#length.knit"
+          "source": "kb:tolerance_classes#length.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 71.3,
+              "value": 71,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -46,7 +46,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 72.8,
+              "value": 73,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -54,7 +54,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 73.5,
+              "value": 74,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -78,13 +78,13 @@
         "tolerance": {
           "value": 1,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#length.knit"
+          "source": "kb:tolerance_classes#length.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 68.9,
+              "value": 68.6,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(1×T01+-1×T16)"
             }
@@ -92,7 +92,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 70.1,
+              "value": 70.3,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(1×T01+-1×T16)"
             }
@@ -100,7 +100,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 70.7,
+              "value": 71.2,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(1×T01+-1×T16)"
             }
@@ -124,7 +124,7 @@
         "tolerance": {
           "value": 1,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#major_width.knit"
+          "source": "kb:tolerance_classes#major_width.knit.gost"
         },
         "graded": [
           {
@@ -170,7 +170,7 @@
         "tolerance": {
           "value": 1,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#major_width.knit"
+          "source": "kb:tolerance_classes#major_width.knit.gost"
         },
         "graded": [
           {
@@ -216,7 +216,7 @@
         "tolerance": {
           "value": 1,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#major_width.knit"
+          "source": "kb:tolerance_classes#major_width.knit.gost"
         },
         "graded": [
           {
@@ -257,18 +257,18 @@
           "value": 59.1,
           "confidence": "default_from_base",
           "source": "engine:pom/clamped#T06",
-          "note": "оценка по фото (148.8 см) вышла за правдоподобный диапазон 43.4–65.1 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
+          "note": "оценка по фото (146.4 см) вышла за правдоподобный диапазон 42.7–64.1 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.6,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#medium.knit"
+          "source": "kb:tolerance_classes#medium.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 58,
+              "value": 58.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -276,7 +276,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 60.2,
+              "value": 60.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -284,7 +284,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 61.3,
+              "value": 61.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -306,9 +306,9 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.6,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#medium.knit"
+          "source": "kb:tolerance_classes#medium.knit.gost"
         },
         "graded": [
           {
@@ -352,9 +352,9 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.6,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#medium.knit"
+          "source": "kb:tolerance_classes#medium.knit.gost"
         },
         "graded": [
           {
@@ -398,15 +398,15 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.6,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#medium.knit"
+          "source": "kb:tolerance_classes#medium.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 24.3,
+              "value": 23.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#armhole"
             }
@@ -414,7 +414,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 25.2,
+              "value": 25.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#armhole"
             }
@@ -422,7 +422,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 25.7,
+              "value": 26.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#armhole"
             }
@@ -438,21 +438,21 @@
         "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
         "measure_kind": "length",
         "base": {
-          "value": 26.7,
+          "value": 27.1,
           "confidence": "default_from_base",
           "source": "engine:pom/clamped#T10",
-          "note": "оценка по фото (32.2 см) вышла за правдоподобный диапазон 13.6–29.4 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
+          "note": "оценка по фото (31.7 см) вышла за правдоподобный диапазон 13.6–29.4 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.6,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#medium.knit"
+          "source": "kb:tolerance_classes#medium.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 26.3,
+              "value": 26.7,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -460,7 +460,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 27.1,
+              "value": 27.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -468,7 +468,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 27.5,
+              "value": 27.9,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -484,7 +484,7 @@
         "how_to_measure_ru": "Через плечо от центра спинки до края рукава. Применяется для реглана и спущенного плеча",
         "measure_kind": "length",
         "base": {
-          "value": 56.2,
+          "value": 56.6,
           "confidence": "default_from_base",
           "source": "engine:pom/composed(0.5×T06+1×T10)",
           "note": "масштаб откалиброван по вашему замеру"
@@ -492,13 +492,13 @@
         "tolerance": {
           "value": 1,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#length.knit"
+          "source": "kb:tolerance_classes#length.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 55.3,
+              "value": 55.8,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
@@ -506,7 +506,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 57.2,
+              "value": 57.6,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
@@ -514,7 +514,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 58.2,
+              "value": 58.5,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
@@ -536,15 +536,15 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.6,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#medium.knit"
+          "source": "kb:tolerance_classes#medium.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 20.3,
+              "value": 21.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#bicep"
             }
@@ -552,7 +552,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 23.5,
+              "value": 22.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#bicep"
             }
@@ -560,7 +560,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 25.1,
+              "value": 22.9,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#bicep"
             }
@@ -582,15 +582,15 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.3,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#minor.knit"
+          "source": "kb:tolerance_classes#minor.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 17.8,
+              "value": 18.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_opening"
             }
@@ -598,7 +598,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 19.4,
+              "value": 18.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_opening"
             }
@@ -606,7 +606,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 20.2,
+              "value": 19.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_opening"
             }
@@ -622,21 +622,21 @@
         "how_to_measure_ru": "Между плечевыми швами по линии втачивания горловины",
         "measure_kind": "length",
         "base": {
-          "value": 22.1,
+          "value": 22.5,
           "confidence": "default_from_base",
           "source": "engine:pom/clamped#T14",
-          "note": "оценка по фото (24.8 см) вышла за правдоподобный диапазон 13.3–24.4 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
+          "note": "оценка по фото (24.4 см) вышла за правдоподобный диапазон 13.3–24.4 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.3,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#minor.knit"
+          "source": "kb:tolerance_classes#minor.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 21.7,
+              "value": 22.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -644,7 +644,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 22.6,
+              "value": 22.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -652,7 +652,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 23,
+              "value": 23.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -668,21 +668,21 @@
         "how_to_measure_ru": "От линии между высшими точками плеч вниз до шва втачивания по центру переда",
         "measure_kind": "length",
         "base": {
-          "value": 7.1,
+          "value": 7.2,
           "confidence": "default_from_base",
           "source": "kb:baseline#T15",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.3,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#minor.knit"
+          "source": "kb:tolerance_classes#minor.knit.gost"
         },
         "graded": [
           {
             "ru": 44,
             "value": {
-              "value": 6.9,
+              "value": 7.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -690,7 +690,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 7.2,
+              "value": 7.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -698,7 +698,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 7.4,
+              "value": 7.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -720,9 +720,9 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.3,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#minor.knit"
+          "source": "kb:tolerance_classes#minor.knit.gost"
         },
         "graded": [
           {
@@ -787,9 +787,9 @@
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
-          "value": 0.3,
+          "value": 0.5,
           "confidence": "default_from_base",
-          "source": "kb:tolerance_classes#minor.knit"
+          "source": "kb:tolerance_classes#minor.knit.gost"
         },
         "graded": [],
         "required": false,

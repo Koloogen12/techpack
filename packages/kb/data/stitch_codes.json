@@ -17,7 +17,8 @@
       "machine": "manual",
       "application_ru": "временное скрепление, намётка",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "103",
@@ -26,7 +27,8 @@
       "machine": "blindstitch",
       "application_ru": "потайная подгибка низа брюк, юбок, пальто",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "301",
@@ -35,7 +37,8 @@
       "machine": "single_needle_lockstitch",
       "application_ru": "стачивание, отстрочки, воротники, планки, молнии",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "304",
@@ -44,7 +47,8 @@
       "machine": "bartack",
       "application_ru": "закрепки, петли, пуговицы, бельё",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "401",
@@ -53,7 +57,8 @@
       "machine": "twin_needle_lockstitch",
       "application_ru": "эластичные соединения, джинсы, бок сорочек",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "406",
@@ -62,7 +67,8 @@
       "machine": "coverstitch_2n",
       "application_ru": "подгибка низа и рукавов трикотажа, шлевки, бейки",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "407",
@@ -71,7 +77,8 @@
       "machine": "coverstitch_3n",
       "application_ru": "настрачивание резинки: бельё, спорт",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "504",
@@ -80,7 +87,8 @@
       "machine": "overlock_3",
       "application_ru": "стачивание с обмёткой трикотажа",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "512",
@@ -89,7 +97,8 @@
       "machine": "overlock_4",
       "application_ru": "усиленное стачивание с обмёткой",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "514",
@@ -98,7 +107,8 @@
       "machine": "overlock_4",
       "application_ru": "основной шов трикотажа: плечо, бок, окат",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "602",
@@ -107,7 +117,8 @@
       "machine": "flatlock",
       "application_ru": "подгибка с закрытием среза, кружево, резинки",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "605",
@@ -116,7 +127,8 @@
       "machine": "coverstitch_3n",
       "application_ru": "бейки, бельё, спорт",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     },
     {
       "code": "607",
@@ -125,7 +137,8 @@
       "machine": "flatlock",
       "application_ru": "бельё, термо, флис — шов встык",
       "verified": true,
-      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+      "note_ru": "Код класса стежка сверен с ГОСТ 12807-2003 (таблица 1), который гармонизирован с ISO 4915 — коды в двух системах совпадают. Кросс-чек: матрица типов стежков A&E (Amefird). Это классификатор, а не оценка: у класса стежка нет диапазона и калибровать в нём нечего."
     }
   ]
 }
