@@ -1,0 +1,28 @@
+{
+  "id": "golden-tshirt-women-46",
+  "name": "Базовая футболка",
+  "article": "TSH-W46-001",
+  "brand": "Пример",
+  "season": "SS26",
+  "description": "Прямая футболка из кулирки, круглая горловина с бейкой-риб",
+  "category": "tshirt",
+  "gender": "women",
+  "base_size_ru": 46,
+  "base_height_cm": 170,
+  "fit_intent": "semi_fitted",
+  "fabric_kind": "knit",
+  "size_range": [42, 44, 46, 48, 50, 52],
+  "quantity": 100,
+  "machine_park": "base_shop",
+  "colorways": [
+    { "id": "black", "name_ru": "Чёрный", "hex_approx": "#111111" },
+    { "id": "ecru", "name_ru": "Экрю", "hex_approx": "#EFE8DC" }
+  ],
+  "brand_profile": {
+    "company_name": "ООО «Пример»",
+    "inn": "7700000000",
+    "address": "101000, Москва, ул. Примерная, д. 1",
+    "trademark": "ПРИМЕР",
+    "country": "Россия"
+  }
+}

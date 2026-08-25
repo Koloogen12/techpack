@@ -16,13 +16,20 @@ import {
  */
 
 export interface BrandProfile {
-  /** Юрлицо-изготовитель. */
-  company_name?: string;
-  inn?: string;
+  /**
+   * Юрлицо-изготовитель.
+   *
+   * Все поля объявлены как `?: T | undefined` намеренно: профиль приходит
+   * из JSON через zod, а тот выводит именно такую форму. В строгом режиме
+   * `?: T` и `?: T | undefined` — разные типы, и подменять одно другим
+   * означало бы врать компилятору на границе данных.
+   */
+  company_name?: string | undefined;
+  inn?: string | undefined;
   /** Юридический адрес производства. */
-  address?: string;
-  trademark?: string;
-  country?: string;
+  address?: string | undefined;
+  trademark?: string | undefined;
+  country?: string | undefined;
 }
 
 export interface LabelsInput {

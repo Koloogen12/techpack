@@ -24,8 +24,11 @@ import type { PhotoConfidence } from './pom.js';
 export interface Colorway {
   id: string;
   name_ru: string;
-  /** Ориентировочный цвет с фото. Точный оттенок сверяется по выкрасу. */
-  hex_approx?: string;
+  /**
+   * Ориентировочный цвет с фото. Точный оттенок сверяется по выкрасу.
+   * Тип допускает undefined явно — значение приходит из JSON через zod.
+   */
+  hex_approx?: string | undefined;
 }
 
 export interface BomInput {

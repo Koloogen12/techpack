@@ -1,0 +1,21 @@
+{
+  "name": "@specform/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "specform": "./src/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@specform/assembly": "workspace:*",
+    "@specform/core": "workspace:*",
+    "@specform/docgen": "workspace:*",
+    "@specform/kb": "workspace:*",
+    "@specform/stylespec": "workspace:*",
+    "@specform/vision": "workspace:*",
+    "zod": "^4.4.3"
+  }
+}

@@ -1,0 +1,264 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { parseStyleSpec, type StyleSpec } from '@specform/stylespec';
+import {
+  DOC_SECTIONS,
+  EXPORT_ROLES,
+  renderHtml,
+  roleProfile,
+  type DocSection,
+} from '../src/index.js';
+
+const load = (file: string): StyleSpec =>
+  parseStyleSpec(
+    JSON.parse(readFileSync(new URL(`../../stylespec/examples/${file}`, import.meta.url), 'utf8')),
+  );
+
+const SPEC = load('tshirt-women-46.json');
+const MIXED = load('tshirt-oversize-mixed-confidence.json');
+
+const html = (spec: StyleSpec = SPEC, options = {}) => renderHtml(spec, { pro: true, ...options });
+const pagesOf = (h: string): string[] => h.split('<section class="page"').slice(1);
+const sectionsOf = (h: string): string[] =>
+  [...h.matchAll(/data-section="([a-z]+)"/g)].map((m) => m[1]!);
+
+describe('состав документа', () => {
+  it('содержит все разделы минимального комплекта для фабрики', () => {
+    const sections = new Set(sectionsOf(html()));
+    for (const s of DOC_SECTIONS) expect(sections).toContain(s);
+  });
+
+  it('раздел лекал честно говорит, что мы их не строим', () => {
+    expect(html()).toContain('Предоставляются конструктором');
+  });
+
+  it('легенда статусов есть на первой странице — без неё документ нечитаем', () => {
+    const cover = pagesOf(html())[0]!;
+    for (const label of ['указано вами', 'оценка по фото', 'типовое значение', 'предположение']) {
+      expect(cover).toContain(label);
+    }
+  });
+
+  it('легенда не дублирует подпись статуса в пояснении', () => {
+    // Первая версия печатала «указано вами — указано вами — сообщил заказчик».
+    expect(html()).not.toMatch(/(указано вами)[^<]*—[^<]*\1/);
+  });
+});
+
+describe('разбиение на страницы', () => {
+  // Баг, найденный на первом же прогоне PDF: страница имеет фиксированную
+  // высоту, длинная таблица не влезала, и следующий раздел печатался поверх
+  // хвоста предыдущего. Часть замеров при этом терялась из виду.
+  it('табель мер из 18 точек занимает больше одного листа', () => {
+    const pages = pagesOf(html()).filter((p) => p.includes('data-section="measurements"'));
+    expect(pages.length).toBeGreaterThan(1);
+  });
+
+  it('разрезанная таблица нумерует листы', () => {
+    expect(html()).toContain('лист 1 из');
+  });
+
+  it('ни одна точка измерения не теряется при разбиении', () => {
+    const h = html();
+    for (const p of SPEC.measurements.points) expect(h).toContain(`>${p.code}<`);
+  });
+
+  it('ни один узел конструкции не теряется при разбиении', () => {
+    const h = html();
+    for (const n of SPEC.construction!.nodes) expect(h).toContain(n.label_ru);
+  });
+
+  it('ни один артикул SKU не теряется', () => {
+    const h = html();
+    for (const s of SPEC.labels!.sku_matrix) expect(h).toContain(s.sku);
+  });
+
+  it('шапка таблицы повторяется на каждом листе — иначе колонки не прочитать', () => {
+    const pages = pagesOf(html()).filter((p) => p.includes('data-section="measurements"'));
+    for (const page of pages) {
+      expect(page).toContain('Точка измерения');
+      expect(page).toContain('Как мерить');
+      expect(page).toContain('Допуск');
+    }
+  });
+
+  it('каждая страница несёт колонтитул с артикулом', () => {
+    for (const page of pagesOf(html())) expect(page).toContain(SPEC.style.article);
+  });
+});
+
+describe('честность значений в документе', () => {
+  it('каждое значение несёт точку статуса', () => {
+    const h = html();
+    const dots = [...h.matchAll(/class="dot dot-(\w+)"/g)].map((m) => m[1]!);
+    expect(dots.length).toBeGreaterThan(SPEC.measurements.points.length);
+    for (const d of new Set(dots)) {
+      expect([
+        'fit_confirmed',
+        'user_input',
+        'estimated_from_photo',
+        'default_from_base',
+        'assumption',
+      ]).toContain(d);
+    }
+  });
+
+  it('счётчик предположений на обложке совпадает со спекой', () => {
+    expect(pagesOf(html())[0]!).toContain(`>${SPEC.meta.assumptions_count}<`);
+  });
+
+  it('документ со смешанными статусами показывает их все', () => {
+    const h = html(MIXED);
+    expect(h).toContain('dot-user_input');
+    expect(h).toContain('dot-default_from_base');
+  });
+
+  it('допуск стоит у каждой точки — таблица без допусков бесполезна ОТК', () => {
+    const h = html();
+    const tolerances = [...h.matchAll(/±[\d.]+/g)];
+    expect(tolerances.length).toBeGreaterThanOrEqual(SPEC.measurements.points.length);
+  });
+});
+
+describe('русский язык интерфейса документа', () => {
+  it('категория и посадка переведены — фабрика не читает английские ключи', () => {
+    const cover = pagesOf(html())[0]!;
+    expect(cover).toContain('футболка');
+    expect(cover).not.toContain('tshirt');
+    expect(cover).not.toContain('semi_fitted');
+  });
+
+  it('тип оборудования назван по-русски', () => {
+    const h = html();
+    expect(h).toContain('распошивальная');
+    expect(h).not.toContain('coverstitch_2n');
+  });
+
+  it('зоны изделия названы по-русски', () => {
+    expect(html()).toContain('горловина');
+  });
+});
+
+describe('машинная проверка парка', () => {
+  it('узел вне парка помечается флагом и предлагает замену', () => {
+    const spec: StyleSpec = {
+      ...SPEC,
+      construction: {
+        ...SPEC.construction!,
+        nodes: SPEC.construction!.nodes.map((n, i) =>
+          i === 0
+            ? {
+                ...n,
+                requires_special_equipment: true,
+                alternative: {
+                  node_id: 'hem_coverstitch',
+                  label_ru: 'Подгибка низа распошивом',
+                  machine: 'coverstitch_2n',
+                },
+              }
+            : n,
+        ),
+      },
+    };
+    const h = html(spec);
+    expect(h).toContain('спецоборудование');
+    expect(h).toContain('Замена под базовый парк цеха');
+  });
+});
+
+describe('выгрузка по ролям', () => {
+  it('у каждой роли свой набор страниц', () => {
+    for (const role of EXPORT_ROLES) {
+      const profile = roleProfile(role);
+      const sections = new Set(
+        sectionsOf(renderHtml(SPEC, { sections: profile.sections, pro: profile.pro })),
+      );
+      for (const s of profile.sections) expect(sections, role).toContain(s);
+    }
+  });
+
+  it('ОТК получает табель мер и не получает материалы', () => {
+    const sections = new Set(
+      sectionsOf(renderHtml(SPEC, { sections: roleProfile('qc').sections })),
+    );
+    expect(sections).toContain('measurements');
+    expect(sections).not.toContain('bom');
+  });
+
+  it('снабжение получает материалы и маркировку, но не конструкцию', () => {
+    const sections = new Set(
+      sectionsOf(renderHtml(SPEC, { sections: roleProfile('supply').sections })),
+    );
+    expect(sections).toContain('bom');
+    expect(sections).toContain('labels');
+    expect(sections).not.toContain('construction');
+  });
+
+  it('каждая выгрузка начинается с обложки — документ без паспорта не опознать', () => {
+    for (const role of EXPORT_ROLES) {
+      expect(roleProfile(role).sections[0], role).toBe('cover');
+    }
+  });
+
+  it('подпись роли попадает в колонтитул', () => {
+    expect(renderHtml(SPEC, { roleLabel: 'ОТК' })).toContain('выгрузка: ОТК');
+  });
+});
+
+describe('Pro-режим', () => {
+  it('раскрывает коды швов и SPI, не добавляя страниц с новыми данными', () => {
+    const plain = renderHtml(SPEC, { pro: false });
+    const pro = renderHtml(SPEC, { pro: true });
+    expect(pro).toContain('1.01.01/504');
+    expect(plain).not.toContain('1.01.01/504');
+    expect(new Set(sectionsOf(plain))).toEqual(new Set(sectionsOf(pro)));
+  });
+
+  it('скрывает точки для конструктора в обычном режиме', () => {
+    expect(renderHtml(SPEC, { pro: false })).not.toContain('>T18<');
+    expect(renderHtml(SPEC, { pro: true })).toContain('>T18<');
+  });
+});
+
+describe('безопасность разметки', () => {
+  it('пользовательский текст экранируется', () => {
+    const evil: StyleSpec = {
+      ...SPEC,
+      style: { ...SPEC.style, name: '<script>alert(1)</script>', description: '"><b>x' },
+    };
+    const h = html(evil);
+    expect(h).not.toContain('<script>alert(1)</script>');
+    expect(h).toContain('&lt;script&gt;');
+  });
+});
+
+describe('устойчивость', () => {
+  it('спека без конструкции, материалов и маркировки всё равно даёт документ', () => {
+    const bare: StyleSpec = { ...SPEC };
+    delete (bare as { construction?: unknown }).construction;
+    delete (bare as { bom?: unknown }).bom;
+    delete (bare as { labels?: unknown }).labels;
+
+    const h = renderHtml(bare, { pro: true });
+    expect(h).toContain('<section class="page"');
+    expect(sectionsOf(h)).toContain('measurements');
+  });
+
+  it('в документ не попадает NaN и undefined', () => {
+    for (const spec of [SPEC, MIXED]) {
+      const h = html(spec);
+      expect(h).not.toContain('NaN');
+      expect(h).not.toContain('undefined');
+    }
+  });
+
+  it('пустой набор разделов не роняет рендер', () => {
+    expect(renderHtml(SPEC, { sections: [] as DocSection[] })).toContain('<body>');
+  });
+});
+
+describe('воспроизводимость', () => {
+  it('одинаковая спека даёт побайтово одинаковый HTML', () => {
+    expect(html()).toBe(html());
+  });
+});

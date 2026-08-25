@@ -1,0 +1,16 @@
+{
+  "name": "@specform/docgen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@specform/core": "workspace:*",
+    "@specform/flats": "workspace:*",
+    "@specform/stylespec": "workspace:*",
+    "playwright": "^1.62.1",
+    "@specform/kb": "workspace:*"
+  }
+}
