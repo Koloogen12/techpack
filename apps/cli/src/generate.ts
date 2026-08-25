@@ -18,6 +18,7 @@ import {
   type PhotoFormat,
   type VisionReport,
 } from '@specform/vision';
+import { chromium } from 'playwright';
 import { renderPdf, renderRolePdfs, type ExportRole } from '@specform/docgen';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
@@ -152,18 +153,28 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   }
 
   // --- 3. Документ -------------------------------------------------------------
+  // Один браузер на весь прогон: его запуск занимает секунды, а выгрузок
+  // по ролям может быть пять. Раньше поднималось по браузеру на каждую.
   const renderStart = performance.now();
   mkdirSync(dirname(options.outPath), { recursive: true });
-  writeFileSync(options.outPath, await renderPdf(spec, { pro: true }));
-
+  const browser = await chromium.launch();
   const rolePaths: { role: ExportRole; path: string }[] = [];
-  if (options.roles?.length) {
-    const stem = options.outPath.replace(/\.pdf$/i, '');
-    for (const { role, pdf } of await renderRolePdfs(spec, options.roles)) {
-      const path = `${stem}--${role}.pdf`;
-      writeFileSync(path, pdf);
-      rolePaths.push({ role, path });
+
+  try {
+    writeFileSync(options.outPath, await renderPdf(spec, { pro: true, browser }));
+
+    if (options.roles?.length) {
+      const stem = options.outPath.replace(/\.pdf$/i, '');
+      // Повторы ролей отбрасываем: два одинаковых файла никому не нужны.
+      const roles = [...new Set(options.roles)];
+      for (const { role, pdf } of await renderRolePdfs(spec, roles, browser)) {
+        const path = `${stem}--${role}.pdf`;
+        writeFileSync(path, pdf);
+        rolePaths.push({ role, path });
+      }
     }
+  } finally {
+    await browser.close();
   }
   ledger.recordFree('docgen', Math.round(performance.now() - renderStart));
 

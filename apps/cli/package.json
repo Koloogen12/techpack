@@ -16,6 +16,7 @@
     "@specform/kb": "workspace:*",
     "@specform/stylespec": "workspace:*",
     "@specform/vision": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "playwright": "^1.62.1"
   }
 }
