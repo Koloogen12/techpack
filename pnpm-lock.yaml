@@ -54,6 +54,15 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  packages/flats:
+    dependencies:
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@specform/stylespec':
+        specifier: workspace:*
+        version: link:../stylespec
+
   packages/kb:
     dependencies:
       '@specform/core':

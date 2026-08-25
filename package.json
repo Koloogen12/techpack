@@ -21,7 +21,8 @@
     "golden": "vitest run --project golden",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "stylespec:examples": "tsx packages/stylespec/scripts/generate-examples.ts",
-    "vision:analyze": "tsx --env-file-if-exists=.env packages/vision/scripts/analyze.ts"
+    "vision:analyze": "tsx --env-file-if-exists=.env packages/vision/scripts/analyze.ts",
+    "flats:preview": "tsx packages/flats/scripts/preview.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
