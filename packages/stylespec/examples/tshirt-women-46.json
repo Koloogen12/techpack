@@ -15,7 +15,14 @@
     "base_height_cm": 170,
     "fit_intent": "semi_fitted",
     "fabric_kind": "knit",
-    "size_range": [42, 44, 46, 48, 50, 52]
+    "size_range": [
+      42,
+      44,
+      46,
+      48,
+      50,
+      52
+    ]
   },
   "measurements": {
     "template_id": "pom_templates/tshirt",
@@ -28,7 +35,7 @@
         "how_to_measure_ru": "От высшей точки плеча вертикально вниз до края низа",
         "measure_kind": "length",
         "base": {
-          "value": 68.9,
+          "value": 69,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T01"
         },
@@ -41,7 +48,7 @@
           {
             "ru": 42,
             "value": {
-              "value": 67.4,
+              "value": 67.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -49,7 +56,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 68.1,
+              "value": 68.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -57,7 +64,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 69.6,
+              "value": 69.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -65,7 +72,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 70.4,
+              "value": 70.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -73,7 +80,7 @@
           {
             "ru": 52,
             "value": {
-              "value": 71.1,
+              "value": 71.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -89,7 +96,7 @@
         "how_to_measure_ru": "От шва горловины по центру спинки до края низа",
         "measure_kind": "length",
         "base": {
-          "value": 66.8,
+          "value": 66.7,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T02"
         },
@@ -102,7 +109,7 @@
           {
             "ru": 42,
             "value": {
-              "value": 65.3,
+              "value": 65.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -110,7 +117,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 66.1,
+              "value": 66,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -118,7 +125,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 67.6,
+              "value": 67.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -126,7 +133,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 68.3,
+              "value": 68.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -134,7 +141,7 @@
           {
             "ru": 52,
             "value": {
-              "value": 69.1,
+              "value": 69,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -578,7 +585,7 @@
         "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
         "measure_kind": "length",
         "base": {
-          "value": 20.4,
+          "value": 20.2,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T10"
         },
@@ -591,41 +598,41 @@
           {
             "ru": 42,
             "value": {
-              "value": 19.6,
+              "value": 19.4,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 44,
             "value": {
-              "value": 20,
+              "value": 19.8,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 48,
             "value": {
-              "value": 20.8,
+              "value": 20.6,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 50,
             "value": {
-              "value": 21.2,
+              "value": 21,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 52,
             "value": {
-              "value": 21.6,
+              "value": 21.4,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           }
         ],
@@ -639,9 +646,9 @@
         "how_to_measure_ru": "Через плечо от центра спинки до края рукава. Применяется для реглана и спущенного плеча",
         "measure_kind": "length",
         "base": {
-          "value": 42.3,
+          "value": 42.4,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T11"
+          "source": "engine:pom/composed(0.5×T06+1×T10)"
         },
         "tolerance": {
           "value": 1,
@@ -652,41 +659,41 @@
           {
             "ru": 42,
             "value": {
-              "value": 41.5,
+              "value": 41.6,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 44,
             "value": {
-              "value": 41.9,
+              "value": 42,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 48,
             "value": {
-              "value": 42.7,
+              "value": 42.8,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 50,
             "value": {
-              "value": 43.1,
+              "value": 43.2,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           },
           {
             "ru": 52,
             "value": {
-              "value": 43.5,
+              "value": 43.6,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length"
+              "source": "engine:pom/grading#sleeve_length_short"
             }
           }
         ],
@@ -822,7 +829,7 @@
         "how_to_measure_ru": "Между плечевыми швами по линии втачивания горловины",
         "measure_kind": "length",
         "base": {
-          "value": 17.8,
+          "value": 17.9,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T14"
         },
@@ -843,7 +850,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 17.4,
+              "value": 17.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -851,7 +858,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 18.3,
+              "value": 18.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -859,7 +866,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 18.7,
+              "value": 18.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -867,7 +874,7 @@
           {
             "ru": 52,
             "value": {
-              "value": 19.2,
+              "value": 19.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -883,7 +890,7 @@
         "how_to_measure_ru": "От линии между высшими точками плеч вниз до шва втачивания по центру переда",
         "measure_kind": "length",
         "base": {
-          "value": 7.7,
+          "value": 7.8,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T15"
         },
@@ -896,7 +903,7 @@
           {
             "ru": 42,
             "value": {
-              "value": 7.4,
+              "value": 7.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -904,7 +911,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 7.5,
+              "value": 7.7,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -912,7 +919,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 7.8,
+              "value": 8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -920,7 +927,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 8,
+              "value": 8.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -928,7 +935,7 @@
           {
             "ru": 52,
             "value": {
-              "value": 8.1,
+              "value": 8.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -944,7 +951,7 @@
         "how_to_measure_ru": "От той же линии вниз до шва втачивания по центру спинки",
         "measure_kind": "length",
         "base": {
-          "value": 2.6,
+          "value": 2.8,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T16"
         },
@@ -957,7 +964,7 @@
           {
             "ru": 42,
             "value": {
-              "value": 2.3,
+              "value": 2.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -965,7 +972,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 2.4,
+              "value": 2.6,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -973,7 +980,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 2.7,
+              "value": 2.9,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -981,7 +988,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 2.9,
+              "value": 3.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -989,7 +996,7 @@
           {
             "ru": 52,
             "value": {
-              "value": 3,
+              "value": 3.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -1005,7 +1012,7 @@
         "how_to_measure_ru": "От шва втачивания бейки до края горловины",
         "measure_kind": "length",
         "base": {
-          "value": 2,
+          "value": 1.8,
           "confidence": "default_from_base",
           "source": "kb:T03×baseline#T17"
         },

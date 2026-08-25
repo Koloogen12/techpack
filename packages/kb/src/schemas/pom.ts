@@ -55,9 +55,32 @@ export type ToleranceClassesFile = z.infer<typeof ToleranceClassesFileSchema>;
  *  anchor          — якорь масштаба, считается из сетки тела + прибавки. Ровно один на шаблон.
  *  ratio_to_anchor — якорь × безразмерное отношение с фото, с клэмпом в диапазон.
  *  independent     — не связано с якорем: высота бейки, глубина горловины и т.п.
+ *  composed        — складывается из других точек с коэффициентами.
+ *
+ * Последнее нужно там, где замер ПО ОПРЕДЕЛЕНИЮ является суммой: длина рукава
+ * от центра спинки идёт через плечо, то есть это полуширина плеч плюс сам рукав.
+ * Пока она считалась отдельной пропорцией, на oversize плечи расширялись,
+ * а этот замер — нет, и документ противоречил сам себе.
  */
-export const DerivationSchema = z.enum(['anchor', 'ratio_to_anchor', 'independent']);
+export const DerivationSchema = z.enum(['anchor', 'ratio_to_anchor', 'independent', 'composed']);
 export type Derivation = z.infer<typeof DerivationSchema>;
+
+/**
+ * За чем следует величина точки.
+ *
+ *  garment — за шириной изделия: она растёт вместе с прибавкой на посадку.
+ *            Ширины, пройма, ширина рукава, ширина плеч (спущенное плечо
+ *            на oversize действительно шире).
+ *  body    — за телом: длины, горловина, наклон плеча. Oversize делает изделие
+ *            шире, а не длиннее.
+ *
+ * Различение появилось после перебора пространства входов: пока длина
+ * считалась от ширины изделия, мужская футболка RU 56 oversize выходила
+ * длиной 102 см — это туника, а не футболка. Ошибка была не в числе,
+ * а в том, к чему это число привязано.
+ */
+export const AnchorBasisSchema = z.enum(['garment', 'body']);
+export type AnchorBasis = z.infer<typeof AnchorBasisSchema>;
 
 export const PomPointSchema = z
   .object({
@@ -77,6 +100,8 @@ export const PomPointSchema = z
      */
     tolerance_cm: z.number().positive().optional(),
     derivation: DerivationSchema,
+    /** За чем следует величина: за шириной изделия или за телом. */
+    anchor_basis: AnchorBasisSchema.default('garment'),
     /**
      * Отношение к якорю по умолчанию — когда фото не дало пропорции.
      * Обязательно для ratio_to_anchor и independent, запрещено для anchor.
@@ -84,6 +109,14 @@ export const PomPointSchema = z
     baseline_ratio: z.number().positive().optional(),
     /** Границы правдоподобия отношения. Клэмп применяется ПОСЛЕ пропорции с фото. */
     ratio_range: RangeSchema.optional(),
+    /**
+     * Из каких точек складывается величина. Только для derivation: composed.
+     * Считается после остальных точек, поэтому ссылаться можно лишь на них.
+     */
+    composed_of: z
+      .array(z.object({ code: z.string().regex(/^[A-Z]\d{2}$/), factor: z.number() }))
+      .min(1)
+      .optional(),
     /** Ключ правила градации из grading_increments. */
     grading_key: z.string().min(1),
     /** Точка обязательна в табеле мер — без неё документ неполон для ОТК. */
@@ -94,6 +127,23 @@ export const PomPointSchema = z
   .and(VerifiabilitySchema)
   .superRefine(verifiabilityRefinement)
   .superRefine((p, ctx) => {
+    if (p.derivation === 'composed') {
+      if (!p.composed_of?.length) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `точка ${p.code}: derivation composed требует composed_of`,
+          path: ['composed_of'],
+        });
+      }
+      if (p.baseline_ratio !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'составная точка не имеет собственного отношения к якорю',
+          path: ['baseline_ratio'],
+        });
+      }
+      return;
+    }
     if (p.derivation === 'anchor') {
       if (p.baseline_ratio !== undefined) {
         ctx.addIssue({

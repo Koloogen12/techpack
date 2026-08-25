@@ -35,7 +35,7 @@ const SANE_CM: Record<string, [number, number]> = {
   T07: [24, 65],
   T08: [24, 65],
   T09: [14, 40],
-  T10: [8, 75],
+  T10: [12, 75],
   T11: [25, 100],
   T12: [10, 35],
   T13: [7, 30],
@@ -66,7 +66,8 @@ export function checkSpec(spec: StyleSpec): Violation[] {
 
   for (const n of spec.construction?.nodes ?? []) {
     if (!n.presence.source) fail('источник значения', `узел ${n.node_id} без источника`);
-    if (!n.seam_allowance_cm.source) fail('источник значения', `припуск ${n.node_id} без источника`);
+    if (!n.seam_allowance_cm.source)
+      fail('источник значения', `припуск ${n.node_id} без источника`);
   }
 
   for (const l of spec.bom?.lines ?? []) {
@@ -95,7 +96,10 @@ export function checkSpec(spec: StyleSpec): Violation[] {
     const range = SANE_CM[p.code];
     if (!range) continue;
     if (p.base.value < range[0] || p.base.value > range[1]) {
-      fail('правдоподобие замера', `${p.code} = ${p.base.value} см, ожидалось ${range[0]}–${range[1]}`);
+      fail(
+        'правдоподобие замера',
+        `${p.code} = ${p.base.value} см, ожидалось ${range[0]}–${range[1]}`,
+      );
     }
   }
 
@@ -110,6 +114,29 @@ export function checkSpec(spec: StyleSpec): Violation[] {
   if (sleeveOpening !== undefined && bicep !== undefined && sleeveOpening > bicep) {
     fail('пропорции изделия', `низ рукава (${sleeveOpening}) шире рукава под проймой (${bicep})`);
   }
+  const sleeveFromShoulder = byCode.get('T10');
+  const sleeveFromCb = byCode.get('T11');
+  const shoulderWidth = byCode.get('T06');
+  if (sleeveFromShoulder !== undefined && sleeveFromCb !== undefined) {
+    if (sleeveFromCb <= sleeveFromShoulder) {
+      fail(
+        'пропорции изделия',
+        `длина рукава от центра спинки (${sleeveFromCb}) не больше длины от плеча (${sleeveFromShoulder})`,
+      );
+    }
+    if (shoulderWidth !== undefined) {
+      // Замер от центра спинки идёт через плечо: он обязан покрывать
+      // половину ширины плеч плюс сам рукав, с запасом на кривизну.
+      const minimum = shoulderWidth / 2 + sleeveFromShoulder * 0.85;
+      if (sleeveFromCb < minimum) {
+        fail(
+          'пропорции изделия',
+          `рукав от центра спинки (${sleeveFromCb}) короче суммы полуплеча и рукава (${minimum.toFixed(1)})`,
+        );
+      }
+    }
+  }
+
   const frontDrop = byCode.get('T15');
   const backDrop = byCode.get('T16');
   if (frontDrop !== undefined && backDrop !== undefined && backDrop > frontDrop) {
@@ -197,7 +224,8 @@ export function checkSpec(spec: StyleSpec): Violation[] {
     if (!html.includes(n.label_ru)) fail('полнота документа', `узел ${n.label_ru} не попал в PDF`);
   }
   for (const l of spec.bom?.lines ?? []) {
-    if (!html.includes(l.name_ru)) fail('полнота документа', `материал ${l.name_ru} не попал в PDF`);
+    if (!html.includes(l.name_ru))
+      fail('полнота документа', `материал ${l.name_ru} не попал в PDF`);
   }
   for (const s of spec.labels?.sku_matrix ?? []) {
     if (!html.includes(s.sku)) fail('полнота документа', `артикул ${s.sku} не попал в PDF`);

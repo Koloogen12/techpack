@@ -20,7 +20,10 @@ const { spec: CLEAN } = buildStyleSpec(SCENARIOS[0]!.input);
 
 type Mutation = { name: string; damage: string; mutate: (s: StyleSpec) => StyleSpec };
 
-const points = (s: StyleSpec, fn: (p: StyleSpec['measurements']['points'][number], i: number) => unknown) =>
+const points = (
+  s: StyleSpec,
+  fn: (p: StyleSpec['measurements']['points'][number], i: number) => unknown,
+) =>
   ({
     ...s,
     measurements: { ...s.measurements, points: s.measurements.points.map(fn as never) },
@@ -35,7 +38,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: 'замер не того порядка',
     damage: 'футболка длиной три метра',
-    mutate: (s) => points(s, (p) => (p.code === 'T01' ? { ...p, base: { ...p.base, value: 300 } } : p)),
+    mutate: (s) =>
+      points(s, (p) => (p.code === 'T01' ? { ...p, base: { ...p.base, value: 300 } } : p)),
   },
   {
     name: 'нарушена точность хранения',
@@ -48,7 +52,10 @@ const MUTATIONS: Mutation[] = [
     mutate: (s) =>
       points(s, (p) =>
         p.code === 'T03'
-          ? { ...p, graded: p.graded.map((g, i) => (i ? g : { ...g, value: { ...g.value, value: 999 } })) }
+          ? {
+              ...p,
+              graded: p.graded.map((g, i) => (i ? g : { ...g, value: { ...g.value, value: 999 } })),
+            }
           : p,
       ),
   },
@@ -82,26 +89,33 @@ const MUTATIONS: Mutation[] = [
       ...s,
       construction: {
         ...s.construction!,
-        sequence: s.construction!.sequence.map((x, i) => (i ? x : { ...x, node_id: 'no_such_node' })),
+        sequence: s.construction!.sequence.map((x, i) =>
+          i ? x : { ...x, node_id: 'no_such_node' },
+        ),
       },
     }),
   },
   {
     name: 'плечи шире изделия по груди',
     damage: 'геометрически невозможное изделие',
-    mutate: (s) => points(s, (p) => (p.code === 'T06' ? { ...p, base: { ...p.base, value: 60 } } : p)),
+    mutate: (s) =>
+      points(s, (p) => (p.code === 'T06' ? { ...p, base: { ...p.base, value: 60 } } : p)),
   },
   {
     name: 'низ рукава шире рукава под проймой',
     damage: 'рукав расширяется книзу на футболке',
-    mutate: (s) => points(s, (p) => (p.code === 'T13' ? { ...p, base: { ...p.base, value: 30 } } : p)),
+    mutate: (s) =>
+      points(s, (p) => (p.code === 'T13' ? { ...p, base: { ...p.base, value: 30 } } : p)),
   },
   {
     name: 'артикулы SKU дублируются',
     damage: 'два разных изделия под одним кодом маркировки',
     mutate: (s) => ({
       ...s,
-      labels: { ...s.labels!, sku_matrix: s.labels!.sku_matrix.map((x) => ({ ...x, sku: 'SAME' })) },
+      labels: {
+        ...s.labels!,
+        sku_matrix: s.labels!.sku_matrix.map((x) => ({ ...x, sku: 'SAME' })),
+      },
     }),
   },
   {
@@ -111,7 +125,9 @@ const MUTATIONS: Mutation[] = [
       ...s,
       labels: {
         ...s.labels!,
-        requisites: s.labels!.requisites.map((r) => (r.value === null ? { ...r, action_ru: null } : r)),
+        requisites: s.labels!.requisites.map((r) =>
+          r.value === null ? { ...r, action_ru: null } : r,
+        ),
       },
     }),
   },

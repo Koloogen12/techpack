@@ -142,12 +142,43 @@ describe('шаблон точек измерения футболки', () => {
     }
   });
 
-  it('у каждой неякорной точки есть отношение внутри своего диапазона', () => {
-    for (const p of tpl.points.filter((x) => x.derivation !== 'anchor')) {
-      expect(p.baseline_ratio).toBeDefined();
-      expect(p.ratio_range).toBeDefined();
+  it('у каждой точки-пропорции есть отношение внутри своего диапазона', () => {
+    for (const p of tpl.points.filter(
+      (x) => x.derivation === 'ratio_to_anchor' || x.derivation === 'independent',
+    )) {
+      expect(p.baseline_ratio, p.code).toBeDefined();
+      expect(p.ratio_range, p.code).toBeDefined();
       expect(p.baseline_ratio!).toBeGreaterThanOrEqual(p.ratio_range!.min);
       expect(p.baseline_ratio!).toBeLessThanOrEqual(p.ratio_range!.max);
+    }
+  });
+
+  it('составная точка ссылается только на существующие точки шаблона', () => {
+    const codes = new Set(tpl.points.map((p) => p.code));
+    for (const p of tpl.points.filter((x) => x.derivation === 'composed')) {
+      expect(p.composed_of, p.code).toBeDefined();
+      for (const part of p.composed_of!) {
+        expect(codes, `${p.code} → ${part.code}`).toContain(part.code);
+        // Ссылка на другую составную точку создала бы порядок вычисления,
+        // который движок не гарантирует.
+        const target = tpl.points.find((x) => x.code === part.code)!;
+        expect(target.derivation, `${p.code} → ${part.code}`).not.toBe('composed');
+      }
+    }
+  });
+
+  it('каждая точка объявляет, за чем следует её величина', () => {
+    for (const p of tpl.points.filter((x) => x.derivation === 'ratio_to_anchor')) {
+      expect(['garment', 'body'], p.code).toContain(p.anchor_basis);
+    }
+    // Длины следуют за телом: oversize делает изделие шире, а не длиннее.
+    const byCode = new Map(tpl.points.map((p) => [p.code, p]));
+    for (const code of ['T01', 'T02', 'T14', 'T15', 'T16']) {
+      expect(byCode.get(code)!.anchor_basis, code).toBe('body');
+    }
+    // Ширины следуют за изделием.
+    for (const code of ['T04', 'T05', 'T06', 'T07', 'T08', 'T12', 'T13']) {
+      expect(byCode.get(code)!.anchor_basis, code).toBe('garment');
     }
   });
 

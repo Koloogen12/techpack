@@ -84,7 +84,12 @@ describe('сквозная генерация', () => {
 
   it('два прогона одного входа дают одинаковый отпечаток спеки', async () => {
     const answers = answersFile({}, 'repeat.json');
-    const a = await generate({ answersPath: answers, photoPaths: [], outPath: join(tmp, 'a.pdf'), now: AT });
+    const a = await generate({
+      answersPath: answers,
+      photoPaths: [],
+      outPath: join(tmp, 'a.pdf'),
+      now: AT,
+    });
     const b = await generate({
       answersPath: answers,
       photoPaths: [],
@@ -122,26 +127,30 @@ describe('кривые входы отвечают человеку, а не с�
     ['нулевой ручной замер', { manual: { code: 'T01', value_cm: 0 } }],
   ];
 
-  it.each(broken)('%s', async (_name, over) => {
-    try {
-      await generate({
-        answersPath: answersFile(over, `broken-${Math.abs(hash(JSON.stringify(over)))}.json`),
-        photoPaths: [],
-        outPath: join(tmp, 'broken.pdf'),
-        now: AT,
-      });
-      expect.unreachable('должно было упасть');
-    } catch (e) {
-      expect(isSpecFormError(e), String(e)).toBe(true);
-      if (isSpecFormError(e)) {
-        expect(e.userMessage.length).toBeGreaterThan(10);
-        expect(e.userAction.length).toBeGreaterThan(10);
-        // Технические подробности наружу не отдаются.
-        expect(e.userMessage).not.toContain('undefined');
-        expect(e.userMessage).not.toContain('zod');
+  it.each(broken)(
+    '%s',
+    async (_name, over) => {
+      try {
+        await generate({
+          answersPath: answersFile(over, `broken-${Math.abs(hash(JSON.stringify(over)))}.json`),
+          photoPaths: [],
+          outPath: join(tmp, 'broken.pdf'),
+          now: AT,
+        });
+        expect.unreachable('должно было упасть');
+      } catch (e) {
+        expect(isSpecFormError(e), String(e)).toBe(true);
+        if (isSpecFormError(e)) {
+          expect(e.userMessage.length).toBeGreaterThan(10);
+          expect(e.userAction.length).toBeGreaterThan(10);
+          // Технические подробности наружу не отдаются.
+          expect(e.userMessage).not.toContain('undefined');
+          expect(e.userMessage).not.toContain('zod');
+        }
       }
-    }
-  }, 60_000);
+    },
+    60_000,
+  );
 
   it('категория вне трикотажного ядра получает честный отказ', () => {
     try {

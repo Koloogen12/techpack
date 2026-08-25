@@ -1,6 +1,7 @@
 import {
   SpecFormError,
   clamp,
+  confidenceRank,
   fromBase,
   roundCm,
   track,
@@ -188,6 +189,11 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   // а якорь — половинный замер: делим на два ровно один раз.
   const anchorCm = (body.chest + ease.entry.default) / 2;
 
+  // Второй якорь — тело без прибавки. За ним следуют длины, горловина и наклон
+  // плеча: oversize делает изделие шире, а не длиннее. Пока длина считалась
+  // от ширины изделия, мужская футболка RU 56 oversize выходила длиной 102 см.
+  const bodyAnchorCm = body.chest / 2;
+
   // --- 2. Ростовка: длины подтягиваются к росту пользователя -------------------
   const chart = base.sizeChart(input.gender);
   const heightSteps = (input.base_height_cm - chart.base_height) / chart.height_step;
@@ -200,8 +206,20 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
 
   // --- 3. Значения точек ------------------------------------------------------
   const raw = new Map<string, Tracked<number>>();
+
+  // Сначала точки, считающиеся сами по себе.
   for (const point of template.points) {
-    raw.set(point.code, valueFor(point, anchorPoint, anchorCm, heightSteps, input, base));
+    if (point.derivation === 'composed') continue;
+    raw.set(
+      point.code,
+      valueFor(point, anchorPoint, anchorCm, bodyAnchorCm, heightSteps, input, base),
+    );
+  }
+
+  // Затем составные — они ссылаются на уже посчитанные.
+  for (const point of template.points) {
+    if (point.derivation !== 'composed') continue;
+    raw.set(point.code, composeValue(point, raw));
   }
 
   // --- 4. Калибровка по ручному замеру ---------------------------------------
@@ -239,11 +257,49 @@ function normalizeRatio(value: number | PhotoRatio | undefined): PhotoRatio | un
   return typeof value === 'number' ? { ratio: value } : value;
 }
 
+/**
+ * Составная точка: сумма других точек с коэффициентами.
+ *
+ * Такой замер по определению является суммой — длина рукава от центра спинки
+ * идёт через плечо. Считать её отдельной пропорцией значит позволить документу
+ * противоречить самому себе: на oversize плечи расширялись, а сумма — нет.
+ *
+ * Статус наследуется по слабейшему звену: сумма не может быть достовернее
+ * самого сомнительного из слагаемых.
+ */
+function composeValue(
+  point: PomPoint,
+  computed: ReadonlyMap<string, Tracked<number>>,
+): Tracked<number> {
+  const parts = point.composed_of ?? [];
+  let sum = 0;
+  let weakest: Confidence = 'fit_confirmed';
+
+  for (const part of parts) {
+    const value = computed.get(part.code);
+    if (!value) {
+      throw new Error(
+        `точка ${point.code} складывается из ${part.code}, которой нет в шаблоне ` +
+          `или которая сама составная`,
+      );
+    }
+    sum += value.value * part.factor;
+    if (confidenceRank(value.confidence) < confidenceRank(weakest)) weakest = value.confidence;
+  }
+
+  return track(
+    sum,
+    weakest,
+    `engine:pom/composed(${parts.map((p) => `${p.factor}×${p.code}`).join('+')})`,
+  );
+}
+
 /** Значение одной точки до калибровки и округления. */
 function valueFor(
   point: PomPoint,
   anchorPoint: PomPoint,
   anchorCm: Centimeters,
+  bodyAnchorCm: Centimeters,
   heightSteps: number,
   input: PomInput,
   base: KnowledgeBase,
@@ -297,7 +353,9 @@ function valueFor(
     }
   }
 
-  let value = anchorCm * ratio;
+  // Точка сама объявляет, за чем следует её величина.
+  const basis = point.anchor_basis === 'body' ? bodyAnchorCm : anchorCm;
+  let value = basis * ratio;
 
   // Ростовка двигает только длины — ширины от роста не зависят.
   const rule = base.gradingRule(point.grading_key);

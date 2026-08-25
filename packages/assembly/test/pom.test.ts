@@ -75,19 +75,27 @@ describe('пропорции изделия', () => {
   });
 
   it('с пропорцией с фото помечает значение оценкой по фото', () => {
-    const withPhoto = { ...INPUT, photo_ratios: { T01: 1.5 } };
-    const p = point(withPhoto, 'T01');
-    expect(p.base.value).toBe(51 * 1.5);
-    expect(p.base.confidence).toBe('estimated_from_photo');
-    expect(p.base.source).toContain('vision');
+    // Проверяем не магическое число, а линейность: удвоенное отношение
+    // обязано дать вдвое больший замер, каким бы ни был якорь.
+    const one = point({ ...INPUT, photo_ratios: { T01: 1.3 } }, 'T01');
+    const two = point({ ...INPUT, photo_ratios: { T01: 1.6 } }, 'T01');
+
+    expect(one.base.confidence).toBe('estimated_from_photo');
+    expect(one.base.source).toContain('vision');
+    expect(two.base.value / one.base.value).toBeCloseTo(1.6 / 1.3, 2);
   });
 });
 
 describe('неправдоподобная пропорция с фото', () => {
   const wild = { ...INPUT, photo_ratios: { T01: 4.0 } };
 
-  it('ограничивается диапазоном, а не уезжает в документ', () => {
-    expect(point(wild, 'T01').base.value).toBe(roundCm(51 * 1.65));
+  it('ограничивается верхней границей диапазона, а не уезжает в документ', () => {
+    // Ожидаемое считаем из справочника: тест не должен ломаться от калибровки
+    // отношений, только от поломки самого ограничения.
+    const template = base.pomTemplate('tshirt');
+    const t01 = template.points.find((p) => p.code === 'T01')!;
+    const atMax = point({ ...INPUT, photo_ratios: { T01: t01.ratio_range!.max } }, 'T01');
+    expect(point(wild, 'T01').base.value).toBe(atMax.base.value);
   });
 
   it('перестаёт называться оценкой по фото — значение уже не с фото', () => {

@@ -45,7 +45,14 @@ export const SCENARIOS: Scenario[] = [
   {
     name: 'мужская футболка RU 48',
     why: 'мужская сетка заполнена только по груди — обхваты талии и бёдер пустые',
-    input: { ...base, id: 'g-men', gender: 'men', base_size_ru: 48, base_height_cm: 176, size_range: [44, 46, 48, 50, 52] },
+    input: {
+      ...base,
+      id: 'g-men',
+      gender: 'men',
+      base_size_ru: 48,
+      base_height_cm: 176,
+      size_range: [44, 46, 48, 50, 52],
+    },
   },
   {
     name: 'прилегающая посадка',
@@ -191,7 +198,12 @@ export const SCENARIOS: Scenario[] = [
         { id: 'white', name_ru: 'Белый' },
         { id: 'navy', name_ru: 'Тёмно-синий' },
       ],
-      brand_profile: { company_name: 'ООО «Пример»', address: 'Москва', trademark: 'X', country: 'Россия' },
+      brand_profile: {
+        company_name: 'ООО «Пример»',
+        address: 'Москва',
+        trademark: 'X',
+        country: 'Россия',
+      },
     },
   },
 ];
