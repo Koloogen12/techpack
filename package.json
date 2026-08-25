@@ -25,7 +25,9 @@
     "flats:preview": "tsx packages/flats/scripts/preview.ts",
     "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts",
     "golden:export": "tsx golden/scripts/export-vision-reports.ts",
+    "golden:warm": "tsx --env-file-if-exists=.env golden/scripts/warm-vision.ts",
     "golden:renders": "tsx golden/scripts/export-renders.ts",
+    "golden:backviews": "tsx --env-file-if-exists=.env golden/scripts/backviews.ts",
     "fit:form": "tsx apps/cli/src/form.ts",
     "fit:score": "tsx apps/cli/src/score.ts",
     "fit:demo": "tsx golden/scripts/demo-score.ts | xargs -I{} tsx apps/cli/src/score.ts {}"

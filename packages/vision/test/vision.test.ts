@@ -98,14 +98,43 @@ describe('промпт', () => {
   });
 
   it('различает один и несколько снимков', () => {
-    expect(buildUserPrompt(1)).not.toBe(buildUserPrompt(3));
-    expect(buildUserPrompt(3)).toContain('3');
+    const one = buildUserPrompt([{ index: 1 }], base);
+    const three = buildUserPrompt([{ index: 1 }, { index: 2 }, { index: 3 }], base);
+    expect(one).not.toBe(three);
+    expect(three).toContain('3');
+  });
+
+  it('называет модели, что на каждом кадре, и что с него читается', () => {
+    const text = buildUserPrompt(
+      [
+        { index: 1, view: 'front_flat' },
+        { index: 2, view: 'back_flat' },
+      ],
+      base,
+    );
+    expect(text).toContain('Перед, плоская раскладка');
+    expect(text).toContain('Спинка, плоская раскладка');
+    // Точки спинки называются только у кадра спинки.
+    expect(text).toContain('T16');
+  });
+
+  it('с кадра на фигуре замеры брать запрещает прямо', () => {
+    const text = buildUserPrompt([{ index: 1, view: 'on_form' }], base);
+    expect(text).toContain('НЕ БЕРИ');
+  });
+
+  it('необъявленный ракурс не выдаётся за перед', () => {
+    // Молча считать неизвестный кадр видом спереди значит разрешить модели
+    // снимать с него замеры, которых там может не быть.
+    const text = buildUserPrompt([{ index: 1 }], base);
+    expect(text).toContain('ракурс не указан');
   });
 });
 
 describe('ключ кэша', () => {
   const input = {
     photoHashes: ['a', 'b'],
+    views: [undefined],
     category: 'tshirt',
     answersFingerprint: 'x',
     model: 'claude-opus-5',

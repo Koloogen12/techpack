@@ -28,6 +28,12 @@ export interface CacheKeyInput {
   category: string;
   /** Отпечаток остальных ответов мастера, влияющих на промпт. */
   answersFingerprint: string;
+  /**
+   * Ракурсы кадров в порядке снимков. Входят в ключ ОТДЕЛЬНО от хешей файлов:
+   * те же самые фотографии, объявленные другими ракурсами, — это другой
+   * промпт и другой разбор.
+   */
+  views: readonly (string | undefined)[];
   model: string;
 }
 
@@ -40,6 +46,8 @@ export interface CacheKeyInput {
 export function cacheKey(input: CacheKeyInput): string {
   const parts = [
     ...[...input.photoHashes].sort(),
+    // Ракурсы НЕ сортируются: важно, какой ракурс у какого снимка по порядку.
+    input.views.map((v) => v ?? '-').join(','),
     input.category,
     input.answersFingerprint,
     PROMPT_VERSION,

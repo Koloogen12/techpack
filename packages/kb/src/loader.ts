@@ -48,6 +48,10 @@ import {
   type SizeChart,
   type SizeChartsFile,
   type ToleranceClass,
+  PhotoViewsFileSchema,
+  type PhotoView,
+  type PhotoViewEntry,
+  type PhotoViewsFile,
   type ToleranceClassEntry,
   type ToleranceComparison,
   type ToleranceProfile,
@@ -121,6 +125,7 @@ export class KnowledgeBase {
     private readonly care: CareSymbolsFile,
     private readonly labeling: LabelingFile,
     private readonly visibility: VisibilityMapFile,
+    private readonly views: PhotoViewsFile,
   ) {}
 
   static load(): KnowledgeBase {
@@ -152,6 +157,7 @@ export class KnowledgeBase {
       loadFile('care_symbols.json', CareSymbolsFileSchema),
       loadFile('labeling_requirements.json', LabelingFileSchema),
       loadFile('visibility_map.json', VisibilityMapFileSchema),
+      loadFile('photo_views.json', PhotoViewsFileSchema),
     );
   }
 
@@ -381,6 +387,22 @@ export class KnowledgeBase {
   }
 
   /** Карта «видно с фото / не видно». Кормит промпт vision и блок предположений. */
+  /** Ракурсы съёмки и что каждый открывает. */
+  photoViews(): readonly PhotoViewEntry[] {
+    return this.views.views;
+  }
+
+  photoView(id: PhotoView): PhotoViewEntry {
+    const found = this.views.views.find((v) => v.id === id);
+    if (!found) throw new Error(`неизвестный ракурс съёмки: ${id}`);
+    return found;
+  }
+
+  /** Единственный кадр, без которого разбор не запускается. */
+  requiredPhotoView(): PhotoViewEntry {
+    return this.views.views.find((v) => v.required)!;
+  }
+
   visibilityMap(): VisibilityMapFile {
     return this.visibility;
   }

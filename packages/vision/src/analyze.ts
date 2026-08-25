@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { SpecFormError, silentLogger, type CostLedger, type Logger } from '@specform/core';
-import { kb as defaultKb, type Category, type KnowledgeBase } from '@specform/kb';
+import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@specform/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
 import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt } from './prompt.js';
 import { VisionReportSchema, type VisionReport } from './report.js';
@@ -22,6 +22,12 @@ export interface Photo {
   format: PhotoFormat;
   /** Имя файла — только для логов и сообщений об ошибках. */
   label?: string;
+  /**
+   * Что на кадре. Без этого модель читает шесть файлов как шесть равноправных
+   * снимков и одинаково добросовестно ищет спинку на кадре переда.
+   * Не объявлен — считается видом спереди, и об этом говорится вслух.
+   */
+  view?: PhotoView;
 }
 
 export interface AnalyzeOptions {
@@ -99,6 +105,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
 
   const key = cacheKey({
     photoHashes: photos.map((p) => hashPhoto(p.bytes)),
+    views: photos.map((p) => p.view),
     category,
     answersFingerprint,
     model,
@@ -146,7 +153,13 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
               data: Buffer.from(photo.bytes).toString('base64'),
             },
           })),
-          { type: 'text' as const, text: buildUserPrompt(photos.length) },
+          {
+            type: 'text' as const,
+            text: buildUserPrompt(
+              photos.map((p, i) => ({ index: i + 1, view: p.view })),
+              base,
+            ),
+          },
         ],
       },
     ],

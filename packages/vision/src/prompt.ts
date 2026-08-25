@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL_RU, type Category, type KnowledgeBase } from '@specform/kb';
+import { CATEGORY_LABEL_RU, type Category, type KnowledgeBase, type PhotoView } from '@specform/kb';
 
 /**
  * Промпт vision-этапа, версия 1.
@@ -9,7 +9,7 @@ import { CATEGORY_LABEL_RU, type Category, type KnowledgeBase } from '@specform/
  *
  * ЛЮБАЯ правка текста ниже — это смена PROMPT_VERSION. Без исключений.
  */
-export const PROMPT_VERSION = 'v1';
+export const PROMPT_VERSION = 'v2';
 
 /**
  * Системная часть промпта — стабильный префикс.
@@ -83,8 +83,47 @@ export function buildSystemPrompt(base: KnowledgeBase, category: Category): stri
 }
 
 /** Пользовательская часть — идёт после кэшируемого префикса. */
-export function buildUserPrompt(photoCount: number): string {
-  return photoCount === 1
-    ? 'Проанализируй эту фотографию изделия.'
-    : `Проанализируй эти ${photoCount} фотографий одного изделия. Если виды противоречат друг другу, доверяй более детальному и отметь расхождение.`;
+/**
+ * Сопроводительный текст к снимкам.
+ *
+ * Перечисляет кадры по порядку и говорит, что на каждом. Раньше здесь стояло
+ * «проанализируй эти N фотографий одного изделия», и модель сама решала, что
+ * перед ней: на живых прогонах она честно писала «спинка и детали крупным
+ * планом отсутствуют», но точки спинки при этом всё равно оценивала —
+ * с низкой уверенностью, по кадру переда.
+ */
+export function buildUserPrompt(
+  photos: readonly { index: number; view?: PhotoView | undefined }[],
+  base: KnowledgeBase,
+): string {
+  if (photos.length === 0) return 'Проанализируй изделие.';
+
+  const lines = photos.map(({ index, view }) => {
+    if (!view) {
+      return (
+        `Снимок ${index}: ракурс не указан — считай его общим планом и оценивай ` +
+        `только то, что на нём действительно видно.`
+      );
+    }
+    const entry = base.photoView(view);
+    const gives = entry.unlocks_pom.length
+      ? `С него читаются точки: ${entry.unlocks_pom.join(', ')}.`
+      : 'Замеров с этого кадра НЕ БЕРИ — он про конструкцию и посадку, не про сантиметры.';
+    return `Снимок ${index}: ${entry.label_ru}. ${gives}`;
+  });
+
+  return [
+    photos.length === 1
+      ? 'Проанализируй эту фотографию изделия.'
+      : `Проанализируй эти ${photos.length} фотографий ОДНОГО изделия.`,
+    '',
+    ...lines,
+    '',
+    'Не переноси наблюдение с одного кадра на другой молча: если точка видна только ' +
+      'на детальном снимке, так и скажи в поле reason. Если нужного ракурса нет — ' +
+      'не угадывай по имеющемуся, а оставь точку без отношения: справочник подставит ' +
+      'типовое значение и документ честно это покажет.',
+    'Если виды противоречат друг другу, доверяй более детальному и отметь расхождение ' +
+      'в замечаниях к съёмке.',
+  ].join('\n');
 }

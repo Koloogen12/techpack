@@ -16,9 +16,16 @@ for (const cat of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
   const answers = parseAnswers(
     JSON.parse(readFileSync(`golden/answers/${cat}-women-46.json`, 'utf8')),
   );
-  const bytes = readFileSync(`golden/photos/${cat}-front.png`);
+  // Голден-набор снимается двумя ракурсами: без спинки половина точек
+  // корпуса и капюшона остаётся предположениями, и набор перестаёт проверять
+  // то, ради чего существует.
+  const shots = [
+    { file: `golden/photos/${cat}-front.png`, view: 'front_flat' as const },
+    { file: `golden/photos/${cat}-back.png`, view: 'back_flat' as const },
+  ];
   const key = cacheKey({
-    photoHashes: [hashPhoto(bytes)],
+    photoHashes: shots.map((s) => hashPhoto(readFileSync(s.file))),
+    views: shots.map((s) => s.view),
     category: answers.category,
     answersFingerprint: answersFingerprint(answers),
     model: defaultModel(),

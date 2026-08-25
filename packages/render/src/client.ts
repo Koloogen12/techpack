@@ -16,7 +16,21 @@ import { SpecFormError, type CostLedger, type Logger, silentLogger } from '@spec
  * картинка этого не умеет, и именно на ней застрял конкурент.
  */
 
+export interface ReferenceImage {
+  bytes: Uint8Array;
+  mediaType: string;
+}
+
 export interface ImageClientOptions {
+  /**
+   * Опорные снимки: модель видит их и работает ОТ НИХ, а не с нуля.
+   *
+   * Нужны там, где важно тождество вещи, а не её описание: второй ракурс
+   * того же изделия, примерка на фигуре. Для страницы «Внешний вид» они
+   * НЕ используются намеренно — там картинка обязана строиться из спеки,
+   * иначе она пересказывает вход и ничего не проверяет (ADR-0005).
+   */
+  references?: readonly ReferenceImage[];
   apiKey?: string;
   baseUrl?: string;
   model?: string;
@@ -84,7 +98,25 @@ export async function generateImage(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: options.references?.length
+              ? [
+                  ...options.references.map((r) => ({
+                    type: 'image_url' as const,
+                    image_url: {
+                      url: `data:${r.mediaType};base64,${Buffer.from(r.bytes).toString('base64')}`,
+                    },
+                  })),
+                  { type: 'text' as const, text: prompt },
+                ]
+              : prompt,
+          },
+        ],
+      }),
       signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     });
   } catch (cause) {

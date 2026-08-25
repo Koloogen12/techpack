@@ -8,7 +8,13 @@ import {
   type Category,
   type KnowledgeBase,
 } from '@specform/kb';
-import { buildStyleSpec, photoRatiosFrom, type StyleSpecInput } from '@specform/assembly';
+import {
+  buildStyleSpec,
+  photoRatiosFrom,
+  suggestViews,
+  viewAdviceNotes,
+  type StyleSpecInput,
+} from '@specform/assembly';
 import { specFingerprint, type StyleSpec } from '@specform/stylespec';
 import {
   FileVisionCache,
@@ -18,6 +24,7 @@ import {
   type PhotoFormat,
   type VisionReport,
 } from '@specform/vision';
+import { PHOTO_VIEWS, type PhotoView } from '@specform/kb';
 import { chromium, type Browser } from 'playwright';
 import {
   fitImage,
@@ -86,7 +93,73 @@ export interface GenerateResult {
   cost: { usd: number; ms: number; stages: readonly { stage: string; usd: number; ms: number }[] };
 }
 
-export function readPhoto(path: string): Photo {
+/**
+ * Ракурс из имени файла.
+ *
+ * Явное объявление всегда сильнее, но в concierge-режиме файлы называем мы
+ * сами, и `hoodie-back.png` не должен требовать отдельного флага. Угадывание
+ * намеренно узкое: совпадение по целому слову, иначе `frontier.jpg` стал бы
+ * видом спереди.
+ */
+const VIEW_ALIASES: Record<string, PhotoView> = {
+  front: 'front_flat',
+  перед: 'front_flat',
+  back: 'back_flat',
+  спинка: 'back_flat',
+  neck: 'detail_neck',
+  горловина: 'detail_neck',
+  hem: 'detail_hem',
+  низ: 'detail_hem',
+  sleeve: 'detail_sleeve',
+  рукав: 'detail_sleeve',
+  inside: 'inside_out',
+  изнанка: 'inside_out',
+  form: 'on_form',
+  фигура: 'on_form',
+};
+
+export function viewFromName(path: string): PhotoView | undefined {
+  const words = basename(path)
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u);
+  for (const w of words) {
+    const view = VIEW_ALIASES[w];
+    if (view) return view;
+  }
+  return undefined;
+}
+
+/** Разбор `front:file.jpg`. Без префикса — угадывание по имени файла. */
+export function parsePhotoArg(arg: string): { path: string; view?: PhotoView } {
+  const at = arg.indexOf(':');
+  const head = at > 0 ? arg.slice(0, at) : '';
+  const rest = arg.slice(at + 1);
+
+  // Двоеточие бывает не только в префиксе ракурса. Диск Windows — одна буква
+  // перед ним; схема URL — две косые черты после. Ни то ни другое не должно
+  // ни распознаваться как ракурс, ни падать с ошибкой про ракурс: первая
+  // версия этой функции честно отвергала https как неизвестный ракурс.
+  const looksLikePrefix = head.length > 1 && !rest.startsWith('//') && /^[a-zа-яё_]+$/i.test(head);
+
+  if (looksLikePrefix) {
+    if (PHOTO_VIEWS.includes(head as PhotoView)) return { path: rest, view: head as PhotoView };
+    const alias = VIEW_ALIASES[head.toLowerCase()];
+    if (alias) return { path: rest, view: alias };
+
+    // Опечатка в названии ракурса, проглоченная молча, означает разбор
+    // спинки по кадру переда. Лучше остановиться и сказать.
+    throw new SpecFormError('PHOTO_UNUSABLE', `неизвестный ракурс: ${head}`, {
+      userMessage: `Не знаем ракурс «${head}».`,
+      userAction: `Доступны: ${PHOTO_VIEWS.join(', ')} — или пишите путь без префикса`,
+      details: { view: head },
+    });
+  }
+
+  const guessed = viewFromName(arg);
+  return guessed ? { path: arg, view: guessed } : { path: arg };
+}
+
+export function readPhoto(path: string, view?: PhotoView): Photo {
   const format = FORMATS[extname(path).toLowerCase()];
   if (!format) {
     throw new SpecFormError('PHOTO_UNUSABLE', `неподдерживаемый формат файла: ${path}`, {
@@ -95,7 +168,12 @@ export function readPhoto(path: string): Photo {
       details: { path },
     });
   }
-  return { bytes: readFileSync(path), format, label: basename(path) };
+  return {
+    bytes: readFileSync(path),
+    format,
+    label: basename(path),
+    ...(view ? { view } : {}),
+  };
 }
 
 /**
@@ -211,9 +289,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   let cacheKey: string | null = null;
   let fromCache = false;
 
-  if (options.photoPaths.length > 0) {
+  const shots = options.photoPaths.map(parsePhotoArg);
+
+  if (shots.length > 0) {
     const result = await analyzePhotos({
-      photos: options.photoPaths.map(readPhoto),
+      photos: shots.map((s) => readPhoto(s.path, s.view)),
       category: answers.category,
       answersFingerprint: answersFingerprint(answers),
       model: options.model ?? defaultModel(),
@@ -244,6 +324,18 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   if (report) {
     notes.push(...reconcile(answers, report, base));
     notes.push(...visionNotes(report));
+    // Совет по досъёмке считается ПО ФАКТУ собранного документа: какие точки
+    // остались слабыми и какой недостающий кадр их закроет. Это единственный
+    // способ поднять точность, который не стоит человеку ни денег, ни ожидания.
+    notes.push(
+      ...viewAdviceNotes(
+        suggestViews(
+          spec,
+          shots.map((s) => s.view),
+          base,
+        ).slice(0, 2),
+      ),
+    );
   }
 
   // --- 3. Визуализация и документ ---------------------------------------------
@@ -273,7 +365,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const renderStart = performance.now();
 
   try {
-    const visuals = await buildVisuals(browser, visual, options.photoPaths);
+    const visuals = await buildVisuals(
+      browser,
+      visual,
+      shots.map((s) => s.path),
+    );
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
 
     writeFileSync(options.outPath, await renderPdf(spec, { pro: true, browser, visuals }));
