@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isSpecFormError, roundCm } from '@specform/core';
 import { kb } from '@specform/kb';
-import { buildMeasurements, type PomInput } from '../src/index.js';
+import { buildMeasurements, photoRatiosFrom, type PomInput } from '../src/index.js';
 
 const base = kb();
 
@@ -238,5 +238,53 @@ describe('честность и воспроизводимость', () => {
       expect(isSpecFormError(e)).toBe(true);
       if (isSpecFormError(e)) expect(e.userAction.length).toBeGreaterThan(10);
     }
+  });
+});
+
+describe('мост из vision-отчёта', () => {
+  const proportions = [
+    {
+      pom_code: 'T01',
+      ratio_to_chest: 1.4,
+      confidence: 'high' as const,
+      reason: 'контур виден целиком',
+    },
+    {
+      pom_code: 'T06',
+      ratio_to_chest: 0.8,
+      confidence: 'low' as const,
+      reason: 'плечи размыты на чёрном',
+    },
+    { pom_code: 'T10', ratio_to_chest: 0.45, confidence: 'medium' as const },
+    // Мусор: отношение не может быть нулём или отрицательным.
+    { pom_code: 'T12', ratio_to_chest: 0, confidence: 'high' as const },
+  ];
+
+  const withVision = { ...INPUT, photo_ratios: photoRatiosFrom(proportions) };
+
+  it('отбрасывает мусорные отношения, но не низкую уверенность', () => {
+    const ratios = photoRatiosFrom(proportions);
+    expect(Object.keys(ratios).sort()).toEqual(['T01', 'T06', 'T10']);
+  });
+
+  it('уверенное отношение идёт в документ без оговорок', () => {
+    const p = point(withVision, 'T01');
+    expect(p.base.confidence).toBe('estimated_from_photo');
+    expect(p.base.note).toBeUndefined();
+  });
+
+  it('низкая уверенность модели превращается в примечание с причиной', () => {
+    const p = point(withVision, 'T06');
+    expect(p.base.confidence).toBe('estimated_from_photo');
+    expect(p.base.note).toContain('низкая');
+    expect(p.base.note).toContain('плечи размыты');
+  });
+
+  it('средняя уверенность тоже видна пользователю', () => {
+    expect(point(withVision, 'T10').base.note).toContain('средняя');
+  });
+
+  it('точки, которых модель не увидела, берут типовое значение', () => {
+    expect(point(withVision, 'T12').base.confidence).toBe('default_from_base');
   });
 });

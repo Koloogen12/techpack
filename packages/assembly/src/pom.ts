@@ -43,6 +43,51 @@ export interface ManualMeasurement {
   value_cm: Centimeters;
 }
 
+/**
+ * Уверенность vision-этапа в отдельной пропорции.
+ * Переносится в документ примечанием: «оценка по фото, уверенность низкая».
+ */
+export type PhotoConfidence = 'high' | 'medium' | 'low';
+
+export interface PhotoRatio {
+  /** Отношение величины к якорю масштаба. */
+  ratio: number;
+  confidence?: PhotoConfidence;
+  /** По каким ориентирам получено. Приходит из vision-отчёта. */
+  reason?: string;
+}
+
+/** Форма, в которой vision отдаёт пропорции. Структурно совместима с VisionReport. */
+export interface PhotoProportion {
+  pom_code: string;
+  ratio_to_chest: number;
+  confidence: PhotoConfidence;
+  reason?: string;
+}
+
+/**
+ * Перевод пропорций vision-отчёта во вход POM-движка.
+ *
+ * Отношения с низкой уверенностью НЕ отбрасываются: промпт прямо разрешает
+ * модели признаваться в неуверенности, и отбрасывать такие значения означало бы
+ * наказывать её за честность. Вместо этого уверенность едет в документ примечанием —
+ * пользователь видит и число, и то, насколько ему верить.
+ */
+export function photoRatiosFrom(
+  proportions: readonly PhotoProportion[],
+): Record<string, PhotoRatio> {
+  const out: Record<string, PhotoRatio> = {};
+  for (const p of proportions) {
+    if (!(p.ratio_to_chest > 0)) continue; // ноль и отрицательное — мусор, не значение
+    out[p.pom_code] = {
+      ratio: p.ratio_to_chest,
+      confidence: p.confidence,
+      ...(p.reason === undefined ? {} : { reason: p.reason }),
+    };
+  }
+  return out;
+}
+
 export interface PomInput {
   category: Category;
   gender: Gender;
@@ -56,7 +101,7 @@ export interface PomInput {
    * Безразмерные пропорции с фото: код точки → отношение к якорю.
    * Пусто для точек, которых на фото не видно, — тогда берётся типовое отношение.
    */
-  photo_ratios?: Readonly<Record<string, number>>;
+  photo_ratios?: Readonly<Record<string, number | PhotoRatio>>;
   /**
    * Один ручной замер линейно калибрует весь масштаб (knowledge-base/03 §5.2).
    * Самый дешёвый способ поднять точность, поэтому мастер его предлагает.
@@ -152,6 +197,11 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   };
 }
 
+function normalizeRatio(value: number | PhotoRatio | undefined): PhotoRatio | undefined {
+  if (value === undefined) return undefined;
+  return typeof value === 'number' ? { ratio: value } : value;
+}
+
 /** Значение одной точки до калибровки и округления. */
 function valueFor(
   point: PomPoint,
@@ -169,7 +219,8 @@ function valueFor(
     );
   }
 
-  const photoRatio = input.photo_ratios?.[point.code];
+  const photo = normalizeRatio(input.photo_ratios?.[point.code]);
+  const photoRatio = photo?.ratio;
   const baseline = point.baseline_ratio!;
   const range = point.ratio_range;
 
@@ -192,6 +243,15 @@ function valueFor(
       ratio = photoRatio;
       confidence = 'estimated_from_photo';
       source = `vision:ratio#${point.code}`;
+      // Уверенность модели едет в документ вместе со значением: пользователь
+      // видит и число, и то, насколько ему верить.
+      if (photo?.confidence === 'low') {
+        note = photo.reason
+          ? `уверенность по фото низкая (${photo.reason}) — подтвердить по образцу`
+          : 'уверенность по фото низкая — подтвердить по образцу';
+      } else if (photo?.confidence === 'medium') {
+        note = 'уверенность по фото средняя — стоит проверить по образцу';
+      }
     }
   }
 

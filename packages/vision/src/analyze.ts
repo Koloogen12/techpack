@@ -1,0 +1,202 @@
+import Anthropic from '@anthropic-ai/sdk';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { SpecFormError, silentLogger, type CostLedger, type Logger } from '@specform/core';
+import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
+import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
+import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt } from './prompt.js';
+import { VisionReportSchema, type VisionReport } from './report.js';
+
+/** Форматы, которые принимает Claude API. */
+const MEDIA_TYPES = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+} as const;
+
+export type PhotoFormat = keyof typeof MEDIA_TYPES;
+
+export interface Photo {
+  bytes: Uint8Array;
+  format: PhotoFormat;
+  /** Имя файла — только для логов и сообщений об ошибках. */
+  label?: string;
+}
+
+export interface AnalyzeOptions {
+  photos: readonly Photo[];
+  /** Отпечаток ответов мастера. Входит в ключ кэша. */
+  answersFingerprint: string;
+  model?: string;
+  cache?: VisionCache;
+  kb?: KnowledgeBase;
+  ledger?: CostLedger;
+  logger?: Logger;
+  client?: Anthropic;
+}
+
+export interface AnalyzeResult {
+  report: VisionReport;
+  /** Ключ кэша. Уезжает в StyleSpec: по нему воспроизводится генерация. */
+  cacheKey: string;
+  /** Результат взят из кэша — обращения к API не было, стоимость ноль. */
+  fromCache: boolean;
+}
+
+/** Максимум фотографий на генерацию. Ограничение мастера (ux/02, Э3 шаг 1). */
+export const MAX_PHOTOS = 6;
+
+export function defaultModel(): string {
+  return process.env.SPECFORM_VISION_MODEL ?? 'claude-opus-5';
+}
+
+/**
+ * Анализ фотографий изделия.
+ *
+ * Единственная недетерминированная стадия пайплайна. Всё, что дальше —
+ * сборка спеки, чертёж, документ — чистые функции над её результатом.
+ * Поэтому здесь стоит контент-кэш: он превращает случайность в константу
+ * для конкретного входа (ADR-0003).
+ */
+export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeResult> {
+  const {
+    photos,
+    answersFingerprint,
+    model = defaultModel(),
+    cache = new MemoryVisionCache(),
+    kb: base = defaultKb(),
+    ledger,
+    logger = silentLogger,
+  } = options;
+
+  if (photos.length === 0) {
+    throw new SpecFormError('PHOTO_UNUSABLE', 'вызов анализа без фотографий', {
+      userMessage: 'Нужна хотя бы одна фотография изделия.',
+      userAction: 'Загрузите фото или скриншот карточки товара',
+    });
+  }
+  if (photos.length > MAX_PHOTOS) {
+    throw new SpecFormError(
+      'PHOTO_UNUSABLE',
+      `фотографий ${photos.length}, максимум ${MAX_PHOTOS}`,
+      {
+        userMessage: `За один раз мы разбираем не больше ${MAX_PHOTOS} фотографий.`,
+        userAction: 'Оставьте самые информативные кадры и удалите остальные',
+        details: { count: photos.length, max: MAX_PHOTOS },
+      },
+    );
+  }
+
+  const key = cacheKey({
+    photoHashes: photos.map((p) => hashPhoto(p.bytes)),
+    answersFingerprint,
+    model,
+  });
+
+  const cached = cache.get(key);
+  if (cached) {
+    // Тот же вход уже разбирали. Возвращаем то же самое — в этом весь смысл.
+    logger.info('vision: попадание в кэш', { key, model });
+    ledger?.record({
+      stage: 'vision',
+      model,
+      inputTokens: 0,
+      outputTokens: 0,
+      ms: 0,
+      cached: true,
+    });
+    return { report: cached, cacheKey: key, fromCache: true };
+  }
+
+  const client = options.client ?? createClient();
+  const startedAt = performance.now();
+
+  const response = await client.messages.parse({
+    model,
+    max_tokens: 16_000,
+    system: [
+      {
+        type: 'text',
+        text: buildSystemPrompt(base),
+        // Префикс стабилен между запросами: справочники меняются редко,
+        // а фотографии идут после него. Кэшируем целиком.
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: [
+      {
+        role: 'user',
+        content: [
+          ...photos.map((photo) => ({
+            type: 'image' as const,
+            source: {
+              type: 'base64' as const,
+              media_type: MEDIA_TYPES[photo.format],
+              data: Buffer.from(photo.bytes).toString('base64'),
+            },
+          })),
+          { type: 'text' as const, text: buildUserPrompt(photos.length) },
+        ],
+      },
+    ],
+    output_config: { format: zodOutputFormat(VisionReportSchema) },
+  });
+
+  const ms = Math.round(performance.now() - startedAt);
+
+  if (response.stop_reason === 'refusal') {
+    throw new SpecFormError('VISION_FAILED', 'модель отказалась разбирать снимки', {
+      userMessage: 'Не удалось разобрать эти фотографии.',
+      userAction: 'Загрузите другие снимки изделия. Попытка бесплатная — лимит не списан.',
+      details: { stop_reason: response.stop_reason },
+    });
+  }
+
+  const parsed = response.parsed_output;
+  if (!parsed) {
+    // Structured output не сошёлся со схемой. Молча продолжать нельзя:
+    // документ построится на мусоре, и это заметят только на фабрике.
+    throw new SpecFormError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
+      userMessage: 'Разбор фотографий не завершился корректно.',
+      userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
+      details: { model, promptVersion: PROMPT_VERSION },
+    });
+  }
+
+  const report = VisionReportSchema.parse(parsed);
+
+  ledger?.record({
+    stage: 'vision',
+    model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
+    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+    ms,
+  });
+
+  logger.info('vision: разбор завершён', {
+    key,
+    model,
+    ms,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    category: report.category.value,
+    proportions: report.proportions.length,
+    notVisible: report.not_visible.length,
+  });
+
+  cache.set(key, report);
+  return { report, cacheKey: key, fromCache: false };
+}
+
+function createClient(): Anthropic {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new SpecFormError('CONFIG_MISSING', 'ANTHROPIC_API_KEY не задан', {
+      userMessage: 'Сервис анализа фотографий недоступен.',
+      userAction: 'Повторить позже. Это на нашей стороне, лимит не списан.',
+    });
+  }
+  return new Anthropic();
+}
