@@ -1,0 +1,372 @@
+{
+  "id": "pom_templates/tshirt",
+  "version": "0.1.0",
+  "description": "Шаблон точек измерения футболки, 18 точек. Табель мер — главный документ приёмки: по нему работает ОТК фабрики (knowledge-base/07 §6). Якорь масштаба — ширина по груди (T03): она считается из размерной сетки тела и прибавки, остальные точки получаются умножением якоря на безразмерное отношение с фото с клэмпом в правдоподобный диапазон. Абсолютные сантиметры с одного фото получить нельзя (монокулярная неоднозначность масштаба) — поэтому масштаб приходит от пользователя, а не из снимка.",
+  "sources": [
+    "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+    "knowledge-base/03-pom-razmery-gradaciya.md#5.2",
+    "https://apparel.wiki/blog/measure-garment-standard-pom/",
+    "ASTM D5219",
+    "ISO 8559"
+  ],
+  "category": "tshirt",
+  "fabric": "knit",
+  "points": [
+    {
+      "code": "T01",
+      "name_en": "HPS Length",
+      "name_ru": "Длина от высшей точки плеча",
+      "how_to_measure_ru": "От высшей точки плеча вертикально вниз до края низа",
+      "measure_kind": "length",
+      "tolerance_class": "length",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 1.35,
+      "ratio_range": {
+        "min": 1.05,
+        "max": 1.65
+      },
+      "grading_key": "body_length",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T02",
+      "name_en": "CB Length",
+      "name_ru": "Длина по центру спинки",
+      "how_to_measure_ru": "От шва горловины по центру спинки до края низа",
+      "measure_kind": "length",
+      "tolerance_class": "length",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 1.31,
+      "ratio_range": {
+        "min": 1.0,
+        "max": 1.6
+      },
+      "grading_key": "body_length",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T03",
+      "name_en": "Chest 1\" below armhole",
+      "name_ru": "Ширина по груди",
+      "how_to_measure_ru": "На 2.5 см ниже проймы, от шва до шва в плоском виде",
+      "measure_kind": "half",
+      "tolerance_class": "major_width",
+      "derivation": "anchor",
+      "grading_key": "body_width",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Якорь считается из размерной сетки и прибавки — сам по себе отношения не имеет. Не проверена шкала допусков (см. tolerance_classes)."
+    },
+    {
+      "code": "T04",
+      "name_en": "Waist",
+      "name_ru": "Ширина по талии",
+      "how_to_measure_ru": "В самой узкой точке либо на фиксированном расстоянии от высшей точки плеча",
+      "measure_kind": "half",
+      "tolerance_class": "major_width",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.96,
+      "ratio_range": {
+        "min": 0.85,
+        "max": 1.05
+      },
+      "grading_key": "body_width",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T05",
+      "name_en": "Bottom Sweep",
+      "name_ru": "Ширина по низу",
+      "how_to_measure_ru": "По краю низа, от сгиба до сгиба в плоском виде",
+      "measure_kind": "half",
+      "tolerance_class": "major_width",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 1.0,
+      "ratio_range": {
+        "min": 0.88,
+        "max": 1.12
+      },
+      "grading_key": "body_width",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T06",
+      "name_en": "Across Shoulder",
+      "name_ru": "Ширина плеч",
+      "how_to_measure_ru": "От плечевой точки до плечевой точки по спинке",
+      "measure_kind": "length",
+      "tolerance_class": "medium",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.87,
+      "ratio_range": {
+        "min": 0.7,
+        "max": 1.05
+      },
+      "grading_key": "across_shoulder",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T07",
+      "name_en": "Across Front",
+      "name_ru": "Ширина переда",
+      "how_to_measure_ru": "На фиксированной высоте 12–15 см от высшей точки плеча, от проймы до проймы",
+      "measure_kind": "length",
+      "tolerance_class": "medium",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.77,
+      "ratio_range": {
+        "min": 0.62,
+        "max": 0.92
+      },
+      "grading_key": "across_body",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T08",
+      "name_en": "Across Back",
+      "name_ru": "Ширина спинки",
+      "how_to_measure_ru": "На той же высоте, что и ширина переда, от проймы до проймы по спинке",
+      "measure_kind": "length",
+      "tolerance_class": "medium",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.79,
+      "ratio_range": {
+        "min": 0.64,
+        "max": 0.94
+      },
+      "grading_key": "across_body",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T09",
+      "name_en": "Armhole",
+      "name_ru": "Пройма",
+      "how_to_measure_ru": "По кривой шва проймы либо хордой — способ указывается в документе",
+      "measure_kind": "length",
+      "tolerance_class": "medium",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.44,
+      "ratio_range": {
+        "min": 0.34,
+        "max": 0.56
+      },
+      "grading_key": "armhole",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T10",
+      "name_en": "Sleeve Length from Shoulder",
+      "name_ru": "Длина рукава от плеча",
+      "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
+      "measure_kind": "length",
+      "tolerance_class": "medium",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.4,
+      "ratio_range": {
+        "min": 0.2,
+        "max": 0.7
+      },
+      "grading_key": "sleeve_length",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T11",
+      "name_en": "Sleeve Length from CB",
+      "name_ru": "Длина рукава от центра спинки",
+      "how_to_measure_ru": "Через плечо от центра спинки до края рукава. Применяется для реглана и спущенного плеча",
+      "measure_kind": "length",
+      "tolerance_class": "length",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.83,
+      "ratio_range": {
+        "min": 0.55,
+        "max": 1.3
+      },
+      "grading_key": "sleeve_length",
+      "required": false,
+      "pro_only": true,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T12",
+      "name_en": "Bicep",
+      "name_ru": "Ширина рукава под проймой",
+      "how_to_measure_ru": "На 2.5 см ниже проймы, в плоском виде",
+      "measure_kind": "half",
+      "tolerance_class": "medium",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.39,
+      "ratio_range": {
+        "min": 0.28,
+        "max": 0.55
+      },
+      "grading_key": "bicep",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T13",
+      "name_en": "Sleeve Opening",
+      "name_ru": "Низ рукава",
+      "how_to_measure_ru": "По краю рукава в плоском виде, без растяжения",
+      "measure_kind": "half",
+      "tolerance_class": "minor",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.33,
+      "ratio_range": {
+        "min": 0.22,
+        "max": 0.48
+      },
+      "grading_key": "sleeve_opening",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T14",
+      "name_en": "Neck Width",
+      "name_ru": "Ширина горловины",
+      "how_to_measure_ru": "Между плечевыми швами по линии втачивания горловины",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.35,
+      "ratio_range": {
+        "min": 0.26,
+        "max": 0.48
+      },
+      "grading_key": "neck_width",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T15",
+      "name_en": "Front Neck Drop",
+      "name_ru": "Глубина горловины переда",
+      "how_to_measure_ru": "От линии между высшими точками плеч вниз до шва втачивания по центру переда",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.15,
+      "ratio_range": {
+        "min": 0.08,
+        "max": 0.3
+      },
+      "grading_key": "neck_drop",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T16",
+      "name_en": "Back Neck Drop",
+      "name_ru": "Глубина горловины спинки",
+      "how_to_measure_ru": "От той же линии вниз до шва втачивания по центру спинки",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "derivation": "ratio_to_anchor",
+      "baseline_ratio": 0.05,
+      "ratio_range": {
+        "min": 0.02,
+        "max": 0.12
+      },
+      "grading_key": "neck_drop",
+      "required": true,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T17",
+      "name_en": "Neck Rib Height",
+      "name_ru": "Высота бейки горловины",
+      "how_to_measure_ru": "От шва втачивания бейки до края горловины",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "tolerance_cm": 0.2,
+      "derivation": "independent",
+      "baseline_ratio": 0.04,
+      "ratio_range": {
+        "min": 0.02,
+        "max": 0.1
+      },
+      "grading_key": "none",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    },
+    {
+      "code": "T18",
+      "name_en": "Shoulder Slope",
+      "name_ru": "Наклон плеча",
+      "how_to_measure_ru": "Вертикаль от линии высших точек плеч до плечевой точки",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "derivation": "independent",
+      "baseline_ratio": 0.08,
+      "ratio_range": {
+        "min": 0.04,
+        "max": 0.14
+      },
+      "grading_key": "none",
+      "required": false,
+      "pro_only": true,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
+      "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3)."
+    }
+  ]
+}

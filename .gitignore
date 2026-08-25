@@ -1,0 +1,27 @@
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+Thumbs.db
+
+# runtime artifacts
+/out/
+/tmp/
+/.cache/
+/storage/
+playwright-report/
+test-results/
+
+# golden set: фото хранятся в LFS/внешне, снапшоты — в репо
+/golden/photos/**/*.jpg
+/golden/photos/**/*.jpeg
+/golden/photos/**/*.png
+!/golden/photos/**/.gitkeep

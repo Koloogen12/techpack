@@ -1,0 +1,169 @@
+{
+  "id": "ease_defaults",
+  "version": "0.1.0",
+  "description": "Прибавка на свободу облегания. ВНИМАНИЕ на определение: это ПОЛНЫЙ обхват изделия минус обхват тела, в сантиметрах. Не полуобхват и не прибавка Пг русской школы конструирования — те считаются к полуобхвату, спутать означает ошибиться вдвое. Вместе с базовым размером даёт якорь масштаба (дифференциатор R1: у конкурента замеры от «дефолтного M системы»).",
+  "sources": [
+    "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+    "https://vikisews.com/blog/pribavki-na-svobodu-obleganija/",
+    "https://season.ru/patterns/techniques-for-constructing-patterns/pribavki-na-svobodnoe-obleganie.html"
+  ],
+  "entries": [
+    {
+      "category": "tshirt",
+      "fit": "fitted",
+      "fabric": "knit",
+      "default": 3,
+      "min": 0,
+      "max": 6,
+      "note": "Для стрейч-полотен допустима отрицательная прибавка до −4 см.",
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Таблица прибавок помечена в базе знаний как экспертная эвристика, а не норматив. Калибровать по реальным size charts брендов и первым отшивам."
+    },
+    {
+      "category": "tshirt",
+      "fit": "semi_fitted",
+      "fabric": "knit",
+      "default": 10,
+      "min": 8,
+      "max": 12,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Таблица прибавок помечена в базе знаний как экспертная эвристика, а не норматив. Калибровать по реальным size charts брендов и первым отшивам."
+    },
+    {
+      "category": "tshirt",
+      "fit": "loose",
+      "fabric": "knit",
+      "default": 17,
+      "min": 14,
+      "max": 20,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Таблица прибавок помечена в базе знаний как экспертная эвристика, а не норматив. Калибровать по реальным size charts брендов и первым отшивам."
+    },
+    {
+      "category": "tshirt",
+      "fit": "oversize",
+      "fabric": "knit",
+      "default": 32,
+      "min": 24,
+      "max": 40,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Таблица прибавок помечена в базе знаний как экспертная эвристика, а не норматив. Калибровать по реальным size charts брендов и первым отшивам. Диапазон особенно широкий: oversize сильнее прочих посадок зависит от замысла бренда, значение стоит подтверждать по референсу."
+    },
+    {
+      "category": "longsleeve",
+      "fit": "fitted",
+      "fabric": "knit",
+      "default": 3,
+      "min": 0,
+      "max": 6,
+      "note": "Лонгслив = футболка с длинным рукавом (knowledge-base/04 §6), прибавки по корпусу те же.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    },
+    {
+      "category": "longsleeve",
+      "fit": "semi_fitted",
+      "fabric": "knit",
+      "default": 10,
+      "min": 8,
+      "max": 12,
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    },
+    {
+      "category": "longsleeve",
+      "fit": "loose",
+      "fabric": "knit",
+      "default": 17,
+      "min": 14,
+      "max": 20,
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    },
+    {
+      "category": "longsleeve",
+      "fit": "oversize",
+      "fabric": "knit",
+      "default": 32,
+      "min": 24,
+      "max": 40,
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    },
+    {
+      "category": "hoodie",
+      "fit": "semi_fitted",
+      "fabric": "knit",
+      "default": 14,
+      "min": 12,
+      "max": 16,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Экспертная эвристика. Прилегающая посадка для худи в базе знаний помечена прочерком как нетиповая — движок в этом случае берёт обычную и говорит об этом пользователю. Калибровать по реальным size charts брендов."
+    },
+    {
+      "category": "hoodie",
+      "fit": "loose",
+      "fabric": "knit",
+      "default": 22,
+      "min": 18,
+      "max": 26,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Экспертная эвристика. Прилегающая посадка для худи в базе знаний помечена прочерком как нетиповая — движок в этом случае берёт обычную и говорит об этом пользователю. Калибровать по реальным size charts брендов."
+    },
+    {
+      "category": "hoodie",
+      "fit": "oversize",
+      "fabric": "knit",
+      "default": 36,
+      "min": 28,
+      "max": 45,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#3.3",
+      "gap": "Экспертная эвристика. Прилегающая посадка для худи в базе знаний помечена прочерком как нетиповая — движок в этом случае берёт обычную и говорит об этом пользователю. Калибровать по реальным size charts брендов."
+    },
+    {
+      "category": "sweatshirt",
+      "fit": "semi_fitted",
+      "fabric": "knit",
+      "default": 14,
+      "min": 12,
+      "max": 16,
+      "note": "Свитшот и худи идут в базе знаний одной группой (knowledge-base/04 §6).",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    },
+    {
+      "category": "sweatshirt",
+      "fit": "loose",
+      "fabric": "knit",
+      "default": 22,
+      "min": 18,
+      "max": 26,
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    },
+    {
+      "category": "sweatshirt",
+      "fit": "oversize",
+      "fabric": "knit",
+      "default": 36,
+      "min": 28,
+      "max": 45,
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Унаследовано от родственной категории по правилу категорийных дефолтов (knowledge-base/04 §6), отдельно не измерялось. Калибровать по первым отшивам."
+    }
+  ]
+}

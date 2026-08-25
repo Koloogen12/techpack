@@ -1,0 +1,167 @@
+{
+  "id": "grading_increments",
+  "version": "0.1.0",
+  "description": "Межразмерные приращения градации, РФ-практика. Приращение хранится В ТЕХ ЖЕ ЕДИНИЦАХ, что и значение точки, к которой применяется: для half-точек (грудь, талия, низ) это половина приращения по обхвату — обхват +4.0 см даёт half +2.0 см. Дифференциатор R3: конкурент не градуирует вообще («правила — ваша тайна»).",
+  "sources": [
+    "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+    "ЦНИИШП / ЕМКО СЭВ, пропорционально-расчётный способ",
+    "http://mirlekal.ru/page15",
+    "https://apparel.wiki/blog/grading-rules-how-sizes-expand-base-pattern/"
+  ],
+  "chest_step": 4,
+  "rules": [
+    {
+      "key": "body_width",
+      "label_ru": "Ширины корпуса (грудь, талия, низ)",
+      "per_size": 2.0,
+      "per_size_range": {
+        "min": 2.0,
+        "max": 2.0
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Само приращение (обхват +4.0 → half +2.0) следует из шага сетки и сомнений не вызывает. Непроверен knit_multiplier: база знаний утверждает, что трикотаж градуируется меньше основного полотна, но числа не даёт — стоит 1.0 до калибровки по отшивам."
+    },
+    {
+      "key": "body_length",
+      "label_ru": "Длины изделия",
+      "per_size": 0.75,
+      "per_size_range": {
+        "min": 0.5,
+        "max": 1.0
+      },
+      "per_height": 2.5,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Распарсить схемы приращений ЦНИИШП (учебник ИВГПУ)."
+    },
+    {
+      "key": "across_shoulder",
+      "label_ru": "Ширина плеч",
+      "per_size": 1.1,
+      "per_size_range": {
+        "min": 1.0,
+        "max": 1.2
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Числовые схемы приращений ЦНИИШП по точкам не распарсены — закрыть по учебнику ИВГПУ. Плюс не проверен knit_multiplier: трикотаж градуируется меньше основного полотна, но числа база знаний не даёт, стоит 1.0."
+    },
+    {
+      "key": "across_body",
+      "label_ru": "Ширина переда и спинки",
+      "per_size": 1.0,
+      "per_size_range": {
+        "min": 0.8,
+        "max": 1.2
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "База знаний даёт распределение half-приращения по участкам (спинка +0.5 / пройма +0.5 / полочка +1.0), но не переводит его в приращение точек across front/back, которые меряются пройма-до-проймы. Значение выведено оценкой. Уточнить по учебнику ИВГПУ или по первым отшивам."
+    },
+    {
+      "key": "armhole",
+      "label_ru": "Пройма",
+      "per_size": 0.45,
+      "per_size_range": {
+        "min": 0.4,
+        "max": 0.5
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Числовые схемы приращений ЦНИИШП по точкам не распарсены — закрыть по учебнику ИВГПУ. Плюс не проверен knit_multiplier: трикотаж градуируется меньше основного полотна, но числа база знаний не даёт, стоит 1.0."
+    },
+    {
+      "key": "sleeve_length",
+      "label_ru": "Длина рукава",
+      "per_size": 0.4,
+      "per_size_range": {
+        "min": 0.3,
+        "max": 0.5
+      },
+      "per_height": 1.75,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Числовые схемы приращений ЦНИИШП по точкам не распарсены — закрыть по учебнику ИВГПУ. Плюс не проверен knit_multiplier: трикотаж градуируется меньше основного полотна, но числа база знаний не даёт, стоит 1.0."
+    },
+    {
+      "key": "bicep",
+      "label_ru": "Ширина рукава под проймой",
+      "per_size": 1.6,
+      "per_size_range": {
+        "min": 1.2,
+        "max": 2.0
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Числовые схемы приращений ЦНИИШП по точкам не распарсены — закрыть по учебнику ИВГПУ. Плюс не проверен knit_multiplier: трикотаж градуируется меньше основного полотна, но числа база знаний не даёт, стоит 1.0."
+    },
+    {
+      "key": "sleeve_opening",
+      "label_ru": "Низ рукава",
+      "per_size": 0.8,
+      "per_size_range": {
+        "min": 0.6,
+        "max": 1.0
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Прямого значения для низа рукава в базе знаний нет — взято по аналогии с низом брючины (+0.6…1.0). Проверить на отшивах."
+    },
+    {
+      "key": "neck_width",
+      "label_ru": "Ширина горловины",
+      "per_size": 0.45,
+      "per_size_range": {
+        "min": 0.4,
+        "max": 0.5
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Числовые схемы приращений ЦНИИШП по точкам не распарсены — закрыть по учебнику ИВГПУ. Плюс не проверен knit_multiplier: трикотаж градуируется меньше основного полотна, но числа база знаний не даёт, стоит 1.0."
+    },
+    {
+      "key": "neck_drop",
+      "label_ru": "Глубина горловины",
+      "per_size": 0.15,
+      "per_size_range": {
+        "min": 0.1,
+        "max": 0.2
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Практический дефолт, помечен в базе знаний как ⚠️. Числовые схемы приращений ЦНИИШП по точкам не распарсены — закрыть по учебнику ИВГПУ. Плюс не проверен knit_multiplier: трикотаж градуируется меньше основного полотна, но числа база знаний не даёт, стоит 1.0."
+    },
+    {
+      "key": "none",
+      "label_ru": "Не градуируется",
+      "per_size": 0,
+      "per_size_range": {
+        "min": 0,
+        "max": 0
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": true,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.1"
+    }
+  ]
+}

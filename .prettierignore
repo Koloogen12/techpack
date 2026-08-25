@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+
+# Продуктовые и доменные документы форматтер не трогает.
+# Он переносит строки и перестраивает вложенность списков — на спеках
+# это ломает структуру и создаёт шум в истории. Проверено на UI-SPEC 4.3.
+*.md
+docs/**/*.md
+ux/**
+knowledge-base/**
+design_handoff_specform/**
+market-research/**
+*.html

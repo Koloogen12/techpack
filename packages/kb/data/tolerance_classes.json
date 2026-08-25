@@ -1,0 +1,53 @@
+{
+  "id": "tolerance_classes",
+  "version": "0.1.0",
+  "description": "Классы точек измерения и допуски по умолчанию, ±см. Допуск подставляется в табель мер автоматически (дифференциатор R2: конкурент допуски не ставит вообще). Значение можно перекрыть на таблицу целиком и на отдельную строку.",
+  "sources": [
+    "knowledge-base/03-pom-razmery-gradaciya.md#1",
+    "https://apparel.wiki/blog/understanding-tolerance-in-garment-measurements/",
+    "ASTM D5219",
+    "ISO 8559"
+  ],
+  "classes": [
+    {
+      "class": "major_width",
+      "label_ru": "Большие ширины",
+      "examples_ru": ["ширина по груди", "ширина по талии", "ширина по бёдрам", "ширина по низу"],
+      "woven": { "default": 1.0, "min": 1.0, "max": 1.0 },
+      "knit": { "default": 1.0, "min": 1.0, "max": 1.5 },
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#1",
+      "gap": "Шкала — синтез из международной практики, не норматив РФ. Дефолт взят по нижней границе диапазона: слишком свободный допуск тихо пропускает брак, слишком жёсткий виден и снимается вручную. Калибровать по RAT-3 (число итераций пробника)."
+    },
+    {
+      "class": "length",
+      "label_ru": "Длины изделия",
+      "examples_ru": ["длина от высшей точки плеча", "длина по центру спинки", "шаговый шов"],
+      "woven": { "default": 1.0, "min": 1.0, "max": 1.0 },
+      "knit": { "default": 1.0, "min": 1.0, "max": 1.5 },
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#1",
+      "gap": "Как у major_width: калибровать по результатам отшивов."
+    },
+    {
+      "class": "medium",
+      "label_ru": "Средние",
+      "examples_ru": ["ширина плеч", "пройма", "ширина рукава", "ширина бедра брюк", "сидение"],
+      "woven": { "default": 0.5, "min": 0.5, "max": 0.6 },
+      "knit": { "default": 0.6, "min": 0.6, "max": 1.0 },
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#1",
+      "gap": "Калибровать по результатам отшивов; для люкса ужимать."
+    },
+    {
+      "class": "minor",
+      "label_ru": "Мелкие",
+      "examples_ru": ["ширина горловины", "манжета", "низ рукава", "пояс", "карман"],
+      "woven": { "default": 0.3, "min": 0.3, "max": 0.3 },
+      "knit": { "default": 0.3, "min": 0.3, "max": 0.5 },
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#1",
+      "gap": "Калибровать по результатам отшивов."
+    }
+  ]
+}
