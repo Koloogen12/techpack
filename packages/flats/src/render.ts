@@ -1,6 +1,7 @@
 import type { Centimeters } from '@specform/core';
 import type { StyleSpec } from '@specform/stylespec';
 import { buildPaths, DEFAULT_PATH_OPTIONS, type PathOptions } from './paths.js';
+import { buildSidePaths, garmentDepth, type SideGeometry } from './side.js';
 import type { FlatGeometry, FlatMeasurements } from './geometry.js';
 
 /**
@@ -42,8 +43,20 @@ export interface Callout {
   node_id: string;
 }
 
+export type FlatView = 'front' | 'back' | 'side';
+
 export interface RenderOptions {
-  view: 'front' | 'back';
+  view: FlatView;
+  /**
+   * Глубина изделия на уровне груди, см. Обязательна для бокового вида
+   * и бессмысленна для остальных.
+   *
+   * Приходит снаружи намеренно: её нельзя вычислить из табеля мер, она
+   * выводится из размерной сетки и прибавки (см. `garmentDepth`). Чертёж
+   * не должен уметь ходить в справочники — иначе он перестанет быть
+   * чистой проекцией спеки.
+   */
+  depthCm?: Centimeters;
   /** Какие слои показывать. По умолчанию все, кроме выносок. */
   layers?: readonly FlatLayer[];
   callouts?: readonly Callout[];
@@ -117,7 +130,16 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
 
 export interface RenderResult {
   svg: string;
-  geometry: FlatGeometry;
+  geometry: FlatGeometry | SideGeometry;
+  /**
+   * Габариты области рисования в САНТИМЕТРАХ изделия.
+   *
+   * Нужны вёрстке: три вида на одном листе обязаны стоять в одном масштабе,
+   * а для этого ширины колонок должны относиться так же, как ширины видов.
+   * Бок узкий, и растянутый на треть листа он выглядел бы шире переда —
+   * то есть врал бы ровно в том, что показывает.
+   */
+  viewBox: { width: number; height: number };
 }
 
 /** Прямоугольник зоны нанесения на чертеже, в сантиметрах изделия. */
@@ -134,17 +156,32 @@ export interface ArtworkZone {
 export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderResult {
   const layers = options.layers ?? ['outline', 'seams', 'stitches', 'hardware', 'artwork'];
   const margin = options.margin ?? 4;
-  const { geometry, paths } = buildPaths(m, options.view, options.paths ?? DEFAULT_PATH_OPTIONS);
+  const isSide = options.view === 'side';
 
-  const halfWidth = geometry.bounds.width + margin;
-  const top = geometry.bounds.top - margin;
-  const height = geometry.bounds.bottom - geometry.bounds.top + margin * 2;
-  const viewBox = `${-halfWidth} ${top} ${halfWidth * 2} ${height}`;
+  if (isSide && options.depthCm === undefined) {
+    throw new Error('боковой вид требует глубины изделия: её не задаёт ни один замер');
+  }
 
-  // Правая половина рисуется один раз, левая — зеркалом: симметрия точная
-  // по построению, а не по совпадению чисел (knowledge-base/02 §6, правило 2).
+  const built = isSide
+    ? buildSidePaths(m, options.depthCm!, options.paths ?? DEFAULT_PATH_OPTIONS)
+    : buildPaths(m, options.view as 'front' | 'back', options.paths ?? DEFAULT_PATH_OPTIONS);
+  const geometry = built.geometry;
+  const paths = built.paths;
+
+  // Перед и спинка симметричны: рисуется правая половина, левая берётся
+  // зеркалом (knowledge-base/02 §6, правило 2). Бок несимметричен по сути —
+  // у него перед спереди, спинка сзади, — и зеркалить его значит стереть
+  // единственное, что он показывает.
+  const b = geometry.bounds;
+  const left = ('left' in b ? b.left : -b.width) - margin;
+  const right = ('right' in b ? b.right : b.width) + margin;
+  const top = b.top - margin;
+  const boxWidth = right - left;
+  const boxHeight = b.bottom - b.top + margin * 2;
+  const viewBox = `${left} ${top} ${boxWidth} ${boxHeight}`;
+
   const half = (content: string): string =>
-    `<g>${content}</g><g transform="scale(-1,1)">${content}</g>`;
+    isSide ? content : `<g>${content}</g><g transform="scale(-1,1)">${content}</g>`;
 
   const layer = (name: FlatLayer, content: string): string =>
     layers.includes(name) && content
@@ -174,7 +211,9 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     options.patternFill
       ? half(
           `<path d="${paths.outline}" fill="url(#tile)" stroke="none"/>` +
-            paths.hood.map((d) => `<path d="${d}" fill="url(#tile)" stroke="none"/>`).join(''),
+            [...paths.hood, ...paths.parts]
+              .map((d) => `<path d="${d}" fill="url(#tile)" stroke="none"/>`)
+              .join(''),
         )
       : '',
   );
@@ -182,7 +221,8 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
   const outline = layer(
     'outline',
     half(
-      path(paths.outline, STROKE.outline) + paths.hood.map((d) => path(d, STROKE.outline)).join(''),
+      path(paths.outline, STROKE.outline) +
+        [...paths.hood, ...paths.parts].map((d) => path(d, STROKE.outline)).join(''),
     ),
   );
 
@@ -192,8 +232,10 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
       paths.seams.map((d) => path(d, STROKE.seam)).join('') +
         // Карман настрочной: его край — видимый шов, а не отстрочка.
         paths.pocket.map((d) => path(d, STROKE.seam)).join('') +
-        paths.ribs.map((d) => path(d, STROKE.hidden)).join(''),
-    ) + path(paths.center, STROKE.center, '1.2 0.8'),
+        paths.ribs.map((d) => path(d, STROKE.hidden)).join('') +
+        // Точками — то, что закрыто другой деталью (knowledge-base/02 §3).
+        paths.hidden.map((d) => path(d, STROKE.seam, '0.35 0.55')).join(''),
+    ) + (paths.center ? path(paths.center, STROKE.center, '1.2 0.8') : ''),
   );
 
   const stitches = layer(
@@ -244,7 +286,7 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
       .join(''),
   );
 
-  const title = options.view === 'front' ? 'ПЕРЕД' : 'СПИНКА';
+  const title = { front: 'ПЕРЕД', back: 'СПИНКА', side: 'БОК' }[options.view];
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" ` +
@@ -261,14 +303,37 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     callouts +
     `\n</svg>`;
 
-  return { svg, geometry };
+  return { svg, geometry, viewBox: { width: boxWidth, height: boxHeight } };
 }
 
-/** Рендер обоих видов из спеки. Основной вход для документа и веб-вьювера. */
+/**
+ * Нужен ли изделию боковой вид.
+ *
+ * Правило не по списку категорий, а по СОСТАВУ ИЗДЕЛИЯ, и это принципиально:
+ * список пришлось бы дополнять на каждую новую категорию, а забытая строчка
+ * в списке тихо отнимает у документа целый вид. Здесь же куртка и бомбер
+ * получат бок в тот день, когда у них появится капюшон или объёмный карман, —
+ * без правки этого кода.
+ *
+ * Условие: у изделия есть деталь, форму которой перед и спинка показать
+ * не могут. Капюшон на переде лежит разложенным вверх — условность, по
+ * построению скрывающая профиль. Настрочной карман виден плоским
+ * прямоугольником, хотя он лежит ПОВЕРХ полотна.
+ *
+ * Гладкая футболка бока не получает, и это не экономия: у разложенной футболки
+ * сбоку нечего показать, а лист с пустым чертежом — ровно та болезнь эталона,
+ * которую мы не берём.
+ */
+export function needsSideView(spec: StyleSpec): boolean {
+  const has = (code: string): boolean => spec.measurements.points.some((p) => p.code === code);
+  return has('H01') || has('H04');
+}
+
+/** Рендер видов из спеки. Основной вход для документа и веб-вьювера. */
 export function renderFlatsFromSpec(
   spec: StyleSpec,
   options: Omit<RenderOptions, 'view'> = {},
-): { front: RenderResult; back: RenderResult } {
+): { front: RenderResult; back: RenderResult; side?: RenderResult } {
   const m = measurementsFrom(spec);
 
   // Зоны нанесения берутся из спеки сами: чертёж — её проекция, и требовать
@@ -302,8 +367,33 @@ export function renderFlatsFromSpec(
       : {}),
   };
 
+  const side =
+    needsSideView(spec) && options.depthCm !== undefined
+      ? renderFlat(m, { ...options, view: 'side', paths })
+      : undefined;
+
   return {
     front: renderFlat(m, { ...options, view: 'front', paths, artwork }),
     back: renderFlat(m, { ...options, view: 'back', paths, artwork }),
+    ...(side ? { side } : {}),
   };
+}
+
+/**
+ * Глубина изделия для бокового вида по спеке и размерной сетке.
+ *
+ * Живёт здесь, а не в `renderFlatsFromSpec`, чтобы чертёж остался чистой
+ * проекцией спеки: справочник в него не входит. Вызывающая сторона берёт
+ * число тут и передаёт вниз явным аргументом — видно, что оно ПРИШЛО
+ * ИЗВНЕ табеля мер, а не выведено из него.
+ */
+export function depthForSpec(
+  spec: StyleSpec,
+  bodyChestCm: Centimeters,
+  widthToDepth: number,
+): Centimeters {
+  return garmentDepth(measurementsFrom(spec).chestFlat, {
+    bodyChest: bodyChestCm,
+    widthToDepth,
+  });
 }

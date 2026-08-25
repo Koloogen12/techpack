@@ -51,11 +51,14 @@ import {
   PhotoViewsFileSchema,
   PrintTechniquesFileSchema,
   PrintZonesFileSchema,
+  BodyCrossSectionFileSchema,
   type PrintTechnique,
   type PrintTechniqueEntry,
   type PrintTechniquesFile,
   type PrintZoneEntry,
   type PrintZonesFile,
+  type BodyCrossSectionFile,
+  type BodyRatio,
   ScaleReferencesFileSchema,
   type ScaleReference,
   type ScaleReferenceId,
@@ -141,6 +144,7 @@ export class KnowledgeBase {
     private readonly scales: ScaleReferencesFile,
     private readonly printTech: PrintTechniquesFile,
     private readonly printZonesFile: PrintZonesFile,
+    private readonly crossSection: BodyCrossSectionFile,
   ) {}
 
   static load(): KnowledgeBase {
@@ -176,6 +180,7 @@ export class KnowledgeBase {
       loadFile('scale_references.json', ScaleReferencesFileSchema),
       loadFile('print_techniques.json', PrintTechniquesFileSchema),
       loadFile('print_zones.json', PrintZonesFileSchema),
+      loadFile('body_cross_section.json', BodyCrossSectionFileSchema),
     );
   }
 
@@ -222,6 +227,19 @@ export class KnowledgeBase {
   /** Правила приёмки, которые поточечный допуск не выражает. */
   qcRules(): readonly QcRule[] {
     return this.tolerances.qc_rules;
+  }
+
+  /**
+   * Отношение ширины торса к глубине. Нужно боковому виду чертежа.
+   *
+   * Возвращает запись целиком, а не одно число: у бокового вида в документе
+   * стоит сноска о происхождении величины, и она обязана брать текст отсюда,
+   * а не повторять его своими словами.
+   */
+  bodyRatio(gender: Gender): BodyRatio {
+    const found = this.crossSection.ratios.find((r) => r.gender === gender);
+    if (!found) throw new Error(`нет отношения сечения торса для: ${gender}`);
+    return found;
   }
 
   sizeChart(gender: Gender): SizeChart {

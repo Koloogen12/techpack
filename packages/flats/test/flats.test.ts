@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildGeometry,
   buildPaths,
+  buildSideGeometry,
+  buildSidePaths,
+  garmentDepth,
   measuredBicep,
   renderFlat,
   type ArtworkZone,
@@ -282,5 +285,159 @@ describe('заливка раппортом', () => {
     const layer = s.slice(s.indexOf('data-layer="pattern"'));
     const upTo = layer.slice(0, layer.indexOf('data-layer="outline"'));
     expect(upTo).toContain('scale(-1,1)');
+  });
+});
+
+// ---------------------------------------------------------------- боковой вид
+
+/** Худи RU 46 — единственная категория ядра, которой бок положен. */
+const HOODIE: FlatMeasurements = {
+  bodyLength: 66.6,
+  chestFlat: 52.5,
+  waistFlat: 50.4,
+  hemFlat: 46.2,
+  shoulderWidth: 45.7,
+  armhole: 23.1,
+  sleeveLength: 58,
+  bicep: 20.5,
+  sleeveOpening: 8.9,
+  neckWidth: 21.6,
+  frontNeckDrop: 8,
+  backNeckDrop: 2.8,
+  neckRibHeight: 2,
+  shoulderSlope: 4.1,
+  cuffRibHeight: 6,
+  waistRibHeight: 6,
+  hoodHeight: 35.9,
+  hoodWidth: 26.2,
+  hoodOpening: 41.9,
+  pocketWidth: 33.6,
+  pocketHeight: 17.9,
+};
+
+const BODY_CHEST = 92;
+const RATIO = 1.25;
+
+describe('глубина изделия', () => {
+  it('прибавка делает сечение КРУГЛЕЕ, а не просто больше', () => {
+    // Прилегающее и оверсайз из одной сетки. Отношение ширины к глубине
+    // у свободного изделия обязано быть МЕНЬШЕ: прибавка ложится
+    // равномерным отступом, а он круглит контур.
+    const fitted = garmentDepth(48, { bodyChest: BODY_CHEST, widthToDepth: RATIO });
+    const oversize = garmentDepth(66, { bodyChest: BODY_CHEST, widthToDepth: RATIO });
+
+    // Ширина сечения — из того же эллипса: полупериметр равен замеру в плоском виде.
+    const shape = (flat: number, depth: number): number => {
+      // a находится из периметра 2·flat при известном b = depth/2.
+      const b = depth / 2;
+      let lo = b;
+      let hi = flat;
+      for (let i = 0; i < 60; i++) {
+        const a = (lo + hi) / 2;
+        const p = Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+        if (p < 2 * flat) lo = a;
+        else hi = a;
+      }
+      return (2 * lo) / depth;
+    };
+
+    expect(shape(66, oversize)).toBeLessThan(shape(48, fitted));
+  });
+
+  it('отрицательная прибавка не сплющивает изделие в ноль', () => {
+    // На трикотаже прилегающее изделие законно уже тела. Но сжать грудную
+    // клетку вдвое оно не может, и чертёж обязан остаться чертежом.
+    const depth = garmentDepth(38, { bodyChest: BODY_CHEST, widthToDepth: RATIO });
+    expect(depth).toBeGreaterThan(0);
+    expect(depth).toBeGreaterThan(
+      garmentDepth(30, { bodyChest: BODY_CHEST, widthToDepth: RATIO }) * 0.99,
+    );
+  });
+
+  it('полупериметр эллипса совпадает с замером в плоском виде', () => {
+    // Проверка самой модели: изделие в плоском виде — это ровно половина
+    // обхвата, и вывод глубины обязан это сохранять.
+    const depth = garmentDepth(52.5, { bodyChest: BODY_CHEST, widthToDepth: RATIO });
+    const b = depth / 2;
+    // Ширина, дающая тот же периметр.
+    let lo = b;
+    let hi = 52.5;
+    for (let i = 0; i < 60; i++) {
+      const a = (lo + hi) / 2;
+      const p = Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+      if (p < 2 * 52.5) lo = a;
+      else hi = a;
+    }
+    expect(2 * lo).toBeGreaterThan(depth); // изделие шире, чем толще
+  });
+});
+
+describe('боковой вид', () => {
+  const depth = garmentDepth(HOODIE.chestFlat, {
+    bodyChest: BODY_CHEST,
+    widthToDepth: RATIO,
+  });
+
+  it('уровни совпадают с передом по построению', () => {
+    // Линия груди и линия низа обязаны стоять на одной высоте на всех видах.
+    // Иначе три вида читаются как три разных изделия.
+    const front = buildGeometry(HOODIE, 'front');
+    const side = buildSideGeometry(HOODIE, depth);
+    expect(side.chestFront.y).toBe(front.underarm.y);
+    expect(side.hemFront.y).toBe(front.hem.y);
+  });
+
+  it('все детали помещаются в габарит', () => {
+    // Карман настрочной и выступает наружу; капюшон в верхней части шире
+    // изделия. Деталь, не вошедшая в габарит, рисуется за краем видимой
+    // области: она есть в файле, и её не видно.
+    const { paths, geometry } = buildSidePaths(HOODIE, depth);
+    const all = [
+      paths.outline,
+      ...paths.seams,
+      ...paths.hood,
+      ...paths.parts,
+      ...paths.pocket,
+      ...paths.ribs,
+      ...paths.stitches,
+    ].join(' ');
+    const xs = [...all.matchAll(/[ML]\s(-?\d+\.?\d*)\s/g)].map((mm) => Number(mm[1]));
+    const cs = [
+      ...all.matchAll(/C\s(-?\d+\.?\d*)\s\S+\s(-?\d+\.?\d*)\s\S+\s(-?\d+\.?\d*)\s/g),
+    ].flatMap((mm) => [Number(mm[1]), Number(mm[2]), Number(mm[3])]);
+    for (const x of [...xs, ...cs]) {
+      expect(x).toBeGreaterThanOrEqual(geometry.bounds.left - 0.01);
+      expect(x).toBeLessThanOrEqual(geometry.bounds.right + 0.01);
+    }
+  });
+
+  it('боковой шов виден ниже рукава и скрыт под ним', () => {
+    // То, ради чего вид существует. Рукав висит поверх шва, и закрытый
+    // участок обязан быть точечным, а не отсутствовать.
+    const { paths } = buildSidePaths(HOODIE, depth);
+    expect(paths.hidden.length).toBeGreaterThan(0);
+    expect(paths.hidden[0]).toMatch(/^M 0 /);
+  });
+
+  it('не зеркалится', () => {
+    // У бока перед спереди, спинка сзади. Зеркало стёрло бы единственное,
+    // что он показывает.
+    const { svg } = renderFlat(HOODIE, { view: 'side', depthCm: depth });
+    expect(svg).not.toContain('scale(-1,1)');
+    expect(svg).toContain('data-view="side"');
+  });
+
+  it('без глубины не строится', () => {
+    // Глубину не задаёт ни один замер. Молча подставить её значило бы
+    // выдать выдуманное число за выведенное.
+    expect(() => renderFlat(HOODIE, { view: 'side' })).toThrow(/глубин/);
+  });
+
+  it('свободное изделие сбоку глубже прилегающего', () => {
+    const loose = garmentDepth(66, { bodyChest: BODY_CHEST, widthToDepth: RATIO });
+    const tight = garmentDepth(48, { bodyChest: BODY_CHEST, widthToDepth: RATIO });
+    expect(buildSideGeometry(HOODIE, loose).bounds.right).toBeGreaterThan(
+      buildSideGeometry(HOODIE, tight).bounds.right,
+    );
   });
 });

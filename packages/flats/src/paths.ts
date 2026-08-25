@@ -1,4 +1,5 @@
 import { buildGeometry, type FlatGeometry, type FlatMeasurements, type Point } from './geometry.js';
+import { C, f, L, lerp, M } from './svg.js';
 
 /**
  * Построение путей чертежа.
@@ -12,17 +13,6 @@ import { buildGeometry, type FlatGeometry, type FlatMeasurements, type Point } f
  * концов отрезка. Ломаная из прямых читалась бы как чертёж, нарисованный
  * программистом, а документ идёт технологу.
  */
-
-const f = (n: number): string => (Math.round(n * 1000) / 1000).toString();
-const M = (p: Point): string => `M ${f(p.x)} ${f(p.y)}`;
-const L = (p: Point): string => `L ${f(p.x)} ${f(p.y)}`;
-const C = (c1: Point, c2: Point, p: Point): string =>
-  `C ${f(c1.x)} ${f(c1.y)} ${f(c2.x)} ${f(c2.y)} ${f(p.x)} ${f(p.y)}`;
-
-const lerp = (a: Point, b: Point, t: number): Point => ({
-  x: a.x + (b.x - a.x) * t,
-  y: a.y + (b.y - a.y) * t,
-});
 
 /** Магическая константа приближения дуги окружности кубической кривой. */
 const KAPPA = 0.5523;
@@ -52,10 +42,26 @@ export interface FlatPaths {
   ribs: string[];
   /** Капюшон: контур и линия лицевого края. Пусто, если капюшона нет. */
   hood: string[];
+  /**
+   * Отдельные детали, рисуемые контуром поверх корпуса.
+   *
+   * На переде и спинке пусто: там рукав входит в общий силуэт. Сбоку рукав —
+   * самостоятельная фигура, висящая поверх корпуса, и контуром он обязан быть
+   * потому же, почему им является корпус: это край изделия, а не шов на нём.
+   */
+  parts: string[];
   /** Карман-кенгуру. Пусто, если кармана нет. */
   pocket: string[];
   /** Линия центра переда или спинки — тонкая, вспомогательная. */
   center: string;
+  /**
+   * Скрытые за другой деталью линии — точечные (knowledge-base/02 §3).
+   *
+   * На переде и спинке пусто: там ничто ничего не закрывает. Существует
+   * ради бокового вида, где рукав висит поверх бокового шва — то есть
+   * поверх ровно того, ради чего этот вид и рисуют.
+   */
+  hidden: string[];
 }
 
 export interface PathOptions {
@@ -268,5 +274,8 @@ export function buildPaths(
 
   const center = `${M(g.neckCenter)} L 0 ${f(g.hem.y)}`;
 
-  return { geometry: g, paths: { outline, seams, stitches, ribs, hood, pocket, center } };
+  return {
+    geometry: g,
+    paths: { outline, seams, stitches, ribs, hood, parts: [], pocket, center, hidden: [] },
+  };
 }

@@ -4,8 +4,8 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { buildStyleSpec } from '@specform/assembly';
-import type { Category } from '@specform/kb';
-import { renderFlatsFromSpec } from '../src/index.js';
+import { kb, type Category } from '@specform/kb';
+import { depthForSpec, needsSideView, renderFlatsFromSpec } from '../src/index.js';
 
 const CATEGORIES: Category[] = (process.env.FLATS_ONLY?.split(',') as Category[]) ?? [
   'tshirt',
@@ -34,12 +34,22 @@ const blocks = CATEGORIES.map((category) => {
     size_range: [42, 44, 46, 48, 50, 52],
     generated_at: new Date('2026-08-25T00:00:00.000Z'),
   });
-  const { front, back } = renderFlatsFromSpec(spec);
+  // Бок получают только изделия, у которых есть что показать сбоку.
+  // Глубина не выводится из табеля мер — она приходит из сетки и прибавки.
+  const body = kb().bodyMeasurements(spec.base.gender, spec.base.base_size_ru);
+  const side = needsSideView(spec)
+    ? { depthCm: depthForSpec(spec, body.chest, kb().bodyRatio(spec.base.gender).width_to_depth) }
+    : {};
+  const flats = renderFlatsFromSpec(spec, side);
+  // Колонки пропорциональны ширинам видов в сантиметрах: все виды в одном масштабе.
+  const view = (r: { svg: string; viewBox: { width: number } }, cap: string): string =>
+    `<div class="view" style="flex:${r.viewBox.width}">${r.svg}<div class="cap">${cap}</div></div>`;
   return `<section>
-  <h2>${LABEL[category]}</h2>
+  <h2>${LABEL[category]}${flats.side ? ` · глубина ${side.depthCm!.toFixed(1)} см` : ''}</h2>
   <div class="sheet">
-    <div class="view">${front.svg}<div class="cap">Перед</div></div>
-    <div class="view">${back.svg}<div class="cap">Спинка</div></div>
+    ${view(flats.front, 'Перед')}
+    ${view(flats.back, 'Спинка')}
+    ${flats.side ? view(flats.side, 'Бок') : ''}
   </div>
 </section>`;
 }).join('\n');

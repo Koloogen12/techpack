@@ -8,3 +8,4 @@ export * from './category.js';
 export * from './views.js';
 export * from './scale.js';
 export * from './print.js';
+export * from './body.js';

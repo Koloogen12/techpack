@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildStyleSpec, type StyleSpecInput } from '@specform/assembly';
-import { checkLayout, fitImage, MAX_IMAGE_PX, roleProfile, EXPORT_ROLES } from '@specform/docgen';
+import {
+  checkLayout,
+  fitImage,
+  MAX_IMAGE_PX,
+  renderHtml,
+  roleProfile,
+  EXPORT_ROLES,
+} from '@specform/docgen';
 import type { StyleSpec } from '@specform/stylespec';
 import { SCENARIOS } from './scenarios.js';
 
@@ -290,5 +297,90 @@ describe('снимок заказчика ужимается до размера
   it('нечитаемое изображение возвращается как есть, а не роняет сборку', async () => {
     const broken = `data:image/png;base64,${Buffer.from('это не png').toString('base64')}`;
     expect(await fitImage(browser, broken)).toBe(broken);
+  }, 60_000);
+});
+
+describe('чертёж: три вида в одном масштабе', () => {
+  /**
+   * На листе чертежа напечатано «виды в одном масштабе между собой».
+   * Это обещание, и его нельзя проверять на глаз: колонки задаются
+   * пропорцией flex, а высота ограничена сверху — если ограничение
+   * сработает, один вид ужмётся, и обещание станет ложью.
+   *
+   * Меряем то, что напечатано: сантиметр изделия в пикселях листа.
+   */
+  it('сантиметр изделия одинаков на всех видах', async () => {
+    const hoodie = SCENARIOS.find((s) => s.input.category === 'hoodie')!;
+    const { spec } = buildStyleSpec(hoodie.input);
+    const page = await browser.newPage();
+    try {
+      await page.setContent(renderHtml(spec, { sections: ['flats'] }), {
+        waitUntil: 'domcontentloaded',
+      });
+      // Никаких именованных функций внутри evaluate: сборка tsx подставляет
+      // __name, которого в браузере нет.
+      const scales = await page.evaluate(() => {
+        const out: { label: string; scale: number }[] = [];
+        const figures = [...document.querySelectorAll<HTMLElement>('.canvas figure')];
+        for (const fig of figures) {
+          const svg = fig.querySelector('svg');
+          if (!svg) continue;
+          const box = svg.getBoundingClientRect();
+          const vb = (svg.getAttribute('viewBox') ?? '').split(/\s+/).map(Number);
+          out.push({
+            label: fig.querySelector('figcaption')?.textContent ?? '?',
+            scale: box.width / (vb[2] ?? 1),
+          });
+        }
+        return out;
+      });
+
+      expect(scales.map((s) => s.label)).toEqual(['Перед', 'Спинка', 'Бок']);
+      const values = scales.map((s) => s.scale);
+      expect(Math.max(...values) / Math.min(...values)).toBeLessThan(1.02);
+    } finally {
+      await page.close();
+    }
+  }, 60_000);
+});
+
+describe('страницы с картинками тоже вмещаются', () => {
+  /**
+   * Раздел нанесения с раппортом и раздел «Раппорт на изделии» не попадали
+   * ни в один замер вёрстки: без визуалов их тело пустое, а сценарии
+   * вёрстки визуалов не передают. Так и вышло, что у ряда чертежей
+   * на странице раппорта вовсе не было правил — браузер верстал его
+   * умолчаниями, во всю ширину листа один рисунок под другим.
+   */
+  const TILE =
+    'data:image/png;base64,' +
+    'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAFklEQVQIW2P8z8DwnwEJMDIwMDCiCwIAWkoEAJ4gWmYAAAAASUVORK5CYII=';
+
+  it('нанесение и раппорт на изделии', async () => {
+    const hoodie = SCENARIOS.find((s) => s.input.category === 'hoodie')!;
+    const { spec } = buildStyleSpec({
+      ...hoodie.input,
+      patterns: [
+        {
+          tile: {
+            file_name: 'tile.png',
+            pixels: { width: 2048, height: 2048 },
+            key: 'a'.repeat(64),
+            seam_ratio: 1,
+            seamless: true,
+            mirrored: true,
+          },
+          repeat_cm: 24,
+        },
+      ],
+    });
+    const report = await checkLayout(spec, {
+      browser,
+      visuals: { patternTile: { dataUri: TILE, repeatCm: 24 } },
+    });
+    expect(
+      report.overflows.map((o) => `лист ${o.index + 1} (${o.section}): +${o.overflowPx}px`),
+    ).toEqual([]);
+    expect(report.sections).toContain('artwork');
   }, 60_000);
 });

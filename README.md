@@ -38,7 +38,7 @@ packages/kb         справочники JSON + zod-схемы + загруз�
 packages/stylespec  схема StyleSpec, версионирование, миграции снапшотов
 packages/vision     Claude API → VisionReport + контент-кэш
 packages/assembly   POM · Construction · BOM · Labels · TechSequence — чистые функции
-packages/flats      параметрический SVG-чертёж
+packages/flats      параметрический SVG-чертёж: перед, спинка и бок с объёмом
 packages/docgen     StyleSpec → HTML → PDF, выгрузка по ролям, измерение вёрстки
 packages/render     визуализация изделия из спеки — превью, вне технической геометрии
 packages/pattern    раппорт из референсов: бесшовность проверяется пикселями

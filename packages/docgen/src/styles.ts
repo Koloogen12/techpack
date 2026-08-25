@@ -299,6 +299,18 @@ ul.dash li::before { content: '— '; color: var(--secondary); }
 .preview.single .frame { width: auto; align-self: center; }
 .preview.single .frame img { height: 100%; width: auto; max-width: 100%; }
 
+/*
+ * --- Раскладка раппорта на чертеже. ---
+ *
+ * Те же правила, что у холста чертежа: колонки задаются пропорцией flex,
+ * и все виды выходят в одном масштабе. Без этих правил браузер верстал
+ * рисунки умолчаниями — во всю ширину листа один под другим.
+ */
+.flat { display: flex; gap: 8mm; align-items: center; justify-content: center; flex: 1; min-height: 0; }
+.flat figure { margin: 0; text-align: center; min-width: 0; }
+.flat svg { width: 100%; height: auto; max-height: 100mm; }
+.flat figcaption { margin-top: 2.5mm; }
+
 /* --- Конструкция: две колонки по зонам, а не простыня. --- */
 .zones { display: grid; grid-template-columns: 26mm 1fr; gap: 3mm 5mm; align-items: start; }
 .node { margin-bottom: 3.5mm; }

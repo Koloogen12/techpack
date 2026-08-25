@@ -1,5 +1,5 @@
 import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@specform/core';
-import { renderFlatsFromSpec } from '@specform/flats';
+import { depthForSpec, needsSideView, renderFlatsFromSpec } from '@specform/flats';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -11,6 +11,7 @@ import {
   type MachineType,
   type NodeZone,
   type Specialty,
+  kb,
 } from '@specform/kb';
 import type { StyleSpec } from '@specform/stylespec';
 import { DOC_CSS } from './styles.js';
@@ -179,7 +180,10 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     const preview = previewBody(spec, options.visuals);
     if (preview) add('preview', 'Внешний вид', [preview]);
   }
-  if (include('flats')) add('flats', 'Технический чертёж', [flatsBody(renderFlatsFromSpec(spec))]);
+  if (include('flats')) {
+    const side = needsSideView(spec) ? { depthCm: sideDepth(spec) } : {};
+    add('flats', 'Технический чертёж', [flatsBody(spec, renderFlatsFromSpec(spec, side))]);
+  }
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
   add('construction', 'Конструкция', constructionPages(spec, pro));
@@ -665,12 +669,14 @@ function artworkPages(
     const flats = renderFlatsFromSpec(spec, {
       layers: ['pattern', 'outline', 'seams', 'stitches'],
       patternFill: { dataUri: tile.dataUri, repeatCm: tile.repeatCm },
+      ...(needsSideView(spec) ? { depthCm: sideDepth(spec) } : {}),
     });
     pages.push(
       `<h2>Как раппорт ляжет на изделие</h2>` +
         `<div class="flat">` +
-        `<figure>${flats.front.svg}<figcaption>Перед</figcaption></figure>` +
-        `<figure>${flats.back.svg}<figcaption>Спинка</figcaption></figure>` +
+        viewFigure(flats.front, 'Перед') +
+        viewFigure(flats.back, 'Спинка') +
+        (flats.side ? viewFigure(flats.side, 'Бок') : '') +
         `</div>` +
         `<div class="note" style="margin-top:3mm">Шаг раппорта здесь РАЗМЕРНО ТОЧЕН: ` +
         `чертёж построен в сантиметрах, поэтому ${num(allover.size_cm.width.value)} см ` +
@@ -724,18 +730,68 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
 
 // ---------------------------------------------------------------- чертёж
 
-function flatsBody(flats: { front: { svg: string }; back: { svg: string } }): string {
+/**
+ * Глубина изделия для бокового вида.
+ *
+ * Единственное место в документе, где число приходит НЕ из спеки: глубину
+ * не задаёт ни один замер, она выводится из обхвата груди по сетке
+ * и прибавки. Поэтому она и берётся отдельным шагом, на виду, а не прячется
+ * внутрь чертежа.
+ */
+function sideDepth(spec: StyleSpec): number {
+  const gender = spec.base.gender;
+  const body = kb().bodyMeasurements(gender, spec.base.base_size_ru);
+  return depthForSpec(spec, body.chest, kb().bodyRatio(gender).width_to_depth);
+}
+
+type Rendered = { svg: string; viewBox: { width: number } };
+
+/**
+ * Один масштаб на все виды.
+ *
+ * Ширины колонок относятся так же, как ширины видов в сантиметрах, — поэтому
+ * бок выходит именно настолько уже переда, насколько он уже в жизни.
+ * Растянутый на треть листа, он казался бы шире переда, то есть врал бы
+ * ровно в том, ради чего его рисуют.
+ */
+function viewFigure(r: Rendered, caption: string): string {
+  return (
+    `<figure style="flex:${Math.round(r.viewBox.width * 100) / 100}">` +
+    `${r.svg}<figcaption class="ml">${caption}</figcaption></figure>`
+  );
+}
+
+function flatsBody(
+  spec: StyleSpec,
+  flats: { front: Rendered; back: Rendered; side?: Rendered },
+): string {
   // Никаких таблиц на этой странице: один смысловой блок — один лист.
   // Воздух здесь работает — чертёж читают, а не проглядывают.
+  const hasHood = spec.measurements.points.some((p) => p.code === 'H01');
+
   return (
     `<div class="canvas">` +
-    `<div class="ml">Технический чертёж · масштаб не соблюдён, размеры в табеле мер</div>` +
-    `<figure>${flats.front.svg}<figcaption class="ml">Перед</figcaption></figure>` +
-    `<figure>${flats.back.svg}<figcaption class="ml">Спинка</figcaption></figure>` +
+    `<div class="ml">Технический чертёж · виды в одном масштабе между собой, ` +
+    `размеры — в табеле мер</div>` +
+    viewFigure(flats.front, 'Перед') +
+    viewFigure(flats.back, 'Спинка') +
+    (flats.side ? viewFigure(flats.side, 'Бок') : '') +
     `</div>` +
     `<div class="note" style="margin-top:3mm">Чертёж построен из таблицы замеров: правка ` +
     `значения перестраивает геометрию. Число пунктирных линий равно числу параллельных ` +
-    `строчек — по нему определяется тип машины.</div>`
+    `строчек — по нему определяется тип машины.` +
+    (flats.side
+      ? ` <b>Перед и спинка — изделие разложенное, бок — изделие с объёмом.</b> ` +
+        `Иначе не бывает: у разложенного изделия глубины нет, она в замерах отсутствует ` +
+        `и выведена из обхвата груди по сетке и прибавки на свободу. Поэтому ширину ` +
+        `бока не сравнивают с шириной переда — это разные величины на разных видах, ` +
+        `и ни одна из них не заменяет табель мер.` +
+        (hasHood
+          ? ` Капюшон на переде показан разложенным вверх — отраслевая условность; ` +
+            `его профиль виден только сбоку.`
+          : '')
+      : '') +
+    `</div>`
   );
 }
 
