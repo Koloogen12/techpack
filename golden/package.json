@@ -11,6 +11,7 @@
     "@specform/stylespec": "workspace:*",
     "@specform/cli": "workspace:*",
     "@specform/vision": "workspace:*",
-    "@specform/kb": "workspace:*"
+    "@specform/kb": "workspace:*",
+    "playwright": "^1.62.1"
   }
 }

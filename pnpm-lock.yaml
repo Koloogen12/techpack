@@ -83,6 +83,9 @@ importers:
       '@specform/vision':
         specifier: workspace:*
         version: link:../packages/vision
+      playwright:
+        specifier: ^1.62.1
+        version: 1.62.1
 
   packages/assembly:
     dependencies:

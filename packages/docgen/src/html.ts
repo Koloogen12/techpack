@@ -59,6 +59,7 @@ export interface HtmlOptions {
  */
 const ROWS_PER_PAGE = {
   measurements: 11,
+  notes: 12,
   bom: 14,
   nodes: 8,
   sequence: 16,
@@ -272,7 +273,7 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
     graded.map((ru) => `<th class="num">${ru}</th>`).join('') +
     `<th>Статус</th></tr>`;
 
-  const pages = chunk(points, ROWS_PER_PAGE.measurements).map((rows, i, all) => {
+  const tablePages = chunk(points, ROWS_PER_PAGE.measurements).map((rows, i, all) => {
     const body = rows
       .map((p) => {
         const byRu = new Map(p.graded.map((g) => [g.ru, g.value.value]));
@@ -291,25 +292,54 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
       .join('');
 
     const isLast = i === all.length - 1;
-    const notes = isLast
-      ? points
-          .filter((p) => p.base.note)
-          .map((p) => `<li><b>${p.code}</b> — ${esc(p.base.note!)}</li>`)
-          .join('')
-      : '';
-
     return (
       `<table><thead>${head}</thead><tbody>${body}</tbody></table>` +
       (isLast
         ? `<div class="note" style="margin-top:4mm">Замеры сняты с изделия в плоском виде. ` +
           `Крупные ширины даны как половина обхвата. Допуск — предельное отклонение ` +
-          `при приёмке ОТК.</div>` +
-          (notes ? `<h3>Примечания к значениям</h3><ul class="plain">${notes}</ul>` : '')
+          `при приёмке ОТК.</div>`
         : '')
     );
   });
 
+  // Примечания идут отдельными листами и группируются по тексту.
+  // Калибровка по ручному замеру добавляет одну и ту же строку ко всем точкам —
+  // печатать её восемнадцать раз значит утопить в шуме те примечания,
+  // ради которых блок и существует. Заодно это переполняло лист на 34 пикселя.
+  const notes = groupNotes(points);
+  const notePages = chunk(notes, ROWS_PER_PAGE.notes).map(
+    (group) =>
+      `<h2>Примечания к значениям</h2><ul class="plain">` +
+      group.map((n) => `<li><b>${n.codes}</b> — ${esc(n.text)}</li>`).join('') +
+      `</ul>`,
+  );
+
+  const pages = [...tablePages, ...notePages];
   return pages.length ? pages : [`<div class="note">Табель мер пуст.</div>`];
+}
+
+/**
+ * Группировка примечаний по тексту.
+ *
+ * Одинаковое примечание у многих точек печатается один раз со списком кодов:
+ * «T02, T04, T05 … — масштаб откалиброван по вашему замеру». Если точек больше
+ * восьми, перечисление кодов теряет смысл — пишем «у всех остальных точек».
+ */
+function groupNotes(
+  points: readonly StyleSpec['measurements']['points'][number][],
+): { codes: string; text: string }[] {
+  const byText = new Map<string, string[]>();
+  for (const p of points) {
+    if (!p.base.note) continue;
+    byText.set(p.base.note, [...(byText.get(p.base.note) ?? []), p.code]);
+  }
+
+  return [...byText.entries()]
+    .sort((a, b) => a[1].length - b[1].length)
+    .map(([text, codes]) => ({
+      codes: codes.length > 8 ? `${codes.length} точек` : codes.join(', '),
+      text,
+    }));
 }
 
 // ---------------------------------------------------------------- материалы

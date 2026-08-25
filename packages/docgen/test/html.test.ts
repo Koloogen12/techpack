@@ -73,13 +73,39 @@ describe('разбиение на страницы', () => {
     for (const s of SPEC.labels!.sku_matrix) expect(h).toContain(s.sku);
   });
 
-  it('шапка таблицы повторяется на каждом листе — иначе колонки не прочитать', () => {
-    const pages = pagesOf(html()).filter((p) => p.includes('data-section="measurements"'));
+  it('шапка таблицы повторяется на каждом листе с таблицей', () => {
+    // Примечания к значениям тоже относятся к табелю мер, но таблицы
+    // не содержат — требовать от них шапку бессмысленно.
+    const pages = pagesOf(html())
+      .filter((p) => p.includes('data-section="measurements"'))
+      .filter((p) => p.includes('<table>'));
+
+    expect(pages.length).toBeGreaterThan(1);
     for (const page of pages) {
       expect(page).toContain('Точка измерения');
       expect(page).toContain('Как мерить');
       expect(page).toContain('Допуск');
     }
+  });
+
+  it('повторяющиеся примечания группируются, а не печатаются у каждой точки', () => {
+    // Калибровка по ручному замеру добавляет одну и ту же строку ко всем
+    // точкам. Восемнадцать одинаковых строк топят в шуме те примечания,
+    // ради которых блок существует, и переполняют лист.
+    const calibrated = {
+      ...SPEC,
+      measurements: {
+        ...SPEC.measurements,
+        points: SPEC.measurements.points.map((p) => ({
+          ...p,
+          base: { ...p.base, note: 'масштаб откалиброван по вашему замеру' },
+        })),
+      },
+    };
+    const h = html(calibrated);
+    const occurrences = h.split('масштаб откалиброван по вашему замеру').length - 1;
+    expect(occurrences).toBe(1);
+    expect(h).toContain('точек');
   });
 
   it('каждая страница несёт колонтитул с артикулом', () => {
