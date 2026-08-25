@@ -29,6 +29,21 @@ export interface Separation {
   share: number;
   /** Чёрно-белая маска этой краски, PNG data-URI. */
   maskDataUri: string;
+  /**
+   * Сплошность: доля пикселей краски, у которых все четыре соседа того же
+   * цвета.
+   *
+   * Отличает ЦВЕТ РИСУНКА от ПЕРЕХОДА. Настоящая краска образует сплошные
+   * области — сплошность высокая. Кайма сглаживания и мягкий градиент дают
+   * крапчатую полосу: площади много, сплошности почти нет, и сетка под неё
+   * печатает грязь.
+   *
+   * Найдено на живом тайле: третья по площади «краска» заняла девять
+   * процентов и оказалась тёплым оттенком того же фона.
+   */
+  solidity: number;
+  /** Краска не образует сплошных областей — вероятно, это переход. */
+  is_fringe: boolean;
 }
 
 export interface VectorLayer {
@@ -70,6 +85,27 @@ export interface SeparationResult {
  */
 export const MIN_FEATURE_MM = 0.3;
 
+/**
+ * Ниже этой сплошности краска считается переходом, а не цветом рисунка.
+ *
+ * У настоящей краски почти все пиксели лежат внутри сплошных областей
+ * (сплошность выше 0.8). У каймы сглаживания сплошных пикселей почти нет:
+ * она вся состоит из границ.
+ */
+export const FRINGE_SOLIDITY = 0.5;
+
+/** Предупреждение про краски, которые сеткой не напечатать. */
+function fringeNote(fringe: readonly Separation[]): string {
+  if (!fringe.length) return '';
+  return (
+    ` ВНИМАНИЕ: ${fringe.length} ` +
+    `${fringe.length === 1 ? 'краска не образует' : 'красок не образуют'} сплошных ` +
+    `областей (${fringe.map((f) => `${f.hex} — сплошность ${Math.round(f.solidity * 100)}%`).join(', ')}). ` +
+    `Это переход между цветами, а не цвет рисунка: сетка под него напечатает грязь. ` +
+    `Уменьшите число красок — соседние сольются, и переход исчезнет.`
+  );
+}
+
 export async function separateColors(
   dataUri: string,
   report: ColorReport,
@@ -96,7 +132,7 @@ export async function separateColors(
         : 0;
     const cleanRadius = pxPerMm > 0 ? Math.max(0, Math.round((minFeatureMm * pxPerMm) / 2)) : 0;
 
-    let raw: { masks: string[]; paths: string[] };
+    let raw: { masks: string[]; paths: string[]; solidity: number[] };
     try {
       // Плоские циклы без именованных функций — код идёт в браузер.
       raw = await page.evaluate(
@@ -164,6 +200,7 @@ export async function separateColors(
 
           const masks: string[] = [];
           const paths: string[] = [];
+          const solidity: number[] = [];
 
           for (let c = 0; c < colors.length; c++) {
             const mask = document.createElement('canvas');
@@ -180,6 +217,27 @@ export async function separateColors(
             }
             mctx.putImageData(out, 0, 0);
             masks.push(mask.toDataURL('image/png'));
+
+            // Сплошность: сколько пикселей краски окружены ею же со всех
+            // четырёх сторон. Край изображения не считаем соседом.
+            let own = 0;
+            let solid = 0;
+            for (let y2 = 1; y2 < h - 1; y2++) {
+              for (let x2 = 1; x2 < w - 1; x2++) {
+                const i = y2 * w + x2;
+                if (owner[i] !== c) continue;
+                own++;
+                if (
+                  owner[i - 1] === c &&
+                  owner[i + 1] === c &&
+                  owner[i - w] === c &&
+                  owner[i + w] === c
+                ) {
+                  solid++;
+                }
+              }
+            }
+            solidity.push(own > 0 ? solid / own : 0);
 
             if (!wantVector) continue;
 
@@ -234,7 +292,7 @@ export async function separateColors(
             }
           }
 
-          return { masks, paths };
+          return { masks, paths, solidity };
         },
         [dataUri, palette.map((p) => [...p]), report.flat_graphic, cleanRadius] as [
           string,
@@ -247,11 +305,21 @@ export async function separateColors(
       await page.close();
     }
 
-    const separations: Separation[] = report.colors.map((c, i) => ({
-      hex: c.hex,
-      share: c.share,
-      maskDataUri: raw.masks[i] ?? '',
-    }));
+    const separations: Separation[] = report.colors.map((c, i) => {
+      const solidity = Math.round((raw.solidity[i] ?? 0) * 1000) / 1000;
+      return {
+        hex: c.hex,
+        share: c.share,
+        maskDataUri: raw.masks[i] ?? '',
+        solidity,
+        is_fringe: solidity < FRINGE_SOLIDITY,
+      };
+    });
+
+    // Краска без сплошных областей — почти наверняка переход, а не цвет
+    // рисунка. Молча отдать под неё сетку значит попросить печатника
+    // напечатать грязь и заплатить за это.
+    const fringe = separations.filter((s2) => s2.is_fringe);
 
     const stepMm =
       options.repeatCm !== undefined && report.width > 0
@@ -271,7 +339,8 @@ export async function separateColors(
           `есть непрерывный переход, и любой контур на нём выдуман алгоритмом. ` +
           `Растр остаётся мастер-файлом; для плашечной печати нужен рисунок ` +
           `с ограниченной палитрой. Маски по краскам приложены — по ним видно, ` +
-          `во что превратится рисунок, если его всё же разложить на ${separations.length} красок.`,
+          `во что превратится рисунок, если его всё же разложить на ${separations.length} красок.` +
+          fringeNote(separations.filter((s2) => s2.is_fringe)),
       };
     }
 
@@ -316,7 +385,8 @@ export async function separateColors(
         // это норма (контур идёт по каждому изгибу мотива), но человек,
         // который этого не ждёт, решит, что файл битый.
         ` Файл ${sizeMb} МБ — обычный размер для цветоделения раппорта такого ` +
-        `разрешения: контур обходит каждый изгиб мотива.`,
+        `разрешения: контур обходит каждый изгиб мотива.` +
+        fringeNote(fringe),
     };
   } finally {
     if (own) await b.close();

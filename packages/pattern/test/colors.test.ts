@@ -182,6 +182,42 @@ describe('цветоделение в слои', () => {
     expect(sep.step_mm).toBe(1);
   }, 60_000);
 
+  it('сплошная плашка имеет высокую сплошность и краской признаётся', async () => {
+    const uri = flatThree();
+    const report = await extractColors(uri, 3, browser);
+    const sep = await separateColors(uri, report, { repeatCm: 20, browser });
+    for (const s of sep.separations) {
+      expect(s.solidity).toBeGreaterThan(0.9);
+      expect(s.is_fringe).toBe(false);
+    }
+  }, 60_000);
+
+  it('переход между цветами краской НЕ признаётся, и об этом сказано', async () => {
+    // Найдено на живом тайле: третья по площади «краска» заняла девять
+    // процентов и оказалась каймой сглаживания того же фона. Сетка под неё
+    // напечатала бы грязь.
+    //
+    // Гладкий градиент для этого не годится: он постеризуется в СПЛОШНЫЕ
+    // полосы, и сплошность у них высокая — первая версия теста ошиблась
+    // именно тут. Настоящая кайма это чередование, у которого сплошных
+    // пикселей нет вовсе.
+    const cells: string[] = [];
+    for (let y = 0; y < 256; y += 2) {
+      for (let x = 0; x < 256; x += 2) {
+        const light = (x / 2 + y / 2) % 2 === 0;
+        cells.push(
+          `<rect x="${x}" y="${y}" width="2" height="2" fill="${light ? '#DDDDDD' : '#C8C8C8'}"/>`,
+        );
+      }
+    }
+    const uri = svg(cells.join(''));
+    const report = await extractColors(uri, 2, browser);
+    // Без чистки: она бы кайму убрала, а мы проверяем именно её обнаружение.
+    const sep = await separateColors(uri, report, { browser });
+    expect(sep.separations.some((s) => s.is_fringe)).toBe(true);
+    expect(sep.vector_verdict_ru).toContain('сплошных областей');
+  }, 60_000);
+
   it('без шага раппорта физического размера нет и чистка не работает', async () => {
     const uri = flatThree();
     const report = await extractColors(uri, 3, browser);
