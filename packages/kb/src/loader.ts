@@ -3,12 +3,29 @@ import { join } from 'node:path';
 import { SpecFormError } from '@specform/core';
 import type { z } from 'zod';
 import {
+  CareSymbolsFileSchema,
+  CategoryDefaultsFileSchema,
+  ConstructionNodesFileSchema,
+  ConsumptionFileSchema,
   EaseFileSchema,
+  LabelingFileSchema,
+  MachineParkFileSchema,
+  MaterialsFileSchema,
+  SeamCodesFileSchema,
+  StitchCodesFileSchema,
+  VisibilityMapFileSchema,
   GradingFileSchema,
   PomTemplateFileSchema,
   SizeChartsFileSchema,
   ToleranceClassesFileSchema,
+  type CareProfile,
+  type CareSymbolsFile,
   type Category,
+  type CategoryDefaultsFile,
+  type ConstructionNode,
+  type ConstructionNodesFile,
+  type ConsumptionFile,
+  type ConsumptionFormula,
   type EaseEntry,
   type EaseFile,
   type FabricKind,
@@ -16,12 +33,24 @@ import {
   type Gender,
   type GradingFile,
   type GradingRule,
+  type LabelingFile,
+  type LabelRequisite,
+  type MachineParkFile,
+  type MachineParkProfile,
+  type MachineType,
+  type Material,
+  type MaterialsFile,
   type PomTemplateFile,
+  type SeamCode,
+  type SeamCodesFile,
+  type StitchCode,
+  type StitchCodesFile,
   type SizeChart,
   type SizeChartsFile,
   type ToleranceClass,
   type ToleranceClassEntry,
   type ToleranceClassesFile,
+  type VisibilityMapFile,
 } from './schemas/index.js';
 
 const DATA_DIR = new URL('../data/', import.meta.url).pathname;
@@ -78,14 +107,29 @@ export class KnowledgeBase {
     private readonly ease: EaseFile,
     private readonly grading: GradingFile,
     private readonly pomTemplates: ReadonlyMap<Category, PomTemplateFile>,
+    private readonly categoryDefaults: ReadonlyMap<Category, CategoryDefaultsFile>,
+    private readonly stitches: StitchCodesFile,
+    private readonly seams: SeamCodesFile,
+    private readonly construction: ConstructionNodesFile,
+    private readonly machinePark: MachineParkFile,
+    private readonly materialsFile: MaterialsFile,
+    private readonly consumption: ConsumptionFile,
+    private readonly care: CareSymbolsFile,
+    private readonly labeling: LabelingFile,
+    private readonly visibility: VisibilityMapFile,
   ) {}
 
   static load(): KnowledgeBase {
     const pom = new Map<Category, PomTemplateFile>();
+    const defaults = new Map<Category, CategoryDefaultsFile>();
     // Категории добавляются по мере готовности шаблонов; гейт вне MVP —
     // в мастере, а не здесь: отсутствующий шаблон обязан падать явно.
     for (const category of ['tshirt'] as const) {
       pom.set(category, loadFile(`pom_templates/${category}.json`, PomTemplateFileSchema));
+      defaults.set(
+        category,
+        loadFile(`category_defaults/${category}.json`, CategoryDefaultsFileSchema),
+      );
     }
 
     return new KnowledgeBase(
@@ -94,6 +138,16 @@ export class KnowledgeBase {
       loadFile('ease_defaults.json', EaseFileSchema),
       loadFile('grading_increments.json', GradingFileSchema),
       pom,
+      defaults,
+      loadFile('stitch_codes.json', StitchCodesFileSchema),
+      loadFile('seam_codes.json', SeamCodesFileSchema),
+      loadFile('construction_nodes.json', ConstructionNodesFileSchema),
+      loadFile('machine_park_profiles.json', MachineParkFileSchema),
+      loadFile('materials.json', MaterialsFileSchema),
+      loadFile('consumption_formulas.json', ConsumptionFileSchema),
+      loadFile('care_symbols.json', CareSymbolsFileSchema),
+      loadFile('labeling_requirements.json', LabelingFileSchema),
+      loadFile('visibility_map.json', VisibilityMapFileSchema),
     );
   }
 
@@ -186,6 +240,114 @@ export class KnowledgeBase {
     return found;
   }
 
+  // ---------------------------------------------------------------- конструкция
+
+  categoryDefaultsFor(category: Category): CategoryDefaultsFile {
+    const found = this.categoryDefaults.get(category);
+    if (!found) {
+      throw new SpecFormError('CATEGORY_UNSUPPORTED', `нет дефолтов для ${category}`, {
+        userMessage: 'Для этой категории мы пока не делаем техпаки.',
+        userAction: 'Выберите категорию из доступных или запишитесь в лист ожидания',
+        details: { category, supported: [...this.categoryDefaults.keys()].join(', ') },
+      });
+    }
+    return found;
+  }
+
+  node(id: string): ConstructionNode {
+    const found = this.construction.nodes.find((n) => n.id === id);
+    if (!found) throw new Error(`неизвестный узел обработки: ${id}`);
+    return found;
+  }
+
+  nodesFor(category: Category): ConstructionNode[] {
+    return this.construction.nodes.filter((n) => n.applies_to.includes(category));
+  }
+
+  stitch(code: string): StitchCode {
+    const found = this.stitches.stitches.find((s) => s.code === code);
+    if (!found) throw new Error(`неизвестный код стежка: ${code}`);
+    return found;
+  }
+
+  seam(code: string): SeamCode {
+    const found = this.seams.seams.find((s) => s.code === code);
+    if (!found) throw new Error(`неизвестный код шва: ${code}`);
+    return found;
+  }
+
+  machineParkProfile(id?: string): MachineParkProfile {
+    const key = id ?? this.machinePark.default_profile;
+    const found = this.machinePark.profiles.find((p) => p.id === key);
+    if (!found) throw new Error(`неизвестный профиль парка машин: ${key}`);
+    return found;
+  }
+
+  /**
+   * Machine-park check (дифференциатор R6).
+   *
+   * Фабрика читает техпак через свой парк машин: написано 406 — нужна
+   * распошивалка, замена на 301 на трикотаже даёт брак. Поэтому узел вне
+   * парка возвращается вместе с готовой заменой, а не просто флагом.
+   */
+  checkMachinePark(
+    node: ConstructionNode,
+    profileId?: string,
+  ): { available: boolean; alternative?: ConstructionNode } {
+    const park = this.machineParkProfile(profileId);
+    if (park.machines.includes(node.machine as MachineType)) return { available: true };
+
+    const alternative = node.alternative_node_id ? this.node(node.alternative_node_id) : undefined;
+    return alternative === undefined ? { available: false } : { available: false, alternative };
+  }
+
+  // ---------------------------------------------------------------- материалы
+
+  material(id: string): Material {
+    const found = this.materialsFile.materials.find((m) => m.id === id);
+    if (!found) throw new Error(`неизвестный материал: ${id}`);
+    return found;
+  }
+
+  materialsFor(category: Category): Material[] {
+    return this.materialsFile.materials.filter((m) => m.applications.includes(category));
+  }
+
+  consumptionFor(category: Category): ConsumptionFormula {
+    const found = this.consumption.formulas.find((f) => f.category === category);
+    if (!found) throw new Error(`нет нормы расхода для категории: ${category}`);
+    return found;
+  }
+
+  // ---------------------------------------------------------------- маркировка
+
+  careProfile(id: string): CareProfile {
+    const found = this.care.profiles.find((p) => p.id === id);
+    if (!found) throw new Error(`неизвестный профиль ухода: ${id}`);
+    return found;
+  }
+
+  /** Символы ухода в обязательном порядке ГОСТ ISO 3758: стирка → … → чистка. */
+  careSymbolsOrdered(profileId: string): { group: string; id: string; label_ru: string }[] {
+    const profile = this.careProfile(profileId);
+    return this.care.order.flatMap((group) => {
+      const variantId = profile.variants[group];
+      if (!variantId) return [];
+      const variant = this.care.variants.find((v) => v.id === variantId);
+      if (!variant) throw new Error(`неизвестный символ ухода: ${variantId}`);
+      return [{ group, id: variant.id, label_ru: variant.label_ru }];
+    });
+  }
+
+  labelRequisites(): readonly LabelRequisite[] {
+    return this.labeling.requisites;
+  }
+
+  /** Карта «видно с фото / не видно». Кормит промпт vision и блок предположений. */
+  visibilityMap(): VisibilityMapFile {
+    return this.visibility;
+  }
+
   /**
    * Все непроверенные записи справочников.
    *
@@ -214,6 +376,25 @@ export class KnowledgeBase {
         if (!p.verified) push(`pom_templates/${category}`, p.code, p.gap);
       }
     }
+    for (const [category, def] of this.categoryDefaults) {
+      if (!def.verified) push('category_defaults', category, def.gap);
+    }
+    for (const s of this.stitches.stitches) if (!s.verified) push('stitch_codes', s.code, s.gap);
+    for (const s of this.seams.seams) if (!s.verified) push('seam_codes', s.code, s.gap);
+    for (const n of this.construction.nodes)
+      if (!n.verified) push('construction_nodes', n.id, n.gap);
+    for (const p of this.machinePark.profiles) {
+      if (!p.verified) push('machine_park_profiles', p.id, p.gap);
+    }
+    for (const m of this.materialsFile.materials) if (!m.verified) push('materials', m.id, m.gap);
+    for (const f of this.consumption.formulas) {
+      if (!f.verified) push('consumption_formulas', f.category, f.gap);
+    }
+    for (const p of this.care.profiles) if (!p.verified) push('care_symbols', p.id, p.gap);
+    for (const r of this.labeling.requisites) {
+      if (!r.verified) push('labeling_requirements', r.id, r.gap);
+    }
+    if (!this.visibility.verified) push('visibility_map', 'map', this.visibility.gap);
     return out;
   }
 }

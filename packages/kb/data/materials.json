@@ -1,0 +1,239 @@
+{
+  "id": "materials",
+  "version": "0.1.0",
+  "description": "Справочник материалов трикотажного ядра. Ключевое ограничение: класс полотна по фактуре с фото определяется, плотность в граммах — никогда. Поэтому GSM всегда попадает в документ предположением, а не подставляется молча.",
+  "sources": [
+    "knowledge-base/05-materialy-bom.md#1.1",
+    "knowledge-base/05-materialy-bom.md#2",
+    "knowledge-base/05-materialy-bom.md#3.1",
+    "knowledge-base/06-normativka-rf.md#2",
+    "knowledge-base/06-normativka-rf.md#3",
+    "https://bazaar-tex.ru/dictionary/trikotaz-vidy-i-razliciia-kulirka-interlok-futer-ribana"
+  ],
+  "materials": [
+    {
+      "id": "single_jersey",
+      "name_ru": "Кулирка",
+      "name_en": "Single jersey",
+      "role": "shell",
+      "structure_ru": "Лицо «косички», изнанка «кирпичики»",
+      "composition_default_ru": "100% хлопок; возможен эластан 5–10%",
+      "gsm": {
+        "min": 120,
+        "max": 200,
+        "default": 160
+      },
+      "applications": ["tshirt", "longsleeve"],
+      "photo_detectable": "structure",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "interlock",
+      "name_ru": "Интерлок",
+      "name_en": "Interlock",
+      "role": "shell",
+      "structure_ru": "Двойная гладь",
+      "composition_default_ru": "100% хлопок",
+      "gsm": {
+        "min": 170,
+        "max": 250,
+        "default": 200
+      },
+      "applications": ["longsleeve", "tshirt"],
+      "photo_detectable": "partial",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "rib_1x1",
+      "name_ru": "Рибана",
+      "name_en": "Rib 1×1",
+      "role": "rib",
+      "structure_ru": "Резинка 1×1",
+      "composition_default_ru": "95% хлопок / 5% эластан",
+      "gsm": {
+        "min": 170,
+        "max": 250,
+        "default": 200
+      },
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "structure",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "rib_2x2",
+      "name_ru": "Кашкорсе",
+      "name_en": "Rib 2×2",
+      "role": "rib",
+      "structure_ru": "Резинка 2×2 или 3×3",
+      "composition_default_ru": "95% хлопок / 5% эластан",
+      "gsm": {
+        "min": 220,
+        "max": 450,
+        "default": 280
+      },
+      "applications": ["sweatshirt", "hoodie"],
+      "photo_detectable": "structure",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "french_terry_2t",
+      "name_ru": "Футер двухнитка",
+      "name_en": "2-thread french terry",
+      "role": "shell",
+      "structure_ru": "Петля с изнаночной стороны",
+      "composition_default_ru": "хлопок либо хлопок с полиэфиром",
+      "gsm": {
+        "min": 220,
+        "max": 300,
+        "default": 260
+      },
+      "applications": ["sweatshirt"],
+      "photo_detectable": "partial",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "french_terry_3t",
+      "name_ru": "Футер трёхнитка с начёсом",
+      "name_en": "3-thread fleece",
+      "role": "shell",
+      "structure_ru": "Изнанка с начёсом или петлёй",
+      "composition_default_ru": "60–80% хлопок, полиэфир, эластан",
+      "gsm": {
+        "min": 280,
+        "max": 400,
+        "default": 320
+      },
+      "applications": ["hoodie", "sweatshirt"],
+      "photo_detectable": "partial",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "pique",
+      "name_ru": "Пике",
+      "name_en": "Pique",
+      "role": "shell",
+      "structure_ru": "Структура «соты»",
+      "composition_default_ru": "хлопок либо хлопок с полиэфиром",
+      "gsm": {
+        "min": 170,
+        "max": 220,
+        "default": 190
+      },
+      "applications": ["tshirt"],
+      "photo_detectable": "structure",
+      "care_profile_id": "cotton_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Плотность полотна с фото не определяется никогда (knowledge-base/05 §1.1) — диапазон взят из справочника, конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу»."
+    },
+    {
+      "id": "thread_40_2",
+      "name_ru": "Нитки 40/2 универсальные",
+      "name_en": "Thread 40/2",
+      "role": "thread",
+      "structure_ru": "Швейные нитки общего назначения",
+      "composition_default_ru": "полиэфир",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Номер нитки — универсальный дефолт из справочника. Подбор под конкретное полотно и цвет делает фабрика — в документе идёт как типовое значение с пометкой «уточнить у фабрики»."
+    },
+    {
+      "id": "thread_textured",
+      "name_ru": "Нитки текстурированные для оверлока",
+      "name_en": "Textured thread",
+      "role": "thread",
+      "structure_ru": "Петлители оверлока по трикотажу",
+      "composition_default_ru": "полиэфир текстурированный",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Дефолт из справочника: текстурированная нить в петлителях оверлока по трикотажу. Уточнить у фабрики."
+    },
+    {
+      "id": "stay_tape",
+      "name_ru": "Долевик (укрепляющая тесьма)",
+      "name_en": "Stay tape",
+      "role": "interlining",
+      "structure_ru": "Лента 10–15 мм в плечевой шов",
+      "composition_default_ru": "нетканая либо трикотажная",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Прокладочные материалы с фото не видны никогда — уходят в документ предположением (knowledge-base/04 §7)."
+    },
+    {
+      "id": "care_label",
+      "name_ru": "Составник (ярлык состава и ухода)",
+      "name_en": "Care label",
+      "role": "label",
+      "structure_ru": "Тканый или печатный ярлык",
+      "composition_default_ru": "полиэфирная лента",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/06-normativka-rf.md#2",
+      "gap": "Материал носителя маркировки выбирает бренд. Обязательность самого ярлыка — статья 9 ТР ТС 017."
+    },
+    {
+      "id": "size_label",
+      "name_ru": "Размерник",
+      "name_en": "Size label",
+      "role": "label",
+      "structure_ru": "Контрольная лента размера",
+      "composition_default_ru": "полиэфирная лента",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/06-normativka-rf.md#3",
+      "gap": "Носитель по ГОСТ 10581-91. Вид ленты выбирает бренд."
+    },
+    {
+      "id": "hangtag",
+      "name_ru": "Навесной ярлык",
+      "name_en": "Hangtag",
+      "role": "label",
+      "structure_ru": "Картонный ярлык на шнурке",
+      "composition_default_ru": "картон 250–300 г/м²",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/06-normativka-rf.md#3",
+      "gap": "Плотность картона — отраслевая практика, не норматив. Выбирает бренд."
+    },
+    {
+      "id": "polybag",
+      "name_ru": "Индивидуальный пакет",
+      "name_en": "Polybag",
+      "role": "packaging",
+      "structure_ru": "Упаковочный пакет",
+      "composition_default_ru": "полиэтилен",
+      "applications": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
+      "photo_detectable": "no",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#3.1",
+      "gap": "Тип упаковки согласуется с фабрикой и каналом продаж."
+    }
+  ]
+}

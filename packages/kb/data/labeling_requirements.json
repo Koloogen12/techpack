@@ -1,0 +1,102 @@
+{
+  "id": "labeling_requirements",
+  "version": "0.1.0",
+  "description": "Обязательные реквизиты маркировки по статье 9 ТР ТС 017/2011. Все — на русском языке, на изделии, этикетке, ярлыке или упаковке. Незаполненный обязательный реквизит блокирует продажу, поэтому в документе он либо имеет значение, либо явно значится пробелом. Дифференциатор R9: у конкурента локальной нормативки нет вообще.",
+  "sources": [
+    "knowledge-base/06-normativka-rf.md#2",
+    "ТР ТС 017/2011, статья 9",
+    "https://www.novotest.ru/tr-ts/017-2011/st-9/"
+  ],
+  "requisites": [
+    {
+      "id": "product_name",
+      "label_ru": "Наименование продукции",
+      "fills_from": "style",
+      "required": true,
+      "example_ru": "Футболка женская",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "country",
+      "label_ru": "Страна изготовления",
+      "fills_from": "brand_profile",
+      "required": true,
+      "example_ru": "Россия",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "manufacturer",
+      "label_ru": "Изготовитель: наименование и юридический адрес",
+      "fills_from": "brand_profile",
+      "required": true,
+      "example_ru": "ООО «Пример», 101000, Москва, ул. Примерная, 1",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "importer",
+      "label_ru": "Импортёр или уполномоченное лицо",
+      "fills_from": "brand_profile",
+      "required": false,
+      "example_ru": "заполняется только для импортной продукции",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "size",
+      "label_ru": "Размер",
+      "fills_from": "style",
+      "required": true,
+      "example_ru": "RU 46 / M",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "composition",
+      "label_ru": "Состав сырья, проценты по волокнам в порядке убывания",
+      "fills_from": "style",
+      "required": true,
+      "example_ru": "95% хлопок, 5% эластан",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "trademark",
+      "label_ru": "Товарный знак",
+      "fills_from": "brand_profile",
+      "required": true,
+      "example_ru": "ПРИМЕР",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "production_date",
+      "label_ru": "Дата изготовления: месяц и год",
+      "fills_from": "manual",
+      "required": true,
+      "example_ru": "08.2026",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "care_symbols",
+      "label_ru": "Символы ухода по ГОСТ ISO 3758",
+      "fills_from": "kb",
+      "required": true,
+      "example_ru": "стирка 30 °C деликатная · не отбеливать · не сушить в барабане · утюг до 150 °C · не чистить",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    },
+    {
+      "id": "eac",
+      "label_ru": "Знак обращения ЕАС",
+      "fills_from": "kb",
+      "required": true,
+      "example_ru": "EAC",
+      "verified": true,
+      "source": "knowledge-base/06-normativka-rf.md#2"
+    }
+  ]
+}

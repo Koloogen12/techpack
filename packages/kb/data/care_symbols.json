@@ -1,0 +1,155 @@
+{
+  "id": "care_symbols",
+  "version": "0.1.0",
+  "description": "Символы ухода по ГОСТ ISO 3758-2014. Порядок пяти символов на ярлыке строгий: стирка → отбеливание → сушка → глажение → профессиональная чистка. Символы ухода входят в обязательные реквизиты маркировки по статье 9 ТР ТС 017, поэтому нарушение порядка — формальное несоответствие, а не косметика.",
+  "sources": [
+    "knowledge-base/06-normativka-rf.md#4",
+    "ГОСТ ISO 3758-2014",
+    "http://docs.cntd.ru/document/1200117512"
+  ],
+  "order": ["wash", "bleach", "tumble_dry", "natural_dry", "iron", "professional"],
+  "variants": [
+    {
+      "id": "wash_95",
+      "group": "wash",
+      "label_ru": "Стирка при 95 °C"
+    },
+    {
+      "id": "wash_60",
+      "group": "wash",
+      "label_ru": "Стирка при 60 °C"
+    },
+    {
+      "id": "wash_40",
+      "group": "wash",
+      "label_ru": "Стирка при 40 °C"
+    },
+    {
+      "id": "wash_40_delicate",
+      "group": "wash",
+      "label_ru": "Деликатная стирка при 40 °C"
+    },
+    {
+      "id": "wash_30",
+      "group": "wash",
+      "label_ru": "Стирка при 30 °C"
+    },
+    {
+      "id": "wash_30_delicate",
+      "group": "wash",
+      "label_ru": "Деликатная стирка при 30 °C"
+    },
+    {
+      "id": "wash_hand",
+      "group": "wash",
+      "label_ru": "Ручная стирка не выше 40 °C"
+    },
+    {
+      "id": "wash_none",
+      "group": "wash",
+      "label_ru": "Стирка запрещена"
+    },
+    {
+      "id": "bleach_any",
+      "group": "bleach",
+      "label_ru": "Отбеливание разрешено"
+    },
+    {
+      "id": "bleach_oxygen",
+      "group": "bleach",
+      "label_ru": "Только кислородное отбеливание"
+    },
+    {
+      "id": "bleach_none",
+      "group": "bleach",
+      "label_ru": "Отбеливание запрещено"
+    },
+    {
+      "id": "tumble_low",
+      "group": "tumble_dry",
+      "label_ru": "Барабанная сушка при пониженной температуре"
+    },
+    {
+      "id": "tumble_normal",
+      "group": "tumble_dry",
+      "label_ru": "Барабанная сушка при обычной температуре"
+    },
+    {
+      "id": "tumble_none",
+      "group": "tumble_dry",
+      "label_ru": "Барабанная сушка запрещена"
+    },
+    {
+      "id": "dry_line",
+      "group": "natural_dry",
+      "label_ru": "Сушить на верёвке"
+    },
+    {
+      "id": "dry_flat",
+      "group": "natural_dry",
+      "label_ru": "Сушить разложив на горизонтальной поверхности"
+    },
+    {
+      "id": "dry_shade",
+      "group": "natural_dry",
+      "label_ru": "Сушить в тени"
+    },
+    {
+      "id": "iron_110",
+      "group": "iron",
+      "label_ru": "Глажение не выше 110 °C"
+    },
+    {
+      "id": "iron_150",
+      "group": "iron",
+      "label_ru": "Глажение не выше 150 °C"
+    },
+    {
+      "id": "iron_200",
+      "group": "iron",
+      "label_ru": "Глажение не выше 200 °C"
+    },
+    {
+      "id": "iron_none",
+      "group": "iron",
+      "label_ru": "Глажение запрещено"
+    },
+    {
+      "id": "prof_p",
+      "group": "professional",
+      "label_ru": "Профессиональная чистка перхлорэтиленом"
+    },
+    {
+      "id": "prof_f",
+      "group": "professional",
+      "label_ru": "Профессиональная чистка углеводородами"
+    },
+    {
+      "id": "prof_w",
+      "group": "professional",
+      "label_ru": "Профессиональная аквачистка"
+    },
+    {
+      "id": "prof_none",
+      "group": "professional",
+      "label_ru": "Профессиональная чистка запрещена"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "cotton_knit",
+      "label_ru": "Хлопковый трикотаж",
+      "variants": {
+        "wash": "wash_30_delicate",
+        "bleach": "bleach_none",
+        "tumble_dry": "tumble_none",
+        "natural_dry": "dry_flat",
+        "iron": "iron_150",
+        "professional": "prof_none"
+      },
+      "verified": false,
+      "source": "knowledge-base/06-normativka-rf.md#4",
+      "gap": "Профиль собран по правилу генерации из базы знаний: хлопковый трикотаж — 30–40 °C деликатная, без хлора, без барабана, утюг 150 °C, без химчистки. Это типовое значение, редактируемое брендом. Реальный режим зависит от конкретного полотна и подтверждается поставщиком."
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "machine_park_profiles",
+  "version": "0.1.0",
+  "description": "Парк машин цеха. Базовый профиль — реальное производство на 10 человек с оборудованием примерно на 2 млн ₽: универсалка, оверлок, распошивалка, петельная, пуговичная, утюг. Всё сверх этого фабрики докупают только под повторные заказы. Отсюда правило: дефолтные узлы генерируются только под базовый профиль, а всё, что требует спецмашины, получает флаг и альтернативу (дифференциатор R6).",
+  "sources": [
+    "knowledge-base/07-priemka-fabrikami.md#5",
+    "https://vc.ru/tribuna/1149988-kto-ubivaet-moe-proizvodstvo-odezhdy"
+  ],
+  "default_profile": "base_shop",
+  "profiles": [
+    {
+      "id": "base_shop",
+      "label_ru": "Базовый цех",
+      "machines": [
+        "single_needle_lockstitch",
+        "overlock_3",
+        "overlock_4",
+        "coverstitch_2n",
+        "buttonhole",
+        "button_sew",
+        "iron",
+        "manual"
+      ],
+      "verified": false,
+      "source": "knowledge-base/07-priemka-fabrikami.md#5",
+      "gap": "Состав собран из одного развёрнутого свидетельства владельца производства, не из отраслевой статистики. Уточнить на интервью с технологами (RAT-1)."
+    },
+    {
+      "id": "extended_shop",
+      "label_ru": "Расширенный цех",
+      "machines": [
+        "single_needle_lockstitch",
+        "overlock_3",
+        "overlock_4",
+        "coverstitch_2n",
+        "buttonhole",
+        "button_sew",
+        "iron",
+        "manual",
+        "twin_needle_lockstitch",
+        "overlock_5",
+        "coverstitch_3n",
+        "flatlock",
+        "bartack",
+        "blindstitch",
+        "eyelet_press",
+        "fusing_press"
+      ],
+      "verified": false,
+      "source": "knowledge-base/07-priemka-fabrikami.md#5",
+      "gap": "Состав собран по перечислению спецмашин из базы знаний. Уточнить на интервью с технологами: какие спецмашины действительно распространены (RAT-1)."
+    }
+  ]
+}

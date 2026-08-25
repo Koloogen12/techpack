@@ -1,0 +1,131 @@
+{
+  "id": "stitch_codes",
+  "version": "0.1.0",
+  "description": "Стежки по ГОСТ 12807-2003. Ключевой факт: стандарт включает ISO 4915 как идентичное приложение — один внутренний словарь кодов покрывает и фабрику РФ, и мировой техпак. Дифференциатор R5: у конкурента коды стежков отсутствуют, «вносите вручную».",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#1",
+    "ГОСТ 12807-2003, таблица 1",
+    "ISO 4915",
+    "http://www.amefird.com/wp-content/uploads/2009/10/Stitch-Type-Matrix.pdf",
+    "https://www.onlineclothingstudy.com/2020/05/stitch-classifation-according-to.html"
+  ],
+  "stitches": [
+    {
+      "code": "101",
+      "name_ru": "однониточный цепной",
+      "name_en": "chainstitch",
+      "machine": "manual",
+      "application_ru": "временное скрепление, намётка",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "103",
+      "name_ru": "однониточный цепной потайной",
+      "name_en": "blind stitch",
+      "machine": "blindstitch",
+      "application_ru": "потайная подгибка низа брюк, юбок, пальто",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "301",
+      "name_ru": "двухниточный челночный",
+      "name_en": "lockstitch",
+      "machine": "single_needle_lockstitch",
+      "application_ru": "стачивание, отстрочки, воротники, планки, молнии",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "304",
+      "name_ru": "челночный зигзаг",
+      "name_en": "zigzag",
+      "machine": "bartack",
+      "application_ru": "закрепки, петли, пуговицы, бельё",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "401",
+      "name_ru": "двухниточный цепной",
+      "name_en": "2-thread chainstitch",
+      "machine": "twin_needle_lockstitch",
+      "application_ru": "эластичные соединения, джинсы, бок сорочек",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "406",
+      "name_ru": "трёхниточный двухлинейный цепной",
+      "name_en": "bottom coverstitch, 2 needle",
+      "machine": "coverstitch_2n",
+      "application_ru": "подгибка низа и рукавов трикотажа, шлевки, бейки",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "407",
+      "name_ru": "четырёхниточный трёхлинейный цепной",
+      "name_en": "3-needle coverstitch",
+      "machine": "coverstitch_3n",
+      "application_ru": "настрачивание резинки: бельё, спорт",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "504",
+      "name_ru": "трёхниточный стачивающе-обмёточный",
+      "name_en": "3-thread overlock",
+      "machine": "overlock_3",
+      "application_ru": "стачивание с обмёткой трикотажа",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "512",
+      "name_ru": "четырёхниточный mock safety",
+      "name_en": "4-thread mock safety",
+      "machine": "overlock_4",
+      "application_ru": "усиленное стачивание с обмёткой",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "514",
+      "name_ru": "четырёхниточный двухлинейный",
+      "name_en": "4-thread overlock",
+      "machine": "overlock_4",
+      "application_ru": "основной шов трикотажа: плечо, бок, окат",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "602",
+      "name_ru": "четырёхниточный плоский",
+      "name_en": "4-thread coverstitch / flatlock",
+      "machine": "flatlock",
+      "application_ru": "подгибка с закрытием среза, кружево, резинки",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "605",
+      "name_ru": "пятиниточный плоский",
+      "name_en": "5-thread coverstitch",
+      "machine": "coverstitch_3n",
+      "application_ru": "бейки, бельё, спорт",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    },
+    {
+      "code": "607",
+      "name_ru": "плоский многониточный",
+      "name_en": "flatseam, butt",
+      "machine": "flatlock",
+      "application_ru": "бельё, термо, флис — шов встык",
+      "verified": true,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#1"
+    }
+  ]
+}

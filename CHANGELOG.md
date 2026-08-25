@@ -9,6 +9,8 @@
 - Монорепо на pnpm workspaces, CI-гейт `pnpm verify`, ADR-0000…0004.
 - `@specform/core`: тип `Tracked<T>` со статусом уверенности и источником, иерархия доверия, единицы измерения с правилом «внутри всегда сантиметры», доменные ошибки с обязательным объяснением для пользователя, учёт себестоимости генерации.
 - `@specform/kb`: справочники `tolerance_classes`, `size_charts_ru`, `ease_defaults`, `grading_increments`, `pom_templates/tshirt` (18 точек) с zod-схемами и загрузчиком. Каждая непроверенная запись обязана объяснять свой пробел.
+- `@specform/kb`, вторая половина: `stitch_codes` (ГОСТ 12807 = ISO 4915), `seam_codes`, `construction_nodes` (21 узел трикотажного ядра с кодами, SPI, машиной и флагом видимости), `machine_park_profiles`, `materials`, `consumption_formulas`, `care_symbols` (ГОСТ ISO 3758), `labeling_requirements` (статья 9 ТР ТС 017), `category_defaults/tshirt` с технологической последовательностью, `visibility_map`.
+- Machine-park check (R6): узел вне парка цеха возвращается вместе с готовой заменой.
 - `pnpm kb:validate` — валидация справочников и отчёт по бэклогу верификации.
 
 - `@specform/stylespec`: схема StyleSpec 0.1.0 (паспорт изделия + табель мер), выгрузка JSON Schema из той же zod-декларации, машинерия миграций снапшотов, отпечаток содержимого для проверки воспроизводимости, три эталонных примера.
