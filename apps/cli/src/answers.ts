@@ -97,6 +97,20 @@ export const AnswersSchema = z
             seam_ratio: z.number().nonnegative(),
             seamless: z.boolean(),
             mirrored: z.boolean(),
+            /** Краски тайла — результат цветоделения, а не догадка. */
+            colors: z
+              .array(
+                z.object({
+                  hex: z.string().regex(/^#[0-9A-F]{6}$/),
+                  share: z.number().min(0).max(1),
+                  book_code: text(40).nullable().optional(),
+                  delta_e: z.number().nonnegative().nullable().optional(),
+                }),
+              )
+              .max(24)
+              .optional(),
+            vector_available: z.boolean().optional(),
+            vector_verdict_ru: text(600).optional(),
           }),
           repeat_cm: z.number().positive().max(200),
           color_count: z.number().int().positive().max(24).optional(),

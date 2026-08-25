@@ -1159,6 +1159,9 @@
                   "seamless": {
                     "type": "boolean"
                   },
+                  "mirrored": {
+                    "type": "boolean"
+                  },
                   "grain": {
                     "type": "object",
                     "properties": {
@@ -1235,6 +1238,54 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "colors_measured": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "hex": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-F]{6}$"
+                        },
+                        "share": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "book_code": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "delta_e": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": ["hex", "share", "book_code", "delta_e"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "vector_available": {
+                    "type": "boolean"
+                  },
+                  "vector_verdict_ru": {
+                    "type": "string",
+                    "minLength": 1
                   }
                 },
                 "required": [
@@ -1243,11 +1294,15 @@
                   "tile_key",
                   "seam_ratio",
                   "seamless",
+                  "mirrored",
                   "grain",
                   "path",
                   "path_label_ru",
                   "path_reason_ru",
-                  "yardage_m"
+                  "yardage_m",
+                  "colors_measured",
+                  "vector_available",
+                  "vector_verdict_ru"
                 ],
                 "additionalProperties": false
               }

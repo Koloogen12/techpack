@@ -217,6 +217,18 @@ export interface PatternTileInput {
   seamless: boolean;
   /** Собран зеркальной укладкой — рисунок приобрёл симметрию. */
   mirrored: boolean;
+  /** Краски раппорта: сколько сеток и какие. Считаются по пикселям. */
+  colors?:
+    | readonly {
+        hex: string;
+        share: number;
+        book_code?: string | null | undefined;
+        delta_e?: number | null | undefined;
+      }[]
+    | undefined;
+  /** Вектор по цветам построен. */
+  vector_available?: boolean | undefined;
+  vector_verdict_ru?: string | undefined;
 }
 
 export interface PatternPlacementInput {
@@ -348,16 +360,36 @@ export function buildPatternPlacement(
         )
       : null;
 
+  // Число красок для плашечной печати не спрашиваем, если тайл уже разобран:
+  // оно ПОСЧИТАНО по пикселям, и просить его у человека значило бы поставить
+  // его догадку выше измерения.
+  const measured = input.tile.colors?.length ?? 0;
   const colors: ArtworkPlacement['colors'] =
     technique.colors.model === 'full'
-      ? { model: 'full', count: null, codes: [...(input.color_codes ?? [])] }
+      ? {
+          model: 'full',
+          count: null,
+          codes: [
+            ...(input.color_codes ?? []),
+            ...(input.tile.colors ?? []).map((c) => c.book_code ?? c.hex),
+          ],
+        }
       : {
           model: 'spot',
           count:
-            input.color_count !== undefined
-              ? userInput(input.color_count, 'user:pattern.color_count')
-              : assume(1, 'engine:pattern/colors', 'число цветов не указано'),
-          codes: [...(input.color_codes ?? [])],
+            measured > 0
+              ? fromBase(
+                  measured,
+                  'engine:pattern/colors-measured',
+                  'посчитано по пикселям тайла — столько же сеток',
+                )
+              : input.color_count !== undefined
+                ? userInput(input.color_count, 'user:pattern.color_count')
+                : assume(1, 'engine:pattern/colors', 'число цветов не указано'),
+          codes: [
+            ...(input.color_codes ?? []),
+            ...(input.tile.colors ?? []).map((c) => c.book_code ?? c.hex),
+          ],
         };
 
   notes.push(
@@ -410,6 +442,17 @@ export function buildPatternPlacement(
           : 'Полотно этого состава до раскроя не печатается, поэтому рисунок ' +
             'наносится на выкроенные детали и на швах не совпадает.',
       yardage_m: yardage,
+      colors_measured: (input.tile.colors ?? []).map((c) => ({
+        hex: c.hex,
+        share: c.share,
+        book_code: c.book_code ?? null,
+        delta_e: c.delta_e ?? null,
+      })),
+      vector_available: input.tile.vector_available ?? false,
+      vector_verdict_ru:
+        input.tile.vector_verdict_ru ??
+        'Цветоделение не выполнялось: раппорт добавлен без разбора красок. ' +
+          'Запустите паттерн-студию, чтобы получить список сеток и вектор.',
     },
   };
 }

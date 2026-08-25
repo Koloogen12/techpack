@@ -499,6 +499,25 @@ function artworkPages(
           `Сам макет приложен файлом: на чертеже он не рисуется, потому что чертёж ` +
           `задаёт место и размер, а не изображение.`) +
       `</div>` +
+      (a.pattern?.colors_measured.length
+        ? `<h3>Краски — ${a.pattern.colors_measured.length} ` +
+          `${a.pattern.colors_measured.length === 1 ? 'сетка' : 'сеток'}</h3>` +
+          `<table><tbody>` +
+          a.pattern.colors_measured
+            .map(
+              (c) =>
+                `<tr><td style="width:8mm"><span class="swatch" ` +
+                `style="background:${esc(c.hex)}"></span></td>` +
+                `<td class="mono">${esc(c.hex)}</td>` +
+                `<td class="num v">${Math.round(c.share * 100)}%</td>` +
+                `<td class="note">${c.book_code ? esc(c.book_code) + (c.delta_e !== null ? ` · ΔE ${num(c.delta_e)}` : '') : 'номер по каталогу не подобран'}</td></tr>`,
+            )
+            .join('') +
+          `</tbody></table>` +
+          `<div class="note" style="margin-top:2mm">Доля площади задаёт расход краски. ` +
+          `Цвета измерены по пикселям тайла, а не подобраны на глаз. ` +
+          `${esc(a.pattern.vector_verdict_ru)}</div>`
+        : '') +
       (a.warnings_ru.length
         ? `<h3>Ограничения</h3><ul class="plain">` +
           a.warnings_ru.map((w) => `<li>${esc(w)}</li>`).join('') +

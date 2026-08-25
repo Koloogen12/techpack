@@ -12,7 +12,13 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, extname } from 'node:path';
 import { createLogger, isSpecFormError } from '@specform/core';
-import { fileTileCache, generateTile } from '@specform/pattern';
+import {
+  extractColors,
+  fileTileCache,
+  generateTile,
+  matchColors,
+  separateColors,
+} from '@specform/pattern';
 import { chromium } from 'playwright';
 
 const MIME: Record<string, string> = {
@@ -29,6 +35,8 @@ interface Cli {
   density?: 'sparse' | 'balanced' | 'dense';
   colors?: number;
   noMirror: boolean;
+  /** Шаг раппорта, см. Нужен, чтобы посчитать разрешение и предел детали. */
+  repeatCm?: number;
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -67,6 +75,11 @@ function parseArgv(argv: readonly string[]): Cli {
     }
     // Зеркальная укладка меняет рисунок, поэтому от неё можно отказаться —
     // ценой того, что бесшовного тайла может не выйти вовсе.
+    if (arg === '--repeat-cm') {
+      cli.repeatCm = Number(argv[++i]);
+      mode = null;
+      continue;
+    }
     if (arg === '--no-mirror') {
       cli.noMirror = true;
       mode = null;
@@ -127,6 +140,37 @@ async function main(): Promise<void> {
         `\n  ключ:   ${t.key}` +
         (t.cached ? ' (из кэша)' : ''),
     );
+
+    // Цветоделение: сколько сеток жечь и какие. Считается арифметикой,
+    // а не моделью — печатнику нужен верный список, а не правдоподобный.
+    const report = await extractColors(t.dataUri, cli.colors ?? 6, browser);
+    const { matches, notes } = matchColors(report.colors);
+
+    console.log(`\nКраски (${matches.length} — столько же сеток):`);
+    for (const m of matches) {
+      const share = String(Math.round(m.measured.share * 100)).padStart(3);
+      const book = m.book ? `  ${m.book.code} (ΔE ${m.book.delta_e})` : '';
+      console.log(`  ${m.measured.hex}  ${share}%  Lab ${m.measured.lab.join(', ')}${book}`);
+    }
+
+    const sep = await separateColors(t.dataUri, report, {
+      browser,
+      ...(cli.repeatCm ? { repeatCm: cli.repeatCm } : {}),
+    });
+
+    const stem = cli.out.replace(/\.[a-z]+$/i, '');
+    for (const [i, s2] of sep.separations.entries()) {
+      const b64 = s2.maskDataUri.slice(s2.maskDataUri.indexOf(',') + 1);
+      writeFileSync(`${stem}-sep-${i + 1}.png`, Buffer.from(b64, 'base64'));
+    }
+    console.log(`\n  маски по краскам: ${stem}-sep-1…${sep.separations.length}.png`);
+
+    if (sep.svg) {
+      writeFileSync(`${stem}.svg`, sep.svg);
+      console.log(`  вектор:           ${stem}.svg`);
+    }
+    console.log(`\n${sep.vector_verdict_ru}`);
+    for (const n of notes) console.log(`\n${n}`);
 
     console.log(
       `\nДальше: укажите этот файл в анкете техпака вместе с ФИЗИЧЕСКИМ ШАГОМ ` +
