@@ -77,6 +77,10 @@ pnpm golden:export       # живые отчёты разбора из кэша 
 pnpm golden:renders      # референсные визуализации из кэша в golden/renders
 
 pnpm pattern --refs мотив1.png мотив2.png --brief "что нарисовать" --out out/tile.png
+
+pnpm rfq --answers анкета.json --out out/rfq.pdf   # лист на просчёт + текст в мессенджер
+pnpm rfq:report --init rfq/responses.csv           # завести журнал ответов фабрик
+pnpm rfq:report rfq/responses.csv                  # отчёт: ответили, берутся, цена
 ```
 
 ## Врёт ли документ в сантиметрах

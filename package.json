@@ -25,6 +25,8 @@
     "flats:preview": "tsx packages/flats/scripts/preview.ts",
     "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts",
     "pattern": "tsx --env-file-if-exists=.env apps/cli/src/pattern.ts",
+    "rfq": "tsx apps/cli/src/rfq.ts",
+    "rfq:report": "tsx apps/cli/src/rfq-report.ts",
     "golden:export": "tsx golden/scripts/export-vision-reports.ts",
     "golden:warm": "tsx --env-file-if-exists=.env golden/scripts/warm-vision.ts",
     "golden:renders": "tsx golden/scripts/export-renders.ts",

@@ -142,8 +142,24 @@ export const AnswersSchema = z
         address: text(300).optional(),
         trademark: text(120).optional(),
         country: text(80).optional(),
+        /**
+         * Кому фабрика отвечает на просчёт. Без этого лист RFQ бесполезен:
+         * фабрика прочитает его и не будет знать, куда писать.
+         */
+        contact_name: text(120).optional(),
+        contact_phone: text(40).optional(),
+        contact_email: text(120).optional(),
       })
       .optional(),
+
+    /**
+     * Распределение тиража по размерам: код размера → доля в штуках.
+     *
+     * Фабрика считает цену по нему, а не по одному тиражу: раскладка
+     * и расход зависят от того, каких размеров сколько. Мы его НЕ ВЫДУМЫВАЕМ:
+     * это решение бренда о том, что он собирается продать.
+     */
+    size_ratio: z.record(z.string().regex(/^\d{2}$/), z.number().int().positive()).optional(),
   })
   .superRefine((a, ctx) => {
     if (!a.size_range.includes(a.base_size_ru)) {
