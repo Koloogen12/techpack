@@ -15,14 +15,7 @@
     "base_height_cm": 170,
     "fit_intent": "semi_fitted",
     "fabric_kind": "knit",
-    "size_range": [
-      42,
-      44,
-      46,
-      48,
-      50,
-      52
-    ]
+    "size_range": [42, 44, 46, 48, 50, 52]
   },
   "measurements": {
     "template_id": "pom_templates/tshirt",

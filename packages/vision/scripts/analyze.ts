@@ -33,20 +33,34 @@ function readPhoto(path: string): Photo {
   return { bytes: readFileSync(path), format, label: basename(path) };
 }
 
+const CATEGORIES = ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const;
+type CliCategory = (typeof CATEGORIES)[number];
+
 async function main(): Promise<void> {
-  const paths = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const categoryIndex = args.indexOf('--category');
+  const category: CliCategory =
+    categoryIndex >= 0 ? (args[categoryIndex + 1] as CliCategory) : 'tshirt';
+  if (!CATEGORIES.includes(category)) {
+    console.error(`Неизвестная категория: ${category}. Доступны: ${CATEGORIES.join(', ')}`);
+    process.exit(1);
+  }
+  const paths =
+    categoryIndex >= 0 ? [...args.slice(0, categoryIndex), ...args.slice(categoryIndex + 2)] : args;
+
   if (paths.length === 0) {
-    console.error('Использование: pnpm vision:analyze <файл> [ещё файлы...]');
+    console.error('Использование: pnpm vision:analyze <файл> [ещё файлы...] [--category tshirt]');
     process.exit(1);
   }
 
   const ledger = new CostLedger();
   const model = defaultModel();
-  console.log(`Модель: ${model}. Снимков: ${paths.length}.\n`);
+  console.log(`Модель: ${model}. Категория: ${category}. Снимков: ${paths.length}.\n`);
 
   const { report, cacheKey, fromCache } = await analyzePhotos({
     photos: paths.map(readPhoto),
-    answersFingerprint: 'cli',
+    category,
+    answersFingerprint: `cli|${category}`,
     model,
     cache: new FileVisionCache(process.env.SPECFORM_CACHE_DIR ?? '.cache/vision'),
     ledger,

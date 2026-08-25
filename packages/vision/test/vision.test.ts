@@ -5,6 +5,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { afterAll, describe, expect, it } from 'vitest';
 import { CostLedger, isSpecFormError } from '@specform/core';
 import { kb } from '@specform/kb';
+import type { AnalyzeOptions } from '../src/index.js';
 import {
   FileVisionCache,
   MAX_PHOTOS,
@@ -67,7 +68,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'specform-vision-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 describe('промпт', () => {
-  const system = buildSystemPrompt(base);
+  const system = buildSystemPrompt(base, 'tshirt');
 
   it('запрещает называть сантиметры — это ядро ограничения', () => {
     expect(system).toContain('не называешь сантиметры');
@@ -103,7 +104,12 @@ describe('промпт', () => {
 });
 
 describe('ключ кэша', () => {
-  const input = { photoHashes: ['a', 'b'], answersFingerprint: 'x', model: 'claude-opus-5' };
+  const input = {
+    photoHashes: ['a', 'b'],
+    category: 'tshirt',
+    answersFingerprint: 'x',
+    model: 'claude-opus-5',
+  };
 
   it('не зависит от порядка фотографий', () => {
     expect(cacheKey({ ...input, photoHashes: ['b', 'a'] })).toBe(cacheKey(input));
@@ -119,6 +125,10 @@ describe('ключ кэша', () => {
 
   it('меняется от смены ответов мастера', () => {
     expect(cacheKey({ ...input, answersFingerprint: 'y' })).not.toBe(cacheKey(input));
+  });
+
+  it('меняется от смены категории — у худи другой список точек в промпте', () => {
+    expect(cacheKey({ ...input, category: 'hoodie' })).not.toBe(cacheKey(input));
   });
 
   it('версия промпта участвует в ключе', () => {
@@ -137,8 +147,9 @@ describe('детерминизм через кэш', () => {
   it('второй прогон того же входа не идёт в API', async () => {
     let calls = 0;
     const cache = new MemoryVisionCache();
-    const opts = {
+    const opts: AnalyzeOptions = {
       photos: [photo(1)],
+      category: 'tshirt',
       answersFingerprint: 'a',
       cache,
       client: fakeClient(() => calls++),
@@ -157,8 +168,9 @@ describe('детерминизм через кэш', () => {
   it('повтор из кэша стоит ноль — бесплатная перегенерация не тратит токены', async () => {
     const cache = new MemoryVisionCache();
     const ledger = new CostLedger();
-    const opts = {
+    const opts: AnalyzeOptions = {
       photos: [photo(2)],
+      category: 'tshirt',
       answersFingerprint: 'a',
       cache,
       ledger,
@@ -175,7 +187,12 @@ describe('детерминизм через кэш', () => {
 
   it('файловый кэш переживает перезапуск процесса', async () => {
     const dir = join(tmp, 'restart');
-    const opts = { photos: [photo(3)], answersFingerprint: 'a', client: fakeClient() };
+    const opts: AnalyzeOptions = {
+      photos: [photo(3)],
+      category: 'tshirt',
+      answersFingerprint: 'a',
+      client: fakeClient(),
+    };
 
     const first = await analyzePhotos({ ...opts, cache: new FileVisionCache(dir) });
     const second = await analyzePhotos({ ...opts, cache: new FileVisionCache(dir) });
@@ -198,6 +215,7 @@ describe('учёт себестоимости', () => {
     const ledger = new CostLedger();
     await analyzePhotos({
       photos: [photo(4)],
+      category: 'tshirt',
       answersFingerprint: 'a',
       ledger,
       client: fakeClient(),
@@ -216,7 +234,12 @@ describe('учёт себестоимости', () => {
 describe('границы входа', () => {
   it('без фотографий — понятная ошибка', async () => {
     await expect(
-      analyzePhotos({ photos: [], answersFingerprint: 'a', client: fakeClient() }),
+      analyzePhotos({
+        photos: [],
+        category: 'tshirt',
+        answersFingerprint: 'a',
+        client: fakeClient(),
+      }),
     ).rejects.toThrow();
   });
 
@@ -224,6 +247,7 @@ describe('границы входа', () => {
     try {
       await analyzePhotos({
         photos: Array.from({ length: MAX_PHOTOS + 1 }, (_, i) => photo(i)),
+        category: 'tshirt',
         answersFingerprint: 'a',
         client: fakeClient(),
       });
@@ -242,7 +266,12 @@ describe('границы входа', () => {
     } as unknown as Anthropic;
 
     try {
-      await analyzePhotos({ photos: [photo(9)], answersFingerprint: 'a', client: broken });
+      await analyzePhotos({
+        photos: [photo(9)],
+        category: 'tshirt',
+        answersFingerprint: 'a',
+        client: broken,
+      });
       expect.unreachable('должно было упасть');
     } catch (e) {
       expect(isSpecFormError(e)).toBe(true);
@@ -259,5 +288,39 @@ describe('схема отчёта', () => {
   it('отвергает отчёт без блока «что не видно» — это половина ценности', () => {
     const { not_visible: _omitted, ...rest } = REPORT;
     expect(() => VisionReportSchema.parse(rest)).toThrow();
+  });
+});
+
+describe('промпт зависит от категории', () => {
+  // Раньше промпт всегда строился по шаблону футболки: модель разбирала худи
+  // не теми ориентирами, и про капюшон с карманом её просто не спрашивали.
+  it('у худи в промпте есть точки капюшона и кармана', () => {
+    const hoodie = buildSystemPrompt(base, 'hoodie');
+    expect(hoodie).toContain('H01');
+    expect(hoodie).toContain('Высота капюшона');
+    expect(hoodie).toContain('H04');
+    expect(hoodie).toContain('кармана кенгуру');
+  });
+
+  it('у футболки этих точек нет — их нечего искать на снимке', () => {
+    const tshirt = buildSystemPrompt(base, 'tshirt');
+    expect(tshirt).not.toContain('H01');
+    expect(tshirt).not.toContain('H04');
+    // Слово «капюшон» в промпте футболки встречается законно: карта видимости
+    // перечисляет его среди возможных типов горловины. Проверяем точки.
+    expect(tshirt).not.toContain('Высота капюшона');
+    expect(tshirt).not.toContain('кармана кенгуру');
+  });
+
+  it('у худи не спрашивают глубину горловины — она закрыта капюшоном', () => {
+    expect(buildSystemPrompt(base, 'hoodie')).not.toContain('Глубина горловины переда');
+    expect(buildSystemPrompt(base, 'tshirt')).toContain('Глубина горловины переда');
+  });
+
+  it('каждая категория ядра даёт свой промпт', () => {
+    const prompts = (['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const).map((c) =>
+      buildSystemPrompt(base, c),
+    );
+    expect(new Set(prompts).size).toBe(prompts.length);
   });
 });

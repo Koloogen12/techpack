@@ -92,6 +92,7 @@ function prime(over: Partial<VisionReport> = {}): { answersPath: string; photoPa
 
   const key = cacheKey({
     photoHashes: [hashPhoto(PNG)],
+    category: ANSWERS.category,
     answersFingerprint: fingerprint,
     model: defaultModel(),
   });

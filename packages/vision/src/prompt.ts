@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL_RU, type KnowledgeBase } from '@specform/kb';
+import { CATEGORY_LABEL_RU, type Category, type KnowledgeBase } from '@specform/kb';
 
 /**
  * Промпт vision-этапа, версия 1.
@@ -16,11 +16,14 @@ export const PROMPT_VERSION = 'v1';
  *
  * Собирается из справочников, а не пишется руками: список точек измерения
  * и карта видимости приходят из тех же файлов, что кормят движок сборки.
- * Разойтись они не могут. Префикс стабилен между запросами, поэтому
- * кэшируется целиком — фотографии идут после него.
+ * Разойтись они не могут. Префикс стабилен для категории, поэтому кэшируется
+ * целиком — фотографии идут после него.
  */
-export function buildSystemPrompt(base: KnowledgeBase): string {
-  const template = base.pomTemplate('tshirt');
+export function buildSystemPrompt(base: KnowledgeBase, category: Category): string {
+  // Шаблон берётся по ЗАЯВЛЕННОЙ пользователем категории. Раньше здесь стояла
+  // футболка для любого изделия: модель получала список её точек и разбирала
+  // худи не теми ориентирами — капюшон и карман просто не спрашивались.
+  const template = base.pomTemplate(category);
   const map = base.visibilityMap();
 
   const anchor = template.points.find((p) => p.derivation === 'anchor');

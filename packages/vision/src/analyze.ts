@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { SpecFormError, silentLogger, type CostLedger, type Logger } from '@specform/core';
-import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
+import { kb as defaultKb, type Category, type KnowledgeBase } from '@specform/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
 import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt } from './prompt.js';
 import { VisionReportSchema, type VisionReport } from './report.js';
@@ -26,6 +26,14 @@ export interface Photo {
 
 export interface AnalyzeOptions {
   photos: readonly Photo[];
+  /**
+   * Категория, заявленная пользователем в мастере.
+   *
+   * Определяет, о каких точках измерения спрашивать модель: у худи есть
+   * капюшон и карман, а глубины горловины нет. Категория входит в отпечаток
+   * ответов, поэтому её смена меняет и ключ кэша.
+   */
+  category: Category;
   /** Отпечаток ответов мастера. Входит в ключ кэша. */
   answersFingerprint: string;
   model?: string;
@@ -66,6 +74,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
     model = defaultModel(),
     cache = new MemoryVisionCache(),
     kb: base = defaultKb(),
+    category,
     ledger,
     logger = silentLogger,
   } = options;
@@ -90,6 +99,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
 
   const key = cacheKey({
     photoHashes: photos.map((p) => hashPhoto(p.bytes)),
+    category,
     answersFingerprint,
     model,
   });
@@ -118,7 +128,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
     system: [
       {
         type: 'text',
-        text: buildSystemPrompt(base),
+        text: buildSystemPrompt(base, category),
         // Префикс стабилен между запросами: справочники меняются редко,
         // а фотографии идут после него. Кэшируем целиком.
         cache_control: { type: 'ephemeral' },

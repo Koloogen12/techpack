@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { VISION_SCHEMA_VERSION, VisionReportSchema, type VisionReport } from './report.js';
 import { PROMPT_VERSION } from './prompt.js';
@@ -20,7 +20,13 @@ import { PROMPT_VERSION } from './prompt.js';
 export interface CacheKeyInput {
   /** SHA-256 каждой фотографии. Порядок не важен: ключ сортируется. */
   photoHashes: readonly string[];
-  /** Отпечаток ответов мастера, влияющих на промпт. */
+  /**
+   * Категория входит в ключ ОТДЕЛЬНЫМ полем, а не только через отпечаток
+   * ответов. От неё зависит промпт: у худи спрашивают про капюшон и карман,
+   * у футболки — нет. Вызывающий не должен иметь возможности про это забыть.
+   */
+  category: string;
+  /** Отпечаток остальных ответов мастера, влияющих на промпт. */
   answersFingerprint: string;
   model: string;
 }
@@ -34,6 +40,7 @@ export interface CacheKeyInput {
 export function cacheKey(input: CacheKeyInput): string {
   const parts = [
     ...[...input.photoHashes].sort(),
+    input.category,
     input.answersFingerprint,
     PROMPT_VERSION,
     input.model,
@@ -93,6 +100,11 @@ export class FileVisionCache implements VisionCache {
   set(key: string, report: VisionReport): void {
     const path = this.path(key);
     mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify(report, null, 2) + '\n');
+    // Запись через временный файл и переименование: два параллельных прогона
+    // одного входа не должны оставить после себя обрезанный JSON, который
+    // читатель примет за повреждённую запись и пересчитает за деньги.
+    const temp = `${path}.${process.pid}.tmp`;
+    writeFileSync(temp, JSON.stringify(report, null, 2) + '\n');
+    renameSync(temp, path);
   }
 }
