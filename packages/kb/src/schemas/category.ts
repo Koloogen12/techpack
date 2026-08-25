@@ -32,6 +32,21 @@ export const CategoryDefaultsFileSchema = RefBookMetaSchema.extend({
   fabric_kind: FabricKindSchema,
   /** Узлы, которые подставляются, пока фото не сказало иного. */
   default_nodes: z.array(z.string().min(1)).min(1),
+  /**
+   * Состав спецификации материалов по умолчанию.
+   *
+   * Основное полотно может быть уточнено по фактуре с фото; остальное —
+   * типовое для категории. Плотность и состав с фото не определяются никогда,
+   * поэтому уходят в документ предположением.
+   */
+  default_materials: z.object({
+    shell: z.string().min(1),
+    rib: z.string().min(1).nullable(),
+    threads: z.array(z.string().min(1)),
+    interlinings: z.array(z.string().min(1)),
+    labels: z.array(z.string().min(1)).min(1),
+    packaging: z.array(z.string().min(1)),
+  }),
   tech_sequence: z.array(TechOperationSchema).min(1),
 })
   .and(VerifiabilitySchema)

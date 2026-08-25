@@ -29,6 +29,12 @@ export const MIGRATIONS: readonly Migration[] = [
     describe: 'добавлен раздел конструкции; для старых снапшотов он остаётся пустым',
     migrate: (snapshot) => ({ ...snapshot, spec_version: '0.2.0' }),
   },
+  {
+    from: '0.2.0',
+    to: '0.3.0',
+    describe: 'добавлены разделы материалов и маркировки; для старых снапшотов они пустые',
+    migrate: (snapshot) => ({ ...snapshot, spec_version: '0.3.0' }),
+  },
 ];
 
 function versionOf(snapshot: unknown): string {

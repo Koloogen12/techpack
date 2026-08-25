@@ -21,6 +21,14 @@
     "size_label_in_seam",
     "care_label_stitched"
   ],
+  "default_materials": {
+    "shell": "single_jersey",
+    "rib": "rib_1x1",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
   "tech_sequence": [
     {
       "step": 1,

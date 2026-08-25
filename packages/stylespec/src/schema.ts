@@ -10,13 +10,13 @@ import { tracked } from './tracked-schema.js';
  * Здесь НЕ хранятся SVG, PDF, HTML и растровые изображения: только ссылки
  * на объекты в хранилище. Правда никогда не живёт в картинке.
  *
- * Версия 0.2.0 покрывает паспорт изделия, табель мер и конструкцию.
- * Разделы материалов и маркировки добавляются вместе со своими движками —
- * отдельной минорной версией и миграцией, а не пустыми заготовками «на будущее».
+ * Версия 0.3.0 покрывает паспорт изделия, табель мер, конструкцию,
+ * спецификацию материалов и маркировку — то есть полный комплект,
+ * который фабрика ждёт от документа.
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.2.0';
+export const SPEC_VERSION = '0.3.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -163,6 +163,83 @@ export const ConstructionSchema = z
     }
   });
 
+/** Колорвей изделия. Отдельная сущность: спецификация и SKU строятся на каждый цвет. */
+export const ColorwaySchema = z.object({
+  id: z.string().min(1),
+  name_ru: z.string().min(1),
+  /** Ориентировочный цвет с фото. Точный оттенок сверяется по выкрасу. */
+  hex_approx: z.string().optional(),
+});
+
+export const BomLineSchema = z.object({
+  code: z.string().min(1),
+  role: z.enum(['shell', 'rib', 'interlining', 'thread', 'label', 'packaging']),
+  material_id: z.string().min(1),
+  name_ru: z.string().min(1),
+  name_en: z.string().min(1),
+  composition: tracked(z.string().min(1)),
+  /** Плотность, г/м². С фото не определяется никогда — всегда предположение. */
+  gsm: tracked(z.number().positive()).nullable(),
+  placement_ru: z.string().min(1),
+  consumption: tracked(z.number().positive()).nullable(),
+  consumption_unit: z.enum(['м', 'шт', 'компл']),
+  /** Артикул поставщика заполняет бренд или фабрика — мы его не выдумываем. */
+  supplier_article: z.null(),
+  note: z.string().optional(),
+});
+
+export const BomSchema = z.object({
+  colorways: z.array(ColorwaySchema).min(1),
+  lines: z.array(BomLineSchema).min(1),
+  /** Предварительный расход на изделие. Уточняется фабрикой по раскладке. */
+  fabric_consumption_m: tracked(z.number().positive()),
+  batch_consumption_m: z.number().positive().nullable(),
+});
+
+export const LabelsSchema = z
+  .object({
+    care_symbols: z
+      .array(
+        z.object({ group: z.string().min(1), id: z.string().min(1), label_ru: z.string().min(1) }),
+      )
+      .min(1),
+    requisites: z.array(
+      z.object({
+        id: z.string().min(1),
+        label_ru: z.string().min(1),
+        value: tracked(z.string().min(1)).nullable(),
+        required: z.boolean(),
+        /** Что сделать, чтобы реквизит заполнился. */
+        action_ru: z.string().min(1).nullable(),
+      }),
+    ),
+    sku_matrix: z
+      .array(
+        z.object({
+          sku: z.string().min(1),
+          colorway_id: z.string().min(1),
+          colorway_ru: z.string().min(1),
+          size_ru: z.number().int().positive(),
+          /** Плейсхолдер: коды GTIN бренд получает в Нацкаталоге. */
+          gtin: z.null(),
+        }),
+      )
+      .min(1),
+  })
+  .superRefine((l, ctx) => {
+    // Пустой обязательный реквизит обязан объяснять, как его заполнить.
+    // Иначе пользователь видит пробел и не знает, что с ним делать.
+    for (const r of l.requisites) {
+      if (r.value === null && r.action_ru === null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `реквизит ${r.id} не заполнен и не говорит, как его заполнить`,
+          path: ['requisites'],
+        });
+      }
+    }
+  });
+
 /** Ссылка на файл в объектном хранилище. Содержимого файла в спеке нет и не будет. */
 export const AssetRefSchema = z.object({
   key: z.string().min(1),
@@ -198,6 +275,10 @@ export const StyleSpecSchema = z
      * и мигрируют простым повышением версии.
      */
     construction: ConstructionSchema.optional(),
+    /** Спецификация материалов. Необязательна: снапшоты до 0.3.0 её не содержат. */
+    bom: BomSchema.optional(),
+    /** Маркировка. Необязательна по той же причине. */
+    labels: LabelsSchema.optional(),
     assets: z.array(AssetRefSchema),
     meta: SpecMetaSchema,
   })
@@ -235,7 +316,10 @@ export const StyleSpecSchema = z
       spec.measurements.points.filter(
         (p) => p.base.confidence === 'assumption' || p.tolerance.confidence === 'assumption',
       ).length +
-      (spec.construction?.nodes.filter((n) => n.presence.confidence === 'assumption').length ?? 0);
+      (spec.construction?.nodes.filter((n) => n.presence.confidence === 'assumption').length ?? 0) +
+      (spec.bom?.lines.filter(
+        (l) => l.composition.confidence === 'assumption' || l.gsm?.confidence === 'assumption',
+      ).length ?? 0);
     if (actual !== spec.meta.assumptions_count) {
       ctx.addIssue({
         code: 'custom',
@@ -270,3 +354,7 @@ export type AssetRef = z.infer<typeof AssetRefSchema>;
 export type Construction = z.infer<typeof ConstructionSchema>;
 export type ConstructionNodeValue = z.infer<typeof ConstructionNodeValueSchema>;
 export type TechStep = z.infer<typeof TechStepSchema>;
+export type Bom = z.infer<typeof BomSchema>;
+export type BomLine = z.infer<typeof BomLineSchema>;
+export type Colorway = z.infer<typeof ColorwaySchema>;
+export type Labels = z.infer<typeof LabelsSchema>;

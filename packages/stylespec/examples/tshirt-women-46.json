@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.2.0",
+  "spec_version": "0.3.0",
   "style": {
     "id": "example-tshirt-women-46",
     "name": "Базовая футболка",
@@ -1413,6 +1413,407 @@
       }
     ]
   },
+  "bom": {
+    "colorways": [
+      {
+        "id": "main",
+        "name_ru": "Основной"
+      }
+    ],
+    "lines": [
+      {
+        "code": "F-01",
+        "role": "shell",
+        "material_id": "single_jersey",
+        "name_ru": "Кулирка",
+        "name_en": "Single jersey",
+        "composition": {
+          "value": "100% хлопок; возможен эластан 5–10%",
+          "confidence": "assumption",
+          "source": "kb:materials#single_jersey.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": {
+          "value": 160,
+          "confidence": "assumption",
+          "source": "kb:materials#single_jersey.gsm",
+          "note": "плотность по фото не определяется. Типовой диапазон 120–200 г/м² — подтвердить у поставщика"
+        },
+        "placement_ru": "основное полотно",
+        "consumption": null,
+        "consumption_unit": "м",
+        "supplier_article": null
+      },
+      {
+        "code": "F-02",
+        "role": "rib",
+        "material_id": "rib_1x1",
+        "name_ru": "Рибана",
+        "name_en": "Rib 1×1",
+        "composition": {
+          "value": "95% хлопок / 5% эластан",
+          "confidence": "assumption",
+          "source": "kb:materials#rib_1x1.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": {
+          "value": 200,
+          "confidence": "assumption",
+          "source": "kb:materials#rib_1x1.gsm",
+          "note": "плотность по фото не определяется. Типовой диапазон 170–250 г/м² — подтвердить у поставщика"
+        },
+        "placement_ru": "горловина, манжеты, пояс",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#rib_1x1.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "м",
+        "supplier_article": null
+      },
+      {
+        "code": "T-01",
+        "role": "thread",
+        "material_id": "thread_40_2",
+        "name_ru": "Нитки 40/2 универсальные",
+        "name_en": "Thread 40/2",
+        "composition": {
+          "value": "полиэфир",
+          "confidence": "assumption",
+          "source": "kb:materials#thread_40_2.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "все швы",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#thread_40_2.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "T-02",
+        "role": "thread",
+        "material_id": "thread_textured",
+        "name_ru": "Нитки текстурированные для оверлока",
+        "name_en": "Textured thread",
+        "composition": {
+          "value": "полиэфир текстурированный",
+          "confidence": "assumption",
+          "source": "kb:materials#thread_textured.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "все швы",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#thread_textured.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "I-01",
+        "role": "interlining",
+        "material_id": "stay_tape",
+        "name_ru": "Долевик (укрепляющая тесьма)",
+        "name_en": "Stay tape",
+        "composition": {
+          "value": "нетканая либо трикотажная",
+          "confidence": "assumption",
+          "source": "kb:materials#stay_tape.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "плечевой шов",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#stay_tape.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "L-01",
+        "role": "label",
+        "material_id": "care_label",
+        "name_ru": "Составник (ярлык состава и ухода)",
+        "name_en": "Care label",
+        "composition": {
+          "value": "полиэфирная лента",
+          "confidence": "assumption",
+          "source": "kb:materials#care_label.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "горловина, боковой шов, навесной",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#care_label.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "L-02",
+        "role": "label",
+        "material_id": "size_label",
+        "name_ru": "Размерник",
+        "name_en": "Size label",
+        "composition": {
+          "value": "полиэфирная лента",
+          "confidence": "assumption",
+          "source": "kb:materials#size_label.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "горловина, боковой шов, навесной",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#size_label.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "L-03",
+        "role": "label",
+        "material_id": "hangtag",
+        "name_ru": "Навесной ярлык",
+        "name_en": "Hangtag",
+        "composition": {
+          "value": "картон 250–300 г/м²",
+          "confidence": "assumption",
+          "source": "kb:materials#hangtag.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "горловина, боковой шов, навесной",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#hangtag.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "P-01",
+        "role": "packaging",
+        "material_id": "polybag",
+        "name_ru": "Индивидуальный пакет",
+        "name_en": "Polybag",
+        "composition": {
+          "value": "полиэтилен",
+          "confidence": "assumption",
+          "source": "kb:materials#polybag.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "индивидуальная упаковка",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#polybag.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      }
+    ],
+    "fabric_consumption_m": {
+      "value": 1.3,
+      "confidence": "default_from_base",
+      "source": "kb:consumption_formulas#tshirt",
+      "note": "предварительно: 1.15 м на размер M при ширине 145 см, плюс 4% на раскладку и 7% на усадку. Уточняется фабрикой по раскладке"
+    },
+    "batch_consumption_m": null
+  },
+  "labels": {
+    "care_symbols": [
+      {
+        "group": "wash",
+        "id": "wash_30_delicate",
+        "label_ru": "Деликатная стирка при 30 °C"
+      },
+      {
+        "group": "bleach",
+        "id": "bleach_none",
+        "label_ru": "Отбеливание запрещено"
+      },
+      {
+        "group": "tumble_dry",
+        "id": "tumble_none",
+        "label_ru": "Барабанная сушка запрещена"
+      },
+      {
+        "group": "natural_dry",
+        "id": "dry_flat",
+        "label_ru": "Сушить разложив на горизонтальной поверхности"
+      },
+      {
+        "group": "iron",
+        "id": "iron_150",
+        "label_ru": "Глажение не выше 150 °C"
+      },
+      {
+        "group": "professional",
+        "id": "prof_none",
+        "label_ru": "Профессиональная чистка запрещена"
+      }
+    ],
+    "requisites": [
+      {
+        "id": "product_name",
+        "label_ru": "Наименование продукции",
+        "value": {
+          "value": "Футболка женская",
+          "confidence": "default_from_base",
+          "source": "engine:labels/product_name"
+        },
+        "required": true,
+        "action_ru": null
+      },
+      {
+        "id": "country",
+        "label_ru": "Страна изготовления",
+        "value": null,
+        "required": true,
+        "action_ru": "Заполните страну производства в профиле бренда"
+      },
+      {
+        "id": "manufacturer",
+        "label_ru": "Изготовитель: наименование и юридический адрес",
+        "value": null,
+        "required": true,
+        "action_ru": "Заполните юрлицо и адрес в профиле бренда"
+      },
+      {
+        "id": "importer",
+        "label_ru": "Импортёр или уполномоченное лицо",
+        "value": null,
+        "required": false,
+        "action_ru": "Заполняется только для импортной продукции"
+      },
+      {
+        "id": "size",
+        "label_ru": "Размер",
+        "value": {
+          "value": "RU 42 · RU 44 · RU 46 · RU 48 · RU 50 · RU 52",
+          "confidence": "default_from_base",
+          "source": "engine:labels/size",
+          "note": "на ярлык каждого изделия печатается его собственный размер"
+        },
+        "required": true,
+        "action_ru": null
+      },
+      {
+        "id": "composition",
+        "label_ru": "Состав сырья, проценты по волокнам в порядке убывания",
+        "value": {
+          "value": "100% хлопок; возможен эластан 5–10%",
+          "confidence": "assumption",
+          "source": "engine:labels/composition",
+          "note": "типовой состав категории. На ярлык нужны точные проценты по волокнам в порядке убывания — возьмите их из паспорта полотна у поставщика"
+        },
+        "required": true,
+        "action_ru": null
+      },
+      {
+        "id": "trademark",
+        "label_ru": "Товарный знак",
+        "value": null,
+        "required": true,
+        "action_ru": "Заполните товарный знак в профиле бренда"
+      },
+      {
+        "id": "production_date",
+        "label_ru": "Дата изготовления: месяц и год",
+        "value": null,
+        "required": true,
+        "action_ru": "Дату проставляет фабрика при выпуске партии"
+      },
+      {
+        "id": "care_symbols",
+        "label_ru": "Символы ухода по ГОСТ ISO 3758",
+        "value": {
+          "value": "Деликатная стирка при 30 °C · Отбеливание запрещено · Барабанная сушка запрещена · Сушить разложив на горизонтальной поверхности · Глажение не выше 150 °C · Профессиональная чистка запрещена",
+          "confidence": "default_from_base",
+          "source": "kb:care_symbols#cotton_knit"
+        },
+        "required": true,
+        "action_ru": null
+      },
+      {
+        "id": "eac",
+        "label_ru": "Знак обращения ЕАС",
+        "value": {
+          "value": "EAC",
+          "confidence": "default_from_base",
+          "source": "kb:labeling_requirements#eac"
+        },
+        "required": true,
+        "action_ru": null
+      }
+    ],
+    "sku_matrix": [
+      {
+        "sku": "TSH-W46-001-MAIN-42",
+        "colorway_id": "main",
+        "colorway_ru": "Основной",
+        "size_ru": 42,
+        "gtin": null
+      },
+      {
+        "sku": "TSH-W46-001-MAIN-44",
+        "colorway_id": "main",
+        "colorway_ru": "Основной",
+        "size_ru": 44,
+        "gtin": null
+      },
+      {
+        "sku": "TSH-W46-001-MAIN-46",
+        "colorway_id": "main",
+        "colorway_ru": "Основной",
+        "size_ru": 46,
+        "gtin": null
+      },
+      {
+        "sku": "TSH-W46-001-MAIN-48",
+        "colorway_id": "main",
+        "colorway_ru": "Основной",
+        "size_ru": 48,
+        "gtin": null
+      },
+      {
+        "sku": "TSH-W46-001-MAIN-50",
+        "colorway_id": "main",
+        "colorway_ru": "Основной",
+        "size_ru": 50,
+        "gtin": null
+      },
+      {
+        "sku": "TSH-W46-001-MAIN-52",
+        "colorway_id": "main",
+        "colorway_ru": "Основной",
+        "size_ru": 52,
+        "gtin": null
+      }
+    ]
+  },
   "assets": [],
   "meta": {
     "generated_at": "2026-08-25T00:00:00.000Z",
@@ -1420,6 +1821,6 @@
       "pom_templates/tshirt": "0.1.0",
       "category_defaults/tshirt": "0.1.0"
     },
-    "assumptions_count": 3
+    "assumptions_count": 12
   }
 }

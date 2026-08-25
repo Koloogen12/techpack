@@ -6,6 +6,8 @@ import {
   countConstructionAssumptions,
   type ConstructionInput,
 } from './construction.js';
+import { buildBom, countBomAssumptions, type BomInput } from './bom.js';
+import { buildLabels, type BrandProfile } from './labels.js';
 
 /**
  * Сборка StyleSpec — детерминированная стадия пайплайна.
@@ -14,7 +16,10 @@ import {
  * уже посчитанные пропорции с фото, на выходе — цифровая модель изделия.
  * Из неё рендерятся чертёж, таблицы и PDF (ADR-0003 §1).
  */
-export interface StyleSpecInput extends PomInput, Omit<ConstructionInput, 'category'> {
+export interface StyleSpecInput
+  extends PomInput, Omit<ConstructionInput, 'category'>, Omit<BomInput, 'category'> {
+  /** Реквизиты бренда для ярлыков. Без них обязательные поля остаются пробелами. */
+  brand_profile?: BrandProfile;
   /** Идентификатор техпака. Приходит извне — движок ничего не выдумывает. */
   id: string;
   name: string;
@@ -43,6 +48,30 @@ export function buildStyleSpec(
   const construction = buildConstruction(input, base);
   notes.push(...construction.notes);
 
+  const bom = buildBom(input, base);
+  notes.push(...bom.notes);
+
+  // Состав для ярлыка берётся из спецификации, а не собирается заново:
+  // расхождение состава на ярлыке и в спецификации — прямое нарушение ТР ТС.
+  const shell = bom.lines.find((l) => l.role === 'shell');
+  if (!shell) throw new Error('спецификация без основного полотна');
+  const shellMaterial = base.material(shell.material_id);
+
+  const labels = buildLabels(
+    {
+      category: input.category,
+      gender: input.gender,
+      article: input.article,
+      size_range: input.size_range,
+      colorways: bom.colorways,
+      composition: shell.composition.value,
+      care_profile_id: shellMaterial.care_profile_id ?? 'cotton_knit',
+      ...(input.brand_profile === undefined ? {} : { brand: input.brand_profile }),
+    },
+    base,
+  );
+  notes.push(...labels.notes);
+
   const draft = {
     spec_version: SPEC_VERSION,
     style: {
@@ -68,6 +97,17 @@ export function buildStyleSpec(
       nodes: construction.nodes,
       sequence: construction.sequence,
     },
+    bom: {
+      colorways: bom.colorways,
+      lines: bom.lines,
+      fabric_consumption_m: bom.fabric_consumption_m,
+      batch_consumption_m: bom.batch_consumption_m,
+    },
+    labels: {
+      care_symbols: labels.care_symbols,
+      requisites: labels.requisites,
+      sku_matrix: labels.sku_matrix,
+    },
     assets: [],
     meta: {
       generated_at: input.generated_at.toISOString(),
@@ -78,7 +118,8 @@ export function buildStyleSpec(
       },
       assumptions_count:
         countMeasurementAssumptions(measurements) +
-        countConstructionAssumptions(construction.nodes),
+        countConstructionAssumptions(construction.nodes) +
+        countBomAssumptions(bom.lines),
     },
   };
 

@@ -135,15 +135,21 @@ describe('смешанные статусы уверенности', () => {
 describe('миграция 0.1.0 → 0.2.0', () => {
   const legacy = { ...(load('minimal.json') as Record<string, unknown>), spec_version: '0.1.0' };
 
-  it('старый снапшот открывается и поднимается до текущей версии', () => {
+  it('старый снапшот проходит всю цепочку миграций по шагам', () => {
     const { spec, applied } = migrateToCurrent(legacy);
     expect(spec.spec_version).toBe(SPEC_VERSION);
-    expect(applied).toHaveLength(1);
-    expect(applied[0]).toContain('конструкц');
+    // По шагу на каждую версию — цепочка растёт вместе со схемой.
+    expect(applied.length).toBeGreaterThanOrEqual(2);
+    expect(applied[0]).toContain('0.1.0 → 0.2.0');
+    expect(applied.join(' ')).toContain('конструкц');
+    expect(applied.join(' ')).toContain('материал');
   });
 
-  it('раздел конструкции у старого снапшота остаётся пустым, а не выдуманным', () => {
-    expect(migrateToCurrent(legacy).spec.construction).toBeUndefined();
+  it('новые разделы у старого снапшота остаются пустыми, а не выдуманными', () => {
+    const { spec } = migrateToCurrent(legacy);
+    expect(spec.construction).toBeUndefined();
+    expect(spec.bom).toBeUndefined();
+    expect(spec.labels).toBeUndefined();
   });
 
   it('данные старого снапшота переживают миграцию без потерь', () => {
