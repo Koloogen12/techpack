@@ -947,7 +947,7 @@ function constructionPages(spec: StyleSpec, pro: boolean): string[] {
   const nodeHead =
     `<tr><th>№</th><th>Зона</th><th>Узел обработки</th>` +
     (pro ? `<th>Шов / стежок</th><th class="num">SPI</th><th>Оборудование</th>` : '') +
-    `<th class="num">Припуск</th><th>Статус</th></tr>`;
+    `<th class="num">Припуск</th><th class="mark">●</th></tr>`;
 
   const nodePages = chunk(c.nodes, ROWS_PER_PAGE.nodes).map((nodes, page) => {
     const rows = nodes
@@ -970,8 +970,8 @@ function constructionPages(spec: StyleSpec, pro: boolean): string[] {
               `<td class="note">${esc(machine(n.machine))}</td>`
             : '') +
           `<td class="num v">${num(n.seam_allowance_cm.value)}</td>` +
-          `<td class="note"><span class="dot dot-${n.presence.confidence}"></span>` +
-          `${CONFIDENCE_LABEL_RU[n.presence.confidence]}</td></tr>`
+          `<td class="mark"><span class="dot dot-${n.presence.confidence}" ` +
+          `title="${esc(CONFIDENCE_LABEL_RU[n.presence.confidence])}"></span></td></tr>`
         );
       })
       .join('');
