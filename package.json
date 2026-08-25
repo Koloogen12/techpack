@@ -25,6 +25,7 @@
     "flats:preview": "tsx packages/flats/scripts/preview.ts",
     "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts",
     "pattern": "tsx --env-file-if-exists=.env apps/cli/src/pattern.ts",
+    "library": "tsx apps/cli/src/library.ts",
     "rfq": "tsx apps/cli/src/rfq.ts",
     "rfq:report": "tsx apps/cli/src/rfq-report.ts",
     "golden:export": "tsx golden/scripts/export-vision-reports.ts",

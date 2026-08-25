@@ -19,6 +19,7 @@ import {
   matchColors,
   separateColors,
 } from '@specform/pattern';
+import { ArtworkLibrary, type ArtworkAsset } from '@specform/library';
 import { chromium } from 'playwright';
 
 const MIME: Record<string, string> = {
@@ -37,6 +38,8 @@ interface Cli {
   noMirror: boolean;
   /** Шаг раппорта, см. Нужен, чтобы посчитать разрешение и предел детали. */
   repeatCm?: number;
+  /** Имя, под которым сохранить рисунок в библиотеку бренда. */
+  save?: string;
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -77,6 +80,11 @@ function parseArgv(argv: readonly string[]): Cli {
     // ценой того, что бесшовного тайла может не выйти вовсе.
     if (arg === '--repeat-cm') {
       cli.repeatCm = Number(argv[++i]);
+      mode = null;
+      continue;
+    }
+    if (arg === '--save') {
+      cli.save = argv[++i] ?? '';
       mode = null;
       continue;
     }
@@ -172,11 +180,43 @@ async function main(): Promise<void> {
     console.log(`\n${sep.vector_verdict_ru}`);
     for (const n of notes) console.log(`\n${n}`);
 
-    console.log(
-      `\nДальше: укажите этот файл в анкете техпака вместе с ФИЗИЧЕСКИМ ШАГОМ ` +
-        `раппорта в сантиметрах. Без шага тайл можно напечатать в любом масштабе, ` +
-        `и мотив выйдет хоть с ладонь, хоть с монету.`,
-    );
+    if (cli.save) {
+      // В библиотеку уходит ПАСПОРТ, а не только картинка: шаг, краски,
+      // отпечаток входа. Переносить эти поля между паками руками значит
+      // однажды ошибиться в цифре и не заметить.
+      const library = new ArtworkLibrary();
+      const asset: ArtworkAsset = {
+        id: cli.save,
+        kind: 'tile',
+        label_ru: cli.brief.slice(0, 80),
+        file: `${cli.save}.png`,
+        pixels: t.pixels,
+        key: t.key,
+        brief: cli.brief,
+        seam: { ratio: t.seam.worst, seamless: t.seam.seamless, mirrored: t.mirrored },
+        colors: matches.map((m) => ({
+          hex: m.measured.hex,
+          share: m.measured.share,
+          ...(m.book ? { book_code: m.book.code, book_source: 'catalog' as const } : {}),
+        })),
+        vector_available: sep.svg !== null,
+        vector_verdict_ru: sep.vector_verdict_ru,
+        created_at: new Date().toISOString().slice(0, 10),
+        used_in: [],
+      };
+      library.save(asset, t.bytes);
+      console.log(
+        `\n✓ сохранено в библиотеку бренда как «${cli.save}»` +
+          `\n  В анкете техпака достаточно написать: ` +
+          `"patterns": [{ "asset": "${cli.save}", "repeat_cm": 24 }]`,
+      );
+    } else {
+      console.log(
+        `\nДальше: укажите этот файл в анкете техпака вместе с ФИЗИЧЕСКИМ ШАГОМ ` +
+          `раппорта в сантиметрах, либо сохраните рисунок в библиотеку бренда ` +
+          `флагом --save <имя> — тогда паспорт не придётся переносить руками.`,
+      );
+    }
   } finally {
     await browser.close();
   }

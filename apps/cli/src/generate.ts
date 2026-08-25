@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { CostLedger, SpecFormError, defined, type Logger } from '@specform/core';
@@ -11,6 +12,7 @@ import {
 import {
   buildStyleSpec,
   photoRatiosFrom,
+  type PatternPlacementInput,
   scaleAdvice,
   suggestViews,
   viewAdviceNotes,
@@ -36,6 +38,7 @@ import {
   type ExportRole,
 } from '@specform/docgen';
 import { FileRenderCache, visualize } from '@specform/render';
+import { ArtworkLibrary } from '@specform/library';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
 /**
@@ -73,7 +76,10 @@ export interface GenerateOptions {
    */
   render?: boolean;
   renderCacheDir?: string;
-  /** Где искать файл тайла раппорта. По умолчанию рядом с эталонными фото. */
+  /**
+   * Где искать файл тайла раппорта. По умолчанию — библиотека бренда:
+   * рисунок живёт там, а не рядом с конкретным паком.
+   */
   tileDir?: string;
   model?: string;
   logger?: Logger;
@@ -287,13 +293,65 @@ async function buildVisuals(
  * и без колорвеев с фото. Спеки расходились, кэш промахивался, и понять,
  * почему, было нельзя, потому что разница жила в двух местах сразу.
  */
+/**
+ * Раппорты анкеты, разрешённые через библиотеку бренда.
+ *
+ * В анкете достаточно имени рисунка и шага. Паспорт — пиксели, отпечаток,
+ * краски, вердикт по вектору — берётся из библиотеки, а не переписывается
+ * руками: перенос десятка полей между паками однажды закончится опечаткой
+ * в цифре, которую никто не заметит.
+ */
+function resolvePatterns(answers: Answers, library: ArtworkLibrary): PatternPlacementInput[] {
+  return (answers.patterns ?? []).map((p) => {
+    if (p.tile) {
+      return {
+        tile: p.tile,
+        repeat_cm: p.repeat_cm,
+        ...(p.color_count === undefined ? {} : { color_count: p.color_count }),
+        ...(p.color_codes === undefined ? {} : { color_codes: p.color_codes }),
+      };
+    }
+
+    const asset = library.get(p.asset!);
+    return {
+      tile: {
+        file_name: asset.file,
+        pixels: asset.pixels,
+        // У арта, принесённого заказчиком, отпечатка входа нет: мы его
+        // не генерировали и воспроизводить не будем. Паспорт при этом
+        // требует шестнадцатеричную строку, поэтому подставляем отпечаток
+        // самого файла — он тоже однозначно опознаёт рисунок.
+        key: asset.key ?? fileFingerprint(library.filePath(asset)),
+        seam_ratio: asset.seam?.ratio ?? 0,
+        seamless: asset.seam?.seamless ?? true,
+        mirrored: asset.seam?.mirrored ?? false,
+        colors: asset.colors,
+        vector_available: asset.vector_available,
+        vector_verdict_ru: asset.vector_verdict_ru,
+      },
+      repeat_cm: p.repeat_cm,
+      ...(p.color_count === undefined ? {} : { color_count: p.color_count }),
+      ...(p.color_codes === undefined ? {} : { color_codes: p.color_codes }),
+    };
+  });
+}
+
+function fileFingerprint(path: string): string {
+  return createHash('sha256').update(readFileSync(path)).digest('hex');
+}
+
 export function specInputFrom(
   answers: Answers,
   report: VisionReport | null,
-  options: { now: Date; visionCacheKey?: string } = { now: new Date() },
+  options: { now: Date; visionCacheKey?: string; library?: ArtworkLibrary } = { now: new Date() },
 ): StyleSpecInput {
+  // `patterns` из анкеты в спред НЕ идут: там они описаны ссылкой на
+  // библиотеку либо неполным паспортом, а движку нужен полный. Разрешаются
+  // ниже отдельным шагом.
+  const { patterns: _patterns, ...rest } = answers;
+
   return {
-    ...defined(answers),
+    ...defined(rest),
     ...(report ? { photo_ratios: photoRatiosFrom(report.proportions) } : {}),
     ...(report ? { visible_elements: report.visible_elements } : {}),
     ...(report ? { topstitching: report.topstitching } : {}),
@@ -309,6 +367,11 @@ export function specInputFrom(
             defined({ id: `c${i + 1}`, name_ru: c.name_ru, hex_approx: c.hex_approx }),
           ),
         }
+      : {}),
+    // Раппорты разрешаются здесь же: и пайплайн, и скрипты голден-набора
+    // должны видеть одинаковую спеку, а не каждый свою.
+    ...(answers.patterns?.length
+      ? { patterns: resolvePatterns(answers, options.library ?? new ArtworkLibrary()) }
       : {}),
     generated_at: options.now,
     ...(options.visionCacheKey ? { vision_cache_key: options.visionCacheKey } : {}),
@@ -399,7 +462,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
   // Тайл раппорта нужен обеим страницам: размерно точной раскладке
   // на схеме нанесения и фотореалистичному превью. Читается один раз.
-  const tileBytes = readTile(spec, options.tileDir ?? 'golden/photos');
+  const tileBytes = readTile(spec, options.tileDir ?? 'brand-library/artwork');
 
   const [browser, visual, patternVisual] = await Promise.all([
     chromium.launch(),
@@ -461,6 +524,19 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       `${basename(options.outPath, '.pdf')}.stylespec.json`,
     );
     writeFileSync(specPath, JSON.stringify(spec, null, 2) + '\n');
+  }
+
+  // Отмечаем в библиотеке, что рисунок ушёл в этот пак. Правка арта
+  // после этого тронет все перечисленные изделия, и человек должен
+  // увидеть их список раньше, чем нажмёт «перегенерировать».
+  for (const p of answers.patterns ?? []) {
+    if (p.asset) {
+      try {
+        new ArtworkLibrary().markUsed(p.asset, spec.style.article);
+      } catch {
+        // Библиотека недоступна — документ от этого не страдает.
+      }
+    }
   }
 
   return {

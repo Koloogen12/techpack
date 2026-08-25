@@ -42,6 +42,7 @@ packages/flats      параметрический SVG-чертёж
 packages/docgen     StyleSpec → HTML → PDF, выгрузка по ролям, измерение вёрстки
 packages/render     визуализация изделия из спеки — превью, вне технической геометрии
 packages/pattern    раппорт из референсов: бесшовность проверяется пикселями
+packages/library    библиотека артов бренда: рисунок переиспользуется между паками
 packages/fit        сравнение факта со спекой: рулетка сейчас, примерки образцов потом
 apps/cli            станок фазы 0
 golden/             сценарии, инварианты, перебор пространства входов
@@ -76,7 +77,8 @@ pnpm fit:demo                                         # то же на синт�
 pnpm golden:export       # живые отчёты разбора из кэша в фикстуры
 pnpm golden:renders      # референсные визуализации из кэша в golden/renders
 
-pnpm pattern --refs мотив1.png мотив2.png --brief "что нарисовать" --out out/tile.png
+pnpm pattern --refs мотив1.png мотив2.png --brief "что нарисовать" --save имя
+pnpm library                                       # каталог артов бренда
 
 pnpm rfq --answers анкета.json --out out/rfq.pdf   # лист на просчёт + текст в мессенджер
 pnpm rfq:report --init rfq/responses.csv           # завести журнал ответов фабрик

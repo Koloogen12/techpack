@@ -86,42 +86,66 @@ export const AnswersSchema = z
      */
     patterns: z
       .array(
-        z.object({
-          tile: z.object({
-            file_name: text(200),
-            pixels: z.object({
-              width: z.number().int().positive(),
-              height: z.number().int().positive(),
-            }),
-            key: z.string().regex(/^[0-9a-f]{64}$/, 'отпечаток тайла: 64 шестнадцатеричных знака'),
-            seam_ratio: z.number().nonnegative(),
-            seamless: z.boolean(),
-            mirrored: z.boolean(),
-            /** Краски тайла — результат цветоделения, а не догадка. */
-            colors: z
-              .array(
-                z.object({
-                  hex: z.string().regex(/^#[0-9A-F]{6}$/),
-                  share: z.number().min(0).max(1),
-                  /**
-                   * Фирменный номер краски, если бренд его знает.
-                   * Свой номер бренд вписывает сам — это его данные,
-                   * и показывать их мы вправе. Каталог мы не поставляем.
-                   */
-                  book_code: text(40).nullable().optional(),
-                  book_source: z.enum(['brand', 'catalog']).nullable().optional(),
-                  delta_e: z.number().nonnegative().nullable().optional(),
-                }),
-              )
-              .max(24)
+        z
+          .object({
+            /**
+             * Имя рисунка в библиотеке бренда. Указан — паспорт берётся оттуда,
+             * и вписывать пиксели, отпечаток и краски руками не нужно.
+             */
+            asset: z
+              .string()
+              .regex(/^[a-z0-9][a-z0-9_-]{1,40}$/)
               .optional(),
-            vector_available: z.boolean().optional(),
-            vector_verdict_ru: text(600).optional(),
+            tile: z
+              .object({
+                file_name: text(200),
+                pixels: z.object({
+                  width: z.number().int().positive(),
+                  height: z.number().int().positive(),
+                }),
+                key: z
+                  .string()
+                  .regex(/^[0-9a-f]{64}$/, 'отпечаток тайла: 64 шестнадцатеричных знака'),
+                seam_ratio: z.number().nonnegative(),
+                seamless: z.boolean(),
+                mirrored: z.boolean(),
+                /** Краски тайла — результат цветоделения, а не догадка. */
+                colors: z
+                  .array(
+                    z.object({
+                      hex: z.string().regex(/^#[0-9A-F]{6}$/),
+                      share: z.number().min(0).max(1),
+                      /**
+                       * Фирменный номер краски, если бренд его знает.
+                       * Свой номер бренд вписывает сам — это его данные,
+                       * и показывать их мы вправе. Каталог мы не поставляем.
+                       */
+                      book_code: text(40).nullable().optional(),
+                      book_source: z.enum(['brand', 'catalog']).nullable().optional(),
+                      delta_e: z.number().nonnegative().nullable().optional(),
+                    }),
+                  )
+                  .max(24)
+                  .optional(),
+                vector_available: z.boolean().optional(),
+                vector_verdict_ru: text(600).optional(),
+              })
+              .optional(),
+            repeat_cm: z.number().positive().max(200),
+            color_count: z.number().int().positive().max(24).optional(),
+            color_codes: z.array(text(30)).max(24).optional(),
+          })
+          .superRefine((p, ctx) => {
+            // Либо ссылка на библиотеку, либо паспорт целиком. Ни то ни другое —
+            // это раппорт без рисунка, и молча собрать его нельзя.
+            if (!p.asset && !p.tile) {
+              ctx.addIssue({
+                code: 'custom',
+                message: 'у раппорта нет ни имени в библиотеке (asset), ни паспорта тайла (tile)',
+                path: ['asset'],
+              });
+            }
           }),
-          repeat_cm: z.number().positive().max(200),
-          color_count: z.number().int().positive().max(24).optional(),
-          color_codes: z.array(text(30)).max(24).optional(),
-        }),
       )
       .max(2)
       .optional(),

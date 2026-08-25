@@ -50,6 +50,9 @@ importers:
       '@specform/kb':
         specifier: workspace:*
         version: link:../../packages/kb
+      '@specform/library':
+        specifier: workspace:*
+        version: link:../../packages/library
       '@specform/pattern':
         specifier: workspace:*
         version: link:../../packages/pattern
@@ -183,6 +186,15 @@ importers:
         version: link:../kb
 
   packages/kb:
+    dependencies:
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
+  packages/library:
     dependencies:
       '@specform/core':
         specifier: workspace:*

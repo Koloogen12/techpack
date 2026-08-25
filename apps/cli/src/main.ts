@@ -19,6 +19,8 @@ interface Cli {
   spec: boolean;
   quiet: boolean;
   render: boolean;
+  /** Где лежит файл раппорта. По умолчанию библиотека бренда. */
+  tileDir?: string;
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -63,6 +65,11 @@ function parseArgv(argv: readonly string[]): Cli {
       mode = null;
       continue;
     }
+    if (arg === '--tile-dir') {
+      cli.tileDir = argv[++i] ?? '';
+      mode = null;
+      continue;
+    }
     // Визуализация — платный внешний вызов, поэтому только по явному флагу.
     // Без него страница внешнего вида всё равно соберётся, если картинка
     // уже лежит в кэше или если приложены снимки заказчика.
@@ -96,6 +103,7 @@ async function main(): Promise<void> {
     roles: cli.roles,
     writeSpec: cli.spec,
     render: cli.render,
+    ...(cli.tileDir ? { tileDir: cli.tileDir } : {}),
     logger: createLogger({ level: cli.quiet ? 'error' : 'warn' }),
   });
 

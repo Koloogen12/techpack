@@ -14,8 +14,9 @@
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { defined, isSpecFormError } from '@specform/core';
-import { buildStyleSpec, photoRatiosFrom } from '@specform/assembly';
+import { isSpecFormError } from '@specform/core';
+import { buildStyleSpec } from '@specform/assembly';
+import { specInputFrom } from './generate.js';
 import { VisionReportSchema, type VisionReport } from '@specform/vision';
 import {
   ACCEPTANCE,
@@ -43,23 +44,11 @@ function scoreOne(set: MeasuredSet, goldenRoot: string): ComparisonResult {
   const answers = parseAnswers(JSON.parse(readFileSync(set.answers, 'utf8')));
   const report = visionReportFor(answers.category, goldenRoot);
 
-  const { spec } = buildStyleSpec({
-    ...defined(answers),
-    ...(report
-      ? {
-          photo_ratios: photoRatiosFrom(report.proportions),
-          visible_elements: report.visible_elements,
-          topstitching: report.topstitching,
-          ...(report.fabric.knit_class !== 'unknown'
-            ? {
-                fabric_class: report.fabric.knit_class,
-                fabric_confidence: report.fabric.confidence,
-              }
-            : {}),
-        }
-      : {}),
-    generated_at: AT,
-  });
+  // Спека собирается ТЕМ ЖЕ сборщиком, что и в пайплайне. Пока она
+  // строилась здесь своим кодом, сравнение с рулеткой шло против документа,
+  // которого пользователь никогда не видел: без класса полотна, без
+  // колорвеев, без масштабного объекта.
+  const { spec } = buildStyleSpec(specInputFrom(answers, report, { now: AT }));
 
   return compare(spec, set);
 }
