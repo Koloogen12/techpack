@@ -23,7 +23,8 @@
     "stylespec:examples": "tsx packages/stylespec/scripts/generate-examples.ts",
     "vision:analyze": "tsx --env-file-if-exists=.env packages/vision/scripts/analyze.ts",
     "flats:preview": "tsx packages/flats/scripts/preview.ts",
-    "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts"
+    "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts",
+    "golden:export": "tsx golden/scripts/export-vision-reports.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

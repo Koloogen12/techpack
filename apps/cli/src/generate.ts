@@ -1,6 +1,6 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
-import { CostLedger, SpecFormError, type Logger } from '@specform/core';
+import { CostLedger, SpecFormError, defined, type Logger } from '@specform/core';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -30,20 +30,6 @@ import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
  * входа даёт тот же результат — не потому что модель стабильна, а потому что
  * её ответ закэширован по содержимому входа (ADR-0003).
  */
-
-/**
- * Убирает ключи со значением undefined.
- *
- * Нужно из-за exactOptionalPropertyTypes: в этом режиме «поля нет» и «поле
- * равно undefined» — разные вещи, и разложить объект с необязательными полями
- * в тип с необязательными полями напрямую нельзя. Правило строгое намеренно:
- * оно ловит опечатки в именах полей, а не только этот случай.
- */
-type Defined<T> = { [K in keyof T]: Exclude<T[K], undefined> };
-
-function defined<T extends object>(o: T): Defined<T> {
-  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Defined<T>;
-}
 
 const FORMATS: Record<string, PhotoFormat> = {
   '.jpg': 'jpg',

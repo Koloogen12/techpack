@@ -21,8 +21,5 @@ Thumbs.db
 playwright-report/
 test-results/
 
-# golden set: фото хранятся в LFS/внешне, снапшоты — в репо
-/golden/photos/**/*.jpg
-/golden/photos/**/*.jpeg
-/golden/photos/**/*.png
-!/golden/photos/**/.gitkeep
+# Голден-сет: эталонные фото коммитятся, чтобы набор был воспроизводим в CI.
+# Реальные снимки клиентов сюда не кладутся — только обезличенные эталоны.
