@@ -57,6 +57,33 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  golden:
+    dependencies:
+      '@specform/assembly':
+        specifier: workspace:*
+        version: link:../packages/assembly
+      '@specform/cli':
+        specifier: workspace:*
+        version: link:../apps/cli
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@specform/docgen':
+        specifier: workspace:*
+        version: link:../packages/docgen
+      '@specform/flats':
+        specifier: workspace:*
+        version: link:../packages/flats
+      '@specform/kb':
+        specifier: workspace:*
+        version: link:../packages/kb
+      '@specform/stylespec':
+        specifier: workspace:*
+        version: link:../packages/stylespec
+      '@specform/vision':
+        specifier: workspace:*
+        version: link:../packages/vision
+
   packages/assembly:
     dependencies:
       '@specform/core':

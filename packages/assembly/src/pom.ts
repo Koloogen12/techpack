@@ -117,9 +117,46 @@ export interface PomResult {
 
 const CALIBRATED_NOTE = 'масштаб откалиброван по вашему замеру';
 
+/**
+ * Правдоподобный диапазон роста, см.
+ *
+ * ГОСТ 31396 задаёт женские ростовки 152–176, ГОСТ 31399 мужские 158–200.
+ * Границы взяты шире норматива: продукт не обязан отказывать нетиповой фигуре.
+ * Но за этими пределами поправка на ростовку превращает изделие в бессмыслицу —
+ * при росте 300 см длина футболки выходила 123 см, и никто этого не замечал.
+ */
+const HEIGHT_RANGE = { min: 140, max: 210 } as const;
+
 export function buildMeasurements(input: PomInput, base: KnowledgeBase = defaultKb()): PomResult {
   const notes: string[] = [];
   const template = base.pomTemplate(input.category);
+
+  const duplicates = input.size_range.filter((ru, i) => input.size_range.indexOf(ru) !== i);
+  if (duplicates.length) {
+    // Дубль размера порождает дубль артикула SKU — два разных изделия под
+    // одним кодом маркировки. Ловится здесь, а не на приёмке партии.
+    throw new SpecFormError(
+      'SPEC_INVALID',
+      `размерный ряд содержит дубли: ${[...new Set(duplicates)].join(', ')}`,
+      {
+        userMessage: `В размерном ряду повторяются размеры: ${[...new Set(duplicates)].join(', ')}.`,
+        userAction: 'Уберите повторы — каждый размер указывается один раз',
+        details: { duplicates: [...new Set(duplicates)].join(', ') },
+      },
+    );
+  }
+
+  if (input.base_height_cm < HEIGHT_RANGE.min || input.base_height_cm > HEIGHT_RANGE.max) {
+    throw new SpecFormError(
+      'SPEC_INVALID',
+      `рост ${input.base_height_cm} вне диапазона ${HEIGHT_RANGE.min}–${HEIGHT_RANGE.max}`,
+      {
+        userMessage: `Рост ${input.base_height_cm} см выходит за пределы, на которых мы умеем считать.`,
+        userAction: `Укажите рост от ${HEIGHT_RANGE.min} до ${HEIGHT_RANGE.max} см`,
+        details: { height: input.base_height_cm },
+      },
+    );
+  }
 
   if (!input.size_range.includes(input.base_size_ru)) {
     throw new SpecFormError(
@@ -229,18 +266,23 @@ function valueFor(
   let source = `kb:${anchorPoint.code}×baseline#${point.code}`;
   let note: string | undefined;
 
-  if (photoRatio !== undefined && point.derivation === 'ratio_to_anchor') {
-    const clamped = range ? clamp(photoRatio, range.min, range.max) : photoRatio;
-    if (clamped !== photoRatio) {
+  // Ноль и отрицательное — не «наблюдение вне диапазона», а мусор. Ограничить
+  // такое границей означало бы подменить типовое значение выдуманным: минус
+  // единица превращалась в самое короткое правдоподобное изделие вместо типового.
+  const usablePhotoRatio = photoRatio !== undefined && photoRatio > 0 ? photoRatio : undefined;
+
+  if (usablePhotoRatio !== undefined && point.derivation === 'ratio_to_anchor') {
+    const clamped = range ? clamp(usablePhotoRatio, range.min, range.max) : usablePhotoRatio;
+    if (clamped !== usablePhotoRatio) {
       // Фото сказало неправдоподобное. Значение теперь не «то, что на фото»,
       // а граница нашего диапазона — понижаем статус и объясняем.
       ratio = clamped;
       note =
-        `оценка по фото (${photoRatio.toFixed(2)}) вышла за правдоподобный диапазон ` +
+        `оценка по фото (${usablePhotoRatio.toFixed(2)}) вышла за правдоподобный диапазон ` +
         `${range!.min}–${range!.max} и ограничена — проверьте по образцу`;
       source = `engine:pom/clamped#${point.code}`;
     } else {
-      ratio = photoRatio;
+      ratio = usablePhotoRatio;
       confidence = 'estimated_from_photo';
       source = `vision:ratio#${point.code}`;
       // Уверенность модели едет в документ вместе со значением: пользователь

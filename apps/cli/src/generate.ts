@@ -1,7 +1,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { CostLedger, SpecFormError, type Logger } from '@specform/core';
-import { kb, type KnowledgeBase } from '@specform/kb';
+import { CATEGORY_LABEL_RU, kb, type Category, type KnowledgeBase } from '@specform/kb';
 import { buildStyleSpec, photoRatiosFrom } from '@specform/assembly';
 import { specFingerprint, type StyleSpec } from '@specform/stylespec';
 import {
@@ -139,7 +139,10 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   );
   ledger.recordFree('assembly', Math.round(performance.now() - assemblyStart));
 
-  if (report) notes.push(...visionNotes(report));
+  if (report) {
+    notes.push(...reconcile(answers, report, base));
+    notes.push(...visionNotes(report));
+  }
 
   // --- 3. Документ -------------------------------------------------------------
   const renderStart = performance.now();
@@ -203,6 +206,62 @@ function categoryGate(answers: Answers, report: VisionReport | null): SpecFormEr
       details: { detected: report.category.other_description },
     },
   );
+}
+
+/**
+ * Сверка того, что видно на фото, с тем, что указал пользователь.
+ *
+ * Мастер в интерфейсе показывает автоопределение как подтверждение:
+ * «Похоже, это худи — верно?» (ux/02, Э3 шаг 2). В concierge-режиме экрана
+ * нет, поэтому расхождение обязано попасть в отчёт словами.
+ *
+ * Молчать здесь опаснее всего: пользователь получит документ на футболку
+ * по фотографии худи и заметит это на фабрике.
+ */
+function reconcile(answers: Answers, report: VisionReport, base: KnowledgeBase): string[] {
+  const notes: string[] = [];
+  const label = (c: string): string => CATEGORY_LABEL_RU[c as Category] ?? c;
+
+  if (
+    report.category.value !== 'other' &&
+    report.category.value !== answers.category &&
+    report.category.confidence !== 'low'
+  ) {
+    notes.push(
+      `Расхождение по категории: вы указали «${label(answers.category)}», а на фото ` +
+        `похоже на «${label(report.category.value)}» (уверенность ${report.category.confidence}). ` +
+        `Документ собран по вашему ответу. Если ошиблись — поменяйте категорию и повторите: ` +
+        `набор точек измерения и узлов у категорий разный.`,
+    );
+  }
+
+  if (!report.fabric.is_knit && answers.fabric_kind === 'knit') {
+    notes.push(
+      'Расхождение по материалу: вы указали трикотаж, а на фото похоже на ткань. ' +
+        'От этого зависят допуски, узлы обработки и градация — проверьте по образцу.',
+    );
+  }
+
+  if (report.silhouette.value !== answers.fit_intent && report.silhouette.confidence === 'high') {
+    notes.push(
+      `Расхождение по посадке: вы указали «${answers.fit_intent}», а на фото читается ` +
+        `«${report.silhouette.value}». Посадка задаёт прибавку и ширину всего изделия — ` +
+        `если правы вы, ничего делать не нужно.`,
+    );
+  }
+
+  // Наблюдения по признакам, которых нет в нашей карте видимости, — это
+  // подсказка, чего справочнику не хватает. Она уходит в отчёт, а не в никуда.
+  const known = new Set(base.visibilityMap().not_visible.map((f) => f.key));
+  const unknown = report.not_visible.filter((f) => !known.has(f.key)).map((f) => f.key);
+  if (unknown.length) {
+    notes.push(
+      `Модель отметила как невидимые признаки, которых нет в нашем справочнике: ` +
+        `${unknown.join(', ')}. Это кандидаты в карту видимости.`,
+    );
+  }
+
+  return notes;
 }
 
 /** Замечания vision-этапа, которые обязан увидеть человек. */

@@ -23,7 +23,12 @@ export const AnswersSchema = z
     category: CategorySchema,
     gender: GenderSchema,
     base_size_ru: z.number().int().positive(),
-    base_height_cm: z.number().positive(),
+    /**
+     * Рост, см. Границы шире ГОСТ-ростовок намеренно: продукт не обязан
+     * отказывать нетиповой фигуре. Но за ними поправка на ростовку
+     * превращает изделие в бессмыслицу.
+     */
+    base_height_cm: z.number().min(140).max(210),
     fit_intent: FitIntentSchema,
     fabric_kind: FabricKindSchema,
     size_range: z.array(z.number().int().positive()).min(1),
@@ -74,6 +79,24 @@ export const AnswersSchema = z
         code: 'custom',
         message: 'размерный ряд обязан идти по возрастанию',
         path: ['size_range'],
+      });
+    }
+
+    const dupSizes = [...new Set(a.size_range.filter((ru, i) => a.size_range.indexOf(ru) !== i))];
+    if (dupSizes.length) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `размеры повторяются: ${dupSizes.join(', ')}. Дубль размера даёт дубль артикула SKU`,
+        path: ['size_range'],
+      });
+    }
+
+    const dupColors = [...new Set((a.colorways ?? []).map((c) => c.id))];
+    if (a.colorways && dupColors.length !== a.colorways.length) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'идентификаторы цветов повторяются — по ним строятся артикулы',
+        path: ['colorways'],
       });
     }
   });

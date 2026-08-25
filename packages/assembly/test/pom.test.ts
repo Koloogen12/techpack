@@ -288,3 +288,52 @@ describe('мост из vision-отчёта', () => {
     expect(point(withVision, 'T12').base.confidence).toBe('default_from_base');
   });
 });
+
+describe('защита от мусорного входа', () => {
+  // Каждая проверка ниже закрывает дыру, найденную состязательным прогоном:
+  // движок молча выдавал документ, которым нельзя пользоваться.
+
+  it('дубли в размерном ряду отвергаются — иначе будут дубли артикулов SKU', () => {
+    try {
+      buildMeasurements({ ...INPUT, size_range: [42, 46, 46, 48] }, base);
+      expect.unreachable('должно было упасть');
+    } catch (e) {
+      expect(isSpecFormError(e)).toBe(true);
+      if (isSpecFormError(e)) expect(e.userMessage).toContain('46');
+    }
+  });
+
+  it('невозможный рост отвергается вместо изделия невозможной длины', () => {
+    // До правки рост 300 см давал футболку длиной 123 см и никого не смущал.
+    for (const height of [100, 300]) {
+      expect(() => buildMeasurements({ ...INPUT, base_height_cm: height }, base)).toThrow();
+    }
+  });
+
+  it('нетиповой, но реальный рост принимается', () => {
+    for (const height of [150, 195]) {
+      expect(() => buildMeasurements({ ...INPUT, base_height_cm: height }, base)).not.toThrow();
+    }
+  });
+
+  it('нулевая и отрицательная пропорция игнорируются, а не ограничиваются границей', () => {
+    // Ограничить мусор границей диапазона значит подменить типовое значение
+    // выдуманным: минус единица превращалась в самое короткое правдоподобное изделие.
+    const baseline = point(INPUT, 'T01').base.value;
+    for (const ratio of [0, -1, -0.5]) {
+      const p = point({ ...INPUT, photo_ratios: { T01: ratio } }, 'T01');
+      expect(p.base.value, `ratio=${ratio}`).toBe(baseline);
+      expect(p.base.confidence).toBe('default_from_base');
+    }
+  });
+
+  it('пропорция для якоря игнорируется — якорь считается из сетки, а не с фото', () => {
+    expect(point({ ...INPUT, photo_ratios: { T03: 5 } }, 'T03').base.value).toBe(
+      point(INPUT, 'T03').base.value,
+    );
+  });
+
+  it('пропорция неизвестной точки не ломает сборку', () => {
+    expect(() => buildMeasurements({ ...INPUT, photo_ratios: { T99: 1.2 } }, base)).not.toThrow();
+  });
+});

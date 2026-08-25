@@ -1,4 +1,5 @@
 import { assume, fromBase, roundCm, type Tracked } from '@specform/core';
+import { SpecFormError } from '@specform/core';
 import {
   kb as defaultKb,
   type Category,
@@ -96,6 +97,21 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
   const notes: string[] = [];
   const defaults = base.categoryDefaultsFor(input.category).default_materials;
   const colorways = input.colorways?.length ? [...input.colorways] : [DEFAULT_COLORWAY];
+
+  const dupIds = colorways.map((c) => c.id).filter((id, i, all) => all.indexOf(id) !== i);
+  if (dupIds.length) {
+    // Два цвета с одним идентификатором дают одинаковые артикулы SKU —
+    // на складе и в «Честном знаке» это два разных товара под одним кодом.
+    throw new SpecFormError(
+      'SPEC_INVALID',
+      `дубли идентификаторов колорвеев: ${dupIds.join(', ')}`,
+      {
+        userMessage: `У нескольких цветов совпадает идентификатор: ${[...new Set(dupIds)].join(', ')}.`,
+        userAction: 'Задайте каждому цвету свой идентификатор — по нему строятся артикулы',
+        details: { duplicates: [...new Set(dupIds)].join(', ') },
+      },
+    );
+  }
 
   // --- Основное полотно: фактура с фото может уточнить типовое ----------------
   const shellId = resolveShell(input, defaults.shell, base, notes);

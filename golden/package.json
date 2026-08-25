@@ -1,0 +1,16 @@
+{
+  "name": "@specform/golden",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@specform/assembly": "workspace:*",
+    "@specform/core": "workspace:*",
+    "@specform/docgen": "workspace:*",
+    "@specform/flats": "workspace:*",
+    "@specform/stylespec": "workspace:*",
+    "@specform/cli": "workspace:*",
+    "@specform/vision": "workspace:*",
+    "@specform/kb": "workspace:*"
+  }
+}
