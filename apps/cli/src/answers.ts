@@ -54,7 +54,9 @@ export const AnswersSchema = z
       .array(
         z.object({
           zone: text(40),
-          technique: z.enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery']).optional(),
+          technique: z
+            .enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery', 'pigment_roll'])
+            .optional(),
           width_cm: z.number().positive().max(120).optional(),
           height_cm: z.number().positive().max(120).optional(),
           offset_cm: z.number().nonnegative().max(120).optional(),
@@ -77,6 +79,33 @@ export const AnswersSchema = z
       )
       .max(6)
       .optional(),
+    /**
+     * Сплошные раппорты. Тайл уже сгенерирован (`pnpm pattern`) и проверен
+     * на бесшовность — здесь только ссылка на него и ФИЗИЧЕСКИЙ ШАГ в см,
+     * без которого тайл остаётся картинкой.
+     */
+    patterns: z
+      .array(
+        z.object({
+          tile: z.object({
+            file_name: text(200),
+            pixels: z.object({
+              width: z.number().int().positive(),
+              height: z.number().int().positive(),
+            }),
+            key: z.string().regex(/^[0-9a-f]{64}$/, 'отпечаток тайла: 64 шестнадцатеричных знака'),
+            seam_ratio: z.number().nonnegative(),
+            seamless: z.boolean(),
+            mirrored: z.boolean(),
+          }),
+          repeat_cm: z.number().positive().max(200),
+          color_count: z.number().int().positive().max(24).optional(),
+          color_codes: z.array(text(30)).max(24).optional(),
+        }),
+      )
+      .max(2)
+      .optional(),
+
     /** Светлое ли полотно. Сублимации это важно: краситель прозрачен. */
     light_fabric: z.boolean().optional(),
 

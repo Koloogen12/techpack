@@ -8,7 +8,7 @@ import {
 } from './construction.js';
 import { buildBom, countBomAssumptions, type BomInput } from './bom.js';
 import { buildLabels, type BrandProfile } from './labels.js';
-import { buildArtwork, type ArtworkInput } from './artwork.js';
+import { buildArtwork, type ArtworkInput, type PatternPlacementInput } from './artwork.js';
 
 /**
  * Сборка StyleSpec — детерминированная стадия пайплайна.
@@ -23,6 +23,8 @@ export interface StyleSpecInput
   brand_profile?: BrandProfile;
   /** Макеты для нанесения. Пусто — вещь без принта, и это норма. */
   artwork?: readonly ArtworkInput[];
+  /** Сплошные раппорты: тайлы уже сгенерированы и проверены на бесшовность. */
+  patterns?: readonly PatternPlacementInput[];
   /** Светлое ли полотно. Нужно сублимации: краситель прозрачен. */
   light_fabric?: boolean;
   /** Идентификатор техпака. Приходит извне — движок ничего не выдумывает. */
@@ -79,18 +81,23 @@ export function buildStyleSpec(
 
   // Нанесение считается ПОСЛЕ спецификации: выбор техники зависит от полотна,
   // а полотно определяется там. Обратный порядок дал бы сублимацию на хлопке.
-  const artwork = input.artwork?.length
-    ? buildArtwork(
-        {
-          category: input.category,
-          placements: input.artwork,
-          fabric_class: shell.material_id,
-          ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
-          ...(input.light_fabric === undefined ? {} : { light_fabric: input.light_fabric }),
-        },
-        base,
-      )
-    : null;
+  const artwork =
+    input.artwork?.length || input.patterns?.length
+      ? buildArtwork(
+          {
+            category: input.category,
+            placements: input.artwork ?? [],
+            fabric_class: shell.material_id,
+            ...(input.patterns ? { patterns: input.patterns } : {}),
+            ...(bom.batch_consumption_m === null
+              ? {}
+              : { batch_consumption_m: bom.batch_consumption_m }),
+            ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
+            ...(input.light_fabric === undefined ? {} : { light_fabric: input.light_fabric }),
+          },
+          base,
+        )
+      : null;
   if (artwork) notes.push(...artwork.notes);
 
   const draft = {

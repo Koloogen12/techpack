@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.5.0';
+export const SPEC_VERSION = '0.6.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -271,37 +271,122 @@ export const ArtworkCheckSchema = z.object({
   detail_ru: z.string().min(1),
 });
 
-/** Один макет на изделии. */
-export const ArtworkPlacementSchema = z.object({
-  id: z.string().min(1),
-  zone: z.string().min(1),
-  zone_label_ru: z.string().min(1),
-  technique: tracked(z.enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery'])),
-  technique_label_ru: z.string().min(1),
+/**
+ * Сплошной раппорт — рисунок, покрывающий всё полотно.
+ *
+ * Отличие от локального макета не в размере, а в том, что печатается:
+ * локальный макет наносится на готовое изделие, раппорт — чаще на ПОЛОТНО
+ * до раскроя. Отсюда и другой набор данных: не «где на груди», а «какой шаг,
+ * сколько метров и в какую сторону идёт долевая».
+ *
+ * Картинка тайла здесь генеративная, и это не спорит с ADR-0005: рисунок
+ * ткани — дизайн-контент, а не техническая геометрия. Ни один сантиметр
+ * документа из тайла не выводится; наоборот, тайлу назначается физический
+ * шаг, и без него он остаётся картинкой, а не производственным файлом.
+ */
+export const PatternSpecSchema = z.object({
+  /** Имя файла тайла в пакете. */
+  tile_file: z.string().min(1),
+  /** Размер тайла в пикселях — от него считается разрешение на шаг раппорта. */
+  tile_px: z.object({
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+  }),
   /**
-   * Положение макета. Отмеряется от высшей точки плеча вниз и от середины
-   * переда вбок — так, как печатник кладёт рулетку на плиту. Словесное
-   * «по центру груди» отмерить нельзя, и каждая партия выходит своя.
+   * Отпечаток входа генерации. Тот же бриф и те же референсы дают тот же
+   * тайл: без этого повторить заказ через полгода нельзя.
    */
-  offset_from_anchor_cm: tracked(z.number().nonnegative()),
-  anchor_label_ru: z.string().min(1),
-  size_cm: z.object({
-    width: tracked(z.number().positive()),
-    height: tracked(z.number().positive()),
-  }),
-  colors: z.object({
-    model: z.enum(['spot', 'full']),
-    /** Число плашечных цветов. null для полноцветной печати. */
-    count: tracked(z.number().int().positive()).nullable(),
-    /** Pantone или иные коды, если заказчик их дал. Мы их не выдумываем. */
-    codes: z.array(z.string().min(1)),
-  }),
-  /** Имя присланного файла. null — макет ещё не прислан. */
-  file_name: z.string().min(1).nullable(),
-  checks: z.array(ArtworkCheckSchema),
-  /** Предупреждения по швам и видимой области. */
-  warnings_ru: z.array(z.string().min(1)),
+  tile_key: z.string().regex(/^[0-9a-f]{64}$/),
+  /** Отношение разницы на стыке к типичной разнице внутри рисунка. */
+  seam_ratio: z.number().nonnegative(),
+  /** Стык проверен ПИКСЕЛЯМИ, а не на глаз. */
+  seamless: z.boolean(),
+  /**
+   * Раппорт собран зеркальной укладкой.
+   *
+   * Обычный тип раппорта в текстиле, но он МЕНЯЕТ рисунок: появляется
+   * симметрия, а мотив занимает четверть блока. Умолчать об этом значит
+   * отдать заказчику не тот дизайн, который он согласовал.
+   */
+  mirrored: z.boolean(),
+  /**
+   * Как раппорт ложится на долевую. У печати по рулону выбора нет: раппорт
+   * идёт вдоль полотна, и деталь кроится по долевой — иначе рисунок повернётся
+   * на изделии.
+   */
+  grain: tracked(z.enum(['along', 'across'])),
+  /** Путь реализации: печать полотна до раскроя либо по готовым панелям. */
+  path: z.enum(['roll', 'panels']),
+  path_label_ru: z.string().min(1),
+  path_reason_ru: z.string().min(1),
+  /** Метраж печати: расход полотна плюс приладка. null — тираж не задан. */
+  yardage_m: tracked(z.number().positive()).nullable(),
 });
+
+/** Один макет на изделии. */
+export const ArtworkPlacementSchema = z
+  .object({
+    id: z.string().min(1),
+    /**
+     * Локальный макет или сплошной раппорт. Разные вещи по существу:
+     * первый наносится на готовое изделие, второй — обычно на полотно
+     * до раскроя, и у него другой набор производственных данных.
+     */
+    kind: z.enum(['placement', 'allover']),
+    zone: z.string().min(1),
+    zone_label_ru: z.string().min(1),
+    technique: tracked(
+      z.enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery', 'pigment_roll']),
+    ),
+    technique_label_ru: z.string().min(1),
+    /**
+     * Положение макета. Отмеряется от высшей точки плеча вниз и от середины
+     * переда вбок — так, как печатник кладёт рулетку на плиту. Словесное
+     * «по центру груди» отмерить нельзя, и каждая партия выходит своя.
+     * У сплошного раппорта положения нет: он покрывает всё.
+     */
+    offset_from_anchor_cm: tracked(z.number().nonnegative()),
+    anchor_label_ru: z.string().min(1),
+    /**
+     * Размер отпечатка. У сплошного раппорта в этом же поле лежит ШАГ
+     * РАППОРТА — величина той же природы и того же назначения: печатник
+     * отмеряет её рулеткой по полотну.
+     */
+    size_cm: z.object({
+      width: tracked(z.number().positive()),
+      height: tracked(z.number().positive()),
+    }),
+    colors: z.object({
+      model: z.enum(['spot', 'full']),
+      /** Число плашечных цветов. null для полноцветной печати. */
+      count: tracked(z.number().int().positive()).nullable(),
+      /** Pantone или иные коды, если заказчик их дал. Мы их не выдумываем. */
+      codes: z.array(z.string().min(1)),
+    }),
+    /** Имя присланного файла. null — макет ещё не прислан. */
+    file_name: z.string().min(1).nullable(),
+    checks: z.array(ArtworkCheckSchema),
+    /** Предупреждения по швам и видимой области. */
+    warnings_ru: z.array(z.string().min(1)),
+    /** Паспорт печати раппорта. Есть ровно у kind: allover. */
+    pattern: PatternSpecSchema.optional(),
+  })
+  .superRefine((a, ctx) => {
+    if (a.kind === 'allover' && !a.pattern) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'сплошной раппорт без паспорта печати — это картинка, а не спецификация',
+        path: ['pattern'],
+      });
+    }
+    if (a.kind === 'placement' && a.pattern) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'у локального макета паспорта раппорта не бывает',
+        path: ['pattern'],
+      });
+    }
+  });
 
 export const ArtworkSchema = z.object({
   placements: z.array(ArtworkPlacementSchema).min(1),
@@ -309,6 +394,7 @@ export const ArtworkSchema = z.object({
   subcontracted: z.boolean(),
 });
 
+export type PatternSpec = z.infer<typeof PatternSpecSchema>;
 export type ArtworkCheck = z.infer<typeof ArtworkCheckSchema>;
 export type ArtworkPlacement = z.infer<typeof ArtworkPlacementSchema>;
 export type Artwork = z.infer<typeof ArtworkSchema>;

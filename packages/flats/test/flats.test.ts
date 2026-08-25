@@ -250,3 +250,37 @@ describe('зона нанесения на чертеже', () => {
     expect(renderFlat(M, { view: 'front' }).svg).not.toContain('data-layer="artwork"');
   });
 });
+
+describe('заливка раппортом', () => {
+  const fill = { dataUri: 'data:image/png;base64,AAAA', repeatCm: 24 };
+  // Слой включается ЯВНО: технический чертёж по умолчанию остаётся чертежом,
+  // а заливка живёт на странице нанесения с пометкой «не для замеров».
+  const LAYERS = ['pattern', 'outline', 'seams'] as const;
+
+  it('шаг раппорта задан в сантиметрах изделия — превью размерно точно', () => {
+    // Чертёж рисуется в сантиметрах, поэтому 24 см раппорта дают 24 единицы
+    // SVG. У декоративного превью «×4 повтора» такой связи нет вовсе.
+    const s = renderFlat(M, { view: 'front', patternFill: fill, layers: [...LAYERS] }).svg;
+    expect(s).toContain('patternUnits="userSpaceOnUse"');
+    expect(s).toContain('width="24" height="24"');
+  });
+
+  it('заливка идёт под линиями, а не поверх', () => {
+    const s = renderFlat(M, { view: 'front', patternFill: fill, layers: [...LAYERS] }).svg;
+    expect(s.indexOf('data-layer="pattern"')).toBeLessThan(s.indexOf('data-layer="outline"'));
+  });
+
+  it('слой выключен по умолчанию — чертёж остаётся чертежом', () => {
+    const s = renderFlat(M, { view: 'front', patternFill: fill }).svg;
+    expect(s).not.toContain('data-layer="pattern"');
+    expect(s).not.toContain('<pattern');
+  });
+
+  it('обе половины изделия залиты — заливка внутри зеркала', () => {
+    // Капюшон однажды залился только справа: он оказался снаружи half().
+    const s = renderFlat(M, { view: 'front', patternFill: fill, layers: [...LAYERS] }).svg;
+    const layer = s.slice(s.indexOf('data-layer="pattern"'));
+    const upTo = layer.slice(0, layer.indexOf('data-layer="outline"'));
+    expect(upTo).toContain('scale(-1,1)');
+  });
+});

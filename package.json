@@ -24,6 +24,7 @@
     "vision:analyze": "tsx --env-file-if-exists=.env packages/vision/scripts/analyze.ts",
     "flats:preview": "tsx packages/flats/scripts/preview.ts",
     "generate": "tsx --env-file-if-exists=.env apps/cli/src/main.ts",
+    "pattern": "tsx --env-file-if-exists=.env apps/cli/src/pattern.ts",
     "golden:export": "tsx golden/scripts/export-vision-reports.ts",
     "golden:warm": "tsx --env-file-if-exists=.env golden/scripts/warm-vision.ts",
     "golden:renders": "tsx golden/scripts/export-renders.ts",

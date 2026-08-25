@@ -62,6 +62,10 @@ export interface ArtworkFile {
 
 export interface ArtworkEngineInput {
   category: Category;
+  /** Расход полотна на тираж, м. Нужен, чтобы посчитать метраж печати. */
+  batch_consumption_m?: number | undefined;
+  /** Сплошные раппорты. Их тайлы уже сгенерированы и проверены. */
+  patterns?: readonly PatternPlacementInput[];
   /** Класс полотна — от него зависит, какая техника вообще ляжет. */
   fabric_class?: string;
   /** Тираж. Определяет, какая техника осмысленна по деньгам. */
@@ -83,10 +87,41 @@ export interface ArtworkResult {
  * за которой отпечаток заметно мылит на расстоянии вытянутой руки.
  * Значения отраслевые: печатник назовёт те же.
  */
-const DPI_GOOD = 300;
-const DPI_WARN = 150;
+export const DPI_GOOD = 300;
+export const DPI_WARN = 150;
 
 const CM_PER_INCH = 2.54;
+
+/**
+ * Разрешение отпечатка — общая проверка для локального макета и для раппорта.
+ *
+ * Считается ВСЕГДА на заданный физический размер: «файл 300 dpi» само по себе
+ * не значит ничего, пока не сказано, до каких сантиметров его тянут. Тот же
+ * файл на 25 см годится, на 60 — нет. У сплошного раппорта роль этого размера
+ * играет шаг раппорта.
+ */
+export function checkDpi(pixels: number, cm: number, whatCm: string): ArtworkCheck {
+  const dpi = Math.round(pixels / (cm / CM_PER_INCH));
+  const status = dpi >= DPI_GOOD ? 'ok' : dpi >= DPI_WARN ? 'warn' : 'fail';
+  return {
+    id: 'dpi',
+    label_ru: 'Разрешение на этот размер',
+    status,
+    detail_ru:
+      `${pixels} px на ${whatCm} ${cm} см — это ${dpi} dpi. ` +
+      (status === 'ok'
+        ? 'Достаточно для печати.'
+        : status === 'warn'
+          ? `Ниже типографских ${DPI_GOOD} dpi: вблизи будет видно растр. ` +
+            `Либо уменьшайте физический размер, либо нужен файл крупнее.`
+          : `Ниже ${DPI_WARN} dpi: отпечаток выйдет мыльным. Нужен файл крупнее ` + `или вектор.`),
+  };
+}
+
+/** Числовое разрешение без обёртки — для паспорта печати. */
+export function effectiveDpi(pixels: number, cm: number): number {
+  return Math.round(pixels / (cm / CM_PER_INCH));
+}
 
 /** Полиэфирные полотна: на них ложится сублимация, на остальных — нет. */
 const POLYESTER_CLASSES = new Set(['pique']);
@@ -95,10 +130,15 @@ export function buildArtwork(
   input: ArtworkEngineInput,
   base: KnowledgeBase = defaultKb(),
 ): ArtworkResult | null {
-  if (input.placements.length === 0) return null;
+  if (input.placements.length === 0 && !input.patterns?.length) return null;
 
   const notes: string[] = [];
-  const placements = input.placements.map((p, i) => placement(p, i, input, notes, base));
+  const placements = [
+    ...input.placements.map((p, i) => placement(p, i, input, notes, base)),
+    ...(input.patterns ?? []).map((p, i) =>
+      buildPatternPlacement(p, input.placements.length + i, input, notes, base),
+    ),
+  ];
 
   return {
     artwork: { placements, subcontracted: true },
@@ -149,6 +189,7 @@ function placement(
 
   return {
     id: `A${index + 1}`,
+    kind: 'placement',
     zone: zone.id,
     zone_label_ru: zone.label_ru,
     technique,
@@ -161,6 +202,215 @@ function placement(
     file_name: input.file?.name ?? null,
     checks: checkFile(input.file, width.value, height.value, entry, warnings),
     warnings_ru: warnings,
+  };
+}
+
+// ------------------------------------------------------------ сплошной раппорт
+
+/** Тайл, уже сгенерированный и проверенный на бесшовность. */
+export interface PatternTileInput {
+  file_name: string;
+  pixels: { width: number; height: number };
+  /** Отпечаток входа генерации — провенанс, без него заказ не повторить. */
+  key: string;
+  seam_ratio: number;
+  seamless: boolean;
+  /** Собран зеркальной укладкой — рисунок приобрёл симметрию. */
+  mirrored: boolean;
+}
+
+export interface PatternPlacementInput {
+  tile: PatternTileInput;
+  /** Физический шаг раппорта, см. Главное, чего нет у картинки. */
+  repeat_cm: number;
+  /** Число цветов, если заказчик его знает. */
+  color_count?: number | undefined;
+  color_codes?: readonly string[] | undefined;
+}
+
+/**
+ * Приладка при рулонной печати, доля от метража.
+ *
+ * Первые метры уходят на совмещение и попадание в цвет. Не заложить их значит
+ * недокупить полотно ровно на ту величину, которую печатник считает нормой.
+ */
+const ROLL_WASTE = 0.1;
+
+/**
+ * Паспорт печати раппорта.
+ *
+ * Разница между картинкой и производственным файлом — вот эти поля. Тайл
+ * сам по себе не говорит ни в каком масштабе печатать, ни на чём, ни сколько
+ * метров, ни куда повернуть долевую. Конкурент отдаёт тайл; спецификацию
+ * приходится додумывать печатнику, и додумывает он каждый раз по-своему.
+ */
+export function buildPatternPlacement(
+  input: PatternPlacementInput,
+  index: number,
+  ctx: ArtworkEngineInput,
+  notes: string[],
+  base: KnowledgeBase,
+): ArtworkPlacement {
+  const warnings: string[] = [];
+
+  // Путь реализации выбирается по СОСТАВУ, а не по желанию: печатать полотно
+  // до раскроя можно только тем, что вообще печатает рулон.
+  const polyester = ctx.fabric_class !== undefined && POLYESTER_CLASSES.has(ctx.fabric_class);
+  const rollTechniques = base.printTechniques().filter((t) => t.roll_capable);
+  const roll = rollTechniques.find((t) =>
+    polyester ? t.id === 'sublimation' : t.fabric.fibers.includes('cotton'),
+  );
+
+  const technique = roll ?? base.printTechnique('dtf');
+  const path: 'roll' | 'panels' = roll ? 'roll' : 'panels';
+
+  if (path === 'panels') {
+    warnings.push(
+      'Полотно этим способом до раскроя не печатается, поэтому раппорт наносится ' +
+        'по готовым панелям. Рисунок на швах не совпадёт: соседние детали печатаются ' +
+        'отдельно и стыкуются только по замыслу, а не по факту.',
+    );
+  }
+
+  const repeat = userInput(roundCm(input.repeat_cm), 'user:pattern.repeat_cm');
+
+  // Разрешение считается на ШАГ РАППОРТА — той же проверкой, что у локального
+  // макета: величина одной природы, и заводить вторую было бы враньём
+  // о независимости двух чисел.
+  const dpi = checkDpi(input.tile.pixels.width, repeat.value, 'шаг раппорта');
+  if (dpi.status === 'fail') {
+    warnings.push(
+      `Тайл ${input.tile.pixels.width} px на шаг ${repeat.value} см не годится для печати. ` +
+        `Либо уменьшайте шаг, либо нужен тайл крупнее.`,
+    );
+  }
+
+  const checks: ArtworkCheck[] = [
+    {
+      id: 'file_present',
+      label_ru: 'Файл раппорта',
+      status: 'ok',
+      detail_ru: `${input.tile.file_name} — приложен к пакету.`,
+    },
+    {
+      id: 'seamless',
+      label_ru: 'Стык раппорта',
+      status: input.tile.seamless ? 'ok' : 'fail',
+      detail_ru: input.tile.seamless
+        ? `Проверен попиксельно: переход через край не отличается от перехода ` +
+          `внутри рисунка (${input.tile.seam_ratio}). Полосы на полотне не будет.`
+        : `Стык ВИДЕН: переход через край резче, чем внутри рисунка ` +
+          `(${input.tile.seam_ratio}). На полотне это полоса во всю длину. ` +
+          `Перегенерируйте раппорт или правьте тайл вручную.`,
+    },
+    dpi,
+    ...(input.tile.mirrored
+      ? [
+          {
+            id: 'mirrored',
+            label_ru: 'Зеркальная укладка',
+            status: 'warn' as const,
+            detail_ru:
+              'Бесшовность получена зеркальной укладкой: блок 2×2, где правая ' +
+              'половина отражает левую, а нижняя — верхнюю. Это обычный тип ' +
+              'раппорта, но рисунок приобрёл симметрию, а сам мотив занимает ' +
+              'четверть блока. Шаг ниже относится ко ВСЕМУ блоку. Если симметрия ' +
+              'не годится дизайну — перегенерируйте раппорт с другим брифом.',
+          },
+        ]
+      : []),
+    {
+      id: 'repeat_step',
+      label_ru: 'Шаг раппорта',
+      status: 'ok',
+      detail_ru:
+        `${repeat.value} см — задан в спецификации. Именно эту величину печатник ` +
+        `отмеряет по полотну; без неё тайл можно напечатать в любом масштабе.`,
+    },
+  ];
+
+  if (!input.tile.seamless) {
+    warnings.push(
+      'Стык раппорта не сошёлся при автоматической проверке — печатать в таком ' + 'виде нельзя.',
+    );
+  }
+
+  // Метраж = расход полотна на тираж плюс приладка.
+  const yardage =
+    ctx.batch_consumption_m !== undefined && path === 'roll'
+      ? fromBase(
+          Math.round(ctx.batch_consumption_m * (1 + ROLL_WASTE) * 10) / 10,
+          'engine:pattern/yardage',
+          `расход на тираж ${ctx.batch_consumption_m} м плюс ` +
+            `${Math.round(ROLL_WASTE * 100)}% на приладку — первые метры уходят ` +
+            `на совмещение и цвет. Уточняется у печатника: минимальный отрез ` +
+            `у каждого свой`,
+        )
+      : null;
+
+  const colors: ArtworkPlacement['colors'] =
+    technique.colors.model === 'full'
+      ? { model: 'full', count: null, codes: [...(input.color_codes ?? [])] }
+      : {
+          model: 'spot',
+          count:
+            input.color_count !== undefined
+              ? userInput(input.color_count, 'user:pattern.color_count')
+              : assume(1, 'engine:pattern/colors', 'число цветов не указано'),
+          codes: [...(input.color_codes ?? [])],
+        };
+
+  notes.push(
+    path === 'roll'
+      ? `Раппорт печатается ПО РУЛОНУ до раскроя (${technique.label_ru.toLowerCase()}): ` +
+          `рисунок непрерывен через швы, потому что детали выкраиваются из уже ` +
+          `напечатанного полотна. Метраж печати считается от расхода на тираж.`
+      : `Раппорт наносится по готовым панелям: полотно этого состава до раскроя ` +
+          `не печатается. Рисунок на швах не совпадёт — это свойство способа, ` +
+          `а не брак.`,
+  );
+
+  return {
+    id: `A${index + 1}`,
+    kind: 'allover',
+    zone: 'allover',
+    zone_label_ru: 'Сплошной раппорт по всему изделию',
+    technique: fromBase(
+      technique.id,
+      `kb:print_techniques#${technique.id}`,
+      'выбрано по составу полотна — согласуйте с печатником',
+    ),
+    technique_label_ru: technique.label_ru,
+    // У сплошного раппорта положения нет: он покрывает всё изделие.
+    offset_from_anchor_cm: fromBase(0, 'engine:pattern/allover', 'раппорт покрывает всё изделие'),
+    anchor_label_ru: 'по всей площади, положения не имеет',
+    size_cm: { width: repeat, height: repeat },
+    colors,
+    file_name: input.tile.file_name,
+    checks,
+    warnings_ru: warnings,
+    pattern: {
+      tile_file: input.tile.file_name,
+      tile_px: input.tile.pixels,
+      tile_key: input.tile.key,
+      seam_ratio: input.tile.seam_ratio,
+      seamless: input.tile.seamless,
+      mirrored: input.tile.mirrored,
+      grain: assume(
+        'along',
+        'engine:pattern/grain',
+        'раппорт идёт вдоль полотна — деталь кроится по долевой, иначе рисунок ' +
+          'повернётся на изделии. Подтвердите у печатника направление рулона',
+      ),
+      path,
+      path_label_ru: path === 'roll' ? 'печать полотна до раскроя' : 'печать по готовым панелям',
+      path_reason_ru:
+        path === 'roll'
+          ? `${technique.label_ru} печатает рулон, поэтому рисунок непрерывен через швы.`
+          : 'Полотно этого состава до раскроя не печатается, поэтому рисунок ' +
+            'наносится на выкроенные детали и на швах не совпадает.',
+      yardage_m: yardage,
+    },
   };
 }
 
@@ -334,26 +584,9 @@ function checkFile(
   });
 
   if (file.pixels && !vector) {
-    // Эффективное разрешение считается НА ЗАДАННЫЙ размер отпечатка:
-    // «файл 300 dpi» само по себе ничего не значит, пока не сказано,
-    // до каких сантиметров его растягивают.
-    const dpi = Math.round(file.pixels.width / (widthCm / CM_PER_INCH));
-    const status = dpi >= DPI_GOOD ? 'ok' : dpi >= DPI_WARN ? 'warn' : 'fail';
-    checks.push({
-      id: 'dpi',
-      label_ru: 'Разрешение на этот размер',
-      status,
-      detail_ru:
-        `${file.pixels.width} px на ширину ${widthCm} см — это ${dpi} dpi. ` +
-        (status === 'ok'
-          ? 'Достаточно для печати.'
-          : status === 'warn'
-            ? `Ниже типографских ${DPI_GOOD} dpi: вблизи будет видно растр. ` +
-              `Либо уменьшите отпечаток, либо пришлите файл крупнее.`
-            : `Ниже ${DPI_WARN} dpi: отпечаток выйдет мыльным. Нужен файл крупнее ` +
-              `или вектор.`),
-    });
-    if (status === 'fail') {
+    const check = checkDpi(file.pixels.width, widthCm, 'ширину');
+    checks.push(check);
+    if (check.status === 'fail') {
       warnings.push(
         `Разрешение макета не годится для отпечатка ${widthCm} × ${heightCm} см — ` +
           `печать в таком виде даст брак.`,

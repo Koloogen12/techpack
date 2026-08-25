@@ -73,6 +73,8 @@ export interface GenerateOptions {
    */
   render?: boolean;
   renderCacheDir?: string;
+  /** Где искать файл тайла раппорта. По умолчанию рядом с эталонными фото. */
+  tileDir?: string;
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -232,6 +234,8 @@ async function buildVisuals(
   browser: Browser,
   visual: Awaited<ReturnType<typeof visualize>>,
   photoPaths: readonly string[],
+  spec?: StyleSpec,
+  tileDir = 'golden/photos',
 ): Promise<DocVisuals> {
   const photos: DocImage[] = [];
   for (const path of photoPaths.slice(0, 3)) {
@@ -240,9 +244,27 @@ async function buildVisuals(
     photos.push({ dataUri: await fitImage(browser, raw), label: `Снимок · ${basename(path)}` });
   }
 
+  // Тайл раппорта читается с диска по имени из спеки: в самой спеке лежит
+  // ссылка, а не байты (AssetRefSchema). Нет файла — превью просто не будет,
+  // и документ от этого не сломается.
+  const allover = spec?.artwork?.placements.find((a) => a.kind === 'allover');
+  let patternTile: DocVisuals['patternTile'];
+  if (allover?.pattern) {
+    try {
+      const bytes = readFileSync(join(tileDir, allover.pattern.tile_file));
+      patternTile = {
+        dataUri: `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`,
+        repeatCm: allover.size_cm.width.value,
+      };
+    } catch {
+      patternTile = undefined;
+    }
+  }
+
   return {
     ...(visual.ok ? { render: { dataUri: visual.image.dataUri } } : {}),
     ...(photos.length ? { photos } : {}),
+    ...(patternTile ? { patternTile } : {}),
   };
 }
 
@@ -379,6 +401,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       browser,
       visual,
       shots.map((s) => s.path),
+      spec,
+      options.tileDir,
     );
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
 

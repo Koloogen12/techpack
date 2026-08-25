@@ -65,6 +65,15 @@ export interface DocVisuals {
   render?: DocImage;
   /** Снимки, которые прислал заказчик. */
   photos?: readonly DocImage[];
+  /**
+   * Тайл раппорта для превью на изделии.
+   *
+   * Чертёж рисуется в сантиметрах, поэтому шаг здесь РАЗМЕРНО ТОЧЕН: 24 см
+   * на изделии дают 24 см на рисунке. У конкурента превью декоративное —
+   * ползунок «×4 повтора» ни к чему не привязан, и по нему нельзя понять,
+   * будет мотив с ладонь или с монету.
+   */
+  patternTile?: { dataUri: string; repeatCm: number };
 }
 
 export interface HtmlOptions {
@@ -167,7 +176,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
   add('construction', 'Конструкция', constructionPages(spec, pro));
-  if (spec.artwork) add('artwork', 'Нанесение', artworkPages(spec.artwork));
+  if (spec.artwork) add('artwork', 'Нанесение', artworkPages(spec, spec.artwork, options.visuals));
   add('labels', 'Маркировка и артикулы', labelsPages(spec));
   add('patterns', 'Лекала и раскладка', [patternsBody()]);
 
@@ -374,6 +383,11 @@ function previewBody(spec: StyleSpec, visuals?: DocVisuals): string | null {
 
 // -------------------------------------------------------------- нанесение
 
+const GRAIN_RU: Record<string, string> = {
+  along: 'вдоль полотна — деталь кроится по долевой',
+  across: 'поперёк полотна',
+};
+
 const CHECK_MARK: Record<'ok' | 'warn' | 'fail', string> = {
   ok: '●',
   warn: '▲',
@@ -391,13 +405,28 @@ const CHECK_MARK: Record<'ok' | 'warn' | 'fail', string> = {
  * Светофор проверок — это ответы на письма, которые печатник иначе напишет
  * сам. Каждое такое письмо стоит дня, а вопросы всегда одни и те же.
  */
-function artworkPages(artwork: NonNullable<StyleSpec['artwork']>): string[] {
-  return artwork.placements.map((a) => {
+function artworkPages(
+  spec: StyleSpec,
+  artwork: NonNullable<StyleSpec['artwork']>,
+  visuals?: DocVisuals,
+): string[] {
+  const pages = artwork.placements.map((a) => {
+    const allover = a.kind === 'allover';
     const params: [string, string][] = [
       ['Зона', esc(a.zone_label_ru)],
       ['Техника', labelled(a.technique, a.technique_label_ru)],
-      ['Отступ', `${value(a.offset_from_anchor_cm)} см ${esc(a.anchor_label_ru)}`],
-      ['Размер отпечатка', `${value(a.size_cm.width)} × ${value(a.size_cm.height)} см`],
+      ...(allover
+        ? []
+        : ([['Отступ', `${value(a.offset_from_anchor_cm)} см ${esc(a.anchor_label_ru)}`]] as [
+            string,
+            string,
+          ][])),
+      [
+        allover ? 'Шаг раппорта' : 'Размер отпечатка',
+        allover
+          ? `${value(a.size_cm.width)} см`
+          : `${value(a.size_cm.width)} × ${value(a.size_cm.height)} см`,
+      ],
       [
         'Цвета',
         a.colors.model === 'full'
@@ -406,6 +435,26 @@ function artworkPages(artwork: NonNullable<StyleSpec['artwork']>): string[] {
             (a.colors.codes.length ? ` · ${esc(a.colors.codes.join(', '))}` : ''),
       ],
       ['Файл макета', a.file_name ? esc(a.file_name) : 'не приложен'],
+      ...(a.pattern
+        ? ([
+            ['Путь реализации', esc(a.pattern.path_label_ru)],
+            ...(a.pattern.mirrored
+              ? ([['Тип раппорта', 'зеркальный (блок 2×2)']] as [string, string][])
+              : ([['Тип раппорта', 'прямой']] as [string, string][])),
+            [
+              'Направление к долевой',
+              labelled(a.pattern.grain, GRAIN_RU[a.pattern.grain.value] ?? a.pattern.grain.value),
+            ],
+            [
+              'Метраж печати',
+              a.pattern.yardage_m ? `${value(a.pattern.yardage_m)} м` : 'считается от тиража',
+            ],
+            [
+              'Отпечаток тайла',
+              `<span class="mono">${esc(a.pattern.tile_key.slice(0, 16))}</span>`,
+            ],
+          ] as [string, string][])
+        : []),
     ];
 
     const checks = a.checks
@@ -426,10 +475,16 @@ function artworkPages(artwork: NonNullable<StyleSpec['artwork']>): string[] {
         .map(([k, v]) => `<tr><td style="width:38mm">${esc(k)}</td><td>${v}</td></tr>`)
         .join('') +
       `</tbody></table>` +
-      `<div class="note" style="margin-top:4mm">Положение отмеряется по разложенному ` +
-      `изделию рулеткой — от названной точки, а не на глаз. Границы зоны показаны ` +
-      `на техническом чертеже пунктиром. Сам макет приложен файлом: на чертеже он ` +
-      `не рисуется, потому что чертёж задаёт место и размер, а не изображение.</div>` +
+      `<div class="note" style="margin-top:4mm">` +
+      (allover
+        ? `Шаг раппорта — та величина, которую печатник отмеряет по полотну. Без неё ` +
+          `тайл можно напечатать в любом масштабе, и мотив выйдет хоть с ладонь, ` +
+          `хоть с монету. ${esc(a.pattern?.path_reason_ru ?? '')}`
+        : `Положение отмеряется по разложенному изделию рулеткой — от названной точки, ` +
+          `а не на глаз. Границы зоны показаны на техническом чертеже пунктиром. ` +
+          `Сам макет приложен файлом: на чертеже он не рисуется, потому что чертёж ` +
+          `задаёт место и размер, а не изображение.`) +
+      `</div>` +
       (a.warnings_ru.length
         ? `<h3>Ограничения</h3><ul class="plain">` +
           a.warnings_ru.map((w) => `<li>${esc(w)}</li>`).join('') +
@@ -446,6 +501,31 @@ function artworkPages(artwork: NonNullable<StyleSpec['artwork']>): string[] {
       `</div>`
     );
   });
+
+  const tile = visuals?.patternTile;
+  const allover = artwork.placements.find((a) => a.kind === 'allover');
+  if (tile && allover && safeDataUri(tile.dataUri)) {
+    const flats = renderFlatsFromSpec(spec, {
+      layers: ['pattern', 'outline', 'seams', 'stitches'],
+      patternFill: { dataUri: tile.dataUri, repeatCm: tile.repeatCm },
+    });
+    pages.push(
+      `<h2>Как раппорт ляжет на изделие</h2>` +
+        `<div class="flat">` +
+        `<figure>${flats.front.svg}<figcaption>Перед</figcaption></figure>` +
+        `<figure>${flats.back.svg}<figcaption>Спинка</figcaption></figure>` +
+        `</div>` +
+        `<div class="note" style="margin-top:3mm">Шаг раппорта здесь РАЗМЕРНО ТОЧЕН: ` +
+        `чертёж построен в сантиметрах, поэтому ${num(allover.size_cm.width.value)} см ` +
+        `на изделии дают ${num(allover.size_cm.width.value)} см на рисунке — видно, ` +
+        `каким мотив выйдет в жизни. ` +
+        `<span class="flag">не для замеров</span> Раскладка мотивов на готовом изделии ` +
+        `зависит от раскроя и совпадёт не в точности: рисунок непрерывен по полотну, ` +
+        `а не по контуру детали.</div>`,
+    );
+  }
+
+  return pages;
 }
 
 // ---------------------------------------------------------------- чертёж

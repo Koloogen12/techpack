@@ -19,7 +19,14 @@ import {
  * и уходит в документ с пометкой «согласовать».
  */
 
-export const PRINT_TECHNIQUES = ['screen', 'dtf', 'dtg', 'sublimation', 'embroidery'] as const;
+export const PRINT_TECHNIQUES = [
+  'screen',
+  'dtf',
+  'dtg',
+  'sublimation',
+  'embroidery',
+  'pigment_roll',
+] as const;
 export const PrintTechniqueSchema = z.enum(PRINT_TECHNIQUES);
 export type PrintTechnique = z.infer<typeof PrintTechniqueSchema>;
 
@@ -53,6 +60,13 @@ export const PrintTechniqueEntrySchema = z
     hand_feel: z.enum(['none', 'film', 'raised']),
     not_suitable_ru: z.array(z.string().min(1)).min(1),
     needs_subcontractor: z.boolean(),
+    /**
+     * Печатает ПОЛОТНО до раскроя, а не готовое изделие.
+     *
+     * Развилка, решающая судьбу сплошного раппорта: если полотно печатать
+     * нельзя, раппорт наносится по готовым панелям и разойдётся на швах.
+     */
+    roll_capable: z.boolean(),
   })
   .and(VerifiabilitySchema)
   .superRefine(verifiabilityRefinement)

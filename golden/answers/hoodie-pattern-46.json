@@ -1,0 +1,40 @@
+{
+  "id": "golden-hoodie-pattern",
+  "name": "Худи с раппортом",
+  "article": "GLD-HOO-P01",
+  "brand": "Пример",
+  "season": "SS26",
+  "description": "Худи оверсайз из футера, сплошной ботанический раппорт",
+  "category": "hoodie",
+  "gender": "women",
+  "base_size_ru": 46,
+  "base_height_cm": 170,
+  "fit_intent": "oversize",
+  "fabric_kind": "knit",
+  "size_range": [42, 44, 46, 48, 50, 52],
+  "quantity": 100,
+  "machine_park": "base_shop",
+  "brand_profile": {
+    "company_name": "ООО «Пример»",
+    "inn": "7700000000",
+    "address": "101000, Москва, ул. Примерная, д. 1",
+    "trademark": "ПРИМЕР",
+    "country": "Россия"
+  },
+  "patterns": [
+    {
+      "tile": {
+        "file_name": "tile-botanical.png",
+        "pixels": {
+          "width": 2048,
+          "height": 2048
+        },
+        "key": "b7e62291076259d5fd24836c89d54961c7a9761189affaed4b90f79f46f71421",
+        "seam_ratio": 0,
+        "seamless": true,
+        "mirrored": true
+      },
+      "repeat_cm": 24
+    }
+  ]
+}

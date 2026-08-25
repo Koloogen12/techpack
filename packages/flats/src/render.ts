@@ -30,6 +30,7 @@ export const FLAT_LAYERS = [
   'hardware',
   'callouts',
   'artwork',
+  'pattern',
 ] as const;
 export type FlatLayer = (typeof FLAT_LAYERS)[number];
 
@@ -54,6 +55,18 @@ export interface RenderOptions {
    * и другое.
    */
   artwork?: readonly ArtworkZone[];
+  /**
+   * Заливка сплошным раппортом — превью, а не чертёж.
+   *
+   * Чертёж рисуется в сантиметрах, поэтому шаг раппорта здесь РАЗМЕРНО ТОЧЕН:
+   * 12 см на изделии дают 12 см на рисунке. У конкурента превью декоративное —
+   * ползунок «×4 повтора» ни к чему не привязан, и по нему нельзя понять,
+   * будет мотив с ладонь или с монету.
+   *
+   * Слой по умолчанию ВЫКЛЮЧЕН: технический чертёж должен оставаться чертежом,
+   * а заливка живёт на странице нанесения с пометкой «не для замеров».
+   */
+  patternFill?: { dataUri: string; repeatCm: number };
   paths?: PathOptions;
   /** Поле вокруг чертежа, см. */
   margin?: number;
@@ -142,6 +155,30 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     `<path d="${d}" fill="none" stroke="currentColor" stroke-width="${width}"` +
     ` stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
 
+  // Заливка идёт ПОД линиями: иначе она перекрыла бы швы и строчки,
+  // ради которых чертёж и существует.
+  const patternDefs =
+    options.patternFill && layers.includes('pattern')
+      ? `<defs><pattern id="tile" patternUnits="userSpaceOnUse" ` +
+        `width="${options.patternFill.repeatCm}" height="${options.patternFill.repeatCm}">` +
+        `<image href="${options.patternFill.dataUri}" x="0" y="0" ` +
+        `width="${options.patternFill.repeatCm}" height="${options.patternFill.repeatCm}"/>` +
+        `</pattern></defs>`
+      : '';
+
+  const patternFill = layer(
+    'pattern',
+    // Капюшон обязан быть ВНУТРИ half(), как и контур: иначе он заливается
+    // только с одной стороны — правая половина рисуется, левая берётся
+    // зеркалом, и всё, что осталось снаружи, зеркала не получает.
+    options.patternFill
+      ? half(
+          `<path d="${paths.outline}" fill="url(#tile)" stroke="none"/>` +
+            paths.hood.map((d) => `<path d="${d}" fill="url(#tile)" stroke="none"/>`).join(''),
+        )
+      : '',
+  );
+
   const outline = layer(
     'outline',
     half(
@@ -214,6 +251,8 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     `role="img" aria-label="Технический чертёж, вид: ${title.toLowerCase()}" ` +
     `data-view="${options.view}" color="#0E0E0E">` +
     `<title>${title}</title>` +
+    patternDefs +
+    patternFill +
     outline +
     seams +
     stitches +

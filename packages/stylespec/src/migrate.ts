@@ -59,6 +59,28 @@ export const MIGRATIONS: readonly Migration[] = [
       'вещь без принта его и не имеет',
     migrate: (snapshot) => ({ ...snapshot, spec_version: '0.5.0' }),
   },
+  {
+    from: '0.5.0',
+    to: '0.6.0',
+    describe:
+      'нанесение разделено на локальный макет и сплошной раппорт; ' +
+      'у снапшотов 0.5.0 раппорта быть не могло, поэтому всё существующее — локальное',
+    migrate: (snapshot) => {
+      const artwork = snapshot.artwork as { placements?: Record<string, unknown>[] } | undefined;
+      return {
+        ...snapshot,
+        ...(artwork?.placements
+          ? {
+              artwork: {
+                ...artwork,
+                placements: artwork.placements.map((p) => ({ ...p, kind: 'placement' })),
+              },
+            }
+          : {}),
+        spec_version: '0.6.0',
+      };
+    },
+  },
 ];
 
 function versionOf(snapshot: unknown): string {

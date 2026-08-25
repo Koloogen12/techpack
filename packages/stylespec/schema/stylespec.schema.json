@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "StyleSpec 0.4.0",
+  "title": "StyleSpec 0.6.0",
   "type": "object",
   "properties": {
     "spec_version": {
@@ -131,6 +131,7 @@
                     "enum": [
                       "fit_confirmed",
                       "user_input",
+                      "measured_by_scale",
                       "estimated_from_photo",
                       "default_from_base",
                       "assumption"
@@ -159,6 +160,7 @@
                     "enum": [
                       "fit_confirmed",
                       "user_input",
+                      "measured_by_scale",
                       "estimated_from_photo",
                       "default_from_base",
                       "assumption"
@@ -196,6 +198,7 @@
                           "enum": [
                             "fit_confirmed",
                             "user_input",
+                            "measured_by_scale",
                             "estimated_from_photo",
                             "default_from_base",
                             "assumption"
@@ -305,6 +308,7 @@
                     "enum": [
                       "fit_confirmed",
                       "user_input",
+                      "measured_by_scale",
                       "estimated_from_photo",
                       "default_from_base",
                       "assumption"
@@ -335,6 +339,7 @@
                         "enum": [
                           "fit_confirmed",
                           "user_input",
+                          "measured_by_scale",
                           "estimated_from_photo",
                           "default_from_base",
                           "assumption"
@@ -367,6 +372,7 @@
                     "enum": [
                       "fit_confirmed",
                       "user_input",
+                      "measured_by_scale",
                       "estimated_from_photo",
                       "default_from_base",
                       "assumption"
@@ -552,6 +558,7 @@
                     "enum": [
                       "fit_confirmed",
                       "user_input",
+                      "measured_by_scale",
                       "estimated_from_photo",
                       "default_from_base",
                       "assumption"
@@ -582,6 +589,7 @@
                         "enum": [
                           "fit_confirmed",
                           "user_input",
+                          "measured_by_scale",
                           "estimated_from_photo",
                           "default_from_base",
                           "assumption"
@@ -621,6 +629,7 @@
                         "enum": [
                           "fit_confirmed",
                           "user_input",
+                          "measured_by_scale",
                           "estimated_from_photo",
                           "default_from_base",
                           "assumption"
@@ -681,6 +690,7 @@
               "enum": [
                 "fit_confirmed",
                 "user_input",
+                "measured_by_scale",
                 "estimated_from_photo",
                 "default_from_base",
                 "assumption"
@@ -783,6 +793,7 @@
                         "enum": [
                           "fit_confirmed",
                           "user_input",
+                          "measured_by_scale",
                           "estimated_from_photo",
                           "default_from_base",
                           "assumption"
@@ -856,6 +867,414 @@
         }
       },
       "required": ["care_symbols", "requisites", "sku_matrix"],
+      "additionalProperties": false
+    },
+    "artwork": {
+      "type": "object",
+      "properties": {
+        "placements": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": ["placement", "allover"]
+              },
+              "zone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "zone_label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "technique": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "enum": ["screen", "dtf", "dtg", "sublimation", "embroidery", "pigment_roll"]
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "measured_by_scale",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "technique_label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "offset_from_anchor_cm": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "measured_by_scale",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "anchor_label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "size_cm": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "measured_by_scale",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  },
+                  "height": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "measured_by_scale",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": ["width", "height"],
+                "additionalProperties": false
+              },
+              "colors": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": ["spot", "full"]
+                  },
+                  "count": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "confidence": {
+                            "type": "string",
+                            "enum": [
+                              "fit_confirmed",
+                              "user_input",
+                              "measured_by_scale",
+                              "estimated_from_photo",
+                              "default_from_base",
+                              "assumption"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["value", "confidence", "source"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": ["model", "count", "codes"],
+                "additionalProperties": false
+              },
+              "file_name": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "checks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "label_ru": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["ok", "warn", "fail"]
+                    },
+                    "detail_ru": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": ["id", "label_ru", "status", "detail_ru"],
+                  "additionalProperties": false
+                }
+              },
+              "warnings_ru": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "pattern": {
+                "type": "object",
+                "properties": {
+                  "tile_file": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tile_px": {
+                    "type": "object",
+                    "properties": {
+                      "width": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "height": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["width", "height"],
+                    "additionalProperties": false
+                  },
+                  "tile_key": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "seam_ratio": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "seamless": {
+                    "type": "boolean"
+                  },
+                  "grain": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "enum": ["along", "across"]
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "fit_confirmed",
+                          "user_input",
+                          "measured_by_scale",
+                          "estimated_from_photo",
+                          "default_from_base",
+                          "assumption"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "confidence", "source"],
+                    "additionalProperties": false
+                  },
+                  "path": {
+                    "type": "string",
+                    "enum": ["roll", "panels"]
+                  },
+                  "path_label_ru": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "path_reason_ru": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "yardage_m": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          "confidence": {
+                            "type": "string",
+                            "enum": [
+                              "fit_confirmed",
+                              "user_input",
+                              "measured_by_scale",
+                              "estimated_from_photo",
+                              "default_from_base",
+                              "assumption"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["value", "confidence", "source"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "tile_file",
+                  "tile_px",
+                  "tile_key",
+                  "seam_ratio",
+                  "seamless",
+                  "grain",
+                  "path",
+                  "path_label_ru",
+                  "path_reason_ru",
+                  "yardage_m"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "zone",
+              "zone_label_ru",
+              "technique",
+              "technique_label_ru",
+              "offset_from_anchor_cm",
+              "anchor_label_ru",
+              "size_cm",
+              "colors",
+              "file_name",
+              "checks",
+              "warnings_ru"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "subcontracted": {
+          "type": "boolean"
+        }
+      },
+      "required": ["placements", "subcontracted"],
       "additionalProperties": false
     },
     "assets": {

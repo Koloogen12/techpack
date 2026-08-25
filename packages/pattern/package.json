@@ -1,0 +1,15 @@
+{
+  "name": "@specform/pattern",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@specform/core": "workspace:*",
+    "@specform/kb": "workspace:*",
+    "@specform/render": "workspace:*",
+    "playwright": "^1.62.1"
+  }
+}

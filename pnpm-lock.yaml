@@ -50,6 +50,9 @@ importers:
       '@specform/kb':
         specifier: workspace:*
         version: link:../../packages/kb
+      '@specform/pattern':
+        specifier: workspace:*
+        version: link:../../packages/pattern
       '@specform/render':
         specifier: workspace:*
         version: link:../../packages/render
@@ -89,6 +92,9 @@ importers:
       '@specform/kb':
         specifier: workspace:*
         version: link:../packages/kb
+      '@specform/pattern':
+        specifier: workspace:*
+        version: link:../packages/pattern
       '@specform/render':
         specifier: workspace:*
         version: link:../packages/render
@@ -184,6 +190,21 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  packages/pattern:
+    dependencies:
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@specform/kb':
+        specifier: workspace:*
+        version: link:../kb
+      '@specform/render':
+        specifier: workspace:*
+        version: link:../render
+      playwright:
+        specifier: ^1.62.1
+        version: 1.62.1
 
   packages/render:
     dependencies:

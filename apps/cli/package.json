@@ -19,6 +19,7 @@
     "zod": "^4.4.3",
     "playwright": "^1.62.1",
     "@specform/fit": "workspace:*",
-    "@specform/render": "workspace:*"
+    "@specform/render": "workspace:*",
+    "@specform/pattern": "workspace:*"
   }
 }
