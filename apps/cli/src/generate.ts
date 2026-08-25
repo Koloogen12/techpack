@@ -230,12 +230,29 @@ const PHOTO_MIME: Record<PhotoFormat, string> = {
  *
  * Больше трёх снимков на лист не влезает, а вес растёт линейно — берём первые.
  */
+/**
+ * Байты тайла раппорта.
+ *
+ * В спеке лежит ССЫЛКА на файл, а не его содержимое (`AssetRefSchema`).
+ * Нет файла — превью просто не будет, и документ от этого не сломается.
+ */
+function readTile(spec: StyleSpec, dir: string): Uint8Array | null {
+  const allover = spec.artwork?.placements.find((a) => a.kind === 'allover');
+  if (!allover?.pattern) return null;
+  try {
+    return readFileSync(join(dir, allover.pattern.tile_file));
+  } catch {
+    return null;
+  }
+}
+
 async function buildVisuals(
   browser: Browser,
   visual: Awaited<ReturnType<typeof visualize>>,
   photoPaths: readonly string[],
   spec?: StyleSpec,
-  tileDir = 'golden/photos',
+  tileBytes?: Uint8Array | null,
+  patternVisual?: Awaited<ReturnType<typeof visualize>>,
 ): Promise<DocVisuals> {
   const photos: DocImage[] = [];
   for (const path of photoPaths.slice(0, 3)) {
@@ -244,27 +261,20 @@ async function buildVisuals(
     photos.push({ dataUri: await fitImage(browser, raw), label: `Снимок · ${basename(path)}` });
   }
 
-  // Тайл раппорта читается с диска по имени из спеки: в самой спеке лежит
-  // ссылка, а не байты (AssetRefSchema). Нет файла — превью просто не будет,
-  // и документ от этого не сломается.
   const allover = spec?.artwork?.placements.find((a) => a.kind === 'allover');
-  let patternTile: DocVisuals['patternTile'];
-  if (allover?.pattern) {
-    try {
-      const bytes = readFileSync(join(tileDir, allover.pattern.tile_file));
-      patternTile = {
-        dataUri: `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`,
-        repeatCm: allover.size_cm.width.value,
-      };
-    } catch {
-      patternTile = undefined;
-    }
-  }
+  const patternTile =
+    tileBytes && allover
+      ? {
+          dataUri: `data:image/png;base64,${Buffer.from(tileBytes).toString('base64')}`,
+          repeatCm: allover.size_cm.width.value,
+        }
+      : undefined;
 
   return {
     ...(visual.ok ? { render: { dataUri: visual.image.dataUri } } : {}),
     ...(photos.length ? { photos } : {}),
     ...(patternTile ? { patternTile } : {}),
+    ...(patternVisual?.ok ? { patternRender: { dataUri: patternVisual.image.dataUri } } : {}),
   };
 }
 
@@ -378,15 +388,35 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // десятками секунд, и ждать его последовательно значит дарить эти секунды.
   mkdirSync(dirname(options.outPath), { recursive: true });
 
-  const [browser, visual] = await Promise.all([
+  const renderCache = new FileRenderCache(options.renderCacheDir ?? '.cache/render');
+  const visualOptions = {
+    cache: renderCache,
+    offline: options.render !== true,
+    base,
+    ledger,
+    ...(options.logger ? { logger: options.logger } : {}),
+  };
+
+  // Тайл раппорта нужен обеим страницам: размерно точной раскладке
+  // на схеме нанесения и фотореалистичному превью. Читается один раз.
+  const tileBytes = readTile(spec, options.tileDir ?? 'golden/photos');
+
+  const [browser, visual, patternVisual] = await Promise.all([
     chromium.launch(),
-    visualize(spec, {
-      cache: new FileRenderCache(options.renderCacheDir ?? '.cache/render'),
-      offline: options.render !== true,
-      base,
-      ledger,
-      ...(options.logger ? { logger: options.logger } : {}),
-    }),
+    visualize(spec, visualOptions),
+    // Вторая картинка — то же изделие, но в раппорте. Отдельный вызов,
+    // а не вариант первого: у них разные ключи кэша и разная судьба
+    // в ролевых выгрузках.
+    tileBytes
+      ? visualize(spec, {
+          ...visualOptions,
+          references: [{ bytes: tileBytes, mediaType: 'image/png' }],
+        })
+      : Promise.resolve<Awaited<ReturnType<typeof visualize>>>({
+          ok: false,
+          reason: 'no_tile',
+          userMessage: 'Раппорта в документе нет.',
+        }),
   ]);
 
   const rolePaths: { role: ExportRole; path: string }[] = [];
@@ -402,7 +432,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       visual,
       shots.map((s) => s.path),
       spec,
-      options.tileDir,
+      tileBytes,
+      patternVisual,
     );
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
 

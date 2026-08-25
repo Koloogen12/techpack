@@ -73,6 +73,39 @@ const cases: { file: string; input: StyleSpecInput }[] = [
       generated_at: AT,
     },
   },
+  {
+    // Третий пример существует ради сплошного раппорта: у него другой набор
+    // производственных данных, другой путь реализации и своя страница
+    // в документе — на локальном макете это не проверить.
+    file: 'hoodie-allover-pattern.json',
+    input: {
+      id: 'example-hoodie-pattern',
+      name: 'Худи с раппортом',
+      article: 'HOO-PAT-003',
+      category: 'hoodie',
+      gender: 'women',
+      base_size_ru: 46,
+      base_height_cm: 170,
+      fit_intent: 'oversize',
+      fabric_kind: 'knit',
+      size_range: [44, 46, 48, 50],
+      quantity: 100,
+      patterns: [
+        {
+          tile: {
+            file_name: 'tile-botanical.png',
+            pixels: { width: 2048, height: 2048 },
+            key: 'b'.repeat(64),
+            seam_ratio: 0,
+            seamless: true,
+            mirrored: true,
+          },
+          repeat_cm: 24,
+        },
+      ],
+      generated_at: AT,
+    },
+  },
 ];
 
 for (const { file, input } of cases) {

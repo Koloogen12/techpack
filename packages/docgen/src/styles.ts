@@ -154,6 +154,14 @@ tr.pro { background: rgba(14,14,14,.02); }
 .preview .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
 .preview figcaption { margin-top: 2.5mm; font-size: 7.4pt; letter-spacing: 1.4px; text-transform: uppercase; color: var(--secondary); }
 .preview .shots { display: grid; gap: 4mm; min-height: 0; }
+
+/* Одиночный кадр: рамка обхватывает картинку по её пропорциям, а не тянется
+   на всю колонку. Иначе портретный кадр на альбомном листе обрастает
+   пустыми полями с той или другой стороны — по первому прогону сверху и снизу. */
+.preview.single { display: flex; justify-content: center; }
+.preview.single figure { align-items: center; max-width: 100%; }
+.preview.single .frame { width: auto; align-self: center; }
+.preview.single .frame img { height: 100%; width: auto; max-width: 100%; }
 .preview .shots .frame { border-radius: 2mm; }
 
 ul.plain { margin: 0; padding-left: 4mm; font-size: 8.5pt; line-height: 1.5; }

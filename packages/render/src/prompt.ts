@@ -49,6 +49,13 @@ const NODE_ENGLISH: Record<string, string> = {
 export interface RenderPromptOptions {
   /** Какой колорвей показать. По умолчанию первый из спецификации. */
   colorwayId?: string;
+  /**
+   * Сплошной раппорт на изделии. Тайл уходит в модель опорным изображением,
+   * а сюда — его физический шаг: без него модель нарисует «какой-нибудь»
+   * узор в произвольном масштабе, и превью соврёт ровно в том, ради чего
+   * оно делается.
+   */
+  patternRepeatCm?: number | undefined;
 }
 
 /**
@@ -95,6 +102,20 @@ export function buildRenderPrompt(
 
   const garment = ENGLISH_CATEGORY[category] ?? 'knitted top';
 
+  // Масштаб мотива задаётся ОТНОШЕНИЕМ к ширине груди, а не сантиметрами:
+  // модель не знает, сколько на её картинке сантиметров, но прекрасно
+  // понимает «мотив повторяется примерно трижды по ширине груди».
+  const pattern =
+    options.patternRepeatCm !== undefined && chest !== null
+      ? `The whole garment is cut from fabric printed with the all-over repeating ` +
+        `pattern shown in the reference image. Reproduce that pattern's colours, motifs ` +
+        `and character exactly — it is a given design, not a starting point. ` +
+        `Scale it so the pattern repeats about ` +
+        `${Math.max(1, Math.round(chest / options.patternRepeatCm))} times across the width ` +
+        `of the chest. The print follows the folds and the drape of the fabric, ` +
+        `and continues across every seam without interruption.`
+      : '';
+
   return [
     `A single ${garment} shown on an invisible mannequin — a ghost-mannequin product photograph, front view, with the garment holding its worn shape and no person, head, hands or stand visible.`,
     '',
@@ -103,12 +124,17 @@ export function buildRenderPrompt(
       ? `Visible construction: ${details.join(', ')}.`
       : 'Construction is plain, with no visible trims.',
     proportion,
+    pattern,
     '',
     'Photographed straight on at eye level against a smooth light warm-grey seamless studio background, soft even diffused lighting from a large scrim, a gentle contact shadow beneath the garment. Shot on an 85mm lens at f/5.6. The fabric surface texture and every seam and stitch line stay legible.',
     // Портретный кадр — не вкус, а вёрстка: страница документа делится
     // на две колонки, и горизонтальная картинка в колонке наполовину
     // состоит из пустого фона. Первый живой прогон вышел именно таким.
-    'Vertical portrait format, 4:5 aspect ratio. The garment fills most of the frame with a small even margin on all sides. Commercial apparel product photography, neutral colour balance, no props, no text, no logos, no branding, no pattern or print on the fabric.',
+    // Запрет на рисунок снимается, когда рисунок и есть предмет съёмки:
+    // иначе две строки промпта спорят друг с другом, и модель выбирает
+    // ту, что ближе к концу.
+    'Vertical portrait format, 4:5 aspect ratio. The garment fills most of the frame with a small even margin on all sides. Commercial apparel product photography, neutral colour balance, no props, no text, no logos, no branding.' +
+      (pattern ? '' : ' No pattern or print on the fabric.'),
   ]
     .filter(Boolean)
     .join('\n');

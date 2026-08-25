@@ -18,11 +18,22 @@ import { RENDER_PROMPT_VERSION } from './prompt.js';
 export interface RenderKeyInput {
   prompt: string;
   model: string;
+  /**
+   * Опорные изображения — например тайл раппорта.
+   *
+   * Входят в ключ ОТДЕЛЬНО: промпт от смены тайла не меняется (в нём только
+   * шаг раппорта), и без этого другой рисунок вернул бы из кэша картинку
+   * с прежним узором.
+   */
+  references?: readonly Uint8Array[];
 }
 
 export function renderKey(input: RenderKeyInput): string {
+  const refs = (input.references ?? [])
+    .map((r) => createHash('sha256').update(r).digest('hex'))
+    .sort();
   return createHash('sha256')
-    .update([input.prompt, input.model, RENDER_PROMPT_VERSION].join(' '))
+    .update([input.prompt, ...refs, input.model, RENDER_PROMPT_VERSION].join(' '))
     .digest('hex');
 }
 

@@ -1,7 +1,7 @@
 import { isSpecFormError, type CostLedger, type Logger, silentLogger } from '@specform/core';
 import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
 import type { StyleSpec } from '@specform/stylespec';
-import { defaultImageModel, generateImage } from './client.js';
+import { defaultImageModel, generateImage, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 import { buildRenderPrompt, type RenderPromptOptions } from './prompt.js';
 
@@ -36,6 +36,15 @@ export interface VisualizeOptions extends RenderPromptOptions {
    * Режим голден-прогонов и повторных сборок документа.
    */
   offline?: boolean;
+  /**
+   * Опорные изображения: тайл раппорта.
+   *
+   * Единственный случай, когда визуализация строится НЕ только из спеки —
+   * и он не нарушает ADR-0005, а следует ему. Рисунок ткани в спеке
+   * не описан и описан быть не может: это дизайн-контент. Всё остальное —
+   * силуэт, посадка, полотно, узлы — по-прежнему из спеки.
+   */
+  references?: readonly ReferenceImage[];
 }
 
 export interface Visualization {
@@ -63,8 +72,18 @@ export async function visualize(
 
   const promptOptions: RenderPromptOptions = {};
   if (options.colorwayId !== undefined) promptOptions.colorwayId = options.colorwayId;
+
+  // Шаг раппорта берётся из самой спеки: он там уже есть, и передавать его
+  // отдельно значило бы разрешить превью разойтись с паспортом печати.
+  const allover = spec.artwork?.placements.find((a) => a.kind === 'allover');
+  if (allover) promptOptions.patternRepeatCm = allover.size_cm.width.value;
+
   const prompt = buildRenderPrompt(spec, promptOptions, options.base ?? defaultKb());
-  const key = renderKey({ prompt, model });
+  const key = renderKey({
+    prompt,
+    model,
+    ...(options.references ? { references: options.references.map((r) => r.bytes) } : {}),
+  });
 
   const hit = cache.get(key);
   if (hit) {
@@ -82,6 +101,7 @@ export async function visualize(
 
   try {
     const generateOptions: Parameters<typeof generateImage>[1] = { model, logger };
+    if (options.references?.length) generateOptions.references = options.references;
     if (options.apiKey !== undefined) generateOptions.apiKey = options.apiKey;
     if (options.ledger !== undefined) generateOptions.ledger = options.ledger;
 

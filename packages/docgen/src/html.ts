@@ -41,6 +41,7 @@ export const DOC_SECTIONS = [
   'bom',
   'construction',
   'artwork',
+  'pattern_preview',
   'labels',
   'patterns',
 ] as const;
@@ -74,6 +75,12 @@ export interface DocVisuals {
    * будет мотив с ладонь или с монету.
    */
   patternTile?: { dataUri: string; repeatCm: number };
+  /**
+   * Фотореалистичное изделие в раппорте. Строится тем же механизмом, что
+   * и страница внешнего вида, и наследует все её правила: не для замеров,
+   * кэш по отпечатку, вне цеховых выгрузок.
+   */
+  patternRender?: DocImage;
 }
 
 export interface HtmlOptions {
@@ -177,6 +184,13 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   add('bom', 'Спецификация материалов', bomPages(spec));
   add('construction', 'Конструкция', constructionPages(spec, pro));
   if (spec.artwork) add('artwork', 'Нанесение', artworkPages(spec, spec.artwork, options.visuals));
+  // Фотореалистичное превью раппорта — ОТДЕЛЬНЫЙ раздел, а не третий лист
+  // нанесения. Разделы это единица ролевой выгрузки: цеху и печатнику
+  // такая картинка не нужна и только отвлекает от размерной раскладки.
+  if (include('pattern_preview')) {
+    const body = patternPreviewBody(spec, options.visuals);
+    if (body) add('pattern_preview', 'Раппорт на изделии', [body]);
+  }
   add('labels', 'Маркировка и артикулы', labelsPages(spec));
   add('patterns', 'Лекала и раскладка', [patternsBody()]);
 
@@ -526,6 +540,43 @@ function artworkPages(
   }
 
   return pages;
+}
+
+/**
+ * Фотореалистичный раппорт на изделии.
+ *
+ * Вторая половина ответа на вопрос «как это будет выглядеть». Первая —
+ * размерно точная раскладка на схеме нанесения: там видно, каким мотив
+ * выйдет в сантиметрах. Здесь видно, как он ляжет на складках и как
+ * прочитается фактура.
+ *
+ * Правила страницы внешнего вида наследуются целиком, и главное из них
+ * стоит прямо на листе: размеры отсюда не снимаются. Обе картинки нужны
+ * порознь именно потому, что каждая врёт в том, в чём сильна другая:
+ * схема точна в сантиметрах и ничего не говорит о драпировке, фотореализм
+ * показывает драпировку и не даёт мерить.
+ */
+function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | null {
+  const render = visuals?.patternRender;
+  const allover = spec.artwork?.placements.find((a) => a.kind === 'allover');
+  if (!render || !allover || !safeDataUri(render.dataUri)) return null;
+
+  // Кадр портретный, а лист альбомный: колонка во всю ширину дала бы
+  // картинку в центре и две пустые трети по бокам. Ограничиваем ширину
+  // и центрируем — так лист занят изображением, а не полями.
+  return (
+    `<div class="preview single">` +
+    `<figure><div class="frame"><img src="${safeDataUri(render.dataUri)}" alt=""></div>` +
+    `<figcaption>Раппорт на изделии · шаг ${num(allover.size_cm.width.value)} см · ` +
+    `<span class="flag">не для замеров</span></figcaption></figure>` +
+    `</div>` +
+    `<div class="note" style="margin-top:3mm">Визуализация построена из данных этого ` +
+    `документа и приложенного тайла: показывает, как рисунок ложится на складках ` +
+    `и как читается фактура полотна. <b>Размерно точная раскладка — на схеме ` +
+    `нанесения</b>: там шаг раппорта отложен в сантиметрах, и по ней сверяют масштаб ` +
+    `мотива. Здесь масштаб приблизительный, а раскладка на готовом изделии зависит ` +
+    `от раскроя.</div>`
+  );
 }
 
 // ---------------------------------------------------------------- чертёж

@@ -16,23 +16,29 @@ const load = (file: string): StyleSpec =>
 
 const SPEC = load('tshirt-women-46.json');
 const MIXED = load('tshirt-oversize-mixed-confidence.json');
+const PATTERN = load('hoodie-allover-pattern.json');
 
 /** Однопиксельный PNG. Содержимое неважно — важно, что это картинка. */
 const PIXEL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-const VISUALS = { render: { dataUri: PIXEL }, photos: [{ dataUri: PIXEL, label: 'Фронт' }] };
+const VISUALS = {
+  render: { dataUri: PIXEL },
+  photos: [{ dataUri: PIXEL, label: 'Фронт' }],
+  patternTile: { dataUri: PIXEL, repeatCm: 24 },
+  patternRender: { dataUri: PIXEL },
+};
 
 const html = (spec: StyleSpec = SPEC, options = {}) =>
   renderHtml(spec, { pro: true, visuals: VISUALS, ...options });
 const pagesOf = (h: string): string[] => h.split('<section class="page"').slice(1);
 const sectionsOf = (h: string): string[] =>
-  [...h.matchAll(/data-section="([a-z]+)"/g)].map((m) => m[1]!);
+  [...h.matchAll(/data-section="([a-z_]+)"/g)].map((m) => m[1]!);
 
 describe('состав документа', () => {
   it('содержит все разделы минимального комплекта для фабрики', () => {
-    // На спеке с нанесением: разделы «внешний вид» и «нанесение» условные —
-    // у вещи без принта страницы нанесения нет, и это правильно.
-    const sections = new Set(sectionsOf(html(MIXED)));
+    // На спеке с раппортом: разделы «внешний вид», «нанесение» и «раппорт
+    // на изделии» условные — у вещи без принта их нет, и это правильно.
+    const sections = new Set(sectionsOf(html(PATTERN)));
     for (const s of DOC_SECTIONS) expect(sections).toContain(s);
   });
 
@@ -206,7 +212,7 @@ describe('выгрузка по ролям', () => {
       const profile = roleProfile(role);
       const sections = new Set(
         sectionsOf(
-          renderHtml(MIXED, { sections: profile.sections, pro: profile.pro, visuals: VISUALS }),
+          renderHtml(PATTERN, { sections: profile.sections, pro: profile.pro, visuals: VISUALS }),
         ),
       );
       for (const s of profile.sections) expect(sections, role).toContain(s);
@@ -389,5 +395,43 @@ describe('страница нанесения', () => {
     const h = art();
     expect(h).toContain('data-artwork="A1"');
     expect(h).toContain('data-layer="artwork"');
+  });
+});
+
+describe('фотореалистичный раппорт на изделии', () => {
+  const page = () => html(PATTERN);
+
+  it('идёт отдельным разделом, а не третьим листом нанесения', () => {
+    expect(sectionsOf(page())).toContain('pattern_preview');
+  });
+
+  it('в цеховые выгрузки не попадает — ни печатнику, ни печатнику полотна', () => {
+    // Схема нанесения им нужна, красивая картинка отвлекает от неё.
+    for (const role of ['printer', 'fabric_printer', 'technologist', 'cutter'] as const) {
+      const sections = sectionsOf(
+        renderHtml(PATTERN, { sections: roleProfile(role).sections, visuals: VISUALS }),
+      );
+      expect(sections, role).not.toContain('pattern_preview');
+    }
+    expect(
+      sectionsOf(renderHtml(PATTERN, { sections: roleProfile('full').sections, visuals: VISUALS })),
+    ).toContain('pattern_preview');
+  });
+
+  it('несёт плашку «не для замеров» и отсылает к размерной раскладке', () => {
+    const h = page();
+    expect(h).toContain('не для замеров');
+    expect(h).toContain('Размерно точная раскладка');
+  });
+
+  it('без картинки раздела нет — пустой лист хуже отсутствующего', () => {
+    const h = renderHtml(PATTERN, { visuals: { patternTile: VISUALS.patternTile } });
+    expect(sectionsOf(h)).not.toContain('pattern_preview');
+    // При этом размерно точная раскладка на месте: она не зависит от рендера.
+    expect(sectionsOf(h)).toContain('artwork');
+  });
+
+  it('шаг раппорта в подписи совпадает с паспортом печати', () => {
+    expect(page()).toContain('шаг 24 см');
   });
 });

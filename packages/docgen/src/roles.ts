@@ -41,6 +41,7 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
       'bom',
       'construction',
       'artwork',
+      'pattern_preview',
       'labels',
       'patterns',
     ],
