@@ -1,0 +1,1051 @@
+{
+  "spec_version": "0.1.0",
+  "style": {
+    "id": "example-tshirt-women-46",
+    "name": "Базовая футболка",
+    "article": "TSH-W46-001",
+    "category": "tshirt",
+    "brand": "Пример",
+    "season": "SS26",
+    "description": "Прямая футболка из кулирки, круглая горловина с бейкой"
+  },
+  "base": {
+    "gender": "women",
+    "base_size_ru": 46,
+    "base_height_cm": 170,
+    "fit_intent": "semi_fitted",
+    "fabric_kind": "knit",
+    "size_range": [42, 44, 46, 48, 50, 52]
+  },
+  "measurements": {
+    "template_id": "pom_templates/tshirt",
+    "template_version": "0.1.0",
+    "points": [
+      {
+        "code": "T01",
+        "name_ru": "Длина от высшей точки плеча",
+        "name_en": "HPS Length",
+        "how_to_measure_ru": "От высшей точки плеча вертикально вниз до края низа",
+        "measure_kind": "length",
+        "base": {
+          "value": 68.9,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T01"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#length.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 67.4,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 68.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 69.6,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 70.4,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 71.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T02",
+        "name_ru": "Длина по центру спинки",
+        "name_en": "CB Length",
+        "how_to_measure_ru": "От шва горловины по центру спинки до края низа",
+        "measure_kind": "length",
+        "base": {
+          "value": 66.8,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T02"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#length.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 65.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 66.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 67.6,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 68.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 69.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_length"
+            }
+          }
+        ],
+        "required": false,
+        "pro_only": false
+      },
+      {
+        "code": "T03",
+        "name_ru": "Ширина по груди",
+        "name_en": "Chest 1\" below armhole",
+        "how_to_measure_ru": "На 2.5 см ниже проймы, от шва до шва в плоском виде",
+        "measure_kind": "half",
+        "base": {
+          "value": 51,
+          "confidence": "default_from_base",
+          "source": "engine:pom/anchor(size=46,fit=semi_fitted)",
+          "note": "посчитано из размерной сетки и типовой прибавки на посадку — подтвердить по образцу"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#major_width.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 47,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 49,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 53,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 55,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 57,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T04",
+        "name_ru": "Ширина по талии",
+        "name_en": "Waist",
+        "how_to_measure_ru": "В самой узкой точке либо на фиксированном расстоянии от высшей точки плеча",
+        "measure_kind": "half",
+        "base": {
+          "value": 49,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T04"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#major_width.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 45,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 47,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 51,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 53,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 55,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          }
+        ],
+        "required": false,
+        "pro_only": false
+      },
+      {
+        "code": "T05",
+        "name_ru": "Ширина по низу",
+        "name_en": "Bottom Sweep",
+        "how_to_measure_ru": "По краю низа, от сгиба до сгиба в плоском виде",
+        "measure_kind": "half",
+        "base": {
+          "value": 51,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T05"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#major_width.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 47,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 49,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 53,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 55,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 57,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#body_width"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T06",
+        "name_ru": "Ширина плеч",
+        "name_en": "Across Shoulder",
+        "how_to_measure_ru": "От плечевой точки до плечевой точки по спинке",
+        "measure_kind": "length",
+        "base": {
+          "value": 44.4,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T06"
+        },
+        "tolerance": {
+          "value": 0.6,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#medium.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 42.2,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_shoulder"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 43.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_shoulder"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 45.5,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_shoulder"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 46.6,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_shoulder"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 47.7,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_shoulder"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T07",
+        "name_ru": "Ширина переда",
+        "name_en": "Across Front",
+        "how_to_measure_ru": "На фиксированной высоте 12–15 см от высшей точки плеча, от проймы до проймы",
+        "measure_kind": "length",
+        "base": {
+          "value": 39.3,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T07"
+        },
+        "tolerance": {
+          "value": 0.6,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#medium.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 37.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 38.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 40.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 41.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 42.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          }
+        ],
+        "required": false,
+        "pro_only": false
+      },
+      {
+        "code": "T08",
+        "name_ru": "Ширина спинки",
+        "name_en": "Across Back",
+        "how_to_measure_ru": "На той же высоте, что и ширина переда, от проймы до проймы по спинке",
+        "measure_kind": "length",
+        "base": {
+          "value": 40.3,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T08"
+        },
+        "tolerance": {
+          "value": 0.6,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#medium.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 38.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 39.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 41.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 42.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 43.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#across_body"
+            }
+          }
+        ],
+        "required": false,
+        "pro_only": false
+      },
+      {
+        "code": "T09",
+        "name_ru": "Пройма",
+        "name_en": "Armhole",
+        "how_to_measure_ru": "По кривой шва проймы либо хордой — способ указывается в документе",
+        "measure_kind": "length",
+        "base": {
+          "value": 22.4,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T09"
+        },
+        "tolerance": {
+          "value": 0.6,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#medium.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 21.5,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#armhole"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 22,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#armhole"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 22.9,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#armhole"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 23.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#armhole"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 23.8,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#armhole"
+            }
+          }
+        ],
+        "required": false,
+        "pro_only": false
+      },
+      {
+        "code": "T10",
+        "name_ru": "Длина рукава от плеча",
+        "name_en": "Sleeve Length from Shoulder",
+        "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
+        "measure_kind": "length",
+        "base": {
+          "value": 20.4,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T10"
+        },
+        "tolerance": {
+          "value": 0.6,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#medium.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 19.6,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 20,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 20.8,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 21.2,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 21.6,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T11",
+        "name_ru": "Длина рукава от центра спинки",
+        "name_en": "Sleeve Length from CB",
+        "how_to_measure_ru": "Через плечо от центра спинки до края рукава. Применяется для реглана и спущенного плеча",
+        "measure_kind": "length",
+        "base": {
+          "value": 42.3,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T11"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#length.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 41.5,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 41.9,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 42.7,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 43.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 43.5,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_length"
+            }
+          }
+        ],
+        "required": false,
+        "pro_only": true
+      },
+      {
+        "code": "T12",
+        "name_ru": "Ширина рукава под проймой",
+        "name_en": "Bicep",
+        "how_to_measure_ru": "На 2.5 см ниже проймы, в плоском виде",
+        "measure_kind": "half",
+        "base": {
+          "value": 19.9,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T12"
+        },
+        "tolerance": {
+          "value": 0.6,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#medium.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 16.7,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#bicep"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 18.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#bicep"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 21.5,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#bicep"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 23.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#bicep"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 24.7,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#bicep"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T13",
+        "name_ru": "Низ рукава",
+        "name_en": "Sleeve Opening",
+        "how_to_measure_ru": "По краю рукава в плоском виде, без растяжения",
+        "measure_kind": "half",
+        "base": {
+          "value": 16.8,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T13"
+        },
+        "tolerance": {
+          "value": 0.3,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#minor.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 15.2,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_opening"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 16,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_opening"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 17.6,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_opening"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 18.4,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_opening"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 19.2,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#sleeve_opening"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T14",
+        "name_ru": "Ширина горловины",
+        "name_en": "Neck Width",
+        "how_to_measure_ru": "Между плечевыми швами по линии втачивания горловины",
+        "measure_kind": "length",
+        "base": {
+          "value": 17.8,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T14"
+        },
+        "tolerance": {
+          "value": 0.3,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#minor.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 17,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_width"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 17.4,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_width"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 18.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_width"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 18.7,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_width"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 19.2,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_width"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T15",
+        "name_ru": "Глубина горловины переда",
+        "name_en": "Front Neck Drop",
+        "how_to_measure_ru": "От линии между высшими точками плеч вниз до шва втачивания по центру переда",
+        "measure_kind": "length",
+        "base": {
+          "value": 7.7,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T15"
+        },
+        "tolerance": {
+          "value": 0.3,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#minor.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 7.4,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 7.5,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 7.8,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 8,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 8.1,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T16",
+        "name_ru": "Глубина горловины спинки",
+        "name_en": "Back Neck Drop",
+        "how_to_measure_ru": "От той же линии вниз до шва втачивания по центру спинки",
+        "measure_kind": "length",
+        "base": {
+          "value": 2.6,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T16"
+        },
+        "tolerance": {
+          "value": 0.3,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#minor.knit"
+        },
+        "graded": [
+          {
+            "ru": 42,
+            "value": {
+              "value": 2.3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 44,
+            "value": {
+              "value": 2.4,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 48,
+            "value": {
+              "value": 2.7,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 50,
+            "value": {
+              "value": 2.9,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          },
+          {
+            "ru": 52,
+            "value": {
+              "value": 3,
+              "confidence": "default_from_base",
+              "source": "engine:pom/grading#neck_drop"
+            }
+          }
+        ],
+        "required": true,
+        "pro_only": false
+      },
+      {
+        "code": "T17",
+        "name_ru": "Высота бейки горловины",
+        "name_en": "Neck Rib Height",
+        "how_to_measure_ru": "От шва втачивания бейки до края горловины",
+        "measure_kind": "length",
+        "base": {
+          "value": 2,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T17"
+        },
+        "tolerance": {
+          "value": 0.2,
+          "confidence": "default_from_base",
+          "source": "kb:pom_templates#T17.tolerance_cm"
+        },
+        "graded": [],
+        "required": false,
+        "pro_only": false
+      },
+      {
+        "code": "T18",
+        "name_ru": "Наклон плеча",
+        "name_en": "Shoulder Slope",
+        "how_to_measure_ru": "Вертикаль от линии высших точек плеч до плечевой точки",
+        "measure_kind": "length",
+        "base": {
+          "value": 4.1,
+          "confidence": "default_from_base",
+          "source": "kb:T03×baseline#T18"
+        },
+        "tolerance": {
+          "value": 0.3,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#minor.knit"
+        },
+        "graded": [],
+        "required": false,
+        "pro_only": true
+      }
+    ]
+  },
+  "assets": [],
+  "meta": {
+    "generated_at": "2026-08-25T00:00:00.000Z",
+    "kb_versions": {
+      "pom_templates/tshirt": "0.1.0"
+    },
+    "assumptions_count": 0
+  }
+}

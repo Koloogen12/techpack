@@ -1,0 +1,64 @@
+/**
+ * Пересборка эталонных примеров StyleSpec из движка.
+ *
+ * Примеры служат двум целям: документируют схему и ловят её дрейф —
+ * если движок начнёт выдавать другое, диff в PR это покажет.
+ * Запуск: pnpm stylespec:examples
+ */
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { buildStyleSpec, type StyleSpecInput } from '@specform/assembly';
+
+const DIR = new URL('../examples/', import.meta.url).pathname;
+
+// Время фиксировано: примеры — фикстуры, они не должны меняться от прогона к прогону.
+const AT = new Date('2026-08-25T00:00:00.000Z');
+
+const cases: { file: string; input: StyleSpecInput }[] = [
+  {
+    file: 'tshirt-women-46.json',
+    input: {
+      id: 'example-tshirt-women-46',
+      name: 'Базовая футболка',
+      article: 'TSH-W46-001',
+      brand: 'Пример',
+      season: 'SS26',
+      description: 'Прямая футболка из кулирки, круглая горловина с бейкой',
+      category: 'tshirt',
+      gender: 'women',
+      base_size_ru: 46,
+      base_height_cm: 170,
+      fit_intent: 'semi_fitted',
+      fabric_kind: 'knit',
+      size_range: [42, 44, 46, 48, 50, 52],
+      generated_at: AT,
+    },
+  },
+  {
+    file: 'tshirt-oversize-mixed-confidence.json',
+    input: {
+      id: 'example-tshirt-oversize',
+      name: 'Oversize футболка по фото',
+      article: 'TSH-OS-002',
+      category: 'tshirt',
+      gender: 'women',
+      base_size_ru: 46,
+      base_height_cm: 176,
+      fit_intent: 'oversize',
+      fabric_kind: 'knit',
+      size_range: [44, 46, 48, 50],
+      // Смесь статусов в одном документе: что-то видно с фото, что-то нет,
+      // а T06 намеренно выходит за правдоподобный диапазон и будет ограничен.
+      photo_ratios: { T01: 1.28, T05: 1.05, T10: 0.52, T14: 0.4, T06: 2.4 },
+      manual: { code: 'T01', value_cm: 72 },
+      vision_cache_key: 'a'.repeat(64),
+      generated_at: AT,
+    },
+  },
+];
+
+for (const { file, input } of cases) {
+  const { spec } = buildStyleSpec(input);
+  writeFileSync(join(DIR, file), JSON.stringify(spec, null, 2) + '\n');
+  console.log(`✓ ${file}: ${spec.measurements.points.length} точек`);
+}

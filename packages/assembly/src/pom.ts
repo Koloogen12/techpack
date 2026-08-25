@@ -1,0 +1,297 @@
+import {
+  SpecFormError,
+  clamp,
+  fromBase,
+  roundCm,
+  track,
+  userInput,
+  type Centimeters,
+  type Confidence,
+  type Tracked,
+} from '@specform/core';
+import {
+  kb as defaultKb,
+  type Category,
+  type FabricKind,
+  type FitIntent,
+  type Gender,
+  type KnowledgeBase,
+  type PomPoint,
+} from '@specform/kb';
+import type { GradedValue, Measurements, PomValue } from '@specform/stylespec';
+
+/**
+ * POM-движок: строит табель мер.
+ *
+ * Алгоритм — knowledge-base/03 §5.2. Ключевая идея: абсолютные сантиметры
+ * с одного фото получить нельзя (монокулярная неоднозначность масштаба),
+ * поэтому масштаб приходит от пользователя — базовый размер и посадка, —
+ * а фото даёт только безразмерные пропорции.
+ *
+ *   размер тела по сетке + прибавка на посадку  →  якорь (ширина по груди)
+ *   якорь × пропорция с фото, с клэмпом         →  остальные точки
+ *   класс точки                                  →  допуск
+ *   приращения РФ                                →  градация по ряду
+ *
+ * Дифференциаторы: R1 (якорь от пользователя), R2 (автодопуски),
+ * R3 (автоградация) — TECH-REQUIREMENTS-PIPELINE.md §5.
+ */
+
+export interface ManualMeasurement {
+  /** Код точки, которую пользователь померил рулеткой. */
+  code: string;
+  value_cm: Centimeters;
+}
+
+export interface PomInput {
+  category: Category;
+  gender: Gender;
+  base_size_ru: number;
+  base_height_cm: Centimeters;
+  fit_intent: FitIntent;
+  fabric_kind: FabricKind;
+  /** Размерный ряд, по возрастанию. Обязан содержать базовый размер. */
+  size_range: number[];
+  /**
+   * Безразмерные пропорции с фото: код точки → отношение к якорю.
+   * Пусто для точек, которых на фото не видно, — тогда берётся типовое отношение.
+   */
+  photo_ratios?: Readonly<Record<string, number>>;
+  /**
+   * Один ручной замер линейно калибрует весь масштаб (knowledge-base/03 §5.2).
+   * Самый дешёвый способ поднять точность, поэтому мастер его предлагает.
+   */
+  manual?: ManualMeasurement;
+}
+
+export interface PomResult {
+  measurements: Measurements;
+  /** Что движок решил не молча — уходит в отчёт пользователю и в лог. */
+  notes: string[];
+}
+
+const CALIBRATED_NOTE = 'масштаб откалиброван по вашему замеру';
+
+export function buildMeasurements(input: PomInput, base: KnowledgeBase = defaultKb()): PomResult {
+  const notes: string[] = [];
+  const template = base.pomTemplate(input.category);
+
+  if (!input.size_range.includes(input.base_size_ru)) {
+    throw new SpecFormError(
+      'SPEC_INVALID',
+      `базовый размер ${input.base_size_ru} вне ряда ${input.size_range.join(',')}`,
+      {
+        userMessage: 'Базовый размер не входит в выбранный размерный ряд.',
+        userAction: 'Выберите базовый размер из ряда или расширьте ряд',
+        details: { base: input.base_size_ru, range: input.size_range.join(', ') },
+      },
+    );
+  }
+
+  const anchorPoint = template.points.find((p) => p.derivation === 'anchor');
+  if (!anchorPoint) throw new Error(`шаблон ${input.category} без якоря масштаба`);
+
+  // --- 1. Якорь: обхват тела по сетке + прибавка на посадку --------------------
+  const body = base.bodyMeasurements(input.gender, input.base_size_ru);
+  const ease = base.easeFor(input.category, input.fit_intent, input.fabric_kind);
+
+  if (ease.fallbackFrom) {
+    notes.push(
+      `Для категории «${input.category}» посадка «${ease.fallbackFrom}» не типовая — ` +
+        `взяли «${ease.entry.fit}». Если нужно плотнее, поправьте ширину по груди вручную.`,
+    );
+  }
+
+  // Прибавка задана как ПОЛНЫЙ обхват изделия минус обхват тела,
+  // а якорь — половинный замер: делим на два ровно один раз.
+  const anchorCm = (body.chest + ease.entry.default) / 2;
+
+  // --- 2. Ростовка: длины подтягиваются к росту пользователя -------------------
+  const chart = base.sizeChart(input.gender);
+  const heightSteps = (input.base_height_cm - chart.base_height) / chart.height_step;
+  if (heightSteps !== 0) {
+    notes.push(
+      `Рост ${input.base_height_cm} см против типового ${chart.base_height} см — ` +
+        `длины пересчитаны на ${heightSteps > 0 ? '+' : ''}${roundCm(heightSteps)} ростовки.`,
+    );
+  }
+
+  // --- 3. Значения точек ------------------------------------------------------
+  const raw = new Map<string, Tracked<number>>();
+  for (const point of template.points) {
+    raw.set(point.code, valueFor(point, anchorPoint, anchorCm, heightSteps, input, base));
+  }
+
+  // --- 4. Калибровка по ручному замеру ---------------------------------------
+  const scaled = input.manual ? calibrate(raw, input.manual, notes) : raw;
+
+  // --- 5. Допуски и градация --------------------------------------------------
+  const points: PomValue[] = template.points.map((point) => {
+    const value = scaled.get(point.code)!;
+    return {
+      code: point.code,
+      name_ru: point.name_ru,
+      name_en: point.name_en,
+      how_to_measure_ru: point.how_to_measure_ru,
+      measure_kind: point.measure_kind,
+      base: { ...value, value: roundCm(value.value) },
+      tolerance: toleranceFor(point, input.fabric_kind, base),
+      graded: gradeFor(point, value.value, input, base),
+      required: point.required,
+      pro_only: point.pro_only,
+    };
+  });
+
+  return {
+    measurements: {
+      template_id: template.id,
+      template_version: template.version,
+      points,
+    },
+    notes,
+  };
+}
+
+/** Значение одной точки до калибровки и округления. */
+function valueFor(
+  point: PomPoint,
+  anchorPoint: PomPoint,
+  anchorCm: Centimeters,
+  heightSteps: number,
+  input: PomInput,
+  base: KnowledgeBase,
+): Tracked<number> {
+  if (point.derivation === 'anchor') {
+    return fromBase(
+      anchorCm,
+      `engine:pom/anchor(size=${input.base_size_ru},fit=${input.fit_intent})`,
+      'посчитано из размерной сетки и типовой прибавки на посадку — подтвердить по образцу',
+    );
+  }
+
+  const photoRatio = input.photo_ratios?.[point.code];
+  const baseline = point.baseline_ratio!;
+  const range = point.ratio_range;
+
+  let ratio = baseline;
+  let confidence: Confidence = 'default_from_base';
+  let source = `kb:${anchorPoint.code}×baseline#${point.code}`;
+  let note: string | undefined;
+
+  if (photoRatio !== undefined && point.derivation === 'ratio_to_anchor') {
+    const clamped = range ? clamp(photoRatio, range.min, range.max) : photoRatio;
+    if (clamped !== photoRatio) {
+      // Фото сказало неправдоподобное. Значение теперь не «то, что на фото»,
+      // а граница нашего диапазона — понижаем статус и объясняем.
+      ratio = clamped;
+      note =
+        `оценка по фото (${photoRatio.toFixed(2)}) вышла за правдоподобный диапазон ` +
+        `${range!.min}–${range!.max} и ограничена — проверьте по образцу`;
+      source = `engine:pom/clamped#${point.code}`;
+    } else {
+      ratio = photoRatio;
+      confidence = 'estimated_from_photo';
+      source = `vision:ratio#${point.code}`;
+    }
+  }
+
+  let value = anchorCm * ratio;
+
+  // Ростовка двигает только длины — ширины от роста не зависят.
+  const rule = base.gradingRule(point.grading_key);
+  if (heightSteps !== 0 && rule.per_height !== 0) {
+    value += rule.per_height * heightSteps;
+  }
+
+  return track(value, confidence, source, note);
+}
+
+/**
+ * Линейная калибровка масштаба по одному ручному замеру.
+ *
+ * Пользователь померил одну точку рулеткой — этого достаточно, чтобы
+ * подтянуть все остальные: пропорции между точками мы знаем, не знаем масштаб.
+ */
+function calibrate(
+  raw: ReadonlyMap<string, Tracked<number>>,
+  manual: ManualMeasurement,
+  notes: string[],
+): Map<string, Tracked<number>> {
+  const computed = raw.get(manual.code);
+  if (!computed) {
+    throw new SpecFormError('SPEC_INVALID', `ручной замер для неизвестной точки ${manual.code}`, {
+      userMessage: 'Не нашли точку, для которой вы указали замер.',
+      userAction: 'Выберите точку из таблицы замеров',
+      details: { code: manual.code },
+    });
+  }
+  if (computed.value <= 0) throw new Error(`нулевое расчётное значение в точке ${manual.code}`);
+
+  const factor = manual.value_cm / computed.value;
+  const out = new Map<string, Tracked<number>>();
+
+  for (const [code, value] of raw) {
+    if (code === manual.code) {
+      out.set(code, userInput(manual.value_cm, 'user:wizard.manual_measurement'));
+      continue;
+    }
+    const note = value.note ? `${value.note}; ${CALIBRATED_NOTE}` : CALIBRATED_NOTE;
+    out.set(code, track(value.value * factor, value.confidence, value.source, note));
+  }
+
+  notes.push(
+    `Масштаб откалиброван по вашему замеру точки ${manual.code}: ` +
+      `все значения умножены на ${factor.toFixed(3)}.`,
+  );
+  return out;
+}
+
+/** Допуск точки. Приоритет: явное значение категории > класс точки. */
+function toleranceFor(point: PomPoint, fabric: FabricKind, base: KnowledgeBase): Tracked<number> {
+  if (point.tolerance_cm !== undefined) {
+    return fromBase(point.tolerance_cm, `kb:pom_templates#${point.code}.tolerance_cm`);
+  }
+  return fromBase(
+    base.toleranceFor(point.tolerance_class, fabric),
+    `kb:tolerance_classes#${point.tolerance_class}.${fabric}`,
+  );
+}
+
+/**
+ * Градация по размерному ряду.
+ *
+ * Российский размер равен половине обхвата груди, поэтому один размерный шаг
+ * равен половине шага сетки по обхвату: 46 → 48 это один шаг.
+ */
+function gradeFor(
+  point: PomPoint,
+  baseValue: number,
+  input: PomInput,
+  base: KnowledgeBase,
+): GradedValue[] {
+  const rule = base.gradingRule(point.grading_key);
+  if (rule.per_size === 0) return [];
+
+  const ruPerStep = base.chestStep() / 2;
+  const increment = rule.per_size * (input.fabric_kind === 'knit' ? rule.knit_multiplier : 1);
+
+  return input.size_range
+    .filter((ru) => ru !== input.base_size_ru)
+    .map((ru) => {
+      const steps = (ru - input.base_size_ru) / ruPerStep;
+      return {
+        ru,
+        value: fromBase(
+          roundCm(baseValue + increment * steps),
+          `engine:pom/grading#${point.grading_key}`,
+        ),
+      };
+    });
+}
+
+/** Сколько значений табеля мер требуют подтверждения по образцу. */
+export function countMeasurementAssumptions(measurements: Measurements): number {
+  return measurements.points.filter(
+    (p) => p.base.confidence === 'assumption' || p.tolerance.confidence === 'assumption',
+  ).length;
+}

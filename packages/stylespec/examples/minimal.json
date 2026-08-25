@@ -1,0 +1,50 @@
+{
+  "spec_version": "0.1.0",
+  "style": {
+    "id": "example-minimal",
+    "name": "Минимальный пример",
+    "article": "MIN-0001",
+    "category": "tshirt"
+  },
+  "base": {
+    "gender": "women",
+    "base_size_ru": 46,
+    "base_height_cm": 170,
+    "fit_intent": "semi_fitted",
+    "fabric_kind": "knit",
+    "size_range": [46]
+  },
+  "measurements": {
+    "template_id": "pom_templates/tshirt",
+    "template_version": "0.1.0",
+    "points": [
+      {
+        "code": "T03",
+        "name_ru": "Ширина по груди",
+        "name_en": "Chest 1\" below armhole",
+        "how_to_measure_ru": "На 2.5 см ниже проймы, от шва до шва в плоском виде",
+        "measure_kind": "half",
+        "base": {
+          "value": 51,
+          "confidence": "default_from_base",
+          "source": "engine:pom/anchor(size=46,fit=semi_fitted)",
+          "note": "посчитано из размерной сетки и типовой прибавки на посадку — подтвердить по образцу"
+        },
+        "tolerance": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:tolerance_classes#major_width.knit"
+        },
+        "graded": [],
+        "required": true,
+        "pro_only": false
+      }
+    ]
+  },
+  "assets": [],
+  "meta": {
+    "generated_at": "2026-08-25T00:00:00.000Z",
+    "kb_versions": { "pom_templates/tshirt": "0.1.0" },
+    "assumptions_count": 0
+  }
+}

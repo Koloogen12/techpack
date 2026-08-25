@@ -19,7 +19,8 @@
     "kb:validate": "tsx packages/kb/scripts/validate.ts",
     "stylespec:schema": "tsx packages/stylespec/scripts/emit-json-schema.ts",
     "golden": "vitest run --project golden",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "stylespec:examples": "tsx packages/stylespec/scripts/generate-examples.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

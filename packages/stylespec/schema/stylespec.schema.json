@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StyleSpec 0.1.0",
+  "type": "object",
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "style": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "enum": ["tshirt", "longsleeve", "sweatshirt", "hoodie"]
+        },
+        "brand": {
+          "type": "string"
+        },
+        "season": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "name", "article", "category"],
+      "additionalProperties": false
+    },
+    "base": {
+      "type": "object",
+      "properties": {
+        "gender": {
+          "type": "string",
+          "enum": ["women", "men"]
+        },
+        "base_size_ru": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "base_height_cm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fit_intent": {
+          "type": "string",
+          "enum": ["fitted", "semi_fitted", "loose", "oversize"]
+        },
+        "fabric_kind": {
+          "type": "string",
+          "enum": ["knit", "woven"]
+        },
+        "size_range": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "required": [
+        "gender",
+        "base_size_ru",
+        "base_height_cm",
+        "fit_intent",
+        "fabric_kind",
+        "size_range"
+      ],
+      "additionalProperties": false
+    },
+    "measurements": {
+      "type": "object",
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "template_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "points": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[A-Z]\\d{2}$"
+              },
+              "name_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "how_to_measure_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "measure_kind": {
+                "type": "string",
+                "enum": ["half", "circumference", "length", "angle"]
+              },
+              "base": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "tolerance": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "fit_confirmed",
+                      "user_input",
+                      "estimated_from_photo",
+                      "default_from_base",
+                      "assumption"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["value", "confidence", "source"],
+                "additionalProperties": false
+              },
+              "graded": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "ru": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "value": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "number"
+                        },
+                        "confidence": {
+                          "type": "string",
+                          "enum": [
+                            "fit_confirmed",
+                            "user_input",
+                            "estimated_from_photo",
+                            "default_from_base",
+                            "assumption"
+                          ]
+                        },
+                        "source": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["value", "confidence", "source"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["ru", "value"],
+                  "additionalProperties": false
+                }
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "pro_only": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "code",
+              "name_ru",
+              "name_en",
+              "how_to_measure_ru",
+              "measure_kind",
+              "base",
+              "tolerance",
+              "graded",
+              "required",
+              "pro_only"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["template_id", "template_version", "points"],
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["reference_photo", "flat_svg", "pdf", "sample_photo"]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": ["key", "kind", "sha256"],
+        "additionalProperties": false
+      }
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "vision_cache_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "kb_versions": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "assumptions_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["generated_at", "kb_versions", "assumptions_count"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["spec_version", "style", "base", "measurements", "assets", "meta"],
+  "additionalProperties": false
+}

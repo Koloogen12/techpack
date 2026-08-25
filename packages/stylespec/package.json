@@ -1,0 +1,17 @@
+{
+  "name": "@specform/stylespec",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@specform/core": "workspace:*",
+    "@specform/kb": "workspace:*",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@specform/assembly": "workspace:*"
+  }
+}

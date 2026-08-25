@@ -33,6 +33,21 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@22.20.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12))
 
+  packages/assembly:
+    dependencies:
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@specform/kb':
+        specifier: workspace:*
+        version: link:../kb
+      '@specform/stylespec':
+        specifier: workspace:*
+        version: link:../stylespec
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
   packages/core:
     dependencies:
       zod:
@@ -47,6 +62,22 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  packages/stylespec:
+    dependencies:
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@specform/kb':
+        specifier: workspace:*
+        version: link:../kb
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@specform/assembly':
+        specifier: workspace:*
+        version: link:../assembly
 
 packages:
 
