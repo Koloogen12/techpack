@@ -124,7 +124,7 @@ export class KnowledgeBase {
     const defaults = new Map<Category, CategoryDefaultsFile>();
     // Категории добавляются по мере готовности шаблонов; гейт вне MVP —
     // в мастере, а не здесь: отсутствующий шаблон обязан падать явно.
-    for (const category of ['tshirt'] as const) {
+    for (const category of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
       pom.set(category, loadFile(`pom_templates/${category}.json`, PomTemplateFileSchema));
       defaults.set(
         category,

@@ -48,8 +48,12 @@ export interface FlatPaths {
   seams: string[];
   /** Отделочные строчки. Каждая линия — одна реальная строчка. */
   stitches: string[];
-  /** Рубчик бейки горловины — условное обозначение рибаны. */
+  /** Рубчик отделочных деталей — условное обозначение рибаны. */
   ribs: string[];
+  /** Капюшон: контур и линия лицевого края. Пусто, если капюшона нет. */
+  hood: string[];
+  /** Карман-кенгуру. Пусто, если кармана нет. */
+  pocket: string[];
   /** Линия центра переда или спинки — тонкая, вспомогательная. */
   center: string;
 }
@@ -176,7 +180,93 @@ export function buildPaths(
     ribs.push(`${M(onNeck(t, g.hps.x, neckDrop))} ${L(onNeck(t, bandA, bandB))}`);
   }
 
+  // --- Отделочные детали: манжета и пояс ---------------------------------------
+  // Швы притачивания рисуются поперёк детали, а рубчик — вдоль неё:
+  // так технолог отличает рибану от подгибки без подписи.
+  if (m.waistRibHeight !== undefined) {
+    const y = g.hem.y - m.waistRibHeight;
+    seams.push(`${M({ x: 0, y })} L ${f(g.hem.x)} ${f(y)}`);
+    const step = Math.max(g.hem.x / 14, 0.8);
+    for (let x = step; x < g.hem.x; x += step) {
+      ribs.push(`${M({ x, y })} L ${f(x)} ${f(g.hem.y)}`);
+    }
+  }
+
+  if (m.cuffRibHeight !== undefined) {
+    const back = m.cuffRibHeight;
+    const a = { x: g.sleeveTopEnd.x - dir.x * back, y: g.sleeveTopEnd.y - dir.y * back };
+    const b = { x: a.x + perp.x * m.sleeveOpening, y: a.y + perp.y * m.sleeveOpening };
+    seams.push(`${M(a)} ${L(b)}`);
+    const steps = 7;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const from = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+      const to = { x: from.x + dir.x * back, y: from.y + dir.y * back };
+      ribs.push(`${M(from)} ${L(to)}`);
+    }
+  }
+
+  // --- Капюшон ------------------------------------------------------------------
+  // На техническом чертеже капюшон показывают разложенным ВВЕРХ, за плечами:
+  // иначе он закрывает горловину и спинку, и их не проверить.
+  const hood: string[] = [];
+  if (g.hoodTop && g.hoodSide && m.hoodOpening !== undefined) {
+    const h = -g.hoodTop.y;
+    const side = g.hoodSide.x;
+
+    // Внешний контур: от шва втачивания расширяется у основания,
+    // держит ширину в средней части и скругляется к макушке.
+    const arc = (w: number, top: number, from: Point): string =>
+      `${M(from)} ` +
+      C({ x: w * 1.04, y: -top * 0.3 }, { x: w, y: -top * 0.74 }, { x: w * 0.7, y: -top * 0.95 }) +
+      ' ' +
+      C({ x: w * 0.4, y: -top * 1.02 }, { x: w * 0.17, y: -top }, { x: 0, y: -top });
+
+    hood.push(arc(side, h, { x: g.hps.x, y: 0 }));
+
+    // Лицевой край капюшона: тот же контур, отступя внутрь на ширину кулиски.
+    const inset = Math.min(m.hoodOpening * 0.1, side * 0.35);
+    hood.push(arc(side - inset, h - inset, { x: g.hps.x * 0.92, y: -inset * 0.5 }));
+
+    // Кулиска со шнуром: люверс и свисающий конец у основания лицевого края.
+    // Только на переде — сзади шнур не виден.
+    if (view === 'front') {
+      const eyeletY = -h * 0.08;
+      const eyeletX = (side - inset) * 0.55;
+      hood.push(
+        `${M({ x: eyeletX, y: eyeletY })} m -0.45 0 a 0.45 0.45 0 1 0 0.9 0 a 0.45 0.45 0 1 0 -0.9 0`,
+      );
+      hood.push(
+        `${M({ x: eyeletX, y: eyeletY })} ` +
+          C(
+            { x: eyeletX + 0.6, y: eyeletY + h * 0.14 },
+            { x: eyeletX - 0.4, y: eyeletY + h * 0.24 },
+            { x: eyeletX + 0.3, y: eyeletY + h * 0.34 },
+          ),
+      );
+    }
+  }
+
+  // --- Карман-кенгуру -------------------------------------------------------------
+  // Классическая форма: верхний край от центра, диагональный вход для руки,
+  // внешний край вниз и нижний край обратно к центру. Рисуется половина,
+  // вторая получается зеркалом.
+  const pocket: string[] = [];
+  if (view === 'front' && m.pocketWidth !== undefined && m.pocketHeight !== undefined) {
+    const bottom = g.hem.y - (m.waistRibHeight ?? 2) - 1.5;
+    const top = bottom - m.pocketHeight;
+    const halfWidth = m.pocketWidth / 2;
+    const openingInner = halfWidth * 0.52;
+    const openingDrop = m.pocketHeight * 0.42;
+
+    pocket.push(
+      `${M({ x: 0, y: top })} L ${f(openingInner)} ${f(top)} ` +
+        `L ${f(halfWidth)} ${f(top + openingDrop)} ` +
+        `L ${f(halfWidth)} ${f(bottom)} L 0 ${f(bottom)}`,
+    );
+  }
+
   const center = `${M(g.neckCenter)} L 0 ${f(g.hem.y)}`;
 
-  return { geometry: g, paths: { outline, seams, stitches, ribs, center } };
+  return { geometry: g, paths: { outline, seams, stitches, ribs, hood, pocket, center } };
 }

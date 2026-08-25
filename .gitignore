@@ -17,6 +17,7 @@ Thumbs.db
 /tmp/
 /.cache/
 /storage/
+.claude/
 playwright-report/
 test-results/
 

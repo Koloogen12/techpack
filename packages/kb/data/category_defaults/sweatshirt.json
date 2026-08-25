@@ -1,0 +1,124 @@
+{
+  "id": "category_defaults/sweatshirt",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты свитшота: футер, сборка оверлоком, манжеты и пояс из кашкорсе. Низ изделия и низ рукава не подшиваются, а закрываются отделочной деталью.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#5"
+  ],
+  "category": "sweatshirt",
+  "fabric_kind": "knit",
+  "default_nodes": [
+    "neck_rib_band",
+    "neck_topstitch_tape",
+    "shoulder_seam_overlock",
+    "shoulder_stay_tape",
+    "sleeve_set_in",
+    "side_sleeve_seam",
+    "cuff_rib",
+    "waistband_rib",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "french_terry_2t",
+    "rib": "rib_2x2",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "node_id": "shoulder_seam_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Стачать бейку горловины в кольцо, заутюжить",
+      "node_id": null,
+      "specialty": "M",
+      "machine": "single_needle_lockstitch",
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Втачать бейку в горловину",
+      "node_id": "neck_rib_band",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Отстрочить горловину, настрочить тесьму, вложить размерник",
+      "node_id": "neck_topstitch_tape",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать рукава в проймы",
+      "node_id": "sleeve_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+      "node_id": "side_sleeve_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Стачать манжеты в кольцо и притачать к низу рукавов",
+      "node_id": "cuff_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Стачать пояс в кольцо и притачать к низу изделия",
+      "node_id": "waistband_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Притачать составник в боковой шов",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Чистка изделия, контроль качества",
+      "node_id": null,
+      "specialty": "R",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Влажно-тепловая обработка, упаковка",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1)."
+}

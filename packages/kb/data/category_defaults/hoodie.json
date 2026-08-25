@@ -1,0 +1,159 @@
+{
+  "id": "category_defaults/hoodie",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты худи: футер с начёсом, капюшон из двух частей с кулиской и люверсами, карман-кенгуру с закрепками, манжеты и пояс из кашкорсе. Люверсы и закрепки требуют машин вне базового парка — для обеих подготовлена замена.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#5"
+  ],
+  "category": "hoodie",
+  "fabric_kind": "knit",
+  "default_nodes": [
+    "hood_set_in",
+    "hood_drawcord_casing",
+    "hood_eyelets",
+    "kangaroo_pocket",
+    "pocket_bartack",
+    "shoulder_seam_overlock",
+    "shoulder_stay_tape",
+    "sleeve_set_in",
+    "side_sleeve_seam",
+    "cuff_rib",
+    "waistband_rib",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "french_terry_3t",
+    "rib": "rib_2x2",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Дублировать участки под люверсы",
+      "node_id": null,
+      "specialty": "P",
+      "machine": "fusing_press",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Настрочить карман-кенгуру на перед",
+      "node_id": "kangaroo_pocket",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Поставить закрепки в углах входа в карман",
+      "node_id": "pocket_bartack",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "node_id": "shoulder_seam_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Стачать капюшон и втачать его в горловину",
+      "node_id": "hood_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Обработать лицевой край капюшона кулиской",
+      "node_id": "hood_drawcord_casing",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Установить люверсы в кулиску",
+      "node_id": "hood_eyelets",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Втачать рукава в проймы",
+      "node_id": "sleeve_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+      "node_id": "side_sleeve_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Стачать манжеты в кольцо и притачать к низу рукавов",
+      "node_id": "cuff_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Стачать пояс в кольцо и притачать к низу изделия",
+      "node_id": "waistband_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Вдеть шнур, закрепить наконечники",
+      "node_id": null,
+      "specialty": "R",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Притачать составник в боковой шов",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Чистка изделия, контроль качества",
+      "node_id": null,
+      "specialty": "R",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 15,
+      "operation_ru": "Влажно-тепловая обработка, упаковка",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1)."
+}

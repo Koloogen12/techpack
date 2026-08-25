@@ -43,10 +43,28 @@ export interface RenderOptions {
   margin?: number;
 }
 
-/** Извлечение замеров чертежа из табеля мер. */
+/**
+ * Извлечение замеров чертежа из табеля мер.
+ *
+ * Точки, которых у категории нет, возвращают undefined, а не подставное
+ * значение: у худи горловина закрыта капюшоном, и рисовать ей бейку значило бы
+ * показать фабрике изделие, которого нет.
+ */
 export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
   const value = (code: string, fallback: number): number =>
     spec.measurements.points.find((p) => p.code === code)?.base.value ?? fallback;
+  const optional = (code: string): number | undefined =>
+    spec.measurements.points.find((p) => p.code === code)?.base.value;
+
+  const detail = {
+    cuffRibHeight: optional('H08'),
+    waistRibHeight: optional('H07'),
+    hoodHeight: optional('H01'),
+    hoodWidth: optional('H02'),
+    hoodOpening: optional('H03'),
+    pocketWidth: optional('H04'),
+    pocketHeight: optional('H05'),
+  };
 
   return {
     bodyLength: value('T01', 70),
@@ -63,6 +81,8 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     backNeckDrop: value('T16', 2.5),
     neckRibHeight: value('T17', 2),
     shoulderSlope: value('T18', 4),
+    // Ключи с undefined не добавляются: их отсутствие — значимая информация.
+    ...Object.fromEntries(Object.entries(detail).filter(([, v]) => v !== undefined)),
   };
 }
 
@@ -77,8 +97,9 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
   const { geometry, paths } = buildPaths(m, options.view, options.paths ?? DEFAULT_PATH_OPTIONS);
 
   const halfWidth = geometry.bounds.width + margin;
-  const height = geometry.bounds.height + margin * 2;
-  const viewBox = `${-halfWidth} ${-margin} ${halfWidth * 2} ${height}`;
+  const top = geometry.bounds.top - margin;
+  const height = geometry.bounds.bottom - geometry.bounds.top + margin * 2;
+  const viewBox = `${-halfWidth} ${top} ${halfWidth * 2} ${height}`;
 
   // Правая половина рисуется один раз, левая — зеркалом: симметрия точная
   // по построению, а не по совпадению чисел (knowledge-base/02 §6, правило 2).
@@ -94,12 +115,19 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     `<path d="${d}" fill="none" stroke="currentColor" stroke-width="${width}"` +
     ` stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
 
-  const outline = layer('outline', half(path(paths.outline, STROKE.outline)));
+  const outline = layer(
+    'outline',
+    half(
+      path(paths.outline, STROKE.outline) + paths.hood.map((d) => path(d, STROKE.outline)).join(''),
+    ),
+  );
 
   const seams = layer(
     'seams',
     half(
       paths.seams.map((d) => path(d, STROKE.seam)).join('') +
+        // Карман настрочной: его край — видимый шов, а не отстрочка.
+        paths.pocket.map((d) => path(d, STROKE.seam)).join('') +
         paths.ribs.map((d) => path(d, STROKE.hidden)).join(''),
     ) + path(paths.center, STROKE.center, '1.2 0.8'),
   );

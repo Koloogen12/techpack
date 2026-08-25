@@ -44,6 +44,15 @@ const SANE_CM: Record<string, [number, number]> = {
   T16: [0.5, 12],
   T17: [0.5, 8],
   T18: [1, 12],
+  // Точки капюшона и кармана — только у худи и свитшота.
+  H01: [22, 58],
+  H02: [14, 48],
+  H03: [25, 70],
+  H04: [22, 62],
+  H05: [10, 34],
+  H06: [9, 32],
+  H07: [3, 14],
+  H08: [3, 14],
 };
 
 export function checkSpec(spec: StyleSpec): Violation[] {
@@ -135,6 +144,26 @@ export function checkSpec(spec: StyleSpec): Violation[] {
         );
       }
     }
+  }
+
+  const hoodWidth = byCode.get('H02');
+  const hoodOpening = byCode.get('H03');
+  if (hoodWidth !== undefined && hoodOpening !== undefined && hoodOpening <= hoodWidth) {
+    fail(
+      'пропорции изделия',
+      `лицевой край капюшона (${hoodOpening}) не длиннее его ширины (${hoodWidth})`,
+    );
+  }
+
+  const pocketWidth = byCode.get('H04');
+  if (pocketWidth !== undefined && chest !== undefined && pocketWidth >= chest) {
+    fail('пропорции изделия', `карман (${pocketWidth}) шире изделия по груди (${chest})`);
+  }
+
+  const pocketHeight = byCode.get('H05');
+  const bodyLength = byCode.get('T01');
+  if (pocketHeight !== undefined && bodyLength !== undefined && pocketHeight >= bodyLength * 0.6) {
+    fail('пропорции изделия', `карман (${pocketHeight}) занимает больше половины длины изделия`);
   }
 
   const frontDrop = byCode.get('T15');

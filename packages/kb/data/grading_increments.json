@@ -176,6 +176,34 @@
       "knit_multiplier": 1.0,
       "verified": true,
       "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.1"
+    },
+    {
+      "key": "hood",
+      "label_ru": "Капюшон",
+      "per_size": 0.5,
+      "per_size_range": {
+        "min": 0.3,
+        "max": 0.8
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Прямого значения в базе знаний нет — приращение выведено по аналогии с близкими точками: капюшон и карман растут вместе с размером, но заметно медленнее ширины корпуса. Выверить на отшивах."
+    },
+    {
+      "key": "pocket",
+      "label_ru": "Карман кенгуру",
+      "per_size": 0.8,
+      "per_size_range": {
+        "min": 0.5,
+        "max": 1.2
+      },
+      "per_height": 0,
+      "knit_multiplier": 1.0,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#4.2",
+      "gap": "Прямого значения в базе знаний нет — приращение выведено по аналогии с близкими точками: капюшон и карман растут вместе с размером, но заметно медленнее ширины корпуса. Выверить на отшивах."
     }
   ]
 }

@@ -1,15 +1,13 @@
 {
-  "id": "pom_templates/tshirt",
+  "id": "pom_templates/longsleeve",
   "version": "0.1.0",
-  "description": "Шаблон точек измерения футболки, 18 точек. Табель мер — главный документ приёмки: по нему работает ОТК фабрики (knowledge-base/07 §6). Якорь масштаба — ширина по груди (T03): она считается из размерной сетки тела и прибавки, остальные точки получаются умножением якоря на безразмерное отношение с фото с клэмпом в правдоподобный диапазон. Абсолютные сантиметры с одного фото получить нельзя (монокулярная неоднозначность масштаба) — поэтому масштаб приходит от пользователя, а не из снимка.",
+  "description": "Шаблон точек измерения лонгслива, 18 точек. Отличается от футболки длиной рукава и его низом: рукав идёт до запястья, поэтому и приращение на ростовку берётся по правилу длинного рукава, а не короткого.",
   "sources": [
+    "knowledge-base/03-pom-razmery-gradaciya.md#2.2",
     "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
-    "knowledge-base/03-pom-razmery-gradaciya.md#5.2",
-    "https://apparel.wiki/blog/measure-garment-standard-pom/",
-    "ASTM D5219",
-    "ISO 8559"
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6"
   ],
-  "category": "tshirt",
+  "category": "longsleeve",
   "fabric": "knit",
   "points": [
     {
@@ -200,16 +198,16 @@
       "code": "T10",
       "name_en": "Sleeve Length from Shoulder",
       "name_ru": "Длина рукава от плеча",
-      "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
+      "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края манжеты",
       "measure_kind": "length",
       "tolerance_class": "medium",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.119,
+      "baseline_ratio": 0.341,
       "ratio_range": {
-        "min": 0.077,
-        "max": 0.167
+        "min": 0.222,
+        "max": 0.477
       },
-      "grading_key": "sleeve_length_short",
+      "grading_key": "sleeve_length",
       "required": true,
       "pro_only": false,
       "verified": false,
@@ -225,7 +223,7 @@
       "measure_kind": "length",
       "tolerance_class": "length",
       "derivation": "composed",
-      "grading_key": "sleeve_length_short",
+      "grading_key": "sleeve_length",
       "required": false,
       "pro_only": true,
       "verified": false,
@@ -271,10 +269,10 @@
       "measure_kind": "half",
       "tolerance_class": "minor",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.33,
+      "baseline_ratio": 0.24,
       "ratio_range": {
-        "min": 0.22,
-        "max": 0.48
+        "min": 0.15,
+        "max": 0.35
       },
       "grading_key": "sleeve_opening",
       "required": true,

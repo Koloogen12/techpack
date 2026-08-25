@@ -134,6 +134,13 @@ importers:
       '@specform/stylespec':
         specifier: workspace:*
         version: link:../stylespec
+    devDependencies:
+      '@specform/assembly':
+        specifier: workspace:*
+        version: link:../assembly
+      '@specform/kb':
+        specifier: workspace:*
+        version: link:../kb
 
   packages/kb:
     dependencies:

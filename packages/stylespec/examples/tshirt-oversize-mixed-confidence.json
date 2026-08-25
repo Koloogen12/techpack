@@ -12,7 +12,12 @@
     "base_height_cm": 176,
     "fit_intent": "oversize",
     "fabric_kind": "knit",
-    "size_range": [44, 46, 48, 50]
+    "size_range": [
+      44,
+      46,
+      48,
+      50
+    ]
   },
   "measurements": {
     "template_id": "pom_templates/tshirt",
@@ -70,9 +75,9 @@
         "how_to_measure_ru": "От шва горловины по центру спинки до края низа",
         "measure_kind": "length",
         "base": {
-          "value": 81.2,
+          "value": 62.6,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T02",
+          "source": "kb:baseline#T02",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -84,7 +89,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 80.4,
+              "value": 61.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -92,7 +97,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 81.9,
+              "value": 63.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -100,7 +105,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 82.7,
+              "value": 64.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -116,7 +121,7 @@
         "how_to_measure_ru": "На 2.5 см ниже проймы, от шва до шва в плоском виде",
         "measure_kind": "half",
         "base": {
-          "value": 72.7,
+          "value": 56.3,
           "confidence": "default_from_base",
           "source": "engine:pom/anchor(size=46,fit=oversize)",
           "note": "посчитано из размерной сетки и типовой прибавки на посадку — подтвердить по образцу; масштаб откалиброван по вашему замеру"
@@ -130,7 +135,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 70.7,
+              "value": 54.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -138,7 +143,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 74.7,
+              "value": 58.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -146,7 +151,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 76.7,
+              "value": 60.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -162,9 +167,9 @@
         "how_to_measure_ru": "В самой узкой точке либо на фиксированном расстоянии от высшей точки плеча",
         "measure_kind": "half",
         "base": {
-          "value": 69.8,
+          "value": 54,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T04",
+          "source": "kb:baseline#T04",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -176,7 +181,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 67.8,
+              "value": 52,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -184,7 +189,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 71.8,
+              "value": 56,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -192,7 +197,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 73.8,
+              "value": 58,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -208,7 +213,7 @@
         "how_to_measure_ru": "По краю низа, от сгиба до сгиба в плоском виде",
         "measure_kind": "half",
         "base": {
-          "value": 76.4,
+          "value": 59.1,
           "confidence": "estimated_from_photo",
           "source": "vision:ratio#T05",
           "note": "масштаб откалиброван по вашему замеру"
@@ -222,7 +227,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 74.4,
+              "value": 57.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -230,7 +235,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 78.4,
+              "value": 61.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -238,7 +243,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 80.4,
+              "value": 63.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_width"
             }
@@ -254,10 +259,10 @@
         "how_to_measure_ru": "От плечевой точки до плечевой точки по спинке",
         "measure_kind": "length",
         "base": {
-          "value": 76.4,
+          "value": 59.1,
           "confidence": "default_from_base",
           "source": "engine:pom/clamped#T06",
-          "note": "оценка по фото (2.40) вышла за правдоподобный диапазон 0.7–1.05 и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
+          "note": "оценка по фото (148.8 см) вышла за правдоподобный диапазон 43.4–65.1 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
           "value": 0.6,
@@ -268,7 +273,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 75.3,
+              "value": 58,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -276,7 +281,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 77.5,
+              "value": 60.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -284,7 +289,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 78.6,
+              "value": 61.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -300,9 +305,9 @@
         "how_to_measure_ru": "На фиксированной высоте 12–15 см от высшей точки плеча, от проймы до проймы",
         "measure_kind": "length",
         "base": {
-          "value": 56,
+          "value": 43.3,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T07",
+          "source": "kb:baseline#T07",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -314,7 +319,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 55,
+              "value": 42.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_body"
             }
@@ -322,7 +327,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 57,
+              "value": 44.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_body"
             }
@@ -330,7 +335,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 58,
+              "value": 45.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_body"
             }
@@ -346,9 +351,9 @@
         "how_to_measure_ru": "На той же высоте, что и ширина переда, от проймы до проймы по спинке",
         "measure_kind": "length",
         "base": {
-          "value": 57.5,
+          "value": 44.4,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T08",
+          "source": "kb:baseline#T08",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -360,7 +365,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 56.5,
+              "value": 43.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_body"
             }
@@ -368,7 +373,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 58.5,
+              "value": 45.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_body"
             }
@@ -376,7 +381,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 59.5,
+              "value": 46.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_body"
             }
@@ -392,9 +397,9 @@
         "how_to_measure_ru": "По кривой шва проймы либо хордой — способ указывается в документе",
         "measure_kind": "length",
         "base": {
-          "value": 32,
+          "value": 24.8,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T09",
+          "source": "kb:baseline#T09",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -406,7 +411,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 31.6,
+              "value": 24.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#armhole"
             }
@@ -414,7 +419,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 32.4,
+              "value": 25.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#armhole"
             }
@@ -422,7 +427,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 32.9,
+              "value": 25.7,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#armhole"
             }
@@ -438,10 +443,10 @@
         "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
         "measure_kind": "length",
         "base": {
-          "value": 28.5,
-          "confidence": "estimated_from_photo",
-          "source": "vision:ratio#T10",
-          "note": "масштаб откалиброван по вашему замеру"
+          "value": 26.7,
+          "confidence": "default_from_base",
+          "source": "engine:pom/clamped#T10",
+          "note": "оценка по фото (32.2 см) вышла за правдоподобный диапазон 13.6–29.4 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
           "value": 0.6,
@@ -452,7 +457,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 28.1,
+              "value": 26.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -460,7 +465,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 28.9,
+              "value": 27.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -468,7 +473,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 29.3,
+              "value": 27.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -484,7 +489,7 @@
         "how_to_measure_ru": "Через плечо от центра спинки до края рукава. Применяется для реглана и спущенного плеча",
         "measure_kind": "length",
         "base": {
-          "value": 66.7,
+          "value": 56.2,
           "confidence": "default_from_base",
           "source": "engine:pom/composed(0.5×T06+1×T10)",
           "note": "масштаб откалиброван по вашему замеру"
@@ -498,7 +503,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 66.3,
+              "value": 55.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -506,7 +511,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 67.1,
+              "value": 56.6,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -514,7 +519,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 67.5,
+              "value": 57,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_length_short"
             }
@@ -530,9 +535,9 @@
         "how_to_measure_ru": "На 2.5 см ниже проймы, в плоском виде",
         "measure_kind": "half",
         "base": {
-          "value": 28.4,
+          "value": 21.9,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T12",
+          "source": "kb:baseline#T12",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -544,7 +549,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 26.8,
+              "value": 20.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#bicep"
             }
@@ -552,7 +557,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 30,
+              "value": 23.5,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#bicep"
             }
@@ -560,7 +565,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 31.6,
+              "value": 25.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#bicep"
             }
@@ -576,9 +581,9 @@
         "how_to_measure_ru": "По краю рукава в плоском виде, без растяжения",
         "measure_kind": "half",
         "base": {
-          "value": 24,
+          "value": 18.6,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T13",
+          "source": "kb:baseline#T13",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -590,7 +595,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 23.2,
+              "value": 17.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_opening"
             }
@@ -598,7 +603,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 24.8,
+              "value": 19.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_opening"
             }
@@ -606,7 +611,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 25.6,
+              "value": 20.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#sleeve_opening"
             }
@@ -622,10 +627,10 @@
         "how_to_measure_ru": "Между плечевыми швами по линии втачивания горловины",
         "measure_kind": "length",
         "base": {
-          "value": 21.6,
-          "confidence": "estimated_from_photo",
-          "source": "vision:ratio#T14",
-          "note": "масштаб откалиброван по вашему замеру"
+          "value": 22.1,
+          "confidence": "default_from_base",
+          "source": "engine:pom/clamped#T14",
+          "note": "оценка по фото (24.8 см) вышла за правдоподобный диапазон 13.3–24.4 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
           "value": 0.3,
@@ -636,7 +641,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 21.1,
+              "value": 21.7,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -644,7 +649,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 22,
+              "value": 22.6,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -652,7 +657,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 22.5,
+              "value": 23,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_width"
             }
@@ -668,9 +673,9 @@
         "how_to_measure_ru": "От линии между высшими точками плеч вниз до шва втачивания по центру переда",
         "measure_kind": "length",
         "base": {
-          "value": 9.2,
+          "value": 7.1,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T15",
+          "source": "kb:baseline#T15",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -682,7 +687,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 9,
+              "value": 6.9,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -690,7 +695,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 9.3,
+              "value": 7.2,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -698,7 +703,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 9.5,
+              "value": 7.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -714,9 +719,9 @@
         "how_to_measure_ru": "От той же линии вниз до шва втачивания по центру спинки",
         "measure_kind": "length",
         "base": {
-          "value": 3.2,
+          "value": 2.5,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T16",
+          "source": "kb:baseline#T16",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -728,7 +733,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 3.1,
+              "value": 2.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -736,7 +741,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 3.4,
+              "value": 2.7,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -744,7 +749,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 3.5,
+              "value": 2.8,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#neck_drop"
             }
@@ -760,9 +765,9 @@
         "how_to_measure_ru": "От шва втачивания бейки до края горловины",
         "measure_kind": "length",
         "base": {
-          "value": 2.2,
+          "value": 1.7,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T17",
+          "source": "kb:baseline#T17",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -781,9 +786,9 @@
         "how_to_measure_ru": "Вертикаль от линии высших точек плеч до плечевой точки",
         "measure_kind": "length",
         "base": {
-          "value": 4.9,
+          "value": 3.8,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T18",
+          "source": "kb:baseline#T18",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {

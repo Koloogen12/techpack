@@ -15,7 +15,14 @@
     "base_height_cm": 170,
     "fit_intent": "semi_fitted",
     "fabric_kind": "knit",
-    "size_range": [42, 44, 46, 48, 50, 52]
+    "size_range": [
+      42,
+      44,
+      46,
+      48,
+      50,
+      52
+    ]
   },
   "measurements": {
     "template_id": "pom_templates/tshirt",
@@ -30,7 +37,7 @@
         "base": {
           "value": 69,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T01"
+          "source": "kb:baseline#T01"
         },
         "tolerance": {
           "value": 1,
@@ -89,9 +96,9 @@
         "how_to_measure_ru": "От шва горловины по центру спинки до края низа",
         "measure_kind": "length",
         "base": {
-          "value": 66.7,
+          "value": 66.6,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T02"
+          "source": "kb:baseline#T02"
         },
         "tolerance": {
           "value": 1,
@@ -102,7 +109,7 @@
           {
             "ru": 42,
             "value": {
-              "value": 65.2,
+              "value": 65.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -110,7 +117,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 66,
+              "value": 65.9,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -118,7 +125,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 67.5,
+              "value": 67.4,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -126,7 +133,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 68.2,
+              "value": 68.1,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -134,7 +141,7 @@
           {
             "ru": 52,
             "value": {
-              "value": 69,
+              "value": 68.9,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#body_length"
             }
@@ -214,7 +221,7 @@
         "base": {
           "value": 49,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T04"
+          "source": "kb:baseline#T04"
         },
         "tolerance": {
           "value": 1,
@@ -275,7 +282,7 @@
         "base": {
           "value": 51,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T05"
+          "source": "kb:baseline#T05"
         },
         "tolerance": {
           "value": 1,
@@ -336,7 +343,7 @@
         "base": {
           "value": 44.4,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T06"
+          "source": "kb:baseline#T06"
         },
         "tolerance": {
           "value": 0.6,
@@ -397,7 +404,7 @@
         "base": {
           "value": 39.3,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T07"
+          "source": "kb:baseline#T07"
         },
         "tolerance": {
           "value": 0.6,
@@ -458,7 +465,7 @@
         "base": {
           "value": 40.3,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T08"
+          "source": "kb:baseline#T08"
         },
         "tolerance": {
           "value": 0.6,
@@ -519,7 +526,7 @@
         "base": {
           "value": 22.4,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T09"
+          "source": "kb:baseline#T09"
         },
         "tolerance": {
           "value": 0.6,
@@ -580,7 +587,7 @@
         "base": {
           "value": 20.2,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T10"
+          "source": "kb:baseline#T10"
         },
         "tolerance": {
           "value": 0.6,
@@ -702,7 +709,7 @@
         "base": {
           "value": 19.9,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T12"
+          "source": "kb:baseline#T12"
         },
         "tolerance": {
           "value": 0.6,
@@ -763,7 +770,7 @@
         "base": {
           "value": 16.8,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T13"
+          "source": "kb:baseline#T13"
         },
         "tolerance": {
           "value": 0.3,
@@ -824,7 +831,7 @@
         "base": {
           "value": 17.9,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T14"
+          "source": "kb:baseline#T14"
         },
         "tolerance": {
           "value": 0.3,
@@ -885,7 +892,7 @@
         "base": {
           "value": 7.8,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T15"
+          "source": "kb:baseline#T15"
         },
         "tolerance": {
           "value": 0.3,
@@ -946,7 +953,7 @@
         "base": {
           "value": 2.8,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T16"
+          "source": "kb:baseline#T16"
         },
         "tolerance": {
           "value": 0.3,
@@ -1007,7 +1014,7 @@
         "base": {
           "value": 1.8,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T17"
+          "source": "kb:baseline#T17"
         },
         "tolerance": {
           "value": 0.2,
@@ -1027,7 +1034,7 @@
         "base": {
           "value": 4.1,
           "confidence": "default_from_base",
-          "source": "kb:T03×baseline#T18"
+          "source": "kb:baseline#T18"
         },
         "tolerance": {
           "value": 0.3,

@@ -1,15 +1,13 @@
 {
-  "id": "pom_templates/tshirt",
+  "id": "pom_templates/sweatshirt",
   "version": "0.1.0",
-  "description": "Шаблон точек измерения футболки, 18 точек. Табель мер — главный документ приёмки: по нему работает ОТК фабрики (knowledge-base/07 §6). Якорь масштаба — ширина по груди (T03): она считается из размерной сетки тела и прибавки, остальные точки получаются умножением якоря на безразмерное отношение с фото с клэмпом в правдоподобный диапазон. Абсолютные сантиметры с одного фото получить нельзя (монокулярная неоднозначность масштаба) — поэтому масштаб приходит от пользователя, а не из снимка.",
+  "description": "Шаблон точек измерения свитшота, 20 точек. Лонгслив с манжетами и поясом из рибаны: низ изделия и низ рукава меряются по краю отделочной детали в нерастянутом виде, а высота самой детали выносится отдельными точками.",
   "sources": [
+    "knowledge-base/03-pom-razmery-gradaciya.md#2.2",
     "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
-    "knowledge-base/03-pom-razmery-gradaciya.md#5.2",
-    "https://apparel.wiki/blog/measure-garment-standard-pom/",
-    "ASTM D5219",
-    "ISO 8559"
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6"
   ],
-  "category": "tshirt",
+  "category": "sweatshirt",
   "fabric": "knit",
   "points": [
     {
@@ -20,10 +18,10 @@
       "measure_kind": "length",
       "tolerance_class": "length",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.406,
+      "baseline_ratio": 0.384,
       "ratio_range": {
-        "min": 0.264,
-        "max": 0.568
+        "min": 0.25,
+        "max": 0.538
       },
       "grading_key": "body_length",
       "required": true,
@@ -41,10 +39,10 @@
       "measure_kind": "length",
       "tolerance_class": "length",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.392,
+      "baseline_ratio": 0.371,
       "ratio_range": {
-        "min": 0.255,
-        "max": 0.549
+        "min": 0.241,
+        "max": 0.519
       },
       "grading_key": "body_length",
       "required": false,
@@ -94,15 +92,15 @@
     {
       "code": "T05",
       "name_en": "Bottom Sweep",
-      "name_ru": "Ширина по низу",
-      "how_to_measure_ru": "По краю низа, от сгиба до сгиба в плоском виде",
+      "name_ru": "Ширина по низу (по поясу-рибане)",
+      "how_to_measure_ru": "По нижнему краю пояса-рибаны в плоском виде, без растяжения",
       "measure_kind": "half",
       "tolerance_class": "major_width",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 1.0,
+      "baseline_ratio": 0.88,
       "ratio_range": {
-        "min": 0.88,
-        "max": 1.12
+        "min": 0.74,
+        "max": 1.02
       },
       "grading_key": "body_width",
       "required": true,
@@ -200,16 +198,16 @@
       "code": "T10",
       "name_en": "Sleeve Length from Shoulder",
       "name_ru": "Длина рукава от плеча",
-      "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края",
+      "how_to_measure_ru": "От плечевой точки по верхнему сгибу рукава до края манжеты",
       "measure_kind": "length",
       "tolerance_class": "medium",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.119,
+      "baseline_ratio": 0.341,
       "ratio_range": {
-        "min": 0.077,
-        "max": 0.167
+        "min": 0.222,
+        "max": 0.477
       },
-      "grading_key": "sleeve_length_short",
+      "grading_key": "sleeve_length",
       "required": true,
       "pro_only": false,
       "verified": false,
@@ -225,7 +223,7 @@
       "measure_kind": "length",
       "tolerance_class": "length",
       "derivation": "composed",
-      "grading_key": "sleeve_length_short",
+      "grading_key": "sleeve_length",
       "required": false,
       "pro_only": true,
       "verified": false,
@@ -266,15 +264,15 @@
     {
       "code": "T13",
       "name_en": "Sleeve Opening",
-      "name_ru": "Низ рукава",
-      "how_to_measure_ru": "По краю рукава в плоском виде, без растяжения",
+      "name_ru": "Низ рукава (по манжете)",
+      "how_to_measure_ru": "По краю манжеты в плоском виде, без растяжения",
       "measure_kind": "half",
       "tolerance_class": "minor",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.33,
+      "baseline_ratio": 0.17,
       "ratio_range": {
-        "min": 0.22,
-        "max": 0.48
+        "min": 0.11,
+        "max": 0.26
       },
       "grading_key": "sleeve_opening",
       "required": true,
@@ -292,10 +290,10 @@
       "measure_kind": "length",
       "tolerance_class": "minor",
       "derivation": "ratio_to_anchor",
-      "baseline_ratio": 0.39,
+      "baseline_ratio": 0.43,
       "ratio_range": {
-        "min": 0.29,
-        "max": 0.53
+        "min": 0.32,
+        "max": 0.58
       },
       "grading_key": "neck_width",
       "required": true,
@@ -389,6 +387,50 @@
       "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.1",
       "gap": "Названия, способ измерения и допуск взяты из базы знаний дословно. Не проверено отношение к якорю. Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно это значение подставляется, когда фото не дало пропорцию, поэтому оно попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и по первым отшивам (RAT-3). ОТДЕЛЬНО: отношения сейчас не зависят от пола, хотя реальные пропорции у женских и мужских изделий разные — ширина плеч и длина в женской линейке заметно меньше. Первый прогон на размере 46 даёт плечи 44.4 см при типовых для женского M 38–42. Разделить отношения по полу после получения голден-сета с реальными замерами. ОТДЕЛЬНО про привязку: величина следует за телом, а не за шириной изделия. Пока было наоборот, oversize удлинял футболку вместе с расширением, и мужская RU 56 выходила длиной 102 см.",
       "anchor_basis": "body"
+    },
+    {
+      "code": "H07",
+      "name_en": "Bottom Rib Height",
+      "name_ru": "Высота пояса-рибаны",
+      "how_to_measure_ru": "От шва притачивания пояса до нижнего края изделия",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "tolerance_cm": 0.3,
+      "derivation": "ratio_to_anchor",
+      "anchor_basis": "body",
+      "baseline_ratio": 0.13,
+      "ratio_range": {
+        "min": 0.07,
+        "max": 0.22
+      },
+      "grading_key": "none",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.2",
+      "gap": "Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно оно подставляется, когда фото не дало пропорцию, поэтому попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и первым отшивам. Отношения пока не зависят от пола."
+    },
+    {
+      "code": "H08",
+      "name_en": "Cuff Rib Height",
+      "name_ru": "Высота манжеты",
+      "how_to_measure_ru": "От шва притачивания манжеты до края рукава",
+      "measure_kind": "length",
+      "tolerance_class": "minor",
+      "tolerance_cm": 0.3,
+      "derivation": "ratio_to_anchor",
+      "anchor_basis": "body",
+      "baseline_ratio": 0.13,
+      "ratio_range": {
+        "min": 0.07,
+        "max": 0.22
+      },
+      "grading_key": "none",
+      "required": false,
+      "pro_only": false,
+      "verified": false,
+      "source": "knowledge-base/03-pom-razmery-gradaciya.md#2.2",
+      "gap": "Отношение к якорю — инженерная оценка по типовым пропорциям трикотажного изделия размера M, а не норматив. Именно оно подставляется, когда фото не дало пропорцию, поэтому попадает в документ со статусом «типовое значение». Калибровать по реальным size charts брендов и первым отшивам. Отношения пока не зависят от пола."
     }
   ]
 }

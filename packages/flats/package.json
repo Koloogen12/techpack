@@ -9,5 +9,9 @@
   "dependencies": {
     "@specform/core": "workspace:*",
     "@specform/stylespec": "workspace:*"
+  },
+  "devDependencies": {
+    "@specform/assembly": "workspace:*",
+    "@specform/kb": "workspace:*"
   }
 }

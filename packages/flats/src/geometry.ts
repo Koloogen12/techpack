@@ -58,6 +58,22 @@ export interface FlatMeasurements {
   neckRibHeight: Centimeters;
   /** T18 наклон плеча — вертикаль от линии высших точек до плечевой точки. */
   shoulderSlope: Centimeters;
+
+  // --- Детали, которых нет у футболки ----------------------------------------
+  /** H08 высота манжеты. Пусто — низ рукава подшит, а не закрыт манжетой. */
+  cuffRibHeight?: Centimeters;
+  /** H07 высота пояса-рибаны. Пусто — низ подшит. */
+  waistRibHeight?: Centimeters;
+  /** H01 высота капюшона от шва втачивания. */
+  hoodHeight?: Centimeters;
+  /** H02 ширина капюшона в самом широком месте. */
+  hoodWidth?: Centimeters;
+  /** H03 лицевой край капюшона. */
+  hoodOpening?: Centimeters;
+  /** H04 ширина кармана кенгуру по верхнему краю. */
+  pocketWidth?: Centimeters;
+  /** H05 высота кармана кенгуру. */
+  pocketHeight?: Centimeters;
 }
 
 export interface FlatGeometry {
@@ -78,8 +94,18 @@ export interface FlatGeometry {
   sleeveBottomEnd: Point;
   /** Угол рукава к горизонтали, радианы. Выведен из ширины рукава под проймой. */
   sleeveAngle: number;
-  /** Габариты половины чертежа: от центра до крайней точки. */
-  bounds: { width: number; height: number };
+  /** Верхняя точка капюшона по центру. Пусто, если капюшона нет. */
+  hoodTop?: Point;
+  /** Внешняя точка капюшона в самом широком месте. */
+  hoodSide?: Point;
+  /**
+   * Габариты половины чертежа.
+   *
+   * top отрицателен, когда деталь выходит ВЫШЕ линии плеч — так бывает
+   * у капюшона. Раньше высота считалась одним числом, и капюшон уезжал
+   * за верхний край видимой области: он рисовался, но его не было видно.
+   */
+  bounds: { width: number; top: number; bottom: number };
 }
 
 /** Талия по вертикали — доля длины изделия. Пропорция флэта, не замер. */
@@ -134,8 +160,22 @@ export function buildGeometry(m: FlatMeasurements, view: 'front' | 'back'): Flat
     y: sleeveTopEnd.y + perp.y * m.sleeveOpening,
   };
 
-  const width = Math.max(chestHalf, hemHalf, sleeveTopEnd.x, sleeveBottomEnd.x);
-  const height = Math.max(m.bodyLength, sleeveBottomEnd.y, sleeveTopEnd.y);
+  // --- Капюшон -----------------------------------------------------------------
+  // Рисуется НАД линией плеч: на техническом чертеже капюшон показывают
+  // разложенным вверх, иначе он закрывает горловину и спинку.
+  let hoodTop: Point | undefined;
+  let hoodSide: Point | undefined;
+  if (m.hoodHeight !== undefined && m.hoodWidth !== undefined) {
+    // Капюшон не может быть уже горловины, к которой пришит: если замер
+    // говорит иначе, чертёж всё равно обязан остаться читаемым.
+    const half = Math.max(m.hoodWidth / 2, neckHalf * 1.55);
+    hoodTop = { x: 0, y: -m.hoodHeight };
+    hoodSide = { x: half, y: -m.hoodHeight * 0.55 };
+  }
+
+  const width = Math.max(chestHalf, hemHalf, sleeveTopEnd.x, sleeveBottomEnd.x, hoodSide?.x ?? 0);
+  const top = Math.min(0, hoodTop?.y ?? 0, sleeveTopEnd.y);
+  const bottom = Math.max(m.bodyLength, sleeveBottomEnd.y, sleeveTopEnd.y);
 
   return {
     hps,
@@ -148,7 +188,9 @@ export function buildGeometry(m: FlatMeasurements, view: 'front' | 'back'): Flat
     sleeveTopEnd,
     sleeveBottomEnd,
     sleeveAngle,
-    bounds: { width, height },
+    ...(hoodTop ? { hoodTop } : {}),
+    ...(hoodSide ? { hoodSide } : {}),
+    bounds: { width, top, bottom },
   };
 }
 

@@ -130,6 +130,14 @@ const CALIBRATED_NOTE = 'масштаб откалиброван по вашем
  */
 const HEIGHT_RANGE = { min: 140, max: 210 } as const;
 
+/**
+ * Полуобхват груди, на котором откалиброваны отношения к росту, см.
+ *
+ * Женский RU 46 (обхват 92) — опорный случай продукта. Точки, привязанные
+ * к росту, получают поправку на отклонение размера от этой опоры.
+ */
+const REFERENCE_CHEST_HALF = 46;
+
 export function buildMeasurements(input: PomInput, base: KnowledgeBase = defaultKb()): PomResult {
   const notes: string[] = [];
   const template = base.pomTemplate(input.category);
@@ -193,10 +201,15 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   // а якорь — половинный замер: делим на два ровно один раз.
   const anchorCm = (body.chest + ease.entry.default) / 2;
 
-  // Второй якорь — тело без прибавки. За ним следуют длины, горловина и наклон
-  // плеча: oversize делает изделие шире, а не длиннее. Пока длина считалась
-  // от ширины изделия, мужская футболка RU 56 oversize выходила длиной 102 см.
+  // Второй якорь — тело без прибавки. За ним следуют горловина и наклон плеча:
+  // oversize делает изделие шире, а не длиннее.
   const bodyAnchorCm = body.chest / 2;
+
+  // Третий якорь — рост. За ним следуют длины изделия и рукава. Поправка
+  // на размер к ним прибавляется отдельным слагаемым: человек на четыре
+  // размера больше не имеет рук на четверть длиннее, он шире.
+  const referenceChestHalf = REFERENCE_CHEST_HALF;
+  const sizeStepsFromReference = (bodyAnchorCm - referenceChestHalf) / (base.chestStep() / 2);
 
   // --- 2. Ростовка: длины подтягиваются к росту пользователя -------------------
   const chart = base.sizeChart(input.gender);
@@ -216,7 +229,15 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
     if (point.derivation === 'composed') continue;
     raw.set(
       point.code,
-      valueFor(point, anchorPoint, anchorCm, bodyAnchorCm, heightSteps, input, base),
+      valueFor(point, {
+        garment: anchorCm,
+        body: bodyAnchorCm,
+        height: input.base_height_cm,
+        sizeStepsFromReference,
+        heightSteps,
+        input,
+        base,
+      }),
     );
   }
 
@@ -299,50 +320,97 @@ function composeValue(
 }
 
 /** Значение одной точки до калибровки и округления. */
-function valueFor(
+/**
+ * Типовое значение точки — то, что подставляется, когда фото молчит.
+ *
+ * Точка сама объявляет, за чем следует её величина: за шириной изделия
+ * с прибавкой, за обхватом тела или за ростом.
+ */
+function baselineValue(
   point: PomPoint,
-  anchorPoint: PomPoint,
-  anchorCm: Centimeters,
-  bodyAnchorCm: Centimeters,
-  heightSteps: number,
-  input: PomInput,
-  base: KnowledgeBase,
-): Tracked<number> {
+  rule: { per_size: number; per_height: number },
+  ctx: ValueContext,
+): number {
+  const ratio = point.baseline_ratio!;
+
+  if (point.anchor_basis === 'height') {
+    // Длина следует за ростом, а размер добавляет поправку тем же приращением,
+    // которым точка градуируется внутри ряда. Отдельная поправка на ростовку
+    // не нужна: рост уже входит в основную величину.
+    return ctx.height * ratio + rule.per_size * ctx.sizeStepsFromReference;
+  }
+
+  const anchor = point.anchor_basis === 'body' ? ctx.body : ctx.garment;
+  const value = anchor * ratio;
+  // Ростовка двигает только те точки, для которых правило её задаёт.
+  return ctx.heightSteps !== 0 && rule.per_height !== 0
+    ? value + rule.per_height * ctx.heightSteps
+    : value;
+}
+
+interface ValueContext {
+  garment: Centimeters;
+  body: Centimeters;
+  height: Centimeters;
+  /** На сколько размеров базовый размер отличается от опорного. */
+  sizeStepsFromReference: number;
+  heightSteps: number;
+  input: PomInput;
+  base: KnowledgeBase;
+}
+
+function valueFor(point: PomPoint, ctx: ValueContext): Tracked<number> {
+  const { input, base } = ctx;
   if (point.derivation === 'anchor') {
     return fromBase(
-      anchorCm,
+      ctx.garment,
       `engine:pom/anchor(size=${input.base_size_ru},fit=${input.fit_intent})`,
       'посчитано из размерной сетки и типовой прибавки на посадку — подтвердить по образцу',
     );
   }
 
   const photo = normalizeRatio(input.photo_ratios?.[point.code]);
-  const photoRatio = photo?.ratio;
-  const baseline = point.baseline_ratio!;
-  const range = point.ratio_range;
+  const rule = base.gradingRule(point.grading_key);
 
-  let ratio = baseline;
+  // --- Типовое значение по привязке точки -------------------------------------
+  let value = baselineValue(point, rule, ctx);
   let confidence: Confidence = 'default_from_base';
-  let source = `kb:${anchorPoint.code}×baseline#${point.code}`;
+  let source = `kb:baseline#${point.code}`;
   let note: string | undefined;
 
   // Ноль и отрицательное — не «наблюдение вне диапазона», а мусор. Ограничить
-  // такое границей означало бы подменить типовое значение выдуманным: минус
-  // единица превращалась в самое короткое правдоподобное изделие вместо типового.
-  const usablePhotoRatio = photoRatio !== undefined && photoRatio > 0 ? photoRatio : undefined;
+  // такое границей значило бы подменить типовое значение выдуманным.
+  const observedRatio = photo?.ratio !== undefined && photo.ratio > 0 ? photo.ratio : undefined;
 
-  if (usablePhotoRatio !== undefined && point.derivation === 'ratio_to_anchor') {
-    const clamped = range ? clamp(usablePhotoRatio, range.min, range.max) : usablePhotoRatio;
-    if (clamped !== usablePhotoRatio) {
+  if (observedRatio !== undefined && point.derivation === 'ratio_to_anchor') {
+    // ВАЖНО: модель отдаёт отношение к ширине по груди — так устроен её отчёт.
+    // Значит наблюдение переводится в сантиметры через якорь ИЗДЕЛИЯ, каким бы
+    // ни была собственная привязка точки. Иначе отношение к груди умножалось
+    // бы на рост, и длина изделия уезжала в метры.
+    const observed = ctx.garment * observedRatio;
+
+    // Границы правдоподобия задаются относительно типового значения — так они
+    // работают для любой привязки, а не только для точек от ширины изделия.
+    const span =
+      point.ratio_range && point.baseline_ratio
+        ? {
+            low: value * (point.ratio_range.min / point.baseline_ratio),
+            high: value * (point.ratio_range.max / point.baseline_ratio),
+          }
+        : { low: value * 0.65, high: value * 1.4 };
+
+    const clamped = clamp(observed, span.low, span.high);
+
+    if (Math.abs(clamped - observed) > 1e-9) {
       // Фото сказало неправдоподобное. Значение теперь не «то, что на фото»,
       // а граница нашего диапазона — понижаем статус и объясняем.
-      ratio = clamped;
+      value = clamped;
       note =
-        `оценка по фото (${usablePhotoRatio.toFixed(2)}) вышла за правдоподобный диапазон ` +
-        `${range!.min}–${range!.max} и ограничена — проверьте по образцу`;
+        `оценка по фото (${roundCm(observed)} см) вышла за правдоподобный диапазон ` +
+        `${roundCm(span.low)}–${roundCm(span.high)} см и ограничена — проверьте по образцу`;
       source = `engine:pom/clamped#${point.code}`;
     } else {
-      ratio = usablePhotoRatio;
+      value = observed;
       confidence = 'estimated_from_photo';
       source = `vision:ratio#${point.code}`;
       // Уверенность модели едет в документ вместе со значением: пользователь
@@ -355,16 +423,6 @@ function valueFor(
         note = 'уверенность по фото средняя — стоит проверить по образцу';
       }
     }
-  }
-
-  // Точка сама объявляет, за чем следует её величина.
-  const basis = point.anchor_basis === 'body' ? bodyAnchorCm : anchorCm;
-  let value = basis * ratio;
-
-  // Ростовка двигает только длины — ширины от роста не зависят.
-  const rule = base.gradingRule(point.grading_key);
-  if (heightSteps !== 0 && rule.per_height !== 0) {
-    value += rule.per_height * heightSteps;
   }
 
   return track(value, confidence, source, note);

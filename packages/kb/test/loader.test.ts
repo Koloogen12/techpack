@@ -169,11 +169,16 @@ describe('шаблон точек измерения футболки', () => {
 
   it('каждая точка объявляет, за чем следует её величина', () => {
     for (const p of tpl.points.filter((x) => x.derivation === 'ratio_to_anchor')) {
-      expect(['garment', 'body'], p.code).toContain(p.anchor_basis);
+      expect(['garment', 'body', 'height'], p.code).toContain(p.anchor_basis);
     }
-    // Длины следуют за телом: oversize делает изделие шире, а не длиннее.
     const byCode = new Map(tpl.points.map((p) => [p.code, p]));
-    for (const code of ['T01', 'T02', 'T14', 'T15', 'T16']) {
+    // Длины изделия и рукава следуют за РОСТОМ: человек на четыре размера
+    // больше не имеет рук на четверть длиннее — он шире.
+    for (const code of ['T01', 'T02', 'T10']) {
+      expect(byCode.get(code)!.anchor_basis, code).toBe('height');
+    }
+    // Горловина и наклон плеча следуют за обхватом тела.
+    for (const code of ['T14', 'T15', 'T16', 'T18']) {
       expect(byCode.get(code)!.anchor_basis, code).toBe('body');
     }
     // Ширины следуют за изделием.

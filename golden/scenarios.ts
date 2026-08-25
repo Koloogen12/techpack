@@ -175,6 +175,47 @@ export const SCENARIOS: Scenario[] = [
     },
   },
   {
+    name: 'лонгслив',
+    why: 'длинный рукав: другое приращение на ростовку и другой низ рукава',
+    input: { ...base, id: 'g-longsleeve', category: 'longsleeve', name: 'Лонгслив' },
+  },
+  {
+    name: 'свитшот',
+    why: 'манжеты и пояс из рибаны вместо подгибок — низ меряется по отделочной детали',
+    input: { ...base, id: 'g-sweatshirt', category: 'sweatshirt', name: 'Свитшот' },
+  },
+  {
+    name: 'худи',
+    why: 'капюшон и карман-кенгуру; горловина закрыта, люверсы и закрепки требуют спецмашин',
+    input: { ...base, id: 'g-hoodie', category: 'hoodie', name: 'Худи' },
+  },
+  {
+    name: 'худи oversize мужское',
+    why: 'самая нагруженная категория на краю пространства входов',
+    input: {
+      ...base,
+      id: 'g-hoodie-men',
+      category: 'hoodie',
+      name: 'Худи oversize',
+      gender: 'men',
+      base_size_ru: 52,
+      base_height_cm: 182,
+      fit_intent: 'oversize',
+      size_range: [46, 48, 50, 52, 54, 56],
+    },
+  },
+  {
+    name: 'худи на расширенном парке машин',
+    why: 'люверсы и закрепки доступны — замены не нужны',
+    input: {
+      ...base,
+      id: 'g-hoodie-ext',
+      category: 'hoodie',
+      name: 'Худи',
+      machine_park: 'extended_shop',
+    },
+  },
+  {
     name: 'всё сразу',
     why: 'сочетание признаков не должно ломать то, что работает по отдельности',
     input: {

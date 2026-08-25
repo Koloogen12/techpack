@@ -18,6 +18,7 @@ import { checkSpec } from './invariants.js';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
 
+const CATEGORIES = ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const;
 const GENDERS = ['women', 'men'] as const;
 const FITS = ['fitted', 'semi_fitted', 'loose', 'oversize'] as const;
 const HEIGHTS = [152, 164, 170, 176, 188] as const;
@@ -32,34 +33,36 @@ interface Case {
 }
 
 const CASES: Case[] = [];
-for (const gender of GENDERS) {
-  for (const fit of FITS) {
-    for (const height of HEIGHTS) {
-      for (const size of SIZES[gender]) {
-        CASES.push({
-          label: `${gender} RU${size} ${fit} рост${height}`,
-          input: {
-            id: `sweep-${gender}-${size}-${fit}-${height}`,
-            name: 'Перебор',
-            article: `SW-${size}`,
-            category: 'tshirt',
-            gender,
-            base_size_ru: size,
-            base_height_cm: height,
-            fit_intent: fit,
-            fabric_kind: 'knit',
-            size_range: [...SIZES[gender]],
-            generated_at: AT,
-          },
-        });
+for (const category of CATEGORIES) {
+  for (const gender of GENDERS) {
+    for (const fit of FITS) {
+      for (const height of HEIGHTS) {
+        for (const size of SIZES[gender]) {
+          CASES.push({
+            label: `${category} ${gender} RU${size} ${fit} рост${height}`,
+            input: {
+              id: `sweep-${category}-${gender}-${size}-${fit}-${height}`,
+              name: 'Перебор',
+              article: `SW-${size}`,
+              category,
+              gender,
+              base_size_ru: size,
+              base_height_cm: height,
+              fit_intent: fit,
+              fabric_kind: 'knit',
+              size_range: [...SIZES[gender]],
+              generated_at: AT,
+            },
+          });
+        }
       }
     }
   }
 }
 
 describe('перебор пространства входов', () => {
-  it(`покрывает ${CASES.length} сочетаний пола, посадки, размера и роста`, () => {
-    expect(CASES.length).toBeGreaterThan(200);
+  it(`покрывает ${CASES.length} сочетаний категории, пола, посадки, размера и роста`, () => {
+    expect(CASES.length).toBeGreaterThan(800);
   });
 
   it('ни одно сочетание не нарушает инвариантов продукта', () => {
@@ -87,7 +90,7 @@ describe('перебор пространства входов', () => {
 
         if (!Number.isFinite(g.sleeveAngle))
           broken.push(`${c.label}/${view}: угол рукава не число`);
-        if (g.bounds.width <= 0 || g.bounds.height <= 0) {
+        if (g.bounds.width <= 0 || g.bounds.bottom <= g.bounds.top) {
           broken.push(`${c.label}/${view}: нулевой габарит`);
         }
         // Плечевая точка обязана быть внутри изделия, иначе плечо шире корпуса.

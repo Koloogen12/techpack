@@ -89,22 +89,29 @@ describe('пропорции изделия', () => {
 describe('неправдоподобная пропорция с фото', () => {
   const wild = { ...INPUT, photo_ratios: { T01: 4.0 } };
 
-  it('ограничивается верхней границей диапазона, а не уезжает в документ', () => {
-    // Ожидаемое считаем из справочника: тест не должен ломаться от калибровки
-    // отношений, только от поломки самого ограничения.
-    const template = base.pomTemplate('tshirt');
-    const t01 = template.points.find((p) => p.code === 'T01')!;
-    const atMax = point({ ...INPUT, photo_ratios: { T01: t01.ratio_range!.max } }, 'T01');
-    expect(point(wild, 'T01').base.value).toBe(atMax.base.value);
+  it('ограничивается верхней границей, а не уезжает в документ', () => {
+    // Границы задаются относительно типового значения, поэтому ожидаемое
+    // считаем из него и из отношения диапазона к базовому — тест не ломается
+    // от калибровки, только от поломки самого ограничения.
+    const t01 = base.pomTemplate('tshirt').points.find((p) => p.code === 'T01')!;
+    const typical = point(INPUT, 'T01').base.value;
+    const ceiling = typical * (t01.ratio_range!.max / t01.baseline_ratio!);
+
+    // Допуск в один шаг округления: движок считает потолок от неокруглённого
+    // типового значения, а тест — от того, что записано в спеку.
+    expect(Math.abs(point(wild, 'T01').base.value - ceiling)).toBeLessThanOrEqual(0.1);
+    expect(point(wild, 'T01').base.value).toBeLessThan(4 * 51);
   });
 
   it('перестаёт называться оценкой по фото — значение уже не с фото', () => {
     expect(point(wild, 'T01').base.confidence).toBe('default_from_base');
   });
 
-  it('объясняет пользователю, что произошло', () => {
+  it('объясняет пользователю, что произошло, в сантиметрах', () => {
+    // Пользователь не мыслит отношениями к якорю — ему нужны сантиметры.
     const note = point(wild, 'T01').base.note ?? '';
-    expect(note).toContain('4.00');
+    expect(note).toContain('см');
+    expect(note).toContain('диапазон');
     expect(note).toContain('образцу');
   });
 });
@@ -200,12 +207,18 @@ describe('калибровка по ручному замеру', () => {
   });
 });
 
-describe('категорийный гейт', () => {
-  // Худи, свитшот и лонгслив ждут своих шаблонов точек (неделя 2).
-  // До тех пор движок обязан отказывать честно, а не выдавать результат хуже.
-  it('категория без шаблона получает понятный отказ, а не плохой техпак', () => {
+describe('категорийный гейт и трикотажное ядро', () => {
+  it('все четыре категории ядра собираются', () => {
+    for (const category of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
+      expect(() => buildMeasurements({ ...INPUT, category }, base), category).not.toThrow();
+    }
+  });
+
+  it('категория вне ядра получает понятный отказ, а не плохой техпак', () => {
     try {
-      buildMeasurements({ ...INPUT, category: 'hoodie' }, base);
+      // Платье — вне трикотажного ядра: скрытых деталей больше,
+      // документ вышел бы хуже, чем нужно фабрике.
+      buildMeasurements({ ...INPUT, category: 'dress' as never }, base);
       expect.unreachable('должно было отказать');
     } catch (e) {
       expect(isSpecFormError(e)).toBe(true);
@@ -216,10 +229,29 @@ describe('категорийный гейт', () => {
     }
   });
 
-  // Откат прибавки движком проверяется на уровне справочника (packages/kb):
-  // сам путь в POM-движке станет достижим, когда появится шаблон худи.
-  it('прибавка для прилегающего худи существует через откат', () => {
-    expect(base.easeFor('hoodie', 'fitted', 'knit').fallbackFrom).toBe('fitted');
+  it('прилегающее худи откатывается к обычной посадке и говорит об этом', () => {
+    const { notes } = buildMeasurements(
+      { ...INPUT, category: 'hoodie', fit_intent: 'fitted' },
+      base,
+    );
+    expect(notes.join(' ')).toContain('не типовая');
+  });
+
+  it('у худи горловина закрыта капюшоном — точек глубины горловины нет', () => {
+    const codes = buildMeasurements({ ...INPUT, category: 'hoodie' }, base).measurements.points.map(
+      (p) => p.code,
+    );
+    expect(codes).not.toContain('T15');
+    expect(codes).toContain('H01');
+    expect(codes).toContain('H04');
+  });
+
+  it('рукав лонгслива длиннее рукава футболки', () => {
+    const sleeve = (category: 'tshirt' | 'longsleeve') =>
+      buildMeasurements({ ...INPUT, category }, base).measurements.points.find(
+        (p) => p.code === 'T10',
+      )!.base.value;
+    expect(sleeve('longsleeve')).toBeGreaterThan(sleeve('tshirt') * 2);
   });
 });
 
