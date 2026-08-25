@@ -9,15 +9,24 @@ import { CategorySchema, FitIntentSchema, GenderSchema, FabricKindSchema } from 
  * Масштаб изделия приходит отсюда, а не из фотографий: абсолютные сантиметры
  * по снимку недостижимы (knowledge-base/03 §5.1).
  */
+/**
+ * Текстовое поле анкеты.
+ *
+ * Строка из одних пробелов формально непустая, но в документе выглядит
+ * как пропуск. Обрезаем и требуем содержимое: «   » вместо названия модели
+ * доезжало до обложки техпака.
+ */
+const text = (max = 200) => z.string().trim().min(1).max(max);
+
 export const AnswersSchema = z
   .object({
     /** Идентификатор техпака. Задаётся снаружи ради воспроизводимости. */
-    id: z.string().min(1),
-    name: z.string().min(1),
-    article: z.string().min(1),
-    brand: z.string().optional(),
-    season: z.string().optional(),
-    description: z.string().optional(),
+    id: text(120),
+    name: text(120),
+    article: text(60),
+    brand: text(120).optional(),
+    season: text(60).optional(),
+    description: z.string().trim().max(1000).optional(),
 
     // --- Пять вопросов мастера ---
     category: CategorySchema,
@@ -31,7 +40,7 @@ export const AnswersSchema = z
     base_height_cm: z.number().min(140).max(210),
     fit_intent: FitIntentSchema,
     fabric_kind: FabricKindSchema,
-    size_range: z.array(z.number().int().positive()).min(1),
+    size_range: z.array(z.number().int().positive()).min(1).max(24),
 
     /** Тираж. Влияет только на пересчёт расхода — на замеры не влияет. */
     quantity: z.number().int().positive().optional(),
@@ -44,11 +53,18 @@ export const AnswersSchema = z
     colorways: z
       .array(
         z.object({
-          id: z.string().min(1),
-          name_ru: z.string().min(1),
-          hex_approx: z.string().optional(),
+          id: z
+            .string()
+            .trim()
+            .regex(/^[A-Za-z0-9_-]{1,24}$/, 'идентификатор цвета: латиница, цифры, дефис'),
+          name_ru: text(60),
+          hex_approx: z
+            .string()
+            .regex(/^#[0-9A-Fa-f]{6}$/, 'цвет в формате #RRGGBB')
+            .optional(),
         }),
       )
+      .max(24)
       .optional(),
 
     /** Профиль парка машин фабрики. По умолчанию базовый цех. */
@@ -57,11 +73,11 @@ export const AnswersSchema = z
     /** Реквизиты бренда для ярлыков. Без них обязательные поля остаются пробелами. */
     brand_profile: z
       .object({
-        company_name: z.string().optional(),
-        inn: z.string().optional(),
-        address: z.string().optional(),
-        trademark: z.string().optional(),
-        country: z.string().optional(),
+        company_name: text(200).optional(),
+        inn: text(12).optional(),
+        address: text(300).optional(),
+        trademark: text(120).optional(),
+        country: text(80).optional(),
       })
       .optional(),
   })

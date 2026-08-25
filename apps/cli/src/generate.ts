@@ -93,10 +93,44 @@ export function readPhoto(path: string): Photo {
   return { bytes: readFileSync(path), format, label: basename(path) };
 }
 
+/**
+ * Чтение файла ответов.
+ *
+ * Отсутствующий файл и битый JSON — самые частые ошибки concierge-режима,
+ * и отвечать на них системным ENOENT значит перекладывать разбор на человека.
+ */
+function readAnswers(path: string): Answers {
+  let raw: string;
+  try {
+    raw = readFileSync(path, 'utf8');
+  } catch (cause) {
+    throw new SpecFormError('SPEC_INVALID', `файл ответов не найден: ${path}`, {
+      userMessage: `Не нашли файл анкеты «${basename(path)}».`,
+      userAction: 'Проверьте путь к файлу и повторите',
+      details: { path },
+      cause,
+    });
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    throw new SpecFormError('SPEC_INVALID', `файл ответов не является JSON: ${path}`, {
+      userMessage: `Файл анкеты «${basename(path)}» повреждён: это не JSON.`,
+      userAction: 'Проверьте файл в редакторе — скорее всего пропущена запятая или скобка',
+      details: { path },
+      cause,
+    });
+  }
+
+  return parseAnswers(parsed);
+}
+
 export async function generate(options: GenerateOptions): Promise<GenerateResult> {
   const ledger = new CostLedger();
   const base = options.kb ?? kb();
-  const answers = parseAnswers(JSON.parse(readFileSync(options.answersPath, 'utf8')));
+  const answers = readAnswers(options.answersPath);
 
   // --- 1. Разбор фотографий (единственная недетерминированная стадия) ----------
   let report: VisionReport | null = null;

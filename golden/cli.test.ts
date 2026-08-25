@@ -184,3 +184,87 @@ function hash(s: string): number {
   for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
   return h;
 }
+
+describe('файл анкеты', () => {
+  it('отсутствующий файл объясняется человеку, а не системной ошибкой', async () => {
+    try {
+      await generate({
+        answersPath: join(tmp, 'нет-такого.json'),
+        photoPaths: [],
+        outPath: join(tmp, 'missing.pdf'),
+        now: AT,
+      });
+      expect.unreachable('должно было упасть');
+    } catch (e) {
+      expect(isSpecFormError(e), String(e)).toBe(true);
+      if (isSpecFormError(e)) {
+        expect(e.userMessage).toContain('Не нашли файл');
+        // Системный текст наружу не отдаётся.
+        expect(e.userMessage).not.toContain('ENOENT');
+      }
+    }
+  }, 60_000);
+
+  it('битый JSON объясняется человеку и подсказывает, где смотреть', async () => {
+    const path = join(tmp, 'broken.json');
+    writeFileSync(path, '{"name": ');
+    try {
+      await generate({ answersPath: path, photoPaths: [], outPath: join(tmp, 'b.pdf'), now: AT });
+      expect.unreachable('должно было упасть');
+    } catch (e) {
+      expect(isSpecFormError(e)).toBe(true);
+      if (isSpecFormError(e)) {
+        expect(e.userMessage).toContain('не JSON');
+        expect(e.userAction).toContain('запятая');
+      }
+    }
+  }, 60_000);
+});
+
+describe('пустые по смыслу значения', () => {
+  const blank: [string, Record<string, unknown>][] = [
+    ['пробелы вместо названия', { name: '   ' }],
+    ['пробелы вместо артикула', { article: ' ' }],
+    ['перенос строки вместо бренда', { brand: '\n' }],
+  ];
+
+  it.each(blank)(
+    '%s отвергается',
+    async (_name, over) => {
+      // Строка из пробелов формально непустая, но в документе это пропуск.
+      await expect(
+        generate({
+          answersPath: answersFile(over, `blank-${Math.abs(hash(JSON.stringify(over)))}.json`),
+          photoPaths: [],
+          outPath: join(tmp, 'blank.pdf'),
+          now: AT,
+        }),
+      ).rejects.toThrow();
+    },
+    60_000,
+  );
+
+  it('лишние пробелы по краям обрезаются, а не попадают в документ', async () => {
+    const result = await generate({
+      answersPath: answersFile({ name: '  Базовая футболка  ' }, 'trim.json'),
+      photoPaths: [],
+      outPath: join(tmp, 'trim.pdf'),
+      now: AT,
+    });
+    expect(result.spec.style.name).toBe('Базовая футболка');
+  }, 60_000);
+
+  it('цвет не в формате #RRGGBB отвергается', async () => {
+    await expect(
+      generate({
+        answersPath: answersFile(
+          { colorways: [{ id: 'black', name_ru: 'Чёрный', hex_approx: 'чёрный' }] },
+          'badhex.json',
+        ),
+        photoPaths: [],
+        outPath: join(tmp, 'badhex.pdf'),
+        now: AT,
+      }),
+    ).rejects.toThrow();
+  }, 60_000);
+});
