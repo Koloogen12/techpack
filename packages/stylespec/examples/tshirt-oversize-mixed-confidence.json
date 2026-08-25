@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.4.0",
+  "spec_version": "0.5.0",
   "style": {
     "id": "example-tshirt-oversize",
     "name": "Oversize футболка по фото",
@@ -254,10 +254,10 @@
         "how_to_measure_ru": "От плечевой точки до плечевой точки по спинке",
         "measure_kind": "length",
         "base": {
-          "value": 59.1,
+          "value": 56.3,
           "confidence": "default_from_base",
-          "source": "engine:pom/clamped#T06",
-          "note": "оценка по фото (146.4 см) вышла за правдоподобный диапазон 42.7–64.1 см и ограничена — проверьте по образцу; масштаб откалиброван по вашему замеру"
+          "source": "engine:pom/shoulder-vs-chest",
+          "note": "ограничено шириной изделия: плечи не бывают шире панели — проверьте по образцу; масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
           "value": 0.5,
@@ -268,7 +268,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 58.1,
+              "value": 55.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -276,7 +276,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 60.1,
+              "value": 57.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -284,7 +284,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 61.1,
+              "value": 58.3,
               "confidence": "default_from_base",
               "source": "engine:pom/grading#across_shoulder"
             }
@@ -484,7 +484,7 @@
         "how_to_measure_ru": "Через плечо от центра спинки до края рукава. Применяется для реглана и спущенного плеча",
         "measure_kind": "length",
         "base": {
-          "value": 56.6,
+          "value": 55.2,
           "confidence": "default_from_base",
           "source": "engine:pom/composed(0.5×T06+1×T10)",
           "note": "масштаб откалиброван по вашему замеру"
@@ -498,7 +498,7 @@
           {
             "ru": 44,
             "value": {
-              "value": 55.8,
+              "value": 54.4,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
@@ -506,7 +506,7 @@
           {
             "ru": 48,
             "value": {
-              "value": 57.6,
+              "value": 56.2,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
@@ -514,7 +514,7 @@
           {
             "ru": 50,
             "value": {
-              "value": 58.5,
+              "value": 57.1,
               "confidence": "default_from_base",
               "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
@@ -1397,8 +1397,8 @@
       "source": "kb:consumption_formulas#tshirt",
       "note": "предварительно: 1.15 м на размер M при ширине 145 см, плюс 4% на раскладку и 7% на усадку. Уточняется фабрикой по раскладке"
     },
-    "batch_qty": null,
-    "batch_consumption_m": null
+    "batch_qty": 100,
+    "batch_consumption_m": 130
   },
   "labels": {
     "care_symbols": [
@@ -1557,6 +1557,89 @@
         "gtin": null
       }
     ]
+  },
+  "artwork": {
+    "placements": [
+      {
+        "id": "A1",
+        "zone": "chest_center",
+        "zone_label_ru": "Грудь по центру",
+        "technique": {
+          "value": "screen",
+          "confidence": "default_from_base",
+          "source": "kb:print_techniques#screen",
+          "note": "подобрано по полотну и тиражу 100 шт — согласуйте с печатником, у каждого свой парк и свой прайс"
+        },
+        "technique_label_ru": "Шелкография",
+        "offset_from_anchor_cm": {
+          "value": 8,
+          "confidence": "assumption",
+          "source": "kb:print_zones#chest_center.typical_offset_cm",
+          "note": "типовой отступ для зоны — задайте свой, иначе печатник поставит макет по-своему"
+        },
+        "anchor_label_ru": "от высшей точки плеча вниз",
+        "size_cm": {
+          "width": {
+            "value": 24,
+            "confidence": "user_input",
+            "source": "user:artwork.size_cm"
+          },
+          "height": {
+            "value": 30,
+            "confidence": "user_input",
+            "source": "user:artwork.size_cm"
+          }
+        },
+        "colors": {
+          "model": "spot",
+          "count": {
+            "value": 1,
+            "confidence": "assumption",
+            "source": "engine:artwork/colors",
+            "note": "число цветов не указано — принято за один. Каждый цвет плашечной печати это отдельная сетка и отдельные деньги, уточните до просчёта"
+          },
+          "codes": ["Pantone 186 C"]
+        },
+        "file_name": "logo-front.png",
+        "checks": [
+          {
+            "id": "file_present",
+            "label_ru": "Файл макета",
+            "status": "ok",
+            "detail_ru": "logo-front.png — приложен к пакету."
+          },
+          {
+            "id": "vector",
+            "label_ru": "Вектор или растр",
+            "status": "warn",
+            "detail_ru": "PNG — растр: качество зависит от размера отпечатка, увеличить без потерь нельзя."
+          },
+          {
+            "id": "physical_size",
+            "label_ru": "Размер отпечатка",
+            "status": "ok",
+            "detail_ru": "24 × 30 см — задан в спецификации, спрашивать не нужно."
+          },
+          {
+            "id": "dpi",
+            "label_ru": "Разрешение на этот размер",
+            "status": "fail",
+            "detail_ru": "1200 px на ширину 24 см — это 127 dpi. Ниже 150 dpi: отпечаток выйдет мыльным. Нужен файл крупнее или вектор."
+          },
+          {
+            "id": "transparency",
+            "label_ru": "Фон",
+            "status": "ok",
+            "detail_ru": "Фон прозрачный — печатается только рисунок."
+          }
+        ],
+        "warnings_ru": [
+          "Плечевые швы выше зоны, боковые по краям. Крупный макет упирается в шов втачивания рукава — держите отступ не меньше 3 см от каждого шва.",
+          "Разрешение макета не годится для отпечатка 24 × 30 см — печать в таком виде даст брак."
+        ]
+      }
+    ],
+    "subcontracted": true
   },
   "assets": [],
   "meta": {

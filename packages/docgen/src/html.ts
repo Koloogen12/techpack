@@ -40,6 +40,7 @@ export const DOC_SECTIONS = [
   'measurements',
   'bom',
   'construction',
+  'artwork',
   'labels',
   'patterns',
 ] as const;
@@ -105,6 +106,21 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return out;
 }
 
+/**
+ * Точка статуса плюс уже готовая подпись.
+ *
+ * Нужна там, где само значение — внутренний ключ (`screen`, `dtf`), а человеку
+ * показывается русское название. Печатать ключ рядом с названием значит
+ * протаскивать английский в русский документ: ровно та ошибка, которую
+ * стережёт golden/language.test.ts.
+ */
+function labelled(v: { confidence: Confidence }, label: string): string {
+  return (
+    `<span class="dot dot-${v.confidence}" title="${CONFIDENCE_LABEL_RU[v.confidence]}"></span>` +
+    `<span class="v">${esc(label)}</span>`
+  );
+}
+
 /** Точка статуса плюс значение. Один компонент на весь документ. */
 function value(v: { value: string | number; confidence: Confidence }): string {
   const text = typeof v.value === 'number' ? num(v.value) : esc(v.value);
@@ -151,6 +167,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
   add('construction', 'Конструкция', constructionPages(spec, pro));
+  if (spec.artwork) add('artwork', 'Нанесение', artworkPages(spec.artwork));
   add('labels', 'Маркировка и артикулы', labelsPages(spec));
   add('patterns', 'Лекала и раскладка', [patternsBody()]);
 
@@ -355,6 +372,82 @@ function previewBody(spec: StyleSpec, visuals?: DocVisuals): string | null {
   return `${body}<div class="note" style="margin-top:3mm">${explain}</div>`;
 }
 
+// -------------------------------------------------------------- нанесение
+
+const CHECK_MARK: Record<'ok' | 'warn' | 'fail', string> = {
+  ok: '●',
+  warn: '▲',
+  fail: '■',
+};
+
+/**
+ * Страница нанесения — адресуется ПЕЧАТНИКУ, а не швейному цеху.
+ *
+ * Печать и вышивка почти всегда отдаются подрядчику (knowledge-base/07 §3),
+ * и он получает изделие с одним вопросом: где и в каких сантиметрах.
+ * Поэтому здесь нет ни одного «по центру груди»: только величина, точка
+ * отсчёта и статус значения.
+ *
+ * Светофор проверок — это ответы на письма, которые печатник иначе напишет
+ * сам. Каждое такое письмо стоит дня, а вопросы всегда одни и те же.
+ */
+function artworkPages(artwork: NonNullable<StyleSpec['artwork']>): string[] {
+  return artwork.placements.map((a) => {
+    const params: [string, string][] = [
+      ['Зона', esc(a.zone_label_ru)],
+      ['Техника', labelled(a.technique, a.technique_label_ru)],
+      ['Отступ', `${value(a.offset_from_anchor_cm)} см ${esc(a.anchor_label_ru)}`],
+      ['Размер отпечатка', `${value(a.size_cm.width)} × ${value(a.size_cm.height)} см`],
+      [
+        'Цвета',
+        a.colors.model === 'full'
+          ? 'полноцветная печать'
+          : `${a.colors.count ? value(a.colors.count) : '—'} плашечных` +
+            (a.colors.codes.length ? ` · ${esc(a.colors.codes.join(', '))}` : ''),
+      ],
+      ['Файл макета', a.file_name ? esc(a.file_name) : 'не приложен'],
+    ];
+
+    const checks = a.checks
+      .map(
+        (c) =>
+          `<tr><td class="num">${CHECK_MARK[c.status]}</td>` +
+          `<td><b>${esc(c.label_ru)}</b></td>` +
+          `<td class="note">${esc(c.detail_ru)}</td></tr>`,
+      )
+      .join('');
+
+    return (
+      `<h2>${esc(a.id)} · ${esc(a.zone_label_ru)}</h2>` +
+      `<div class="grid2" style="flex:1;min-height:0">` +
+      `<div>` +
+      `<table><tbody>` +
+      params
+        .map(([k, v]) => `<tr><td style="width:38mm">${esc(k)}</td><td>${v}</td></tr>`)
+        .join('') +
+      `</tbody></table>` +
+      `<div class="note" style="margin-top:4mm">Положение отмеряется по разложенному ` +
+      `изделию рулеткой — от названной точки, а не на глаз. Границы зоны показаны ` +
+      `на техническом чертеже пунктиром. Сам макет приложен файлом: на чертеже он ` +
+      `не рисуется, потому что чертёж задаёт место и размер, а не изображение.</div>` +
+      (a.warnings_ru.length
+        ? `<h3>Ограничения</h3><ul class="plain">` +
+          a.warnings_ru.map((w) => `<li>${esc(w)}</li>`).join('') +
+          `</ul>`
+        : '') +
+      `</div>` +
+      `<div>` +
+      `<h3 style="margin-top:0">Проверка макета</h3>` +
+      `<table><tbody>${checks}</tbody></table>` +
+      `<div class="note" style="margin-top:4mm">● годится · ▲ обратите внимание · ` +
+      `■ печатать нельзя. Это те же вопросы, которые печатник задал бы письмом: ` +
+      `в каких сантиметрах печатать, хватит ли разрешения, что с фоном.</div>` +
+      `</div>` +
+      `</div>`
+    );
+  });
+}
+
 // ---------------------------------------------------------------- чертёж
 
 function flatsBody(flats: { front: { svg: string }; back: { svg: string } }): string {
@@ -529,10 +622,47 @@ function bomPages(spec: StyleSpec): string[] {
             ? `<span class="note" style="margin-left:6mm">на тираж: ${num(bom.batch_consumption_m)} м</span>`
             : '') +
           `</div>` +
-          `<div class="note warn" style="margin-top:2mm">${esc(bom.fabric_consumption_m.note ?? '')}</div>`
+          `<div class="note warn" style="margin-top:2mm">${esc(bom.fabric_consumption_m.note ?? '')}</div>` +
+          artworkCostLine(spec)
         : '')
     );
   });
+}
+
+/**
+ * Нанесение в спецификации — отдельной строкой, а не строкой материала.
+ *
+ * Соблазн был положить печать в ту же таблицу: тогда «всё в одном месте».
+ * Но строка материала обязана нести состав, плотность и расход в метрах,
+ * а у печати нет ни одного из трёх: это операция подрядчика, а не материал.
+ * Подделать три поля ради общей таблицы значит соврать в трёх полях сразу.
+ *
+ * Фабрике при этом строка нужна: она считает цену изделия, и нанесение
+ * в эту цену входит.
+ */
+function artworkCostLine(spec: StyleSpec): string {
+  if (!spec.artwork) return '';
+  const rows = spec.artwork.placements
+    .map(
+      (a) =>
+        `<tr><td class="mono">${esc(a.id)}</td>` +
+        `<td>${esc(a.zone_label_ru)}</td>` +
+        `<td>${esc(a.technique_label_ru)}</td>` +
+        `<td class="num v">${num(a.size_cm.width.value)} × ${num(a.size_cm.height.value)}</td>` +
+        `<td class="num v">${a.colors.model === 'full' ? 'полноцвет' : num(a.colors.count?.value ?? 1)}</td></tr>`,
+    )
+    .join('');
+
+  return (
+    `<h3>Нанесение</h3>` +
+    `<table><thead><tr><th>Код</th><th>Зона</th><th>Техника</th>` +
+    `<th class="num">Размер, см</th><th class="num">Цветов</th></tr></thead>` +
+    `<tbody>${rows}</tbody></table>` +
+    `<div class="note" style="margin-top:2mm">Нанесение — операция отдельного ` +
+    `подрядчика, а не материал: состава, плотности и расхода в метрах у него нет, ` +
+    `поэтому в таблице материалов ему не место. В цену изделия оно входит — ` +
+    `спецификация для печатника выгружается отдельным листом.</div>`
+  );
 }
 
 // ---------------------------------------------------------------- конструкция

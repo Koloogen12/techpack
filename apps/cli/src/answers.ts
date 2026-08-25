@@ -45,6 +45,41 @@ export const AnswersSchema = z
     /** Тираж. Влияет только на пересчёт расхода — на замеры не влияет. */
     quantity: z.number().int().positive().optional(),
 
+    /**
+     * Макеты для нанесения. Пусто — вещь без принта, и это норма.
+     * Размер и отступ необязательны: без них берутся типовые для зоны
+     * и помечаются предположением, чтобы печатник видел, что их не задавали.
+     */
+    artwork: z
+      .array(
+        z.object({
+          zone: text(40),
+          technique: z.enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery']).optional(),
+          width_cm: z.number().positive().max(120).optional(),
+          height_cm: z.number().positive().max(120).optional(),
+          offset_cm: z.number().nonnegative().max(120).optional(),
+          color_count: z.number().int().positive().max(24).optional(),
+          color_codes: z.array(text(30)).max(24).optional(),
+          file: z
+            .object({
+              name: text(200),
+              format: text(10),
+              pixels: z
+                .object({
+                  width: z.number().int().positive(),
+                  height: z.number().int().positive(),
+                })
+                .optional(),
+              transparent: z.boolean().optional(),
+            })
+            .optional(),
+        }),
+      )
+      .max(6)
+      .optional(),
+    /** Светлое ли полотно. Сублимации это важно: краситель прозрачен. */
+    light_fabric: z.boolean().optional(),
+
     /** Усилитель точности: один ручной замер калибрует весь масштаб. */
     manual: z
       .object({ code: z.string().regex(/^[A-Z]\d{2}$/), value_cm: z.number().positive() })

@@ -1,3 +1,4 @@
+import type { Centimeters } from '@specform/core';
 import type { StyleSpec } from '@specform/stylespec';
 import { buildPaths, DEFAULT_PATH_OPTIONS, type PathOptions } from './paths.js';
 import type { FlatGeometry, FlatMeasurements } from './geometry.js';
@@ -22,7 +23,14 @@ const STROKE = {
   center: 0.07,
 } as const;
 
-export const FLAT_LAYERS = ['outline', 'seams', 'stitches', 'hardware', 'callouts'] as const;
+export const FLAT_LAYERS = [
+  'outline',
+  'seams',
+  'stitches',
+  'hardware',
+  'callouts',
+  'artwork',
+] as const;
 export type FlatLayer = (typeof FLAT_LAYERS)[number];
 
 export interface Callout {
@@ -38,6 +46,14 @@ export interface RenderOptions {
   /** Какие слои показывать. По умолчанию все, кроме выносок. */
   layers?: readonly FlatLayer[];
   callouts?: readonly Callout[];
+  /**
+   * Зоны нанесения. Рисуются ПРЯМОУГОЛЬНИКОМ с размерами, а не картинкой:
+   * печатник отмеряет рулеткой от высшей точки плеча, и ему нужны границы
+   * и сантиметры, а не то, как выглядит рисунок. Сам макет уходит отдельным
+   * файлом — подменять его изображением на чертеже значит потерять и то,
+   * и другое.
+   */
+  artwork?: readonly ArtworkZone[];
   paths?: PathOptions;
   /** Поле вокруг чертежа, см. */
   margin?: number;
@@ -91,8 +107,19 @@ export interface RenderResult {
   geometry: FlatGeometry;
 }
 
+/** Прямоугольник зоны нанесения на чертеже, в сантиметрах изделия. */
+export interface ArtworkZone {
+  id: string;
+  /** Отступ верхнего края от высшей точки плеча вниз, см. */
+  offsetFromTop: Centimeters;
+  widthCm: Centimeters;
+  heightCm: Centimeters;
+  /** На каком виде показывать. Зона спины на переде не рисуется. */
+  view: 'front' | 'back';
+}
+
 export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderResult {
-  const layers = options.layers ?? ['outline', 'seams', 'stitches', 'hardware'];
+  const layers = options.layers ?? ['outline', 'seams', 'stitches', 'hardware', 'artwork'];
   const margin = options.margin ?? 4;
   const { geometry, paths } = buildPaths(m, options.view, options.paths ?? DEFAULT_PATH_OPTIONS);
 
@@ -151,6 +178,35 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
       .join(''),
   );
 
+  // Зона нанесения: рамка пунктиром, крестик в центре и подпись с размерами.
+  // Пунктир намеренно — это не деталь изделия, а место на нём.
+  const artwork = layer(
+    'artwork',
+    (options.artwork ?? [])
+      .filter((z) => z.view === options.view)
+      .map((z) => {
+        const x = -z.widthCm / 2;
+        // Отсчёт от ВЫСШЕЙ ТОЧКИ ПЛЕЧА — она в геометрии лежит на y = 0.
+        // Считать от верха габарита нельзя: у худи туда попадает капюшон,
+        // и зона уехала бы вниз на всю его высоту, разойдясь с таблицей.
+        const y = geometry.hps.y + z.offsetFromTop;
+        return (
+          `<g data-artwork="${z.id}">` +
+          `<rect x="${x}" y="${y}" width="${z.widthCm}" height="${z.heightCm}" ` +
+          `fill="none" stroke="currentColor" stroke-width="${STROKE.stitch}" ` +
+          `stroke-dasharray="1.5 1"/>` +
+          `<path d="M ${-1} ${y + z.heightCm / 2} H 1 M 0 ${y + z.heightCm / 2 - 1} V ${
+            y + z.heightCm / 2 + 1
+          }" stroke="currentColor" stroke-width="${STROKE.stitch}"/>` +
+          `<text x="0" y="${y + z.heightCm + 2.4}" text-anchor="middle" font-size="1.8" ` +
+          `font-family="JetBrains Mono, monospace" fill="currentColor">` +
+          `${z.id} · ${z.widthCm}×${z.heightCm}</text>` +
+          `</g>`
+        );
+      })
+      .join(''),
+  );
+
   const title = options.view === 'front' ? 'ПЕРЕД' : 'СПИНКА';
 
   const svg =
@@ -162,6 +218,7 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     seams +
     stitches +
     layer('hardware', '') +
+    artwork +
     callouts +
     `\n</svg>`;
 
@@ -174,6 +231,18 @@ export function renderFlatsFromSpec(
   options: Omit<RenderOptions, 'view'> = {},
 ): { front: RenderResult; back: RenderResult } {
   const m = measurementsFrom(spec);
+
+  // Зоны нанесения берутся из спеки сами: чертёж — её проекция, и требовать
+  // передавать их отдельно значило бы разрешить чертежу разойтись с таблицей.
+  const artwork: ArtworkZone[] = (spec.artwork?.placements ?? []).map((a) => ({
+    id: a.id,
+    offsetFromTop: a.offset_from_anchor_cm.value,
+    widthCm: a.size_cm.width.value,
+    heightCm: a.size_cm.height.value,
+    // Спина рисуется на виде спинки, всё остальное — на переде.
+    view: a.zone.startsWith('back') ? ('back' as const) : ('front' as const),
+  }));
+
   const hem = spec.construction?.nodes.find((n) => n.zone === 'hem');
   const sleeveHem = spec.construction?.nodes.find((n) => n.node_id.startsWith('sleeve_hem'));
 
@@ -195,7 +264,7 @@ export function renderFlatsFromSpec(
   };
 
   return {
-    front: renderFlat(m, { ...options, view: 'front', paths }),
-    back: renderFlat(m, { ...options, view: 'back', paths }),
+    front: renderFlat(m, { ...options, view: 'front', paths, artwork }),
+    back: renderFlat(m, { ...options, view: 'back', paths, artwork }),
   };
 }

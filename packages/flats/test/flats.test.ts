@@ -4,6 +4,7 @@ import {
   buildPaths,
   measuredBicep,
   renderFlat,
+  type ArtworkZone,
   type FlatMeasurements,
 } from '../src/index.js';
 
@@ -201,5 +202,51 @@ describe('воспроизводимость', () => {
   it('SVG не содержит растровых подложек — техническая геометрия только вектор', () => {
     expect(svg()).not.toContain('<image');
     expect(svg()).not.toContain('base64');
+  });
+});
+
+describe('зона нанесения на чертеже', () => {
+  const zone = (over: Partial<ArtworkZone> = {}): ArtworkZone => ({
+    id: 'A1',
+    offsetFromTop: 9,
+    widthCm: 26,
+    heightCm: 32,
+    view: 'front',
+    ...over,
+  });
+
+  const svg = (zones: ArtworkZone[], view: 'front' | 'back' = 'front') =>
+    renderFlat(M, { view, artwork: zones }).svg;
+
+  it('рисуется прямоугольником с размерами, а не картинкой', () => {
+    const s = svg([zone()]);
+    expect(s).toContain('data-artwork="A1"');
+    expect(s).toContain('26×32');
+    expect(s).toContain('<rect');
+    // Макет — отдельный файл. Изображение на чертеже подменило бы и место,
+    // и размер картинкой, потеряв оба.
+    expect(s).not.toContain('<image');
+  });
+
+  it('отсчитывается от высшей точки плеча, а не от верха габарита', () => {
+    // На худи верх габарита — макушка капюшона: считать оттуда значило бы
+    // увести зону вниз на всю его высоту и разойтись с таблицей.
+    const s = svg([zone({ offsetFromTop: 0 })]);
+    expect(s).toMatch(/<rect x="-13" y="0"/);
+  });
+
+  it('зона одного вида на другом не появляется', () => {
+    expect(svg([zone({ view: 'back' })], 'front')).not.toContain('data-artwork');
+    expect(svg([zone({ view: 'back' })], 'back')).toContain('data-artwork');
+  });
+
+  it('подпись не налезает на изделие сверху — она под зоной', () => {
+    const s = svg([zone({ offsetFromTop: 9, heightCm: 32 })]);
+    const y = /<text x="0" y="([\d.]+)"/.exec(s)?.[1];
+    expect(Number(y)).toBeGreaterThan(9 + 32);
+  });
+
+  it('без зон слоя нет вовсе', () => {
+    expect(renderFlat(M, { view: 'front' }).svg).not.toContain('data-layer="artwork"');
   });
 });

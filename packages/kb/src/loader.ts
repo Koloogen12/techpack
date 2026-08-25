@@ -49,6 +49,13 @@ import {
   type SizeChartsFile,
   type ToleranceClass,
   PhotoViewsFileSchema,
+  PrintTechniquesFileSchema,
+  PrintZonesFileSchema,
+  type PrintTechnique,
+  type PrintTechniqueEntry,
+  type PrintTechniquesFile,
+  type PrintZoneEntry,
+  type PrintZonesFile,
   ScaleReferencesFileSchema,
   type ScaleReference,
   type ScaleReferenceId,
@@ -132,6 +139,8 @@ export class KnowledgeBase {
     private readonly visibility: VisibilityMapFile,
     private readonly views: PhotoViewsFile,
     private readonly scales: ScaleReferencesFile,
+    private readonly printTech: PrintTechniquesFile,
+    private readonly printZonesFile: PrintZonesFile,
   ) {}
 
   static load(): KnowledgeBase {
@@ -165,6 +174,8 @@ export class KnowledgeBase {
       loadFile('visibility_map.json', VisibilityMapFileSchema),
       loadFile('photo_views.json', PhotoViewsFileSchema),
       loadFile('scale_references.json', ScaleReferencesFileSchema),
+      loadFile('print_techniques.json', PrintTechniquesFileSchema),
+      loadFile('print_zones.json', PrintZonesFileSchema),
     );
   }
 
@@ -394,6 +405,28 @@ export class KnowledgeBase {
   }
 
   /** Карта «видно с фото / не видно». Кормит промпт vision и блок предположений. */
+  /** Техники нанесения. */
+  printTechniques(): readonly PrintTechniqueEntry[] {
+    return this.printTech.techniques;
+  }
+
+  printTechnique(id: PrintTechnique): PrintTechniqueEntry {
+    const found = this.printTech.techniques.find((t) => t.id === id);
+    if (!found) throw new Error(`неизвестная техника нанесения: ${id}`);
+    return found;
+  }
+
+  /** Зоны нанесения, доступные категории. */
+  printZones(category: Category): readonly PrintZoneEntry[] {
+    return this.printZonesFile.zones.filter((z) => z.applies_to.includes(category));
+  }
+
+  printZone(id: string): PrintZoneEntry {
+    const found = this.printZonesFile.zones.find((z) => z.id === id);
+    if (!found) throw new Error(`неизвестная зона нанесения: ${id}`);
+    return found;
+  }
+
   /** Опорные предметы известного размера. */
   scaleReferences(): readonly ScaleReference[] {
     return this.scales.references;

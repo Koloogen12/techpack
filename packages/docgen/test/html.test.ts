@@ -30,7 +30,9 @@ const sectionsOf = (h: string): string[] =>
 
 describe('состав документа', () => {
   it('содержит все разделы минимального комплекта для фабрики', () => {
-    const sections = new Set(sectionsOf(html()));
+    // На спеке с нанесением: разделы «внешний вид» и «нанесение» условные —
+    // у вещи без принта страницы нанесения нет, и это правильно.
+    const sections = new Set(sectionsOf(html(MIXED)));
     for (const s of DOC_SECTIONS) expect(sections).toContain(s);
   });
 
@@ -204,7 +206,7 @@ describe('выгрузка по ролям', () => {
       const profile = roleProfile(role);
       const sections = new Set(
         sectionsOf(
-          renderHtml(SPEC, { sections: profile.sections, pro: profile.pro, visuals: VISUALS }),
+          renderHtml(MIXED, { sections: profile.sections, pro: profile.pro, visuals: VISUALS }),
         ),
       );
       for (const s of profile.sections) expect(sections, role).toContain(s);
@@ -341,5 +343,51 @@ describe('страница внешнего вида', () => {
     const sections = sectionsOf(html());
     expect(sections[0]).toBe('cover');
     expect(sections[1]).toBe('preview');
+  });
+});
+
+describe('страница нанесения', () => {
+  const art = () => html(MIXED);
+
+  it('у вещи без принта раздела нет', () => {
+    expect(sectionsOf(html(SPEC))).not.toContain('artwork');
+  });
+
+  it('положение указано в сантиметрах от названной точки, а не словами', () => {
+    // «По центру груди» печатник отмерить не может: он кладёт изделие
+    // на плиту и берёт рулетку.
+    expect(art()).toContain('от высшей точки плеча вниз');
+    expect(art()).not.toContain('по центру груди');
+  });
+
+  it('светофор проверок макета попадает в документ', () => {
+    const h = art();
+    expect(h).toContain('Проверка макета');
+    expect(h).toContain('dpi');
+  });
+
+  it('говорит, что макет на чертеже не рисуется', () => {
+    expect(art()).toContain('на чертеже он не рисуется');
+  });
+
+  it('нанесение в спецификации стоит отдельно от материалов', () => {
+    const h = art();
+    expect(h).toContain('Нанесение — операция отдельного подрядчика');
+  });
+
+  it('печатник получает нанесение и чертёж, но не узлы и не расход', () => {
+    const sections = new Set(
+      sectionsOf(renderHtml(MIXED, { sections: roleProfile('printer').sections, pro: true })),
+    );
+    expect(sections).toContain('artwork');
+    expect(sections).toContain('flats');
+    expect(sections).not.toContain('construction');
+    expect(sections).not.toContain('bom');
+  });
+
+  it('зона нанесения нарисована на чертеже пунктиром с размерами', () => {
+    const h = art();
+    expect(h).toContain('data-artwork="A1"');
+    expect(h).toContain('data-layer="artwork"');
   });
 });

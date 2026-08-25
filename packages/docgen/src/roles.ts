@@ -9,7 +9,7 @@ import type { DocSection } from './html.js';
  *
  * Ни у одного конкурента такой выгрузки нет.
  */
-export const EXPORT_ROLES = ['full', 'technologist', 'cutter', 'qc', 'supply'] as const;
+export const EXPORT_ROLES = ['full', 'technologist', 'cutter', 'qc', 'supply', 'printer'] as const;
 export type ExportRole = (typeof EXPORT_ROLES)[number];
 
 export interface RoleProfile {
@@ -32,6 +32,7 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
       'measurements',
       'bom',
       'construction',
+      'artwork',
       'labels',
       'patterns',
     ],
@@ -54,6 +55,15 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
     purpose_ru: 'табель мер с допусками для приёмки',
     sections: ['cover', 'preview', 'measurements'],
     pro: false,
+  },
+  printer: {
+    label_ru: 'печатнику',
+    purpose_ru: 'зона, размер и техника нанесения — отдельному подрядчику',
+    // Печатнику не нужны ни узлы обработки, ни расход полотна: он получает
+    // готовую вещь или крой и наносит рисунок. Лишние разделы он не прочтёт,
+    // а нужный будет искать.
+    sections: ['cover', 'preview', 'flats', 'artwork'],
+    pro: true,
   },
   supply: {
     label_ru: 'снабжению',

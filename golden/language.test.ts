@@ -125,3 +125,41 @@ describe('сообщения об ошибках не содержат внут�
     }
   });
 });
+
+describe('в документе нет внутренних ключей на английском', () => {
+  /**
+   * Документ читает русский технолог. Внутренний ключ рядом с русским
+   * названием — «screen Шелкография» — это не мелочь: он появляется ровно
+   * там, где значение хранится ключом, а показывается словом, и находится
+   * только глазами. Найдено на первой же странице нанесения.
+   */
+  const LEAKS = [
+    'screen',
+    'sublimation',
+    'embroidery',
+    'chest_center',
+    'back_yoke',
+    'front_flat',
+    'back_flat',
+    'a4_sheet',
+    'measured_by_scale',
+    'default_from_base',
+    'estimated_from_photo',
+    'fit_confirmed',
+  ];
+
+  it.each(SCENARIOS)('$name', ({ input }) => {
+    const { spec } = buildStyleSpec(input);
+    // Текст без разметки: ключи внутри data-атрибутов, классов и стилей
+    // законны — их читает браузер, а не человек. Блок стилей вырезается
+    // ЦЕЛИКОМ, а не по тегам: в нём живут имена классов вроде
+    // `.dot-fit_confirmed`, и без этого проверка ловит саму себя.
+    const text = renderHtml(spec, { pro: true })
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .toLowerCase();
+    for (const key of LEAKS) {
+      expect(text, `«${key}» в тексте документа`).not.toContain(key);
+    }
+  });
+});

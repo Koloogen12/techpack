@@ -8,6 +8,7 @@ import {
 } from './construction.js';
 import { buildBom, countBomAssumptions, type BomInput } from './bom.js';
 import { buildLabels, type BrandProfile } from './labels.js';
+import { buildArtwork, type ArtworkInput } from './artwork.js';
 
 /**
  * Сборка StyleSpec — детерминированная стадия пайплайна.
@@ -20,6 +21,10 @@ export interface StyleSpecInput
   extends PomInput, Omit<ConstructionInput, 'category'>, Omit<BomInput, 'category'> {
   /** Реквизиты бренда для ярлыков. Без них обязательные поля остаются пробелами. */
   brand_profile?: BrandProfile;
+  /** Макеты для нанесения. Пусто — вещь без принта, и это норма. */
+  artwork?: readonly ArtworkInput[];
+  /** Светлое ли полотно. Нужно сублимации: краситель прозрачен. */
+  light_fabric?: boolean;
   /** Идентификатор техпака. Приходит извне — движок ничего не выдумывает. */
   id: string;
   name: string;
@@ -72,6 +77,22 @@ export function buildStyleSpec(
   );
   notes.push(...labels.notes);
 
+  // Нанесение считается ПОСЛЕ спецификации: выбор техники зависит от полотна,
+  // а полотно определяется там. Обратный порядок дал бы сублимацию на хлопке.
+  const artwork = input.artwork?.length
+    ? buildArtwork(
+        {
+          category: input.category,
+          placements: input.artwork,
+          fabric_class: shell.material_id,
+          ...(input.quantity === undefined ? {} : { quantity: input.quantity }),
+          ...(input.light_fabric === undefined ? {} : { light_fabric: input.light_fabric }),
+        },
+        base,
+      )
+    : null;
+  if (artwork) notes.push(...artwork.notes);
+
   const draft = {
     spec_version: SPEC_VERSION,
     style: {
@@ -109,6 +130,7 @@ export function buildStyleSpec(
       requisites: labels.requisites,
       sku_matrix: labels.sku_matrix,
     },
+    ...(artwork ? { artwork: artwork.artwork } : {}),
     assets: [],
     meta: {
       generated_at: input.generated_at.toISOString(),

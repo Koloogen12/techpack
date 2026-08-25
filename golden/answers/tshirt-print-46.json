@@ -1,0 +1,52 @@
+{
+  "id": "golden-tshirt-print",
+  "name": "Футболка с принтом",
+  "article": "GLD-TSH-P01",
+  "brand": "Пример",
+  "season": "SS26",
+  "description": "Прямая футболка из кулирки, принт на груди",
+  "category": "tshirt",
+  "gender": "women",
+  "base_size_ru": 46,
+  "base_height_cm": 170,
+  "fit_intent": "semi_fitted",
+  "fabric_kind": "knit",
+  "size_range": [42, 44, 46, 48, 50, 52],
+  "quantity": 100,
+  "machine_park": "base_shop",
+  "brand_profile": {
+    "company_name": "ООО «Пример»",
+    "inn": "7700000000",
+    "address": "101000, Москва, ул. Примерная, д. 1",
+    "trademark": "ПРИМЕР",
+    "country": "Россия"
+  },
+  "artwork": [
+    {
+      "zone": "chest_center",
+      "width_cm": 26,
+      "height_cm": 32,
+      "offset_cm": 9,
+      "color_count": 3,
+      "color_codes": ["Pantone 186 C", "Pantone Black 6 C", "Pantone 116 C"],
+      "file": {
+        "name": "front-artwork.png",
+        "format": "png",
+        "pixels": {
+          "width": 3200,
+          "height": 3940
+        },
+        "transparent": true
+      }
+    },
+    {
+      "zone": "back_yoke",
+      "width_cm": 18,
+      "height_cm": 4,
+      "file": {
+        "name": "back-wordmark.svg",
+        "format": "svg"
+      }
+    }
+  ]
+}

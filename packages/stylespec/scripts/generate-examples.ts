@@ -51,6 +51,24 @@ const cases: { file: string; input: StyleSpecInput }[] = [
       // а T06 намеренно выходит за правдоподобный диапазон и будет ограничен.
       photo_ratios: { T01: 1.28, T05: 1.05, T10: 0.52, T14: 0.4, T06: 2.4 },
       manual: { code: 'T01', value_cm: 72 },
+      quantity: 100,
+      // Нанесение с намеренно разными статусами: размер задан заказчиком,
+      // отступ взят типовым, файл прислан растровым и мелким — светофор
+      // обязан это показать, а не промолчать.
+      artwork: [
+        {
+          zone: 'chest_center',
+          width_cm: 24,
+          height_cm: 30,
+          color_codes: ['Pantone 186 C'],
+          file: {
+            name: 'logo-front.png',
+            format: 'png',
+            pixels: { width: 1200, height: 1500 },
+            transparent: true,
+          },
+        },
+      ],
       vision_cache_key: 'a'.repeat(64),
       generated_at: AT,
     },

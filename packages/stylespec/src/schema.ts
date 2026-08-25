@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.4.0';
+export const SPEC_VERSION = '0.5.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -255,6 +255,64 @@ export const LabelsSchema = z
     }
   });
 
+/**
+ * Проверка присланного макета — светофор.
+ *
+ * Печатник получает файл и либо печатает, либо возвращает его с вопросами.
+ * Каждый возврат стоит дня переписки, а вопросы всегда одни и те же:
+ * в каких сантиметрах печатать, хватит ли разрешения, сколько цветов.
+ * Мы отвечаем на них до отправки.
+ */
+export const ArtworkCheckSchema = z.object({
+  id: z.string().min(1),
+  label_ru: z.string().min(1),
+  status: z.enum(['ok', 'warn', 'fail']),
+  /** Что именно увидели. Пусто быть не может: светофор без объяснения бесполезен. */
+  detail_ru: z.string().min(1),
+});
+
+/** Один макет на изделии. */
+export const ArtworkPlacementSchema = z.object({
+  id: z.string().min(1),
+  zone: z.string().min(1),
+  zone_label_ru: z.string().min(1),
+  technique: tracked(z.enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery'])),
+  technique_label_ru: z.string().min(1),
+  /**
+   * Положение макета. Отмеряется от высшей точки плеча вниз и от середины
+   * переда вбок — так, как печатник кладёт рулетку на плиту. Словесное
+   * «по центру груди» отмерить нельзя, и каждая партия выходит своя.
+   */
+  offset_from_anchor_cm: tracked(z.number().nonnegative()),
+  anchor_label_ru: z.string().min(1),
+  size_cm: z.object({
+    width: tracked(z.number().positive()),
+    height: tracked(z.number().positive()),
+  }),
+  colors: z.object({
+    model: z.enum(['spot', 'full']),
+    /** Число плашечных цветов. null для полноцветной печати. */
+    count: tracked(z.number().int().positive()).nullable(),
+    /** Pantone или иные коды, если заказчик их дал. Мы их не выдумываем. */
+    codes: z.array(z.string().min(1)),
+  }),
+  /** Имя присланного файла. null — макет ещё не прислан. */
+  file_name: z.string().min(1).nullable(),
+  checks: z.array(ArtworkCheckSchema),
+  /** Предупреждения по швам и видимой области. */
+  warnings_ru: z.array(z.string().min(1)),
+});
+
+export const ArtworkSchema = z.object({
+  placements: z.array(ArtworkPlacementSchema).min(1),
+  /** Нанесение выполняет подрядчик, а не швейный цех. */
+  subcontracted: z.boolean(),
+});
+
+export type ArtworkCheck = z.infer<typeof ArtworkCheckSchema>;
+export type ArtworkPlacement = z.infer<typeof ArtworkPlacementSchema>;
+export type Artwork = z.infer<typeof ArtworkSchema>;
+
 /** Ссылка на файл в объектном хранилище. Содержимого файла в спеке нет и не будет. */
 export const AssetRefSchema = z.object({
   key: z.string().min(1),
@@ -294,6 +352,8 @@ export const StyleSpecSchema = z
     bom: BomSchema.optional(),
     /** Маркировка. Необязательна по той же причине. */
     labels: LabelsSchema.optional(),
+    /** Нанесение. Необязательно: у вещи без принта его нет, и это норма. */
+    artwork: ArtworkSchema.optional(),
     assets: z.array(AssetRefSchema),
     meta: SpecMetaSchema,
   })

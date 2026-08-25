@@ -51,6 +51,14 @@ export const MIGRATIONS: readonly Migration[] = [
       };
     },
   },
+  {
+    from: '0.4.0',
+    to: '0.5.0',
+    describe:
+      'добавлен раздел нанесения; у старых снапшотов его нет, и это корректно — ' +
+      'вещь без принта его и не имеет',
+    migrate: (snapshot) => ({ ...snapshot, spec_version: '0.5.0' }),
+  },
 ];
 
 function versionOf(snapshot: unknown): string {
