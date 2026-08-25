@@ -49,6 +49,11 @@ import {
   type SizeChartsFile,
   type ToleranceClass,
   PhotoViewsFileSchema,
+  ScaleReferencesFileSchema,
+  type ScaleReference,
+  type ScaleReferenceId,
+  type ScaleReferencesFile,
+  type ScaleSide,
   type PhotoView,
   type PhotoViewEntry,
   type PhotoViewsFile,
@@ -126,6 +131,7 @@ export class KnowledgeBase {
     private readonly labeling: LabelingFile,
     private readonly visibility: VisibilityMapFile,
     private readonly views: PhotoViewsFile,
+    private readonly scales: ScaleReferencesFile,
   ) {}
 
   static load(): KnowledgeBase {
@@ -158,6 +164,7 @@ export class KnowledgeBase {
       loadFile('labeling_requirements.json', LabelingFileSchema),
       loadFile('visibility_map.json', VisibilityMapFileSchema),
       loadFile('photo_views.json', PhotoViewsFileSchema),
+      loadFile('scale_references.json', ScaleReferencesFileSchema),
     );
   }
 
@@ -387,6 +394,28 @@ export class KnowledgeBase {
   }
 
   /** Карта «видно с фото / не видно». Кормит промпт vision и блок предположений. */
+  /** Опорные предметы известного размера. */
+  scaleReferences(): readonly ScaleReference[] {
+    return this.scales.references;
+  }
+
+  scaleReference(id: ScaleReferenceId): ScaleReference {
+    const found = this.scales.references.find((r) => r.id === id);
+    if (!found) throw new Error(`неизвестный опорный предмет: ${id}`);
+    return found;
+  }
+
+  /**
+   * Истинный размер опорного предмета, см.
+   *
+   * Берётся ИЗ СПРАВОЧНИКА, а не из отчёта модели: значение, которое мы знаем
+   * точно из стандарта, не может зависеть от того, что показалось на снимке.
+   */
+  scaleReferenceCm(id: ScaleReferenceId, side: ScaleSide): number {
+    const ref = this.scaleReference(id);
+    return side === 'long_side' ? ref.long_side_cm : ref.short_side_cm;
+  }
+
   /** Ракурсы съёмки и что каждый открывает. */
   photoViews(): readonly PhotoViewEntry[] {
     return this.views.views;

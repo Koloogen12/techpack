@@ -6,3 +6,4 @@ export * from './materials.js';
 export * from './labeling.js';
 export * from './category.js';
 export * from './views.js';
+export * from './scale.js';

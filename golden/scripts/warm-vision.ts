@@ -11,26 +11,23 @@
 import { readFileSync } from 'node:fs';
 import { FileVisionCache, analyzePhotos } from '@specform/vision';
 import { answersFingerprint, parseAnswers, readPhoto } from '@specform/cli';
+import { GOLDEN_SHOTS } from '../shots.js';
 
 const cache = new FileVisionCache('.cache/vision');
 
-for (const cat of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
-  const answers = parseAnswers(
-    JSON.parse(readFileSync(`golden/answers/${cat}-women-46.json`, 'utf8')),
-  );
+for (const shot of GOLDEN_SHOTS) {
+  const answers = parseAnswers(JSON.parse(readFileSync(`golden/answers/${shot.answers}`, 'utf8')));
   const { report, fromCache } = await analyzePhotos({
-    photos: [
-      readPhoto(`golden/photos/${cat}-front.png`, 'front_flat'),
-      readPhoto(`golden/photos/${cat}-back.png`, 'back_flat'),
-    ],
+    photos: shot.photos.map((p) => readPhoto(p.file, p.view)),
     category: answers.category,
     answersFingerprint: answersFingerprint(answers),
     cache,
   });
   const low = report.proportions.filter((p) => p.confidence === 'low').length;
   console.log(
-    `  ✓ ${cat.padEnd(12)} пропорций ${String(report.proportions.length).padStart(2)} ` +
+    `  ✓ ${shot.id.padEnd(12)} пропорций ${String(report.proportions.length).padStart(2)} ` +
       `· низкой уверенности ${low} · не видно ${report.not_visible.length}` +
+      ` · масштаб ${report.scale_object.kind}` +
       (fromCache ? ' (из кэша)' : ''),
   );
 }

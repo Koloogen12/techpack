@@ -1,11 +1,11 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { defined } from '@specform/core';
-import { buildStyleSpec, photoRatiosFrom } from '@specform/assembly';
+import { buildStyleSpec, scaleAdvice } from '@specform/assembly';
 import { VisionReportSchema, type VisionReport } from '@specform/vision';
-import { parseAnswers, type Answers } from '@specform/cli';
 import type { Category } from '@specform/kb';
+import { parseAnswers, specInputFrom, type Answers } from '@specform/cli';
 import { checkSpec } from './invariants.js';
+import { GOLDEN_SHOTS } from './shots.js';
 
 /**
  * Голден-набор на живых отчётах разбора.
@@ -20,36 +20,33 @@ import { checkSpec } from './invariants.js';
  */
 
 const DIR = new URL('./vision-reports/', import.meta.url).pathname;
-const CATEGORIES = readdirSync(DIR)
-  .filter((f) => f.endsWith('.json'))
-  .map((f) => f.replace('.json', '') as Category);
+
+/**
+ * Категории берутся из СПИСКА НАБОРА, а не из содержимого каталога отчётов.
+ * В каталоге лежат ещё и специальные сценарии вроде `hoodie-a4`, у которых
+ * своей анкеты нет: обход по файлам сломался бы на первом же таком.
+ */
+const CATEGORIES = GOLDEN_SHOTS.filter((s) => s.id === s.category).map((s) => s.category);
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
 
-function load(category: Category): { answers: Answers; report: VisionReport } {
+function load(id: string): { answers: Answers; report: VisionReport } {
+  const shot = GOLDEN_SHOTS.find((s) => s.id === id)!;
   const answers = parseAnswers(
-    JSON.parse(
-      readFileSync(new URL(`./answers/${category}-women-46.json`, import.meta.url), 'utf8'),
-    ),
+    JSON.parse(readFileSync(new URL(`./answers/${shot.answers}`, import.meta.url), 'utf8')),
   );
-  const report = VisionReportSchema.parse(
-    JSON.parse(readFileSync(`${DIR}${category}.json`, 'utf8')),
-  );
+  const report = VisionReportSchema.parse(JSON.parse(readFileSync(`${DIR}${id}.json`, 'utf8')));
   return { answers, report };
 }
 
-function build(category: Category) {
-  const { answers, report } = load(category);
-  return buildStyleSpec({
-    ...defined(answers),
-    photo_ratios: photoRatiosFrom(report.proportions),
-    visible_elements: report.visible_elements,
-    topstitching: report.topstitching,
-    ...(report.fabric.knit_class !== 'unknown'
-      ? { fabric_class: report.fabric.knit_class, fabric_confidence: report.fabric.confidence }
-      : {}),
-    generated_at: AT,
-  });
+/**
+ * Спека собирается ТЕМ ЖЕ кодом, что и в пайплайне. Пока сборка входа была
+ * здесь своей, тест проверял не то, что получает пользователь: масштабный
+ * объект, класс полотна и колорвеи в него просто не доходили.
+ */
+function build(id: string) {
+  const { answers, report } = load(id);
+  return buildStyleSpec(specInputFrom(answers, report, { now: AT }));
 }
 
 describe('эталонные фотографии разобраны', () => {
@@ -148,5 +145,49 @@ describe('техпак из живого разбора', () => {
         JSON.stringify(build(category).spec.measurements),
       );
     }
+  });
+});
+
+describe('масштабный объект на живом снимке', () => {
+  /**
+   * Тот же худи, но с листом А4 на груди. Отчёт получен настоящим вызовом
+   * модели и закоммичен — распознавание масштаба проверяется живым выходом,
+   * а не выдуманным наблюдением.
+   */
+  const scaled = () => build('hoodie-a4');
+
+  it('модель находит лист и не пытается назвать его размер сама', () => {
+    const { report } = load('hoodie-a4');
+    expect(report.scale_object.kind).toBe('a4_sheet');
+    expect(report.scale_object.ratio_to_anchor).toBeGreaterThan(0);
+    // Схема не содержит поля «размер предмета» вовсе: величину, заданную
+    // стандартом, нельзя ставить в зависимость от увиденного на снимке.
+    expect(report.scale_object).not.toHaveProperty('known_cm');
+  });
+
+  it('ширина по груди становится измерением, а не оценкой', () => {
+    const chest = scaled().spec.measurements.points.find((p) => p.code === 'T03')!;
+    expect(chest.base.confidence).toBe('measured_by_scale');
+  });
+
+  it('пересчёт даёт правдоподобную вещь, а не число из воздуха', () => {
+    const chest = scaled().spec.measurements.points.find((p) => p.code === 'T03')!;
+    expect(chest.base.value).toBeGreaterThan(35);
+    expect(chest.base.value).toBeLessThan(90);
+  });
+
+  it('расхождение с заявленным размером названо вслух', () => {
+    // Вещь на сгенерированном снимке заметно уже, чем оверсайз-худи RU 46:
+    // документ обязан сказать об этом, а не молча собраться по измерению.
+    expect(scaled().notes.some((n) => n.includes('расходятся'))).toBe(true);
+  });
+
+  it('документ на масштабном кадре не нарушает инвариантов', () => {
+    expect(checkSpec(scaled().spec).map((v) => `${v.rule}: ${v.detail}`)).toEqual([]);
+  });
+
+  it('без масштаба совет положить предмет в кадр звучит, с масштабом — нет', () => {
+    expect(scaleAdvice(false).length).toBe(1);
+    expect(scaleAdvice(true)).toEqual([]);
   });
 });

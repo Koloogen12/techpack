@@ -11,6 +11,7 @@ import {
 import {
   buildStyleSpec,
   photoRatiosFrom,
+  scaleAdvice,
   suggestViews,
   viewAdviceNotes,
   type StyleSpecInput,
@@ -264,6 +265,9 @@ export function specInputFrom(
     ...(report ? { photo_ratios: photoRatiosFrom(report.proportions) } : {}),
     ...(report ? { visible_elements: report.visible_elements } : {}),
     ...(report ? { topstitching: report.topstitching } : {}),
+    // Предмет известного размера в кадре: единственное, что снимает
+    // монокулярную неоднозначность масштаба.
+    ...(report ? { scale: report.scale_object } : {}),
     ...(report?.fabric.knit_class && report.fabric.knit_class !== 'unknown'
       ? { fabric_class: report.fabric.knit_class, fabric_confidence: report.fabric.confidence }
       : {}),
@@ -334,6 +338,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
           shots.map((s) => s.view),
           base,
         ).slice(0, 2),
+      ),
+    );
+    notes.push(
+      ...scaleAdvice(
+        spec.measurements.points.some((p) => p.base.confidence === 'measured_by_scale'),
+        base,
       ),
     );
   }

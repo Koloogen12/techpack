@@ -3,6 +3,7 @@ import {
   clamp,
   confidenceRank,
   fromBase,
+  measuredByScale,
   roundCm,
   track,
   userInput,
@@ -20,6 +21,8 @@ import {
   type Gender,
   type KnowledgeBase,
   type PomPoint,
+  type ScaleReferenceId,
+  type ScaleSide,
   type ToleranceProfileId,
 } from '@specform/kb';
 import type { GradedValue, Measurements, PomValue } from '@specform/stylespec';
@@ -117,7 +120,47 @@ export interface PomInput {
    * за отбраковку, а не «настройка качества».
    */
   tolerance_profile?: ToleranceProfileId;
+  /** Предмет известного размера в кадре — см. `resolveScale`. */
+  scale?: ScaleObservation;
 }
+
+/**
+ * Наблюдение опорного предмета на снимке.
+ *
+ * Структурно совместимо с полем `scale_object` отчёта разбора. Истинный размер
+ * предмета сюда НЕ входит: он берётся из справочника по `kind`, потому что
+ * величина, заданная стандартом, не должна зависеть от того, что показалось
+ * на фотографии.
+ */
+export interface ScaleObservation {
+  kind: ScaleReferenceId | 'none';
+  side: ScaleSide;
+  /** Отношение измеренной стороны предмета к опорной величине изделия. */
+  ratio_to_anchor: number;
+  /** Предмет лежит в плоскости изделия. Иначе масштаб искажён перспективой. */
+  coplanar: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  reason?: string;
+}
+
+/**
+ * Правдоподобный диапазон опорной величины (половина обхвата груди), см.
+ *
+ * Ошибка определения краёв предмета входит в пересчёт делением, поэтому
+ * маленькая ошибка отношения даёт большую ошибку сантиметров. Значение вне
+ * этих границ означает, что предмет опознан неверно, — и молча взять его
+ * за масштаб хуже, чем не взять вовсе.
+ */
+const SCALE_ANCHOR_RANGE = { min: 25, max: 90 } as const;
+
+/**
+ * Насколько якорь по сетке и якорь по масштабу могут расходиться, доля.
+ *
+ * Расхождение больше этого — не погрешность, а сообщение: указанный размер
+ * не соответствует вещи на снимке. Это не ошибка продукта, а находка для
+ * пользователя, и молчать о ней нельзя.
+ */
+const ANCHOR_DISAGREEMENT = 0.05;
 
 export interface PomResult {
   measurements: Measurements;
@@ -206,7 +249,12 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
 
   // Прибавка задана как ПОЛНЫЙ обхват изделия минус обхват тела,
   // а якорь — половинный замер: делим на два ровно один раз.
-  const anchorCm = (body.chest + ease.entry.default) / 2;
+  const anchorFromChart = (body.chest + ease.entry.default) / 2;
+
+  // Предмет известного размера в кадре, если он там был, задаёт масштаб
+  // ИЗМЕРЕНИЕМ, а не расчётом от заявленного размера.
+  const scale = resolveScale(input.scale, anchorFromChart, notes, base);
+  const anchorCm = scale?.cm ?? anchorFromChart;
 
   // Второй якорь — тело без прибавки. За ним следуют горловина и наклон плеча:
   // oversize делает изделие шире, а не длиннее.
@@ -244,9 +292,14 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
         heightSteps,
         input,
         base,
+        ...(scale ? { scale } : {}),
       }),
     );
   }
+
+  // Ширина плеч ограничивается шириной изделия ДО составных точек по той же
+  // причине, что и рукав: длина рукава от центра спинки складывается из них.
+  clampShoulder(raw, notes);
 
   // Анатомический предел проверяется ДО составных точек: длина рукава от
   // центра спинки складывается из ширины плеч и длины рукава, и подрезать
@@ -304,6 +357,91 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   };
 }
 
+/** Масштаб, принятый к работе. */
+interface ResolvedScale {
+  cm: Centimeters;
+  reference: string;
+  label: string;
+}
+
+/**
+ * Пересчёт кадра в сантиметры по предмету известного размера.
+ *
+ * Возвращает null и объясняет причину каждый раз, когда предмету нельзя
+ * доверять. Молчаливый отказ здесь опаснее всего: пользователь положил лист
+ * в кадр, ждёт измерения, а получил ту же оценку — и не узнал, почему.
+ *
+ * Каждая проверка ниже закрывает конкретный способ соврать:
+ * предмет не в плоскости изделия даёт масштаб, искажённый перспективой;
+ * низкая уверенность означает, что края предмета не найдены; результат вне
+ * правдоподобного диапазона означает, что предмет опознан неверно, — ошибка
+ * отношения входит в пересчёт делением и потому усиливается, а не гасится.
+ */
+function resolveScale(
+  observation: ScaleObservation | undefined,
+  anchorFromChart: Centimeters,
+  notes: string[],
+  base: KnowledgeBase,
+): ResolvedScale | null {
+  if (!observation || observation.kind === 'none') return null;
+
+  const ref = base.scaleReference(observation.kind);
+
+  if (!(observation.ratio_to_anchor > 0)) return null;
+
+  if (!observation.coplanar) {
+    notes.push(
+      `В кадре есть опорный предмет (${ref.label_ru}), но он лежит не в плоскости ` +
+        `изделия — ` +
+        `перспектива искажает масштаб, и по нему считать нельзя. Замеры взяты от указанного ` +
+        `размера, как обычно. ${ref.how_to_place_ru}`,
+    );
+    return null;
+  }
+
+  if (observation.confidence === 'low') {
+    notes.push(
+      `В кадре похож на опорный предмет (${ref.label_ru}), но его края определяются ` +
+        `неуверенно, и масштаб по нему не считался. Переснимите так, чтобы предмет ` +
+        `целиком попадал в кадр и был хорошо освещён.`,
+    );
+    return null;
+  }
+
+  const cm =
+    base.scaleReferenceCm(observation.kind, observation.side) / observation.ratio_to_anchor;
+
+  if (cm < SCALE_ANCHOR_RANGE.min || cm > SCALE_ANCHOR_RANGE.max) {
+    notes.push(
+      `Масштаб по предмету в кадре дал ширину по груди ${roundCm(cm)} см — это вне ` +
+        `правдоподобного диапазона ${SCALE_ANCHOR_RANGE.min}–${SCALE_ANCHOR_RANGE.max} см, ` +
+        `значит предмет опознан неверно. Масштаб не использован.`,
+    );
+    return null;
+  }
+
+  const drift = Math.abs(cm - anchorFromChart) / anchorFromChart;
+  if (drift > ANCHOR_DISAGREEMENT) {
+    // Это не сбой, а находка: вещь на снимке не соответствует заявленному
+    // размеру. Чаще всего врёт бирка, а не наш расчёт.
+    notes.push(
+      `Заявленный размер и вещь на снимке расходятся на ${Math.round(drift * 100)}%: ` +
+        `по размерной сетке ширина по груди вышла бы ${roundCm(anchorFromChart)} см, ` +
+        `а по опорному предмету в кадре (${ref.label_ru}) получается ${roundCm(cm)} см. ` +
+        `Документ собран по измерению — оно ближе к факту, чем размер на бирке. ` +
+        `Если верен размер, а не снимок, уберите предмет из кадра и повторите.`,
+    );
+  }
+
+  notes.push(
+    `Масштаб снят с кадра по предмету известного размера (${ref.label_ru}): ` +
+      `ширина по груди ${roundCm(cm)} см — это измерение, а не оценка. Остальные точки ` +
+      `по-прежнему пропорции с фото, но теперь они отложены от измеренной величины.`,
+  );
+
+  return { cm, reference: observation.kind, label: ref.label_ru };
+}
+
 function normalizeRatio(value: number | PhotoRatio | undefined): PhotoRatio | undefined {
   if (value === undefined) return undefined;
   return typeof value === 'number' ? { ratio: value } : value;
@@ -319,6 +457,41 @@ function normalizeRatio(value: number | PhotoRatio | undefined): PhotoRatio | un
  * Статус наследуется по слабейшему звену: сумма не может быть достовернее
  * самого сомнительного из слагаемых.
  */
+/**
+ * Плечи не бывают шире изделия.
+ *
+ * Плечевой шов идёт по верхнему краю той же детали, ширину которой меряет
+ * ширина по груди: панель не может быть уже собственного края. У спущенного
+ * плеча величины сходятся почти вплотную, но не переходят друг друга.
+ *
+ * Найдено, когда в голден-набор добавили кадр спинки: на разложенном оверсайз-худи
+ * модель приняла за плечевую линию верх оката рукава и выдала плечи 69.3 при
+ * ширине по груди 66. Поточечная проверка правдоподобия пропускала — оба числа
+ * по отдельности нормальны для оверсайза.
+ */
+function clampShoulder(raw: Map<string, Tracked<number>>, notes: string[]): void {
+  const shoulder = raw.get('T06');
+  const chest = raw.get('T03');
+  if (!shoulder || !chest || shoulder.value <= chest.value) return;
+
+  notes.push(
+    `Ширина плеч по фото вышла ${roundCm(shoulder.value)} см при ширине по груди ` +
+      `${roundCm(chest.value)} см — плечи шире изделия, чего не бывает: на снимке ` +
+      `за плечевую линию принят верх оката рукава. Значение ограничено шириной ` +
+      `изделия. Подтвердите по образцу — особенно если плечо спущенное.`,
+  );
+
+  raw.set(
+    'T06',
+    track(
+      chest.value,
+      'default_from_base',
+      'engine:pom/shoulder-vs-chest',
+      'ограничено шириной изделия: плечи не бывают шире панели — проверьте по образцу',
+    ),
+  );
+}
+
 /**
  * Анатомический предел размаха.
  *
@@ -501,11 +674,25 @@ interface ValueContext {
   heightSteps: number;
   input: PomInput;
   base: KnowledgeBase;
+  /** Масштаб взят из кадра. Заполнено — якорь измерен, а не рассчитан. */
+  scale?: ResolvedScale;
 }
 
 function valueFor(point: PomPoint, ctx: ValueContext): Tracked<number> {
   const { input, base } = ctx;
   if (point.derivation === 'anchor') {
+    // Якорь, полученный по предмету известного размера, — это замер, а не
+    // расчёт от заявленного размера. Остальные точки при этом остаются
+    // оценкой: их ОТНОШЕНИЕ по-прежнему получено глазами модели, и правильный
+    // масштаб не делает правильной саму пропорцию.
+    if (ctx.scale) {
+      return measuredByScale(
+        ctx.garment,
+        `vision:scale#${ctx.scale.reference}`,
+        `пересчитано через опорный предмет в кадре (${ctx.scale.label}) — ` +
+          `это измерение, а не оценка по пропорции`,
+      );
+    }
     return fromBase(
       ctx.garment,
       `engine:pom/anchor(size=${input.base_size_ru},fit=${input.fit_intent})`,

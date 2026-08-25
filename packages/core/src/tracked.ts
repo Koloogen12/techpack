@@ -36,6 +36,10 @@ export const fitConfirmed = <T>(value: T, source: string, note?: string): Tracke
 export const userInput = <T>(value: T, source: string, note?: string): Tracked<T> =>
   track(value, 'user_input', source, note);
 
+/** Пересчитано через предмет известного размера в кадре — измерение, не оценка. */
+export const measuredByScale = <T>(value: T, source: string, note?: string): Tracked<T> =>
+  track(value, 'measured_by_scale', source, note);
+
 export const fromPhoto = <T>(value: T, source: string, note?: string): Tracked<T> =>
   track(value, 'estimated_from_photo', source, note);
 

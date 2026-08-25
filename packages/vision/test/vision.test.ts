@@ -35,6 +35,15 @@ const REPORT: VisionReport = {
   topstitching: [{ location: 'hem', rows: 2, confidence: 'high' }],
   colorways: [{ name_ru: 'Чёрный', hex_approx: '#111111' }],
   not_visible: [{ key: 'interlining', reason: 'изнанка не показана' }],
+  scale_object: {
+    kind: 'none' as const,
+    side: 'long_side' as const,
+    ratio_to_anchor: 0,
+    coplanar: false,
+    confidence: 'low' as const,
+    reason: 'опорного предмета в кадре нет',
+  },
+
   photo_quality_notes: [],
 };
 

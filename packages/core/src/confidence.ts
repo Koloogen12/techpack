@@ -5,6 +5,7 @@
  * В интерфейсе показываются человеческими словами (ux/00, словарь):
  *   fit_confirmed        → «подтверждено по образцу»
  *   user_input           → «указано вами»
+ *   measured_by_scale    → «измерено по масштабу»
  *   estimated_from_photo → «оценка по фото»
  *   default_from_base    → «типовое значение»
  *   assumption           → «предположение — подтвердить по образцу»
@@ -12,6 +13,15 @@
 export const CONFIDENCE_LEVELS = [
   'fit_confirmed',
   'user_input',
+  /**
+   * Величина получена из снимка, но не оценкой пропорции, а пересчётом через
+   * предмет известного размера в кадре (лист А4, банковская карта). Это уже
+   * измерение, а не оценка: монокулярная неоднозначность масштаба снята.
+   *
+   * Ниже «указано вами» намеренно: человек держит вещь в руках и может нас
+   * поправить, а мы работаем по фотографии.
+   */
+  'measured_by_scale',
   'estimated_from_photo',
   'default_from_base',
   'assumption',
@@ -24,8 +34,9 @@ export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
  * Используется при слиянии двух источников на одно поле: выигрывает более высокий ранг.
  */
 const RANK: Record<Confidence, number> = {
-  fit_confirmed: 5,
-  user_input: 4,
+  fit_confirmed: 6,
+  user_input: 5,
+  measured_by_scale: 4,
   estimated_from_photo: 3,
   default_from_base: 2,
   assumption: 1,
@@ -54,6 +65,7 @@ export function isDerived(c: Confidence): boolean {
 export const CONFIDENCE_LABEL_RU: Record<Confidence, string> = {
   fit_confirmed: 'подтверждено по образцу',
   user_input: 'указано вами',
+  measured_by_scale: 'измерено по масштабу',
   estimated_from_photo: 'оценка по фото',
   default_from_base: 'типовое значение',
   assumption: 'предположение',

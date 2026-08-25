@@ -80,6 +80,15 @@ const REPORT: VisionReport = {
     { key: 'fabric_weight', reason: 'плотность по фото не определяется' },
     { key: 'knitting_method', reason: 'признака нет в нашей карте видимости' },
   ],
+  scale_object: {
+    kind: 'none' as const,
+    side: 'long_side' as const,
+    ratio_to_anchor: 0,
+    coplanar: false,
+    confidence: 'low' as const,
+    reason: 'опорного предмета в кадре нет',
+  },
+
   photo_quality_notes: ['Изделие снято на манекене, а не разложено плоско'],
 };
 

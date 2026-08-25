@@ -9,36 +9,30 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { FileVisionCache, cacheKey, defaultModel, hashPhoto } from '@specform/vision';
-import { parseAnswers, answersFingerprint } from '@specform/cli';
+import { parseAnswers as parse, answersFingerprint } from '@specform/cli';
+import { GOLDEN_SHOTS } from '../shots.js';
+
+const parseAnswers = (raw: string) => parse(JSON.parse(raw));
 
 const cache = new FileVisionCache('.cache/vision');
-for (const cat of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
-  const answers = parseAnswers(
-    JSON.parse(readFileSync(`golden/answers/${cat}-women-46.json`, 'utf8')),
-  );
-  // Голден-набор снимается двумя ракурсами: без спинки половина точек
-  // корпуса и капюшона остаётся предположениями, и набор перестаёт проверять
-  // то, ради чего существует.
-  const shots = [
-    { file: `golden/photos/${cat}-front.png`, view: 'front_flat' as const },
-    { file: `golden/photos/${cat}-back.png`, view: 'back_flat' as const },
-  ];
+for (const shot of GOLDEN_SHOTS) {
+  const answers = parseAnswers(readFileSync(`golden/answers/${shot.answers}`, 'utf8'));
   const key = cacheKey({
-    photoHashes: shots.map((s) => hashPhoto(readFileSync(s.file))),
-    views: shots.map((s) => s.view),
+    photoHashes: shot.photos.map((p) => hashPhoto(readFileSync(p.file))),
+    views: shot.photos.map((p) => p.view),
     category: answers.category,
     answersFingerprint: answersFingerprint(answers),
     model: defaultModel(),
   });
   const report = cache.get(key);
   if (!report) {
-    console.log(`  ✗ ${cat}: отчёта нет в кэше`);
+    console.log(`  \u2717 ${shot.id}: отчёта нет в кэше — прогрейте pnpm golden:warm`);
     continue;
   }
-  writeFileSync(`golden/vision-reports/${cat}.json`, JSON.stringify(report, null, 2) + '\n');
+  writeFileSync(`golden/vision-reports/${shot.id}.json`, JSON.stringify(report, null, 2) + '\n');
   console.log(
-    `  ✓ ${cat.padEnd(12)} пропорций ${String(report.proportions.length).padStart(2)} · ` +
-      `видимых элементов ${String(report.visible_elements.length).padStart(2)} · ` +
-      `не видно ${String(report.not_visible.length).padStart(2)}`,
+    `  \u2713 ${shot.id.padEnd(12)} пропорций ${String(report.proportions.length).padStart(2)} ` +
+      `\u00b7 не видно ${String(report.not_visible.length).padStart(2)} ` +
+      `\u00b7 масштаб ${report.scale_object.kind}`,
   );
 }
