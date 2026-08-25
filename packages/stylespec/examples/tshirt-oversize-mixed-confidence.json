@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.3.0",
+  "spec_version": "0.4.0",
   "style": {
     "id": "example-tshirt-oversize",
     "name": "Oversize футболка по фото",
@@ -70,9 +70,9 @@
         "how_to_measure_ru": "От шва горловины по центру спинки до края низа",
         "measure_kind": "length",
         "base": {
-          "value": 62.6,
+          "value": 69.5,
           "confidence": "default_from_base",
-          "source": "kb:baseline#T02",
+          "source": "engine:pom/composed(1×T01+-1×T16)",
           "note": "масштаб откалиброван по вашему замеру"
         },
         "tolerance": {
@@ -84,25 +84,25 @@
           {
             "ru": 44,
             "value": {
-              "value": 61.8,
+              "value": 68.9,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#body_length"
+              "source": "engine:pom/composed(1×T01+-1×T16)"
             }
           },
           {
             "ru": 48,
             "value": {
-              "value": 63.3,
+              "value": 70.1,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#body_length"
+              "source": "engine:pom/composed(1×T01+-1×T16)"
             }
           },
           {
             "ru": 50,
             "value": {
-              "value": 64.1,
+              "value": 70.7,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#body_length"
+              "source": "engine:pom/composed(1×T01+-1×T16)"
             }
           }
         ],
@@ -498,25 +498,25 @@
           {
             "ru": 44,
             "value": {
-              "value": 55.8,
+              "value": 55.3,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length_short"
+              "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
           },
           {
             "ru": 48,
             "value": {
-              "value": 56.6,
+              "value": 57.2,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length_short"
+              "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
           },
           {
             "ru": 50,
             "value": {
-              "value": 57,
+              "value": 58.2,
               "confidence": "default_from_base",
-              "source": "engine:pom/grading#sleeve_length_short"
+              "source": "engine:pom/composed(0.5×T06+1×T10)"
             }
           }
         ],
@@ -1397,6 +1397,7 @@
       "source": "kb:consumption_formulas#tshirt",
       "note": "предварительно: 1.15 м на размер M при ширине 145 см, плюс 4% на раскладку и 7% на усадку. Уточняется фабрикой по раскладке"
     },
+    "batch_qty": null,
     "batch_consumption_m": null
   },
   "labels": {
@@ -1438,8 +1439,8 @@
         "label_ru": "Наименование продукции",
         "value": {
           "value": "Футболка женская",
-          "confidence": "default_from_base",
-          "source": "engine:labels/product_name"
+          "confidence": "user_input",
+          "source": "user:answers.category+gender"
         },
         "required": true,
         "action_ru": null

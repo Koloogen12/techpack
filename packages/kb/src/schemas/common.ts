@@ -87,3 +87,29 @@ export const FIT_INTENT_LABEL_RU: Record<FitIntent, string> = {
 
 export const GenderSchema = z.enum(['women', 'men']);
 export type Gender = z.infer<typeof GenderSchema>;
+
+/**
+ * Грамматический род названия категории.
+ *
+ * Нужен для наименования товара на ярлыке: реквизит по статье 9 ТР ТС 017
+ * читает живой человек, а «свитшот женская» — это брак печати, а не мелочь.
+ * Худи не склоняется и в отраслевой речи среднего рода: «худи женское».
+ */
+export const CATEGORY_GRAMMATICAL_GENDER: Record<Category, 'f' | 'm' | 'n'> = {
+  tshirt: 'f',
+  longsleeve: 'm',
+  sweatshirt: 'm',
+  hoodie: 'n',
+};
+
+const GENDER_FORMS: Record<Gender, Record<'f' | 'm' | 'n', string>> = {
+  women: { f: 'женская', m: 'женский', n: 'женское' },
+  men: { f: 'мужская', m: 'мужской', n: 'мужское' },
+};
+
+/** «Футболка женская», «Свитшот мужской», «Худи женское». */
+export function categoryWithGender(category: Category, gender: Gender): string {
+  const label = CATEGORY_LABEL_RU[category];
+  const form = GENDER_FORMS[gender][CATEGORY_GRAMMATICAL_GENDER[category]];
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${form}`;
+}

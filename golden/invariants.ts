@@ -172,6 +172,72 @@ export function checkSpec(spec: StyleSpec): Violation[] {
     fail('пропорции изделия', `горловина спинки (${backDrop}) глубже переда (${frontDrop})`);
   }
 
+  // --- Согласованность длин ---------------------------------------------------
+  //
+  // Длина от высшей точки плеча и длина по центру спинки — это один и тот же
+  // отрезок, отмеренный от двух линий, между которыми ровно глубина горловины
+  // спинки. Тождество, а не приблизительное соотношение.
+  //
+  // Найдено на приёмке первых паков: футболка объявляла 74 от плеча, 66.6
+  // по центру спинки и 2.8 глубины горловины — дыра 4.6 см ВНУТРИ одной
+  // таблицы. Свитшот врал на 9.3. Поточечная проверка правдоподобия это
+  // пропускала: каждое число по отдельности выглядело нормально.
+  const LENGTH_TOLERANCE_CM = 1;
+  const consistentLengths = (
+    where: string,
+    hps: number | undefined,
+    cb: number | undefined,
+    drop: number | undefined,
+  ): void => {
+    if (hps === undefined || cb === undefined || drop === undefined) return;
+    const gap = cb - (hps - drop);
+    if (Math.abs(gap) > LENGTH_TOLERANCE_CM) {
+      fail(
+        'согласованность длин',
+        `${where}: T02 (${cb}) ≠ T01 − T16 (${(hps - drop).toFixed(1)}), расхождение ${gap.toFixed(1)} см`,
+      );
+    }
+  };
+
+  consistentLengths('базовый размер', byCode.get('T01'), byCode.get('T02'), byCode.get('T16'));
+
+  // Сойтись на базовом размере и разойтись на остальных — отдельный способ
+  // соврать, и именно его пропускает проверка одного размера.
+  const gradedAt = (code: string, ru: number): number | undefined => {
+    const point = spec.measurements.points.find((p) => p.code === code);
+    if (!point) return undefined;
+    return point.graded.find((g) => g.ru === ru)?.value.value ?? point.base.value;
+  };
+  for (const ru of spec.base.size_range) {
+    if (ru === spec.base.base_size_ru) continue;
+    consistentLengths(
+      `размер ${ru}`,
+      gradedAt('T01', ru),
+      gradedAt('T02', ru),
+      gradedAt('T16', ru),
+    );
+  }
+
+  // --- Анатомия ----------------------------------------------------------------
+  //
+  // Ширина плеч плюс две длины рукава — это размах рук в готовом изделии,
+  // а он не может заметно превышать рост. Свитшот на приёмке выдал 198 см
+  // при росте 170: и плечи 50.2, и рукав 74.1 по отдельности проходили
+  // проверку правдоподобия, а вместе давали вещь, которую не наденут.
+  const MAX_REACH_TO_HEIGHT = 1.1;
+  const sleeve = byCode.get('T10');
+  if (sleeve !== undefined && shoulderWidth !== undefined) {
+    const reach = shoulderWidth + 2 * sleeve;
+    const limit = spec.base.base_height_cm * MAX_REACH_TO_HEIGHT;
+    if (reach > limit + 0.05) {
+      fail(
+        'анатомия',
+        `размах в изделии ${reach.toFixed(1)} см (плечи ${shoulderWidth} + 2 × рукав ${sleeve}) ` +
+          `при росте ${spec.base.base_height_cm} см — предел ${limit.toFixed(1)}`,
+      );
+    }
+  }
+
   // --- Градация -------------------------------------------------------------------
   const expected = spec.base.size_range.filter((ru) => ru !== spec.base.base_size_ru);
   for (const p of spec.measurements.points) {

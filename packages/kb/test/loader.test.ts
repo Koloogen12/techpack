@@ -174,9 +174,18 @@ describe('шаблон точек измерения футболки', () => {
     const byCode = new Map(tpl.points.map((p) => [p.code, p]));
     // Длины изделия и рукава следуют за РОСТОМ: человек на четыре размера
     // больше не имеет рук на четверть длиннее — он шире.
-    for (const code of ['T01', 'T02', 'T10']) {
+    for (const code of ['T01', 'T10']) {
       expect(byCode.get(code)!.anchor_basis, code).toBe('height');
     }
+    // Длина по центру спинки собственной привязки не имеет: она равна длине
+    // от плеча минус глубина горловины спинки — тождество, а не пропорция.
+    const cbLength = byCode.get('T02')!;
+    expect(cbLength.derivation).toBe('composed');
+    expect(cbLength.anchor_basis).toBeUndefined();
+    expect(cbLength.composed_of).toEqual([
+      { code: 'T01', factor: 1 },
+      { code: 'T16', factor: -1 },
+    ]);
     // Горловина и наклон плеча следуют за обхватом тела.
     for (const code of ['T14', 'T15', 'T16', 'T18']) {
       expect(byCode.get(code)!.anchor_basis, code).toBe('body');

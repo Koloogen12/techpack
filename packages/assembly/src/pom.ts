@@ -241,6 +241,11 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
     );
   }
 
+  // Анатомический предел проверяется ДО составных точек: длина рукава от
+  // центра спинки складывается из ширины плеч и длины рукава, и подрезать
+  // её после сложения значило бы получить сумму, не равную слагаемым.
+  clampReach(raw, input, notes);
+
   // Затем составные — они ссылаются на уже посчитанные.
   for (const point of template.points) {
     if (point.derivation !== 'composed') continue;
@@ -251,6 +256,19 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   const scaled = input.manual ? calibrate(raw, input.manual, notes) : raw;
 
   // --- 5. Допуски и градация --------------------------------------------------
+  // Градация считается в два прохода по той же причине, что и значения:
+  // составная точка обязана складываться из слагаемых НА КАЖДОМ размере,
+  // иначе таблица сходится на базовом размере и расходится на остальных.
+  const graded = new Map<string, GradedValue[]>();
+  for (const point of template.points) {
+    if (point.derivation === 'composed') continue;
+    graded.set(point.code, gradeFor(point, scaled.get(point.code)!.value, input, base));
+  }
+  for (const point of template.points) {
+    if (point.derivation !== 'composed') continue;
+    graded.set(point.code, composeGraded(point, scaled, graded, input));
+  }
+
   const points: PomValue[] = template.points.map((point) => {
     const value = scaled.get(point.code)!;
     return {
@@ -261,7 +279,7 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
       measure_kind: point.measure_kind,
       base: { ...value, value: roundCm(value.value) },
       tolerance: toleranceFor(point, input.fabric_kind, base),
-      graded: gradeFor(point, value.value, input, base),
+      graded: graded.get(point.code)!,
       required: point.required,
       pro_only: point.pro_only,
     };
@@ -292,6 +310,112 @@ function normalizeRatio(value: number | PhotoRatio | undefined): PhotoRatio | un
  * Статус наследуется по слабейшему звену: сумма не может быть достовернее
  * самого сомнительного из слагаемых.
  */
+/**
+ * Анатомический предел размаха.
+ *
+ * Ширина плеч плюс две длины рукава — это размах рук в готовом изделии.
+ * У человека размах примерно равен росту; с манжетой и свободой изделия
+ * запас в десять процентов покрывает всё разумное. Больше — значит рукав
+ * длиннее руки, а такую вещь не наденут.
+ *
+ * Поточечный клэмп это поймать не может: и ширина плеч, и длина рукава
+ * по отдельности остаются правдоподобными. Свитшот на первом прогоне вышел
+ * с рукавом 74.1 при плечах 50.2 — 198 см размаха при росте 170. Каждое
+ * число в отдельности проходило, сумма не проходила никак.
+ *
+ * Излишек снимается с РУКАВА: ширина плеч в плоской раскладке читается
+ * уверенно, а длину рукава завышает диагональная укладка — именно на неё
+ * жаловалась модель разбора на том самом снимке.
+ */
+const MAX_REACH_TO_HEIGHT = 1.1;
+
+function clampReach(raw: Map<string, Tracked<number>>, input: PomInput, notes: string[]): void {
+  const shoulder = raw.get('T06');
+  const sleeve = raw.get('T10');
+  if (!shoulder || !sleeve) return;
+
+  // Сравниваем ОКРУГЛЁННЫЕ значения — те самые, что попадут в документ.
+  // Иначе округление на выходе способно добавить последнюю десятую и вывести
+  // сумму за предел уже после проверки; на переборе входов такой случай нашёлся.
+  const shoulderCm = roundCm(shoulder.value);
+  const sleeveCm = roundCm(sleeve.value);
+  const limit = input.base_height_cm * MAX_REACH_TO_HEIGHT;
+  const reach = shoulderCm + 2 * sleeveCm;
+  if (reach <= limit) return;
+
+  // Вниз до десятой: клэмп не имеет права округлять в сторону нарушения.
+  const allowed = Math.floor(((limit - shoulderCm) / 2) * 10) / 10;
+  if (allowed <= 0) {
+    // Плечи сами по себе шире анатомического предела — рукав тут ни при чём,
+    // и подрезать его до нуля значило бы спрятать настоящую проблему.
+    notes.push(
+      `Ширина плеч ${shoulderCm} см сама по себе превышает анатомический ` +
+        `предел размаха для роста ${roundCm(input.base_height_cm)} см. Длина рукава ` +
+        `не поправлена: проверьте ширину плеч по образцу — скорее всего ошибка в ней.`,
+    );
+    return;
+  }
+
+  notes.push(
+    `Длина рукава ограничена анатомией: ширина плеч ${shoulderCm} см плюс ` +
+      `две длины рукава давали размах ${roundCm(reach)} см при росте ` +
+      `${roundCm(input.base_height_cm)} см — это длиннее руки. Рукав уменьшен с ` +
+      `${sleeveCm} до ${allowed} см. Подтвердите по образцу: ` +
+      `чаще всего отношение завышает диагональная укладка рукава на снимке.`,
+  );
+
+  raw.set(
+    'T10',
+    track(
+      allowed,
+      // Значение больше не «то, что на фото», а наша граница — статус падает.
+      'default_from_base',
+      'engine:pom/anatomy#T10',
+      `ограничено анатомическим пределом размаха (плечи + 2 × рукав ≤ рост × ${MAX_REACH_TO_HEIGHT}) — проверьте по образцу`,
+    ),
+  );
+}
+
+/**
+ * Градация составной точки — из градации её слагаемых.
+ *
+ * Считать составную точку по собственному правилу приращения значит позволить
+ * таблице сойтись на базовом размере и разойтись на всех остальных: сумма
+ * слагаемых растёт по их правилам, а сама точка — по своему.
+ *
+ * Слагаемое без градации (правило с нулевым приращением) на всех размерах
+ * равно своему базовому значению — так и берётся.
+ */
+function composeGraded(
+  point: PomPoint,
+  values: ReadonlyMap<string, Tracked<number>>,
+  graded: ReadonlyMap<string, GradedValue[]>,
+  input: PomInput,
+): GradedValue[] {
+  const parts = point.composed_of ?? [];
+
+  // Ни одно слагаемое не градуируется — не градуируется и сумма. В документе
+  // это честный прочерк, а не столбец одинаковых чисел.
+  if (parts.every((p) => !graded.get(p.code)?.length)) return [];
+
+  return input.size_range
+    .filter((ru) => ru !== input.base_size_ru)
+    .map((ru) => {
+      let sum = 0;
+      for (const part of parts) {
+        const row = graded.get(part.code)?.find((g) => g.ru === ru);
+        sum += (row?.value.value ?? values.get(part.code)!.value) * part.factor;
+      }
+      return {
+        ru,
+        value: fromBase(
+          roundCm(sum),
+          `engine:pom/composed(${parts.map((p) => `${p.factor}×${p.code}`).join('+')})`,
+        ),
+      };
+    });
+}
+
 function composeValue(
   point: PomPoint,
   computed: ReadonlyMap<string, Tracked<number>>,
@@ -310,6 +434,16 @@ function composeValue(
     }
     sum += value.value * part.factor;
     if (confidenceRank(value.confidence) < confidenceRank(weakest)) weakest = value.confidence;
+  }
+
+  // Разность может уйти в ноль, если вычитаемое слагаемое вышло абсурдным.
+  // Отрицательный замер в документе хуже, чем громкая ошибка здесь.
+  if (sum <= 0) {
+    throw new Error(
+      `точка ${point.code} посчиталась как ${roundCm(sum)} см из ` +
+        `${parts.map((p) => `${p.factor}×${p.code}`).join(' + ')} — ` +
+        `проверьте слагаемые, замер не может быть неположительным`,
+    );
   }
 
   return track(
@@ -340,6 +474,7 @@ function baselineValue(
     return ctx.height * ratio + rule.per_size * ctx.sizeStepsFromReference;
   }
 
+  // Привязка обязательна по схеме справочника, дефолта здесь нет намеренно.
   const anchor = point.anchor_basis === 'body' ? ctx.body : ctx.garment;
   const value = anchor * ratio;
   // Ростовка двигает только те точки, для которых правило её задаёт.

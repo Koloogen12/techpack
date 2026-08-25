@@ -69,6 +69,8 @@ export interface BomResult {
   /** Предварительный расход основного полотна на изделие, погонных метров. */
   fabric_consumption_m: Tracked<number>;
   /** То же на весь тираж. Пусто, если тираж не назван. */
+  /** Тираж заказа, штук. Без него расход на тираж — число без смысла. */
+  batch_qty: number | null;
   batch_consumption_m: number | null;
   notes: string[];
 }
@@ -170,6 +172,7 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
     colorways,
     lines,
     fabric_consumption_m: consumption,
+    batch_qty: input.quantity ?? null,
     batch_consumption_m: input.quantity ? roundCm(perUnit * input.quantity) : null,
     notes,
   };

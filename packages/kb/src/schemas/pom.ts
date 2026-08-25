@@ -104,8 +104,12 @@ export const PomPointSchema = z
      */
     tolerance_cm: z.number().positive().optional(),
     derivation: DerivationSchema,
-    /** За чем следует величина: за шириной изделия или за телом. */
-    anchor_basis: AnchorBasisSchema.default('garment'),
+    /**
+     * За чем следует величина: за шириной изделия, за телом или за ростом.
+     * У составной точки собственной привязки нет — она наследует её
+     * от слагаемых, поэтому здесь поле обязано отсутствовать.
+     */
+    anchor_basis: AnchorBasisSchema.optional(),
     /**
      * Отношение к якорю по умолчанию — когда фото не дало пропорции.
      * Обязательно для ratio_to_anchor и independent, запрещено для anchor.
@@ -146,8 +150,29 @@ export const PomPointSchema = z
           path: ['baseline_ratio'],
         });
       }
+      if (p.anchor_basis !== undefined) {
+        // Привязка приходит из слагаемых. Оставленное здесь значение выглядит
+        // осмысленным и молча врёт: у T02 оно однажды свалилось в дефолтное
+        // «за шириной изделия», хотя точка следует за ростом через T01.
+        ctx.addIssue({
+          code: 'custom',
+          message: 'составная точка не имеет собственной привязки — она у слагаемых',
+          path: ['anchor_basis'],
+        });
+      }
       return;
     }
+    // Несоставная точка обязана объявить привязку явно. Молчаливый дефолт
+    // «за шириной изделия» — ровно тот механизм, из-за которого oversize
+    // когда-то удлинял футболку вместе с расширением.
+    if (p.anchor_basis === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `точка ${p.code}: не объявлено, за чем следует величина (anchor_basis)`,
+        path: ['anchor_basis'],
+      });
+    }
+
     if (p.derivation === 'anchor') {
       if (p.baseline_ratio !== undefined) {
         ctx.addIssue({

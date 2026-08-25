@@ -1,6 +1,6 @@
 import { assume, fromBase, userInput, type Tracked } from '@specform/core';
 import {
-  CATEGORY_LABEL_RU,
+  categoryWithGender,
   kb as defaultKb,
   type Category,
   type Gender,
@@ -80,9 +80,6 @@ export interface LabelsResult {
   notes: string[];
 }
 
-/** Категория плюс пол — как это пишется на ярлыке. */
-const GENDER_SUFFIX: Record<Gender, string> = { women: 'женская', men: 'мужская' };
-
 export function buildLabels(input: LabelsInput, base: KnowledgeBase = defaultKb()): LabelsResult {
   const notes: string[] = [];
   const brand = input.brand ?? {};
@@ -93,9 +90,12 @@ export function buildLabels(input: LabelsInput, base: KnowledgeBase = defaultKb(
   const careText = care_symbols.map((s) => s.label_ru).join(' · ');
 
   const values: Record<string, Tracked<string> | null> = {
-    product_name: fromBase(
-      `${capitalize(CATEGORY_LABEL_RU[input.category])} ${GENDER_SUFFIX[input.gender]}`,
-      'engine:labels/product_name',
+    // Категория и пол приходят из анкеты, а не из справочника: реквизит
+    // обязательный, и показывать его «типовым значением» значит занижать
+    // доверие к тому, что пользователь сам же и указал.
+    product_name: userInput(
+      categoryWithGender(input.category, input.gender),
+      'user:answers.category+gender',
     ),
     country: brand.country ? userInput(brand.country, 'user:brand_profile.country') : null,
     manufacturer:
@@ -169,10 +169,6 @@ export function buildLabels(input: LabelsInput, base: KnowledgeBase = defaultKb(
   );
 
   return { care_symbols, requisites, sku_matrix, notes };
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /** Сколько реквизитов маркировки не заполнено и блокирует продажу. */

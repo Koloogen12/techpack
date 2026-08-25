@@ -35,6 +35,22 @@ export const MIGRATIONS: readonly Migration[] = [
     describe: 'добавлены разделы материалов и маркировки; для старых снапшотов они пустые',
     migrate: (snapshot) => ({ ...snapshot, spec_version: '0.3.0' }),
   },
+  {
+    from: '0.3.0',
+    to: '0.4.0',
+    describe:
+      'в спецификацию материалов добавлен тираж заказа; в старых снапшотах ' +
+      'расход на тираж есть, а самого тиража нет — восстановить его нельзя, ' +
+      'поэтому обнуляются оба: число без смысла хуже отсутствующего',
+    migrate: (snapshot) => {
+      const bom = snapshot.bom as Record<string, unknown> | undefined;
+      return {
+        ...snapshot,
+        ...(bom ? { bom: { ...bom, batch_qty: null, batch_consumption_m: null } } : {}),
+        spec_version: '0.4.0',
+      };
+    },
+  },
 ];
 
 function versionOf(snapshot: unknown): string {

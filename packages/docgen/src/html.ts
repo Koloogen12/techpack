@@ -206,6 +206,9 @@ function coverBody(spec: StyleSpec): string {
     ['Базовый размер', `RU ${spec.base.base_size_ru} · рост ${num(spec.base.base_height_cm)}`],
     ['Размерный ряд', spec.base.size_range.join(' · ')],
     ['Посадка', FIT_INTENT_LABEL_RU[spec.base.fit_intent as FitIntent]],
+    // Фабрика считает цену от тиража. Раньше расход «на тираж: 130 м» стоял
+    // в спецификации, а сам тираж не был указан нигде.
+    ['Тираж', spec.bom?.batch_qty ? `${spec.bom.batch_qty} шт` : 'не указан'],
   ];
 
   const assumptions = spec.meta.assumptions_count;

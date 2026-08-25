@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.3.0';
+export const SPEC_VERSION = '0.4.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -188,13 +188,28 @@ export const BomLineSchema = z.object({
   note: z.string().optional(),
 });
 
-export const BomSchema = z.object({
-  colorways: z.array(ColorwaySchema).min(1),
-  lines: z.array(BomLineSchema).min(1),
-  /** Предварительный расход на изделие. Уточняется фабрикой по раскладке. */
-  fabric_consumption_m: tracked(z.number().positive()),
-  batch_consumption_m: z.number().positive().nullable(),
-});
+export const BomSchema = z
+  .object({
+    colorways: z.array(ColorwaySchema).min(1),
+    lines: z.array(BomLineSchema).min(1),
+    /** Предварительный расход на изделие. Уточняется фабрикой по раскладке. */
+    fabric_consumption_m: tracked(z.number().positive()),
+    /** Тираж заказа, штук. Фабрика считает цену от него. */
+    batch_qty: z.number().int().positive().nullable(),
+    batch_consumption_m: z.number().positive().nullable(),
+  })
+  .superRefine((bom, ctx) => {
+    // «Расход на тираж: 130 м» без указания самого тиража — число без смысла:
+    // фабрика не может ни проверить его, ни посчитать от него цену. Раньше
+    // тираж брался из анкеты, участвовал в расчёте и в документ не доходил.
+    if ((bom.batch_consumption_m === null) !== (bom.batch_qty === null)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'расход на тираж и сам тираж указываются только вместе',
+        path: ['batch_qty'],
+      });
+    }
+  });
 
 export const LabelsSchema = z
   .object({
