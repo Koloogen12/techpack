@@ -1264,6 +1264,17 @@
                             }
                           ]
                         },
+                        "book_source": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["brand", "catalog"]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
                         "delta_e": {
                           "anyOf": [
                             {
@@ -1276,7 +1287,7 @@
                           ]
                         }
                       },
-                      "required": ["hex", "share", "book_code", "delta_e"],
+                      "required": ["hex", "share", "book_code", "book_source", "delta_e"],
                       "additionalProperties": false
                     }
                   },

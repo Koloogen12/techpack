@@ -223,6 +223,8 @@ export interface PatternTileInput {
         hex: string;
         share: number;
         book_code?: string | null | undefined;
+        /** brand — номер вписал заказчик; catalog — подобран по каталогу. */
+        book_source?: 'brand' | 'catalog' | null | undefined;
         delta_e?: number | null | undefined;
       }[]
     | undefined;
@@ -446,6 +448,9 @@ export function buildPatternPlacement(
         hex: c.hex,
         share: c.share,
         book_code: c.book_code ?? null,
+        // Номер без указания происхождения не показываем как подобранный:
+        // вписанный заказчиком — его данные и его ответственность.
+        book_source: c.book_code ? (c.book_source ?? 'brand') : null,
         delta_e: c.delta_e ?? null,
       })),
       vector_available: input.tile.vector_available ?? false,

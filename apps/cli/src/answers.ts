@@ -103,7 +103,13 @@ export const AnswersSchema = z
                 z.object({
                   hex: z.string().regex(/^#[0-9A-F]{6}$/),
                   share: z.number().min(0).max(1),
+                  /**
+                   * Фирменный номер краски, если бренд его знает.
+                   * Свой номер бренд вписывает сам — это его данные,
+                   * и показывать их мы вправе. Каталог мы не поставляем.
+                   */
                   book_code: text(40).nullable().optional(),
+                  book_source: z.enum(['brand', 'catalog']).nullable().optional(),
                   delta_e: z.number().nonnegative().nullable().optional(),
                 }),
               )

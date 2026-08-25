@@ -501,6 +501,24 @@ function previewBody(spec: StyleSpec, visuals?: DocVisuals): string | null {
 
 // -------------------------------------------------------------- нанесение
 
+/**
+ * Номер краски и его происхождение.
+ *
+ * За номер, вписанный брендом, отвечает бренд: это его фирменный цвет.
+ * За подобранный по каталогу отвечаем мы, и рядом обязано стоять
+ * расхождение. Показать одно как другое значит переложить ответственность
+ * молча.
+ */
+function colorCode(c: {
+  book_code: string | null;
+  book_source: 'brand' | 'catalog' | null;
+  delta_e: number | null;
+}): string {
+  if (!c.book_code) return 'номер не указан — подбирается печатником по Lab';
+  if (c.book_source === 'brand') return `${esc(c.book_code)} · указан брендом`;
+  return esc(c.book_code) + (c.delta_e !== null ? ` · подбор, ΔE ${num(c.delta_e)}` : '');
+}
+
 const GRAIN_RU: Record<string, string> = {
   along: 'вдоль полотна — деталь кроится по долевой',
   across: 'поперёк полотна',
@@ -614,12 +632,14 @@ function artworkPages(
                 `style="background:${esc(c.hex)}"></span></td>` +
                 `<td class="mono">${esc(c.hex)}</td>` +
                 `<td class="num v">${Math.round(c.share * 100)}%</td>` +
-                `<td class="note">${c.book_code ? esc(c.book_code) + (c.delta_e !== null ? ` · ΔE ${num(c.delta_e)}` : '') : 'номер по каталогу не подобран'}</td></tr>`,
+                `<td class="note">${colorCode(c)}</td></tr>`,
             )
             .join('') +
           `</tbody></table>` +
           `<div class="note" style="margin-top:2mm">Доля площади задаёт расход краски. ` +
           `Цвета измерены по пикселям тайла, а не подобраны на глаз. ` +
+          `Номера вееров мы не подставляем: их подбирают по координатам Lab ` +
+          `и подтверждают выкрасом. ` +
           `${esc(a.pattern.vector_verdict_ru)}</div>`
         : '') +
       (a.warnings_ru.length
