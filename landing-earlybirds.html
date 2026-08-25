@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SpecForm — техпак из фото, который примет фабрика</title>
+    <meta
+      name="description"
+      content="AI превращает фото вещи в производственный техпак: эскиз, замеры с допусками, BOM, конструкция на языке технолога. Ранний доступ."
+    />
+    <style>
+      /* ===== BRAND TOKEN — поменяй имя в одном месте ===== */
+      :root {
+        --brand-name: 'SpecForm';
+        --blue: #2653f1;
+        --blue2: #4d7bff;
+        --lime: #a8e10c;
+        --lime2: #d3f65a;
+        --ink: #141414;
+        --bg: #f5f5f2;
+        --card: #fff;
+        --muted: #6b6b66;
+        --line: #e4e2dc;
+        --r: 16px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family:
+          'Inter',
+          'Golos Text',
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.55;
+        font-size: 17px;
+      }
+      .disp {
+        font-family: 'Arial Narrow', 'Inter', sans-serif;
+        font-stretch: condensed;
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 0.95;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      section {
+        padding: 96px 0;
+      }
+      h2.disp {
+        font-size: clamp(34px, 5vw, 56px);
+        margin-bottom: 16px;
+      }
+      .sub {
+        color: var(--muted);
+        max-width: 640px;
+      }
+      /* nav */
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 24px;
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+      .logo {
+        font-weight: 800;
+        font-size: 20px;
+        letter-spacing: 0.02em;
+      }
+      .logo small {
+        font-weight: 500;
+        color: var(--muted);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      nav .links {
+        display: flex;
+        gap: 28px;
+        font-size: 15px;
+      }
+      nav a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(100deg, var(--lime), var(--lime2));
+        color: var(--ink);
+        font-weight: 700;
+        padding: 14px 26px;
+        border-radius: 999px;
+        text-decoration: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.15s;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+      .btn.ghost {
+        background: transparent;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        color: #fff;
+      }
+      /* hero */
+      .hero {
+        background: radial-gradient(120% 140% at 80% 10%, var(--blue2), var(--blue) 60%);
+        color: #fff;
+        border-radius: 0 0 32px 32px;
+        overflow: hidden;
+        position: relative;
+      }
+      .hero .wrap {
+        padding-top: 64px;
+        padding-bottom: 80px;
+        position: relative;
+        z-index: 2;
+      }
+      .badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        padding: 7px 16px;
+        font-size: 13.5px;
+        margin-bottom: 28px;
+      }
+      .hero h1 {
+        font-size: clamp(44px, 7vw, 88px);
+        max-width: 900px;
+      }
+      .hero .sub {
+        color: rgba(255, 255, 255, 0.85);
+        margin: 22px 0 34px;
+        font-size: 19px;
+      }
+      .ribbon {
+        position: absolute;
+        right: -140px;
+        top: -60px;
+        width: 560px;
+        height: 560px;
+        border-radius: 50%;
+        border: 70px solid transparent;
+        border-image: linear-gradient(120deg, var(--lime), var(--lime2)) 1;
+        transform: rotate(-18deg);
+        opacity: 0.85;
+        filter: blur(0.3px);
+        border-top-color: var(--lime);
+        border-right-color: var(--lime2);
+        z-index: 1;
+      }
+      .trust {
+        display: flex;
+        gap: 26px;
+        flex-wrap: wrap;
+        margin-top: 30px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .trust b {
+        color: #fff;
+      }
+      /* waitlist form */
+      .wl {
+        background: #fff;
+        border-radius: var(--r);
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+        max-width: 620px;
+        flex-wrap: wrap;
+        box-shadow: 0 20px 60px rgba(10, 20, 80, 0.25);
+      }
+      .wl input,
+      .wl select {
+        border: none;
+        outline: none;
+        font-size: 16px;
+        padding: 14px;
+        flex: 1;
+        min-width: 170px;
+        background: transparent;
+        color: var(--ink);
+      }
+      .wl select {
+        border-left: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .note {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.65);
+        margin-top: 12px;
+      }
+      /* sections */
+      .grid {
+        display: grid;
+        gap: 22px;
+      }
+      .g3 {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      }
+      .g2 {
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 28px;
+      }
+      .card h3 {
+        font-size: 19px;
+        margin-bottom: 8px;
+      }
+      .card p {
+        color: var(--muted);
+        font-size: 15.5px;
+      }
+      .count {
+        color: #b9b7b0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .k {
+        display: inline-block;
+        background: var(--bg);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        margin: 3px 4px 0 0;
+      }
+      /* steps */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        counter-reset: s;
+      }
+      .step {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 24px;
+        position: relative;
+      }
+      .step::before {
+        counter-increment: s;
+        content: '0' counter(s);
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--ink);
+        background: linear-gradient(100deg, var(--lime), var(--lime2));
+        border-radius: 8px;
+        padding: 4px 9px;
+        display: inline-block;
+        margin-bottom: 14px;
+      }
+      .step b {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .step span {
+        color: var(--muted);
+        font-size: 15px;
+      }
+      /* diff */
+      .dark {
+        background: var(--ink);
+        color: #fff;
+        border-radius: 32px;
+      }
+      .dark .card {
+        background: #1f1f1d;
+        border-color: #333;
+        color: #fff;
+      }
+      .dark .card p {
+        color: #a5a49e;
+      }
+      .dark h2 {
+        color: #fff;
+      }
+      .lime-t {
+        background: linear-gradient(100deg, var(--lime), var(--lime2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      /* compare */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: var(--r);
+        overflow: hidden;
+        font-size: 15px;
+      }
+      th,
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #faf9f6;
+        font-size: 13.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      td.y {
+        color: #0d6e5f;
+        font-weight: 600;
+      }
+      td.n {
+        color: #b3261e;
+      }
+      /* faq */
+      details {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        padding: 18px 22px;
+      }
+      summary {
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 16.5px;
+      }
+      details p {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 15.5px;
+      }
+      /* footer cta */
+      .final {
+        background: radial-gradient(120% 140% at 20% 0%, var(--blue2), var(--blue) 60%);
+        color: #fff;
+        border-radius: 32px;
+        text-align: center;
+        padding: 90px 24px;
+        position: relative;
+        overflow: hidden;
+      }
+      .final h2 {
+        font-size: clamp(38px, 6vw, 70px);
+      }
+      footer {
+        padding: 40px 24px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .ok-msg {
+        display: none;
+        background: #0d6e5f;
+        color: #fff;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-top: 14px;
+        max-width: 620px;
+      }
+      @media (max-width: 720px) {
+        nav .links {
+          display: none;
+        }
+        section {
+          padding: 64px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="logo">SPECFORM<small>by THE MONO</small></div>
+      <div class="links">
+        <a href="#how">Как работает</a><a href="#inside">Что внутри</a
+        ><a href="#diff">Почему точнее</a><a href="#faq">FAQ</a>
+      </div>
+      <a class="btn" href="#early">В ранний доступ →</a>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="ribbon"></div>
+      <div class="wrap">
+        <span class="badge">● AI-техпаки для производства одежды · ранний доступ</span>
+        <h1 class="disp">Фабрика поймёт<br />с первого раза</h1>
+        <p class="sub">
+          Загрузите фото вещи — получите производственный техпак: технический эскиз, таблицу замеров
+          с допусками и градацией, состав материалов и узлы обработки на языке технолога. За час, а
+          не за две недели.
+        </p>
+
+        <form class="wl" id="wlform" onsubmit="return wl(event);">
+          <input type="email" required placeholder="Email" id="wlemail" />
+          <select id="wlrole">
+            <option value="">Кто вы?</option>
+            <option>Основатель бренда</option>
+            <option>Селлер маркетплейса</option>
+            <option>Конструктор / техдизайнер</option>
+            <option>Фабрика / цех</option>
+            <option>Другое</option>
+          </select>
+          <button class="btn" type="submit">Занять место →</button>
+        </form>
+        <div class="ok-msg" id="okmsg">
+          Вы в списке! Напишем, как только откроем доступ — ранним участникам первые техпаки
+          бесплатно.
+        </div>
+        <p class="note">
+          Early birds: первые 100 участников получают 5 техпаков бесплатно и цену основателя
+          навсегда.
+        </p>
+
+        <div class="trust">
+          <span><b>Час</b> вместо 2 недель</span><span><b>ГОСТ-коды</b> швов и стежков</span
+          ><span><b>Допуски</b> в каждой таблице</span
+          ><span><b>Бесплатно</b> для заказчиков THE MONO</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PROBLEM -->
+    <section>
+      <div class="wrap">
+        <h2 class="disp">Знакомая ситуация?</h2>
+        <p class="sub" style="margin-bottom: 34px">
+          Фабрика просит «КД и лекала», а у вас — фото и мечта. Дальше обычно так:
+        </p>
+        <div class="grid g3">
+          <div class="card">
+            <h3>Фрилансер</h3>
+            <p>
+              3–10 тыс. ₽ за модель, две недели ожидания, качество — лотерея. Правки — за отдельные
+              деньги и ещё неделю.
+            </p>
+          </div>
+          <div class="card">
+            <h3>«Отшив по образцу»</h3>
+            <p>
+              Работает, пока жив ваш цех. Смена фабрики — и переносить нечего: документации нет,
+              посадка плывёт, партия в брак.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Софт для профи</h3>
+            <p>
+              Четыре месяца осваивать редактор, всё на английском, а эскиз всё равно рисуешь сам.
+              Это инструменты конструктора — не ваши.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW -->
+    <section id="how" style="padding-top: 0">
+      <div class="wrap">
+        <h2 class="disp">Как это работает</h2>
+        <p class="sub" style="margin-bottom: 34px">
+          Четыре шага — и у вас документ, с которым можно идти на любую фабрику.
+        </p>
+        <div class="steps">
+          <div class="step">
+            <b>Загрузите фото</b><span>Референс, скрин карточки или эскиз — до 6 изображений</span>
+          </div>
+          <div class="step">
+            <b>Ответьте на 5 вопросов</b
+            ><span>Базовый размер, посадка, ткань, размерный ряд, тираж — 2 минуты</span>
+          </div>
+          <div class="step">
+            <b>Получите техпак</b
+            ><span
+              >Эскиз, замеры, BOM, конструкция — всё редактируемо, правка замера обновляет
+              чертёж</span
+            >
+          </div>
+          <div class="step">
+            <b>Отправьте фабрике</b
+            ><span
+              >PDF целиком или по ролям: технологу, закройщику, ОТК. Или сразу на просчёт фабрикам
+              THE MONO</span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSIDE -->
+    <section style="padding-top: 0" id="inside">
+      <div class="wrap">
+        <h2 class="disp">Что внутри техпака <span class="count">[7 разделов]</span></h2>
+        <div class="grid g3" style="margin-top: 30px">
+          <div class="card">
+            <h3>Технический эскиз</h3>
+            <p>
+              Векторный чертёж перед/спинка по конвенциям индустрии: три уровня линий, выноски, вся
+              фурнитура на месте. Редактируется данными, не перерисовкой.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Замеры с допусками</h3>
+            <p>
+              Таблица точек измерения вашей категории, допуски по классам точек, автоградация на
+              весь размерный ряд по ГОСТ-сеткам.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Материалы (BOM)</h3>
+            <p>
+              Полотно, фурнитура, нитки, прокладки — с плотностями, Pantone и предварительным
+              расходом на изделие.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Конструкция</h3>
+            <p>
+              Узлы обработки с кодами швов и стежков (ГОСТ = ISO), SPI и типом машины — на языке,
+              который технолог читает без переводчика.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Техпоследовательность</h3>
+            <p>
+              Порядок операций со специальностями и оборудованием — фабрика считает цену по
+              документу, а не «на глаз с наценкой за риск».
+            </p>
+          </div>
+          <div class="card">
+            <h3>Ярлыки и маркировка</h3>
+            <p>
+              Составник с символами ухода, размерник, SKU-матрица под «Честный знак» — партия сразу
+              готова к легальной продаже.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Экспорт по ролям</h3>
+            <p>
+              Один клик — отдельные PDF для технолога, закройщика, ОТК и снабжения. Каждому отделу
+              цеха — свой лист.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIFF -->
+    <section id="diff">
+      <div class="wrap dark" style="padding: 70px 48px">
+        <h2 class="disp">
+          Почему нам можно доверять партию, <span class="lime-t">а картинкам — нет</span>
+        </h2>
+        <p style="color: #a5a49e; max-width: 640px; margin: 14px 0 34px">
+          AI-генераторы рисуют красивые изображения техпаков. Мы строим данные изделия, из которых
+          документ вычисляется — как в чертёжной программе.
+        </p>
+        <div class="grid g3">
+          <div class="card">
+            <h3>Честные значения</h3>
+            <p>
+              Каждая цифра помечена: измерено · оценка по фото · типовое значение. Предположения не
+              выдаются за факты — фабрика знает, что подтвердить по образцу.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Под реальный цех</h3>
+            <p>
+              Узлы по умолчанию — под базовый парк машин любого цеха. Требуется спецмашина? Покажем
+              и предложим альтернативу.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Живой документ</h3>
+            <p>
+              Поправили замер — чертёж и таблицы обновились. Версии, история правок по образцам,
+              комментарии примерок.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARE -->
+    <section style="padding-top: 0">
+      <div class="wrap">
+        <h2 class="disp">Сравните сами</h2>
+        <div style="overflow-x: auto; margin-top: 26px">
+          <table>
+            <tr>
+              <th></th>
+              <th>Фрилансер</th>
+              <th>AI-картинки</th>
+              <th>SpecForm</th>
+            </tr>
+            <tr>
+              <td>Срок</td>
+              <td class="n">1–2 недели</td>
+              <td class="y">минуты</td>
+              <td class="y">≤ 1 часа</td>
+            </tr>
+            <tr>
+              <td>Допуски и градация</td>
+              <td class="y">да</td>
+              <td class="n">нет</td>
+              <td class="y">автоматически</td>
+            </tr>
+            <tr>
+              <td>Коды швов, SPI, машины</td>
+              <td class="y">да</td>
+              <td class="n">нет</td>
+              <td class="y">да, ГОСТ = ISO</td>
+            </tr>
+            <tr>
+              <td>Правка без перегенерации</td>
+              <td class="n">за деньги и дни</td>
+              <td class="n">лотерея заново</td>
+              <td class="y">поля меняют чертёж</td>
+            </tr>
+            <tr>
+              <td>Маркировка для РФ</td>
+              <td class="n">отдельно</td>
+              <td class="n">нет</td>
+              <td class="y">включена</td>
+            </tr>
+            <tr>
+              <td>Цена за модель</td>
+              <td class="n">3–10 тыс. ₽</td>
+              <td>подписка</td>
+              <td class="y">от 0 ₽ с THE MONO</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" style="padding-top: 0">
+      <div class="wrap" style="max-width: 820px">
+        <h2 class="disp">Честные ответы</h2>
+        <div style="margin-top: 26px">
+          <details open>
+            <summary>Насколько точны замеры из фото?</summary>
+            <p>
+              Абсолютные сантиметры «увидеть» на фото нельзя — это физика, и мы не делаем вид, что
+              можем. Вы называете базовый размер и посадку, мы строим значения от размерных сеток
+              ГОСТ и пропорций с фото. Каждое значение помечено степенью уверенности, спорные — в
+              списке «подтвердить по образцу».
+            </p>
+          </details>
+          <details>
+            <summary>Фабрика правда примет такой документ?</summary>
+            <p>
+              Документ собран по требованиям реальных производств: табель мер с допусками, узлы под
+              парк машин, техпоследовательность, термины технолога. Формат отработан с фабриками
+              платформы THE MONO. Лекала в комплект не входят (честно) — для них есть поле передачи
+              конструктору или фабрике.
+            </p>
+          </details>
+          <details>
+            <summary>А лекала вы делаете?</summary>
+            <p>
+              Нет. Лекала — отдельная профессиональная работа. Техпак — её точное задание:
+              конструктор или фабрика делает лекала по нашему документу быстрее и без
+              переспрашиваний.
+            </p>
+          </details>
+          <details>
+            <summary>Что если в техпаке ошибка?</summary>
+            <p>
+              Все поля редактируемы, повторная генерация по тем же фото бесплатна, плата — только за
+              успешные техпаки. Правки по итогам примерки образца фиксируются в версии документа.
+            </p>
+          </details>
+          <details>
+            <summary>Сколько будет стоить?</summary>
+            <p>
+              Для заказчиков производства через THE MONO — бесплатно. Отдельно — поштучно/подписка
+              (около стоимости одной чашки работы фрилансера за весь месяц). Early birds получают 5
+              техпаков бесплатно и цену основателя навсегда.
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL -->
+    <section id="early" style="padding-top: 0">
+      <div class="wrap">
+        <div class="final">
+          <h2 class="disp">От фото —<br />до цеха</h2>
+          <p style="color: rgba(255, 255, 255, 0.8); margin: 18px auto 30px; max-width: 520px">
+            Открываем доступ волнами. Первые 100 участников — 5 техпаков бесплатно и цена основателя
+            навсегда.
+          </p>
+          <form class="wl" style="margin: 0 auto" onsubmit="return wl(event, true);">
+            <input type="email" required placeholder="Email" id="wlemail2" />
+            <button class="btn" type="submit">Занять место →</button>
+          </form>
+          <div class="ok-msg" id="okmsg2" style="margin: 14px auto 0">Вы в списке! До связи.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      SPECFORM · часть экосистемы THE MONO ·
+      <a href="mailto:hello@themono.ru" style="color: inherit">hello@themono.ru</a><br />
+      <span style="font-size: 12px"
+        >Название-плейсхолдер. Все обещания на странице соответствуют плану продукта; сроки раннего
+        доступа уточняются.</span
+      >
+    </footer>
+
+    <script>
+      /* Подключение бэкенда формы: замени endpoint на Formspree/Airtable/Telegram-бот.
+   Сейчас: складывает лиды в localStorage и показывает подтверждение. */
+      function wl(e, second) {
+        e.preventDefault();
+        var email = document.getElementById(second ? 'wlemail2' : 'wlemail').value;
+        var role = second ? '' : document.getElementById('wlrole').value || '';
+        try {
+          var leads = JSON.parse(localStorage.getItem('wl_leads') || '[]');
+          leads.push({ email: email, role: role, ts: new Date().toISOString() });
+          localStorage.setItem('wl_leads', JSON.stringify(leads));
+        } catch (_) {}
+        // TODO: fetch('https://formspree.io/f/XXXX', {method:'POST', body:new FormData(e.target), headers:{'Accept':'application/json'}});
+        document.getElementById(second ? 'okmsg2' : 'okmsg').style.display = 'block';
+        e.target.reset();
+        return false;
+      }
+    </script>
+  </body>
+</html>
