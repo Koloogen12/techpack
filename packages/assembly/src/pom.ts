@@ -11,6 +11,8 @@ import {
   type Tracked,
 } from '@specform/core';
 import {
+  CATEGORY_LABEL_RU,
+  FIT_INTENT_LABEL_RU,
   kb as defaultKb,
   type Category,
   type FabricKind,
@@ -180,8 +182,10 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
 
   if (ease.fallbackFrom) {
     notes.push(
-      `Для категории «${input.category}» посадка «${ease.fallbackFrom}» не типовая — ` +
-        `взяли «${ease.entry.fit}». Если нужно плотнее, поправьте ширину по груди вручную.`,
+      `Для категории «${CATEGORY_LABEL_RU[input.category]}» посадка ` +
+        `«${FIT_INTENT_LABEL_RU[ease.fallbackFrom]}» не типовая — взяли ` +
+        `«${FIT_INTENT_LABEL_RU[ease.entry.fit]}». Если нужно плотнее, ` +
+        `поправьте ширину по груди вручную.`,
     );
   }
 

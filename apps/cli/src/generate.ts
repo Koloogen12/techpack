@@ -1,7 +1,13 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { CostLedger, SpecFormError, type Logger } from '@specform/core';
-import { CATEGORY_LABEL_RU, kb, type Category, type KnowledgeBase } from '@specform/kb';
+import {
+  CATEGORY_LABEL_RU,
+  FIT_INTENT_LABEL_RU,
+  kb,
+  type Category,
+  type KnowledgeBase,
+} from '@specform/kb';
 import { buildStyleSpec, photoRatiosFrom } from '@specform/assembly';
 import { specFingerprint, type StyleSpec } from '@specform/stylespec';
 import {
@@ -198,10 +204,14 @@ function categoryGate(answers: Answers, report: VisionReport | null): SpecFormEr
     'CATEGORY_UNSUPPORTED',
     `vision определил категорию как other: ${report.category.other_description}`,
     {
+      // Подстановка идёт в кавычках и в именительном падеже — так фраза
+      // остаётся грамотной при любой категории, без склонения в шаблоне.
       userMessage:
-        `Похоже, на фото не ${answers.category}. ${report.category.other_description} ` +
-        `Пока мы делаем техпаки только для трикотажного ядра: футболка, лонгслив, свитшот, худи. ` +
-        `Для остального результат был бы хуже, чем нужно фабрике.`,
+        `Категория на фото не совпадает с указанной. Вы выбрали ` +
+        `«${CATEGORY_LABEL_RU[answers.category]}», но снимок показывает другое изделие. ` +
+        `Мы делаем техпаки только для трикотажного ядра: футболка, лонгслив, свитшот, ` +
+        `худи — для остального документ вышел бы хуже, чем нужно фабрике. ` +
+        `Что увидела модель: ${report.category.other_description}`,
       userAction: 'Загрузите фото изделия подходящей категории или запишитесь в лист ожидания',
       details: { detected: report.category.other_description },
     },
@@ -244,9 +254,9 @@ function reconcile(answers: Answers, report: VisionReport, base: KnowledgeBase):
 
   if (report.silhouette.value !== answers.fit_intent && report.silhouette.confidence === 'high') {
     notes.push(
-      `Расхождение по посадке: вы указали «${answers.fit_intent}», а на фото читается ` +
-        `«${report.silhouette.value}». Посадка задаёт прибавку и ширину всего изделия — ` +
-        `если правы вы, ничего делать не нужно.`,
+      `Расхождение по посадке: вы указали «${FIT_INTENT_LABEL_RU[answers.fit_intent]}», ` +
+        `а на фото читается «${FIT_INTENT_LABEL_RU[report.silhouette.value]}». Посадка задаёт ` +
+        `прибавку и ширину всего изделия — если правы вы, ничего делать не нужно.`,
     );
   }
 

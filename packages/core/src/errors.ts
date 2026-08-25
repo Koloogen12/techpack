@@ -51,12 +51,3 @@ export class SpecFormError extends Error {
 export function isSpecFormError(e: unknown): e is SpecFormError {
   return e instanceof SpecFormError;
 }
-
-/** Категория вне трикотажного ядра MVP — честный отказ, а не плохой результат (ux/00 §18). */
-export function categoryUnsupported(category: string, supported: readonly string[]): SpecFormError {
-  return new SpecFormError('CATEGORY_UNSUPPORTED', `category "${category}" is outside MVP scope`, {
-    userMessage: `Пока мы делаем техпаки только для трикотажа: ${supported.join(', ')}. Для «${category}» результат был бы хуже, чем нужно фабрике, — поэтому не беремся.`,
-    userAction: 'Записаться в лист ожидания этой категории или выбрать другую',
-    details: { category, supported },
-  });
-}
