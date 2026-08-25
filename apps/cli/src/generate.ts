@@ -8,7 +8,7 @@ import {
   type Category,
   type KnowledgeBase,
 } from '@specform/kb';
-import { buildStyleSpec, photoRatiosFrom } from '@specform/assembly';
+import { buildStyleSpec, photoRatiosFrom, type StyleSpecInput } from '@specform/assembly';
 import { specFingerprint, type StyleSpec } from '@specform/stylespec';
 import {
   FileVisionCache,
@@ -18,8 +18,16 @@ import {
   type PhotoFormat,
   type VisionReport,
 } from '@specform/vision';
-import { chromium } from 'playwright';
-import { renderPdf, renderRolePdfs, type ExportRole } from '@specform/docgen';
+import { chromium, type Browser } from 'playwright';
+import {
+  fitImage,
+  renderPdf,
+  renderRolePdfs,
+  type DocImage,
+  type DocVisuals,
+  type ExportRole,
+} from '@specform/docgen';
+import { FileRenderCache, visualize } from '@specform/render';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
 /**
@@ -48,6 +56,15 @@ export interface GenerateOptions {
   /** Сохранить StyleSpec рядом с документом — вход для отладки и голден-сета. */
   writeSpec?: boolean;
   cacheDir?: string;
+  /**
+   * Разрешить обращение к сервису визуализации.
+   *
+   * По умолчанию выключено: это платный внешний вызов, а молча тратить
+   * деньги пользователя нельзя. Кэш при этом читается всегда — повторная
+   * сборка того же изделия получает картинку бесплатно.
+   */
+  render?: boolean;
+  renderCacheDir?: string;
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -63,6 +80,8 @@ export interface GenerateResult {
   rolePaths: { role: ExportRole; path: string }[];
   specPath: string | null;
   vision: { used: boolean; fromCache: boolean; cacheKey: string | null };
+  /** Визуализация изделия. Её отсутствие документ не ломает. */
+  visual: { used: boolean; fromCache: boolean; reason: string | null };
   notes: string[];
   cost: { usd: number; ms: number; stages: readonly { stage: string; usd: number; ms: number }[] };
 }
@@ -113,6 +132,75 @@ function readAnswers(path: string): Answers {
   return parseAnswers(parsed);
 }
 
+const PHOTO_MIME: Record<PhotoFormat, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+};
+
+/**
+ * Картинки для страницы «Внешний вид».
+ *
+ * Снимки заказчика доходят до документа впервые: раньше фотография попадала
+ * в разбор и на этом её след терялся, хотя knowledge-base/01 §1 требует её
+ * в обзорном разделе. Без неё фабрике не с чем сверить готовое изделие.
+ *
+ * Больше трёх снимков на лист не влезает, а вес растёт линейно — берём первые.
+ */
+async function buildVisuals(
+  browser: Browser,
+  visual: Awaited<ReturnType<typeof visualize>>,
+  photoPaths: readonly string[],
+): Promise<DocVisuals> {
+  const photos: DocImage[] = [];
+  for (const path of photoPaths.slice(0, 3)) {
+    const photo = readPhoto(path);
+    const raw = `data:${PHOTO_MIME[photo.format]};base64,${Buffer.from(photo.bytes).toString('base64')}`;
+    photos.push({ dataUri: await fitImage(browser, raw), label: `Снимок · ${basename(path)}` });
+  }
+
+  return {
+    ...(visual.ok ? { render: { dataUri: visual.image.dataUri } } : {}),
+    ...(photos.length ? { photos } : {}),
+  };
+}
+
+/**
+ * Вход сборщика StyleSpec из анкеты и отчёта разбора.
+ *
+ * Вынесено из пайплайна, потому что собирать этот объект приходится и вне
+ * генерации — в скриптах голден-набора и в демонстрации протокола. Пока
+ * логика была inline, скрипты собирали спеку ЧУТЬ ИНАЧЕ: без класса полотна
+ * и без колорвеев с фото. Спеки расходились, кэш промахивался, и понять,
+ * почему, было нельзя, потому что разница жила в двух местах сразу.
+ */
+export function specInputFrom(
+  answers: Answers,
+  report: VisionReport | null,
+  options: { now: Date; visionCacheKey?: string } = { now: new Date() },
+): StyleSpecInput {
+  return {
+    ...defined(answers),
+    ...(report ? { photo_ratios: photoRatiosFrom(report.proportions) } : {}),
+    ...(report ? { visible_elements: report.visible_elements } : {}),
+    ...(report ? { topstitching: report.topstitching } : {}),
+    ...(report?.fabric.knit_class && report.fabric.knit_class !== 'unknown'
+      ? { fabric_class: report.fabric.knit_class, fabric_confidence: report.fabric.confidence }
+      : {}),
+    ...(report?.colorways.length && !answers.colorways
+      ? {
+          colorways: report.colorways.map((c, i) =>
+            defined({ id: `c${i + 1}`, name_ru: c.name_ru, hex_approx: c.hex_approx }),
+          ),
+        }
+      : {}),
+    generated_at: options.now,
+    ...(options.visionCacheKey ? { vision_cache_key: options.visionCacheKey } : {}),
+  };
+}
+
 export async function generate(options: GenerateOptions): Promise<GenerateResult> {
   const ledger = new CostLedger();
   const base = options.kb ?? kb();
@@ -145,24 +233,10 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // --- 2. Сборка StyleSpec (детерминированная) --------------------------------
   const assemblyStart = performance.now();
   const { spec, notes } = buildStyleSpec(
-    {
-      ...defined(answers),
-      ...(report ? { photo_ratios: photoRatiosFrom(report.proportions) } : {}),
-      ...(report ? { visible_elements: report.visible_elements } : {}),
-      ...(report ? { topstitching: report.topstitching } : {}),
-      ...(report?.fabric.knit_class && report.fabric.knit_class !== 'unknown'
-        ? { fabric_class: report.fabric.knit_class, fabric_confidence: report.fabric.confidence }
-        : {}),
-      ...(report?.colorways.length && !answers.colorways
-        ? {
-            colorways: report.colorways.map((c, i) =>
-              defined({ id: `c${i + 1}`, name_ru: c.name_ru, hex_approx: c.hex_approx }),
-            ),
-          }
-        : {}),
-      generated_at: options.now ?? new Date(),
-      ...(cacheKey ? { vision_cache_key: cacheKey } : {}),
-    },
+    specInputFrom(answers, report, {
+      now: options.now ?? new Date(),
+      ...(cacheKey ? { visionCacheKey: cacheKey } : {}),
+    }),
     base,
   );
   ledger.recordFree('assembly', Math.round(performance.now() - assemblyStart));
@@ -172,22 +246,43 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     notes.push(...visionNotes(report));
   }
 
-  // --- 3. Документ -------------------------------------------------------------
+  // --- 3. Визуализация и документ ---------------------------------------------
   // Один браузер на весь прогон: его запуск занимает секунды, а выгрузок
   // по ролям может быть пять. Раньше поднималось по браузеру на каждую.
-  const renderStart = performance.now();
+  //
+  // Картинка генерируется ПАРАЛЛЕЛЬНО запуску браузера: сервис отвечает
+  // десятками секунд, и ждать его последовательно значит дарить эти секунды.
   mkdirSync(dirname(options.outPath), { recursive: true });
-  const browser = await chromium.launch();
+
+  const [browser, visual] = await Promise.all([
+    chromium.launch(),
+    visualize(spec, {
+      cache: new FileRenderCache(options.renderCacheDir ?? '.cache/render'),
+      offline: options.render !== true,
+      base,
+      ledger,
+      ...(options.logger ? { logger: options.logger } : {}),
+    }),
+  ]);
+
   const rolePaths: { role: ExportRole; path: string }[] = [];
 
+  // Отсчёт сборки документа начинается ПОСЛЕ ожидания картинки. Иначе
+  // ожидание стороннего сервиса записывается в docgen, суммарное время
+  // стадий превышает время прогона, и отчёт по себестоимости врёт вдвое.
+  const renderStart = performance.now();
+
   try {
-    writeFileSync(options.outPath, await renderPdf(spec, { pro: true, browser }));
+    const visuals = await buildVisuals(browser, visual, options.photoPaths);
+    if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
+
+    writeFileSync(options.outPath, await renderPdf(spec, { pro: true, browser, visuals }));
 
     if (options.roles?.length) {
       const stem = options.outPath.replace(/\.pdf$/i, '');
       // Повторы ролей отбрасываем: два одинаковых файла никому не нужны.
       const roles = [...new Set(options.roles)];
-      for (const { role, pdf } of await renderRolePdfs(spec, roles, browser)) {
+      for (const { role, pdf } of await renderRolePdfs(spec, roles, browser, visuals)) {
         const path = `${stem}--${role}.pdf`;
         writeFileSync(path, pdf);
         rolePaths.push({ role, path });
@@ -214,6 +309,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     rolePaths,
     specPath,
     vision: { used: report !== null, fromCache, cacheKey },
+    visual: {
+      used: visual.ok,
+      fromCache: visual.ok ? visual.image.cached : false,
+      reason: visual.ok ? null : visual.reason,
+    },
     notes,
     cost: ledger.summary(),
   };

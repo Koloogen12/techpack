@@ -136,6 +136,26 @@ tr.pro { background: rgba(14,14,14,.02); }
 .note { font-size: 8pt; color: var(--tertiary); line-height: 1.45; }
 .note.warn { color: var(--data-red); }
 
+/* Внешний вид: визуализация и снимки заказчика рядом. Рядом — намеренно:
+   расхождение между ними человек замечает мгновенно, а порознь не заметит. */
+.preview { display: grid; grid-template-columns: 1.35fr 1fr; gap: 8mm; flex: 1; min-height: 0; }
+.preview figure { margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.preview .frame {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 3mm;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14,14,14,.02);
+}
+.preview .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.preview figcaption { margin-top: 2.5mm; font-size: 7.4pt; letter-spacing: 1.4px; text-transform: uppercase; color: var(--secondary); }
+.preview .shots { display: grid; gap: 4mm; min-height: 0; }
+.preview .shots .frame { border-radius: 2mm; }
+
 ul.plain { margin: 0; padding-left: 4mm; font-size: 8.5pt; line-height: 1.5; }
 ul.plain li { margin-bottom: 1mm; }
 

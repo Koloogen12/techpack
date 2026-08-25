@@ -18,6 +18,7 @@ interface Cli {
   roles: ExportRole[];
   spec: boolean;
   quiet: boolean;
+  render: boolean;
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -28,6 +29,7 @@ function parseArgv(argv: readonly string[]): Cli {
     roles: [],
     spec: false,
     quiet: false,
+    render: false,
   };
   let mode: 'photos' | 'roles' | null = null;
 
@@ -61,6 +63,14 @@ function parseArgv(argv: readonly string[]): Cli {
       mode = null;
       continue;
     }
+    // Визуализация — платный внешний вызов, поэтому только по явному флагу.
+    // Без него страница внешнего вида всё равно соберётся, если картинка
+    // уже лежит в кэше или если приложены снимки заказчика.
+    if (arg === '--render') {
+      cli.render = true;
+      mode = null;
+      continue;
+    }
     if (arg.startsWith('--')) throw new Error(`неизвестный флаг: ${arg}`);
     if (mode === 'photos') cli.photos.push(arg);
     else if (mode === 'roles') {
@@ -85,6 +95,7 @@ async function main(): Promise<void> {
     outPath: cli.out,
     roles: cli.roles,
     writeSpec: cli.spec,
+    render: cli.render,
     logger: createLogger({ level: cli.quiet ? 'error' : 'warn' }),
   });
 
@@ -109,6 +120,14 @@ async function main(): Promise<void> {
     );
   }
 
+  if (result.visual.used) {
+    console.log(
+      `\nВизуализация: ${result.visual.fromCache ? 'из кэша, обращения к сервису не было' : 'вызов сервиса'}`,
+    );
+  } else if (cli.render) {
+    console.log('\nВизуализация: не получилась, документ собран без неё');
+  }
+
   if (result.notes.length) {
     console.log('\nЧто стоит знать:');
     for (const n of result.notes) console.log(`  · ${n}`);
@@ -120,6 +139,11 @@ async function main(): Promise<void> {
   );
   for (const s of cost.stages) {
     console.log(`  ${s.stage.padEnd(10)} $${s.usd.toFixed(4)}  ${(s.ms / 1000).toFixed(1)} c`);
+  }
+  // Тариф генерации изображений считает сторонний сервис, у нас его цены нет.
+  // Показать $0.0000 и промолчать значит занизить COGS и не заметить этого.
+  if (result.visual.used && !result.visual.fromCache) {
+    console.log('  ↑ стоимость визуализации в сумму не входит: тариф стороннего сервиса');
   }
   console.log(`\nОтпечаток спеки: ${result.fingerprint}`);
 }

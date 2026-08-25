@@ -50,6 +50,9 @@ importers:
       '@specform/kb':
         specifier: workspace:*
         version: link:../../packages/kb
+      '@specform/render':
+        specifier: workspace:*
+        version: link:../../packages/render
       '@specform/stylespec':
         specifier: workspace:*
         version: link:../../packages/stylespec
@@ -86,6 +89,9 @@ importers:
       '@specform/kb':
         specifier: workspace:*
         version: link:../packages/kb
+      '@specform/render':
+        specifier: workspace:*
+        version: link:../packages/render
       '@specform/stylespec':
         specifier: workspace:*
         version: link:../packages/stylespec
@@ -178,6 +184,22 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+
+  packages/render:
+    dependencies:
+      '@specform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@specform/kb':
+        specifier: workspace:*
+        version: link:../kb
+      '@specform/stylespec':
+        specifier: workspace:*
+        version: link:../stylespec
+    devDependencies:
+      '@specform/assembly':
+        specifier: workspace:*
+        version: link:../assembly
 
   packages/stylespec:
     dependencies:

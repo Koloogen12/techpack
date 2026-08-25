@@ -13,6 +13,7 @@
     "@specform/vision": "workspace:*",
     "@specform/kb": "workspace:*",
     "playwright": "^1.62.1",
-    "@specform/fit": "workspace:*"
+    "@specform/fit": "workspace:*",
+    "@specform/render": "workspace:*"
   }
 }

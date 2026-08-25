@@ -17,7 +17,13 @@ const load = (file: string): StyleSpec =>
 const SPEC = load('tshirt-women-46.json');
 const MIXED = load('tshirt-oversize-mixed-confidence.json');
 
-const html = (spec: StyleSpec = SPEC, options = {}) => renderHtml(spec, { pro: true, ...options });
+/** Однопиксельный PNG. Содержимое неважно — важно, что это картинка. */
+const PIXEL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const VISUALS = { render: { dataUri: PIXEL }, photos: [{ dataUri: PIXEL, label: 'Фронт' }] };
+
+const html = (spec: StyleSpec = SPEC, options = {}) =>
+  renderHtml(spec, { pro: true, visuals: VISUALS, ...options });
 const pagesOf = (h: string): string[] => h.split('<section class="page"').slice(1);
 const sectionsOf = (h: string): string[] =>
   [...h.matchAll(/data-section="([a-z]+)"/g)].map((m) => m[1]!);
@@ -197,7 +203,9 @@ describe('выгрузка по ролям', () => {
     for (const role of EXPORT_ROLES) {
       const profile = roleProfile(role);
       const sections = new Set(
-        sectionsOf(renderHtml(SPEC, { sections: profile.sections, pro: profile.pro })),
+        sectionsOf(
+          renderHtml(SPEC, { sections: profile.sections, pro: profile.pro, visuals: VISUALS }),
+        ),
       );
       for (const s of profile.sections) expect(sections, role).toContain(s);
     }
@@ -286,5 +294,52 @@ describe('устойчивость', () => {
 describe('воспроизводимость', () => {
   it('одинаковая спека даёт побайтово одинаковый HTML', () => {
     expect(html()).toBe(html());
+  });
+});
+
+describe('страница внешнего вида', () => {
+  it('без картинок раздела нет — пустой лист хуже отсутствующего', () => {
+    expect(sectionsOf(renderHtml(SPEC, { pro: true }))).not.toContain('preview');
+  });
+
+  it('появляется, как только есть что показать', () => {
+    expect(sectionsOf(html())).toContain('preview');
+  });
+
+  it('одних снимков заказчика достаточно — визуализация не обязательна', () => {
+    const h = renderHtml(SPEC, { visuals: { photos: [{ dataUri: PIXEL }] } });
+    expect(sectionsOf(h)).toContain('preview');
+    expect(h).toContain('Снимок заказчика 1');
+  });
+
+  it('визуализация помечена «не для замеров»', () => {
+    // Без этой пометки кто-нибудь однажды снимет размер с картинки.
+    expect(html()).toContain('не для замеров');
+  });
+
+  it('говорит, что построена из данных документа, а не из фотографии', () => {
+    expect(html()).toContain('а не из присланного снимка');
+  });
+
+  it('чужая схема в src не попадает в документ', () => {
+    const h = renderHtml(SPEC, {
+      visuals: { render: { dataUri: 'javascript:alert(1)' }, photos: [{ dataUri: 'http://x/y' }] },
+    });
+    expect(h).not.toContain('javascript:');
+    expect(h).not.toContain('http://x/y');
+    expect(sectionsOf(h)).not.toContain('preview');
+  });
+
+  it('больше трёх снимков на лист не берётся', () => {
+    const h = renderHtml(SPEC, {
+      visuals: { photos: Array.from({ length: 6 }, () => ({ dataUri: PIXEL })) },
+    });
+    expect([...h.matchAll(/Снимок заказчика/g)]).toHaveLength(3);
+  });
+
+  it('идёт сразу после обложки — это первое, что открывают', () => {
+    const sections = sectionsOf(html());
+    expect(sections[0]).toBe('cover');
+    expect(sections[1]).toBe('preview');
   });
 });

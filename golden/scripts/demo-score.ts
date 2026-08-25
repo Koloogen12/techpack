@@ -16,10 +16,9 @@
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { defined } from '@specform/core';
-import { buildStyleSpec, photoRatiosFrom } from '@specform/assembly';
+import { buildStyleSpec } from '@specform/assembly';
 import { VisionReportSchema } from '@specform/vision';
-import { parseAnswers } from '@specform/cli';
+import { parseAnswers, specInputFrom } from '@specform/cli';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
 
@@ -42,13 +41,9 @@ for (const category of CATEGORIES) {
   );
   writeFileSync(join(root, 'vision-reports', `${category}.json`), JSON.stringify(report, null, 2));
 
-  const { spec } = buildStyleSpec({
-    ...defined(answers),
-    photo_ratios: photoRatiosFrom(report.proportions),
-    visible_elements: report.visible_elements,
-    topstitching: report.topstitching,
-    generated_at: AT,
-  });
+  // Тот же сборщик входа, что в пайплайне: демонстрация обязана считать
+  // по той же спеке, которую увидит человек в документе.
+  const { spec } = buildStyleSpec(specInputFrom(answers, report, { now: AT }));
 
   // Снос на длинах и разброс на остальном — так выглядит реальность.
   // Разброс обязан различаться МЕЖДУ изделиями: шум, одинаковый на всех

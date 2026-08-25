@@ -1,7 +1,7 @@
 import { chromium, type Browser } from 'playwright';
 import { SpecFormError } from '@specform/core';
 import type { StyleSpec } from '@specform/stylespec';
-import { renderHtml, type HtmlOptions } from './html.js';
+import { renderHtml, type DocVisuals, type HtmlOptions } from './html.js';
 import { roleProfile, type ExportRole } from './roles.js';
 
 /**
@@ -61,6 +61,7 @@ export async function renderRolePdfs(
   spec: StyleSpec,
   roles: readonly ExportRole[],
   browser?: Browser,
+  visuals?: DocVisuals,
 ): Promise<{ role: ExportRole; label_ru: string; pdf: Buffer }[]> {
   const own = browser === undefined;
   const shared = browser ?? (await chromium.launch());
@@ -77,6 +78,7 @@ export async function renderRolePdfs(
           sections: profile.sections,
           pro: profile.pro,
           roleLabel: profile.label_ru,
+          ...(visuals ? { visuals } : {}),
         }),
       });
     }

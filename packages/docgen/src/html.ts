@@ -35,6 +35,7 @@ import { DOC_CSS } from './styles.js';
 
 export const DOC_SECTIONS = [
   'cover',
+  'preview',
   'flats',
   'measurements',
   'bom',
@@ -44,6 +45,27 @@ export const DOC_SECTIONS = [
 ] as const;
 export type DocSection = (typeof DOC_SECTIONS)[number];
 
+/** Картинка, готовая к вставке: data-URI, содержимого файлов в спеке нет. */
+export interface DocImage {
+  dataUri: string;
+  label?: string;
+}
+
+/**
+ * Растровые изображения документа.
+ *
+ * Передаются ОТДЕЛЬНО от спеки, а не внутри неё: StyleSpec хранит ссылки на
+ * файлы, но не их содержимое (`AssetRefSchema`). Иначе спека раздувается
+ * до мегабайтов, отпечаток начинает зависеть от байтов картинки,
+ * и воспроизводимость документа ломается на ровном месте.
+ */
+export interface DocVisuals {
+  /** Визуализация изделия из спеки. Превью, не источник размеров. */
+  render?: DocImage;
+  /** Снимки, которые прислал заказчик. */
+  photos?: readonly DocImage[];
+}
+
 export interface HtmlOptions {
   /** Какие страницы включить. По умолчанию все. */
   sections?: readonly DocSection[];
@@ -51,6 +73,7 @@ export interface HtmlOptions {
   pro?: boolean;
   /** Подпись роли в колонтитуле — для выгрузок по ролям. */
   roleLabel?: string;
+  visuals?: DocVisuals;
 }
 
 /**
@@ -117,6 +140,13 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   };
 
   add('cover', 'Технический пакет', [coverBody(spec)]);
+  // Страницы внешнего вида нет, если показывать нечего: пустой лист
+  // с рамками хуже отсутствующего раздела. Тело собирается только когда
+  // раздел действительно нужен — в нём мегабайты data-URI.
+  if (include('preview')) {
+    const preview = previewBody(spec, options.visuals);
+    if (preview) add('preview', 'Внешний вид', [preview]);
+  }
   if (include('flats')) add('flats', 'Технический чертёж', [flatsBody(renderFlatsFromSpec(spec))]);
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
@@ -245,6 +275,81 @@ function countBySource(spec: StyleSpec): Record<Confidence, number> {
   for (const n of spec.construction?.nodes ?? []) counts[n.presence.confidence]++;
   for (const l of spec.bom?.lines ?? []) counts[l.composition.confidence]++;
   return counts;
+}
+
+// ------------------------------------------------------------ внешний вид
+
+/**
+ * Пропускаем всё, что не является картинкой в data-URI.
+ *
+ * Значение уходит в атрибут `src`, а туда нельзя пускать строку, которую
+ * кто-то когда-нибудь соберёт из пользовательского ввода. Сейчас источник
+ * свой, но проверка стоит ноль, а её отсутствие однажды обойдётся дорого.
+ */
+function safeDataUri(uri: string): string | null {
+  return /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i.test(uri) ? uri : null;
+}
+
+function frame(image: DocImage, caption: string): string {
+  const src = safeDataUri(image.dataUri);
+  if (!src) return '';
+  return (
+    `<figure><div class="frame"><img src="${src}" alt=""></div>` +
+    `<figcaption>${esc(caption)}</figcaption></figure>`
+  );
+}
+
+/**
+ * Страница «Внешний вид».
+ *
+ * Отвечает на вопрос, которого в документе не было: что это за вещь и как она
+ * будет выглядеть. Чертёж говорит, где мерить, таблица — сколько сантиметров,
+ * а «похоже ли это на то, что я задумал» до сих пор не отвечало ничто.
+ *
+ * Визуализация и снимки заказчика стоят рядом СПЕЦИАЛЬНО. Так страница
+ * работает как проверка: если картинка, собранная из спеки, не похожа на
+ * присланное фото, значит пайплайн понял вещь неправильно, и это видно
+ * человеку за секунду. Порознь это расхождение не заметил бы никто.
+ *
+ * Ни один размер документа из этой страницы не берётся — и на ней об этом
+ * написано прямо.
+ */
+function previewBody(spec: StyleSpec, visuals?: DocVisuals): string | null {
+  const render = visuals?.render && safeDataUri(visuals.render.dataUri) ? visuals.render : null;
+  const photos = (visuals?.photos ?? []).filter((p) => safeDataUri(p.dataUri)).slice(0, 3);
+  if (!render && photos.length === 0) return null;
+
+  const caption =
+    `${CATEGORY_LABEL_RU[spec.style.category as Category]}, ` +
+    `${FIT_INTENT_LABEL_RU[spec.base.fit_intent as FitIntent]}`;
+
+  const left = render
+    ? `<figure><div class="frame"><img src="${safeDataUri(render.dataUri)}" alt=""></div>` +
+      `<figcaption>Визуализация · ${esc(caption)} · <span class="flag">не для замеров</span></figcaption>` +
+      `</figure>`
+    : '';
+
+  const shots = photos.length
+    ? `<div class="shots">` +
+      photos.map((p, i) => frame(p, p.label ?? `Снимок заказчика ${i + 1}`)).join('') +
+      `</div>`
+    : '';
+
+  const body =
+    left && shots
+      ? `<div class="preview">${left}${shots}</div>`
+      : `<div class="preview" style="grid-template-columns:1fr">${left || shots}</div>`;
+
+  const explain = render
+    ? `Визуализация построена из данных этого документа — категории, посадки, полотна, ` +
+      `цвета и узлов обработки, — а не из присланного снимка. Поэтому она показывает то, ` +
+      `что описано в таблицах: если вещь на картинке отличается от задуманной, ` +
+      `расходятся данные, и правку нужно вносить в них. ` +
+      `<b>Размеры с этой страницы не снимаются</b>: источник геометрии — чертёж и табель мер.`
+    : `Снимки заказчика приложены для сверки. Размеры с них не снимаются: ` +
+      `источник геометрии — чертёж и табель мер.`;
+
+  return `${body}<div class="note" style="margin-top:3mm">${explain}</div>`;
 }
 
 // ---------------------------------------------------------------- чертёж
