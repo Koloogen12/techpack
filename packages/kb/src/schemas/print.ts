@@ -42,6 +42,8 @@ export const PrintTechniqueEntrySchema = z
     id: PrintTechniqueSchema,
     label_ru: z.string().min(1),
     label_en: z.string().min(1),
+    /** Китайский появился позже английского — поэтому необязателен. */
+    label_zh: z.string().min(1).optional(),
     fabric: z.object({
       fibers: z.array(z.enum(PRINT_FIBERS)).min(1),
       /** Краситель прозрачен: светлее фона не напечатать. */
@@ -84,6 +86,9 @@ export const PrintZoneEntrySchema = z
   .object({
     id: z.string().min(1),
     label_ru: z.string().min(1),
+    /** Подписи на языках экспорта. Необязательны для старых справочников. */
+    label_en: z.string().min(1).optional(),
+    label_zh: z.string().min(1).optional(),
     applies_to: z.array(CategorySchema).min(1),
     anchor: PrintAnchorSchema,
     typical_offset_cm: z.number().nonnegative(),

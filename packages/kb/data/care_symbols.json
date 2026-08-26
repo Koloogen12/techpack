@@ -12,127 +12,177 @@
     {
       "id": "wash_95",
       "group": "wash",
-      "label_ru": "Стирка при 95 °C"
+      "label_ru": "Стирка при 95 °C",
+      "label_en": "Wash at 95 °C",
+      "label_zh": "95 °C 水洗"
     },
     {
       "id": "wash_60",
       "group": "wash",
-      "label_ru": "Стирка при 60 °C"
+      "label_ru": "Стирка при 60 °C",
+      "label_en": "Wash at 60 °C",
+      "label_zh": "60 °C 水洗"
     },
     {
       "id": "wash_40",
       "group": "wash",
-      "label_ru": "Стирка при 40 °C"
+      "label_ru": "Стирка при 40 °C",
+      "label_en": "Wash at 40 °C",
+      "label_zh": "40 °C 水洗"
     },
     {
       "id": "wash_40_delicate",
       "group": "wash",
-      "label_ru": "Деликатная стирка при 40 °C"
+      "label_ru": "Деликатная стирка при 40 °C",
+      "label_en": "Delicate wash at 40 °C",
+      "label_zh": "40 °C 轻柔水洗"
     },
     {
       "id": "wash_30",
       "group": "wash",
-      "label_ru": "Стирка при 30 °C"
+      "label_ru": "Стирка при 30 °C",
+      "label_en": "Wash at 30 °C",
+      "label_zh": "30 °C 水洗"
     },
     {
       "id": "wash_30_delicate",
       "group": "wash",
-      "label_ru": "Деликатная стирка при 30 °C"
+      "label_ru": "Деликатная стирка при 30 °C",
+      "label_en": "Delicate wash at 30 °C",
+      "label_zh": "30 °C 轻柔水洗"
     },
     {
       "id": "wash_hand",
       "group": "wash",
-      "label_ru": "Ручная стирка не выше 40 °C"
+      "label_ru": "Ручная стирка не выше 40 °C",
+      "label_en": "Hand wash, max 40 °C",
+      "label_zh": "手洗，不超过 40 °C"
     },
     {
       "id": "wash_none",
       "group": "wash",
-      "label_ru": "Стирка запрещена"
+      "label_ru": "Стирка запрещена",
+      "label_en": "Do not wash",
+      "label_zh": "不可水洗"
     },
     {
       "id": "bleach_any",
       "group": "bleach",
-      "label_ru": "Отбеливание разрешено"
+      "label_ru": "Отбеливание разрешено",
+      "label_en": "Bleaching allowed",
+      "label_zh": "可漂白"
     },
     {
       "id": "bleach_oxygen",
       "group": "bleach",
-      "label_ru": "Только кислородное отбеливание"
+      "label_ru": "Только кислородное отбеливание",
+      "label_en": "Non-chlorine bleach only",
+      "label_zh": "仅可氧漂"
     },
     {
       "id": "bleach_none",
       "group": "bleach",
-      "label_ru": "Отбеливание запрещено"
+      "label_ru": "Отбеливание запрещено",
+      "label_en": "Do not bleach",
+      "label_zh": "不可漂白"
     },
     {
       "id": "tumble_low",
       "group": "tumble_dry",
-      "label_ru": "Барабанная сушка при пониженной температуре"
+      "label_ru": "Барабанная сушка при пониженной температуре",
+      "label_en": "Tumble dry, low heat",
+      "label_zh": "低温翻转烘干"
     },
     {
       "id": "tumble_normal",
       "group": "tumble_dry",
-      "label_ru": "Барабанная сушка при обычной температуре"
+      "label_ru": "Барабанная сушка при обычной температуре",
+      "label_en": "Tumble dry, normal heat",
+      "label_zh": "常温翻转烘干"
     },
     {
       "id": "tumble_none",
       "group": "tumble_dry",
-      "label_ru": "Барабанная сушка запрещена"
+      "label_ru": "Барабанная сушка запрещена",
+      "label_en": "Do not tumble dry",
+      "label_zh": "不可翻转烘干"
     },
     {
       "id": "dry_line",
       "group": "natural_dry",
-      "label_ru": "Сушить на верёвке"
+      "label_ru": "Сушить на верёвке",
+      "label_en": "Line dry",
+      "label_zh": "悬挂晾干"
     },
     {
       "id": "dry_flat",
       "group": "natural_dry",
-      "label_ru": "Сушить разложив на горизонтальной поверхности"
+      "label_ru": "Сушить разложив на горизонтальной поверхности",
+      "label_en": "Dry flat",
+      "label_zh": "平摊晾干"
     },
     {
       "id": "dry_shade",
       "group": "natural_dry",
-      "label_ru": "Сушить в тени"
+      "label_ru": "Сушить в тени",
+      "label_en": "Dry in shade",
+      "label_zh": "阴凉处晾干"
     },
     {
       "id": "iron_110",
       "group": "iron",
-      "label_ru": "Глажение не выше 110 °C"
+      "label_ru": "Глажение не выше 110 °C",
+      "label_en": "Iron, max 110 °C",
+      "label_zh": "熨烫最高 110 °C"
     },
     {
       "id": "iron_150",
       "group": "iron",
-      "label_ru": "Глажение не выше 150 °C"
+      "label_ru": "Глажение не выше 150 °C",
+      "label_en": "Iron, max 150 °C",
+      "label_zh": "熨烫最高 150 °C"
     },
     {
       "id": "iron_200",
       "group": "iron",
-      "label_ru": "Глажение не выше 200 °C"
+      "label_ru": "Глажение не выше 200 °C",
+      "label_en": "Iron, max 200 °C",
+      "label_zh": "熨烫最高 200 °C"
     },
     {
       "id": "iron_none",
       "group": "iron",
-      "label_ru": "Глажение запрещено"
+      "label_ru": "Глажение запрещено",
+      "label_en": "Do not iron",
+      "label_zh": "不可熨烫"
     },
     {
       "id": "prof_p",
       "group": "professional",
-      "label_ru": "Профессиональная чистка перхлорэтиленом"
+      "label_ru": "Профессиональная чистка перхлорэтиленом",
+      "label_en": "Professional dry clean, tetrachloroethylene",
+      "label_zh": "专业干洗（四氯乙烯）"
     },
     {
       "id": "prof_f",
       "group": "professional",
-      "label_ru": "Профессиональная чистка углеводородами"
+      "label_ru": "Профессиональная чистка углеводородами",
+      "label_en": "Professional dry clean, hydrocarbons",
+      "label_zh": "专业干洗（碳氢溶剂）"
     },
     {
       "id": "prof_w",
       "group": "professional",
-      "label_ru": "Профессиональная аквачистка"
+      "label_ru": "Профессиональная аквачистка",
+      "label_en": "Professional wet clean",
+      "label_zh": "专业湿洗"
     },
     {
       "id": "prof_none",
       "group": "professional",
-      "label_ru": "Профессиональная чистка запрещена"
+      "label_ru": "Профессиональная чистка запрещена",
+      "label_en": "Do not dry clean",
+      "label_zh": "不可干洗"
     }
   ],
   "profiles": [
@@ -151,5 +201,7 @@
       "source": "knowledge-base/06-normativka-rf.md#4",
       "gap": "Профиль собран по правилу генерации из базы знаний: хлопковый трикотаж — 30–40 °C деликатная, без хлора, без барабана, утюг 150 °C, без химчистки. Это типовое значение, редактируемое брендом. Реальный режим зависит от конкретного полотна и подтверждается поставщиком."
     }
-  ]
+  ],
+  "translation_verified": false,
+  "translation_gap": "переводы символов ухода сделаны нами; формулировки на ярлыке для рынка сбыта подтверждает бренд — требования к языку маркировки задаёт страна продажи"
 }

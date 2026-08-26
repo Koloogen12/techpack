@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.8.0';
+export const SPEC_VERSION = '0.9.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -142,6 +142,9 @@ export const ConstructionNodeValueSchema = z.object({
 export const TechStepSchema = z.object({
   step: z.number().int().positive(),
   operation_ru: z.string().min(1),
+  /** Операция на языках экспорта. Нет в снапшотах до 0.9.0. */
+  operation_en: z.string().min(1).optional(),
+  operation_zh: z.string().min(1).optional(),
   node_id: z.string().nullable(),
   specialty: z.string().min(1),
   machine: z.string().min(1),
@@ -280,13 +283,23 @@ export const LabelsSchema = z
   .object({
     care_symbols: z
       .array(
-        z.object({ group: z.string().min(1), id: z.string().min(1), label_ru: z.string().min(1) }),
+        z.object({
+          group: z.string().min(1),
+          id: z.string().min(1),
+          label_ru: z.string().min(1),
+          /** Подписи на языках экспорта. Нет в снапшотах до 0.9.0. */
+          label_en: z.string().min(1).optional(),
+          label_zh: z.string().min(1).optional(),
+        }),
       )
       .min(1),
     requisites: z.array(
       z.object({
         id: z.string().min(1),
         label_ru: z.string().min(1),
+        /** Подписи на языках экспорта. Нет в снапшотах до 0.9.0. */
+        label_en: z.string().min(1).optional(),
+        label_zh: z.string().min(1).optional(),
         value: tracked(z.string().min(1)).nullable(),
         required: z.boolean(),
         /** Что сделать, чтобы реквизит заполнился. */
@@ -431,10 +444,14 @@ export const ArtworkPlacementSchema = z
     kind: z.enum(['placement', 'allover']),
     zone: z.string().min(1),
     zone_label_ru: z.string().min(1),
+    zone_label_en: z.string().min(1).optional(),
+    zone_label_zh: z.string().min(1).optional(),
     technique: tracked(
       z.enum(['screen', 'dtf', 'dtg', 'sublimation', 'embroidery', 'pigment_roll']),
     ),
     technique_label_ru: z.string().min(1),
+    technique_label_en: z.string().min(1).optional(),
+    technique_label_zh: z.string().min(1).optional(),
     /**
      * Положение макета. Отмеряется от высшей точки плеча вниз и от середины
      * переда вбок — так, как печатник кладёт рулетку на плиту. Словесное
@@ -443,6 +460,8 @@ export const ArtworkPlacementSchema = z
      */
     offset_from_anchor_cm: tracked(z.number().nonnegative()),
     anchor_label_ru: z.string().min(1),
+    anchor_label_en: z.string().min(1).optional(),
+    anchor_label_zh: z.string().min(1).optional(),
     /**
      * Размер отпечатка. У сплошного раппорта в этом же поле лежит ШАГ
      * РАППОРТА — величина той же природы и того же назначения: печатник

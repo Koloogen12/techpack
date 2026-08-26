@@ -23,6 +23,14 @@ export const CareVariantSchema = z.object({
   id: z.string().min(1),
   group: CareGroupSchema,
   label_ru: z.string().min(1),
+  /**
+   * Подписи на языках экспорта.
+   *
+   * Необязательны: справочник мог быть собран до появления переводов —
+   * тогда раздел просто не поедет в нерусский комплект, а не упадёт.
+   */
+  label_en: z.string().min(1).optional(),
+  label_zh: z.string().min(1).optional(),
 });
 
 export const CareProfileSchema = z
@@ -66,6 +74,9 @@ export const LabelRequisiteSchema = z
   .object({
     id: z.string().min(1),
     label_ru: z.string().min(1),
+    /** Подписи на языках экспорта. Необязательны для старых справочников. */
+    label_en: z.string().min(1).optional(),
+    label_zh: z.string().min(1).optional(),
     /** Откуда берётся значение: профиль бренда, спека изделия, справочник. */
     fills_from: z.enum(['brand_profile', 'style', 'kb', 'manual']),
     required: z.boolean(),

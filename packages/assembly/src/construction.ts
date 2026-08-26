@@ -60,6 +60,8 @@ export type ConstructionValue = ConstructionNodeValue;
 export interface TechSequenceStep {
   step: number;
   operation_ru: string;
+  operation_en?: string;
+  operation_zh?: string;
   node_id: string | null;
   specialty: string;
   machine: string;
@@ -215,6 +217,10 @@ function buildSequence(
       return {
         step: op.step,
         operation_ru: op.operation_ru,
+        // Перевод едет вместе с операцией: снапшот, отправленный фабрике
+        // полгода назад, обязан читаться так же, как читался тогда.
+        ...(op.operation_en ? { operation_en: op.operation_en } : {}),
+        ...(op.operation_zh ? { operation_zh: op.operation_zh } : {}),
         node_id: nodeId,
         specialty: op.specialty,
         machine: node?.machine ?? op.machine ?? 'manual',

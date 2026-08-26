@@ -11,6 +11,8 @@
     {
       "id": "product_name",
       "label_ru": "Наименование продукции",
+      "label_en": "Product name",
+      "label_zh": "产品名称",
       "fills_from": "style",
       "required": true,
       "example_ru": "Футболка женская",
@@ -21,6 +23,8 @@
     {
       "id": "country",
       "label_ru": "Страна изготовления",
+      "label_en": "Country of manufacture",
+      "label_zh": "制造国",
       "fills_from": "brand_profile",
       "required": true,
       "example_ru": "Россия",
@@ -31,6 +35,8 @@
     {
       "id": "manufacturer",
       "label_ru": "Изготовитель: наименование и юридический адрес",
+      "label_en": "Manufacturer: name and registered address",
+      "label_zh": "制造商：名称及注册地址",
       "fills_from": "brand_profile",
       "required": true,
       "example_ru": "ООО «Пример», 101000, Москва, ул. Примерная, 1",
@@ -41,6 +47,8 @@
     {
       "id": "importer",
       "label_ru": "Импортёр или уполномоченное лицо",
+      "label_en": "Importer or authorised representative",
+      "label_zh": "进口商或授权代表",
       "fills_from": "brand_profile",
       "required": false,
       "example_ru": "заполняется только для импортной продукции",
@@ -51,6 +59,8 @@
     {
       "id": "size",
       "label_ru": "Размер",
+      "label_en": "Size",
+      "label_zh": "尺码",
       "fills_from": "style",
       "required": true,
       "example_ru": "RU 46 / M",
@@ -61,6 +71,8 @@
     {
       "id": "composition",
       "label_ru": "Состав сырья, проценты по волокнам в порядке убывания",
+      "label_en": "Fibre composition, percentages in descending order",
+      "label_zh": "纤维成分，按含量降序标注百分比",
       "fills_from": "style",
       "required": true,
       "example_ru": "95% хлопок, 5% эластан",
@@ -71,6 +83,8 @@
     {
       "id": "trademark",
       "label_ru": "Товарный знак",
+      "label_en": "Trademark",
+      "label_zh": "商标",
       "fills_from": "brand_profile",
       "required": true,
       "example_ru": "ПРИМЕР",
@@ -81,6 +95,8 @@
     {
       "id": "production_date",
       "label_ru": "Дата изготовления: месяц и год",
+      "label_en": "Date of manufacture: month and year",
+      "label_zh": "生产日期：年月",
       "fills_from": "manual",
       "required": true,
       "example_ru": "08.2026",
@@ -91,6 +107,8 @@
     {
       "id": "care_symbols",
       "label_ru": "Символы ухода по ГОСТ ISO 3758",
+      "label_en": "Care symbols per GOST ISO 3758",
+      "label_zh": "按 GOST ISO 3758 的洗涤标识",
       "fills_from": "kb",
       "required": true,
       "example_ru": "стирка 30 °C деликатная · не отбеливать · не сушить в барабане · утюг до 150 °C · не чистить",
@@ -101,6 +119,8 @@
     {
       "id": "eac",
       "label_ru": "Знак обращения ЕАС",
+      "label_en": "EAC conformity mark",
+      "label_zh": "EAC 认证标志",
       "fills_from": "kb",
       "required": true,
       "example_ru": "EAC",
@@ -108,5 +128,7 @@
       "source": "knowledge-base/06-normativka-rf.md#2",
       "note_ru": "Реквизит перечислен прямым текстом статьи 9 ТР ТС 017/2011 — это норма права, а не отраслевая практика. Проверять нечего: список обязательных реквизитов задан законом, и отклонение от него делает продажу в ЕАЭС невозможной. Пересматривать только при изменении самого регламента."
     }
-  ]
+  ],
+  "translation_verified": false,
+  "translation_gap": "переводы названий реквизитов справочные: сама маркировка по ТР ТС 017/2011 печатается на русском языке, перевод нужен фабрике для понимания состава пакета"
 }

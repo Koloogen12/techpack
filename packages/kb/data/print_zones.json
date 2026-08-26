@@ -10,6 +10,8 @@
     {
       "id": "chest_center",
       "label_ru": "Грудь по центру",
+      "label_en": "Centre chest",
+      "label_zh": "胸前居中",
       "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
       "anchor": "hps",
       "typical_offset_cm": 8,
@@ -25,6 +27,8 @@
     {
       "id": "chest_left",
       "label_ru": "Грудь слева (мелкий знак)",
+      "label_en": "Left chest (small mark)",
+      "label_zh": "左胸（小图标）",
       "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
       "anchor": "hps",
       "typical_offset_cm": 18,
@@ -40,6 +44,8 @@
     {
       "id": "back_full",
       "label_ru": "Спина, крупный макет",
+      "label_en": "Full back",
+      "label_zh": "后背大图",
       "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
       "anchor": "hps",
       "typical_offset_cm": 12,
@@ -55,6 +61,8 @@
     {
       "id": "back_yoke",
       "label_ru": "Спина под горловиной",
+      "label_en": "Back yoke, below neckline",
+      "label_zh": "后领下方",
       "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
       "anchor": "hps",
       "typical_offset_cm": 6,
@@ -70,6 +78,8 @@
     {
       "id": "sleeve",
       "label_ru": "Рукав",
+      "label_en": "Sleeve",
+      "label_zh": "袖子",
       "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie"],
       "anchor": "shoulder_seam",
       "typical_offset_cm": 12,
@@ -85,6 +95,8 @@
     {
       "id": "pocket_front",
       "label_ru": "Над карманом кенгуру",
+      "label_en": "Above kangaroo pocket",
+      "label_zh": "袋鼠袋上方",
       "applies_to": ["hoodie"],
       "anchor": "hps",
       "typical_offset_cm": 8,
@@ -100,6 +112,8 @@
     {
       "id": "hood",
       "label_ru": "Капюшон",
+      "label_en": "Hood",
+      "label_zh": "帽子",
       "applies_to": ["hoodie"],
       "anchor": "hps",
       "typical_offset_cm": 0,
@@ -112,5 +126,7 @@
       "source": "knowledge-base/02-tehnicheskiy-risunok.md#3",
       "gap": "Мелкий знак на боковой детали капюшона. Типовые отступ и размер — инженерная оценка по разложенному изделию размера M, а не норматив: они подставляются, когда макет пришёл без размеров, и уходят в документ предположением. Ограничения по швам — практика печатных участков, выверить у подрядчика. Закрыть первыми заказами с печатью."
     }
-  ]
+  ],
+  "translation_verified": false,
+  "translation_gap": "переводы зон нанесения не проверены технологом-носителем языка"
 }

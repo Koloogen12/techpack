@@ -133,6 +133,59 @@ export interface Messages {
   form_th_note: string;
   form_foot: string;
 
+  // --- Технологическая последовательность ------------------------------------
+  seq_title: string;
+  seq_no: string;
+  seq_operation: string;
+  seq_specialty: string;
+  seq_machine: string;
+  seq_time: string;
+  seq_time_note: string;
+
+  // --- Маркировка, нанесение, колорвеи ---------------------------------------
+  //
+  // Разделы фабричного комплекта: подписи и таблицы переведены, а длинные
+  // пояснения о происхождении значений — нет. Они написаны для основателя
+  // бренда, фабрике не нужны, и переводить их значило бы гнать объём.
+  labels_requisites: string;
+  labels_care: string;
+  labels_care_ru_only: string;
+  labels_sku_matrix: string;
+  labels_col_sku: string;
+  labels_col_color: string;
+  labels_col_size: string;
+  labels_col_gtin: string;
+  labels_gtin_tbd: string;
+  labels_ru_only: string;
+
+  art_zone: string;
+  art_technique: string;
+  art_offset: string;
+  art_size: string;
+  art_repeat_step: string;
+  art_colors: string;
+  art_colors_full: string;
+  /** Слово после числа: «3 плашечных». Число печатается со своим статусом. */
+  art_colors_spot: string;
+  art_file: string;
+  art_file_none: string;
+  art_repeat_type: string;
+  art_repeat_mirror: string;
+  art_repeat_straight: string;
+  art_grain: string;
+  art_yardage: string;
+  art_yardage_tbd: string;
+  art_ru_only: string;
+
+  cw_origin: string;
+  cw_from_swatch: (file: string) => string;
+  cw_from_brand: string;
+  cw_not_set: string;
+  cw_screen_color: string;
+  cw_lab: string;
+  cw_book_code: string;
+  cw_ru_only: string;
+
   // --- Общее -----------------------------------------------------------------
   sheet_of: (n: number, total: number) => string;
   cm: string;

@@ -35,6 +35,8 @@
     {
       "step": 1,
       "operation_ru": "Дублировать участки под люверсы",
+      "operation_en": "Fuse interlining at eyelet areas",
+      "operation_zh": "气眼位粘衬",
       "node_id": null,
       "specialty": "P",
       "machine": "fusing_press",
@@ -43,6 +45,8 @@
     {
       "step": 2,
       "operation_ru": "Настрочить карман-кенгуру на перед",
+      "operation_en": "Topstitch kangaroo pocket onto front",
+      "operation_zh": "前片缉缝袋鼠袋",
       "node_id": "kangaroo_pocket",
       "specialty": "M",
       "machine": null,
@@ -51,6 +55,8 @@
     {
       "step": 3,
       "operation_ru": "Поставить закрепки в углах входа в карман",
+      "operation_en": "Bartack pocket opening corners",
+      "operation_zh": "袋口两端打套结",
       "node_id": "pocket_bartack",
       "specialty": "A",
       "machine": null,
@@ -59,6 +65,8 @@
     {
       "step": 4,
       "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "operation_en": "Join shoulder seams with stay tape",
+      "operation_zh": "缝合肩缝并夹入防伸带",
       "node_id": "shoulder_seam_overlock",
       "specialty": "S",
       "machine": null,
@@ -67,6 +75,8 @@
     {
       "step": 5,
       "operation_ru": "Стачать капюшон и втачать его в горловину",
+      "operation_en": "Assemble hood and set into neckline",
+      "operation_zh": "缝合帽子并绱至领口",
       "node_id": "hood_set_in",
       "specialty": "S",
       "machine": null,
@@ -75,6 +85,8 @@
     {
       "step": 6,
       "operation_ru": "Обработать лицевой край капюшона кулиской",
+      "operation_en": "Finish hood face edge with drawcord casing",
+      "operation_zh": "帽口做穿绳通道",
       "node_id": "hood_drawcord_casing",
       "specialty": "S",
       "machine": null,
@@ -83,6 +95,8 @@
     {
       "step": 7,
       "operation_ru": "Установить люверсы в кулиску",
+      "operation_en": "Set eyelets into the casing",
+      "operation_zh": "通道上安装气眼",
       "node_id": "hood_eyelets",
       "specialty": "A",
       "machine": null,
@@ -91,6 +105,8 @@
     {
       "step": 8,
       "operation_ru": "Втачать рукава в проймы",
+      "operation_en": "Set sleeves into armholes",
+      "operation_zh": "绱袖（装入袖窿）",
       "node_id": "sleeve_set_in",
       "specialty": "S",
       "machine": null,
@@ -99,6 +115,8 @@
     {
       "step": 9,
       "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+      "operation_en": "Close side and underarm seam in one operation",
+      "operation_zh": "一次缝合摆缝与袖底缝",
       "node_id": "side_sleeve_seam",
       "specialty": "S",
       "machine": null,
@@ -107,6 +125,8 @@
     {
       "step": 10,
       "operation_ru": "Стачать манжеты в кольцо и притачать к низу рукавов",
+      "operation_en": "Close cuffs into loops and attach to sleeve openings",
+      "operation_zh": "袖口罗纹接圈并绱至袖口",
       "node_id": "cuff_rib",
       "specialty": "S",
       "machine": null,
@@ -115,6 +135,8 @@
     {
       "step": 11,
       "operation_ru": "Стачать пояс в кольцо и притачать к низу изделия",
+      "operation_en": "Close waistband into a loop and attach to garment bottom",
+      "operation_zh": "下摆罗纹接圈并绱至下摆",
       "node_id": "waistband_rib",
       "specialty": "S",
       "machine": null,
@@ -123,6 +145,8 @@
     {
       "step": 12,
       "operation_ru": "Вдеть шнур, закрепить наконечники",
+      "operation_en": "Insert drawcord, fit cord tips",
+      "operation_zh": "穿绳并装绳头",
       "node_id": null,
       "specialty": "R",
       "machine": "manual",
@@ -131,6 +155,8 @@
     {
       "step": 13,
       "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach content label into side seam",
+      "operation_zh": "侧缝夹缝成分标",
       "node_id": "care_label_stitched",
       "specialty": "M",
       "machine": null,
@@ -139,6 +165,8 @@
     {
       "step": 14,
       "operation_ru": "Чистка изделия, контроль качества",
+      "operation_en": "Trim threads, quality control",
+      "operation_zh": "剪线清理、质检",
       "node_id": null,
       "specialty": "R",
       "machine": "manual",
@@ -147,6 +175,8 @@
     {
       "step": 15,
       "operation_ru": "Влажно-тепловая обработка, упаковка",
+      "operation_en": "Final press, packing",
+      "operation_zh": "整烫、包装",
       "node_id": null,
       "specialty": "U",
       "machine": "iron",
@@ -155,5 +185,7 @@
   ],
   "verified": false,
   "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
-  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1)."
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1).",
+  "translation_verified": false,
+  "translation_gap": "переводы техпоследовательности сделаны нами и не проверены технологом-носителем языка"
 }

@@ -82,7 +82,10 @@ export const TRANSLATED_SECTIONS: readonly DocSection[] = [
   'measurements',
   'grading',
   'bom',
+  'colorways',
   'construction',
+  'artwork',
+  'labels',
 ];
 
 /** Картинка, готовая к вставке: data-URI, содержимого файлов в спеке нет. */
@@ -271,12 +274,12 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   add('grading', t.section_grading, gradingPages(spec, pro, t, locale));
   add('bom', t.section_bom, bomPages(spec, t, locale));
   if (include('colorways')) {
-    const bodies = colorwayPages(spec, options.visuals);
+    const bodies = colorwayPages(spec, t, locale, options.visuals);
     if (bodies.length) add('colorways', t.section_colorways, bodies);
   }
   add('construction', t.section_construction, constructionPages(spec, pro, t, locale));
   if (spec.artwork)
-    add('artwork', t.section_artwork, artworkPages(spec, spec.artwork, options.visuals));
+    add('artwork', t.section_artwork, artworkPages(spec, spec.artwork, t, locale, options.visuals));
   // Фотореалистичное превью раппорта — ОТДЕЛЬНЫЙ раздел, а не третий лист
   // нанесения. Разделы это единица ролевой выгрузки: цеху и печатнику
   // такая картинка не нужна и только отвлекает от размерной раскладки.
@@ -284,7 +287,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     const body = patternPreviewBody(spec, options.visuals);
     if (body) add('pattern_preview', t.section_pattern_preview, [body]);
   }
-  add('labels', t.section_labels, labelsPages(spec));
+  add('labels', t.section_labels, labelsPages(spec, t, locale));
   add('patterns', t.section_patterns, [patternsBody()]);
 
   // Общее число листов известно только когда собраны все: футер печатает
@@ -687,46 +690,73 @@ const CHECK_MARK: Record<'ok' | 'warn' | 'fail', string> = {
 function artworkPages(
   spec: StyleSpec,
   artwork: NonNullable<StyleSpec['artwork']>,
+  t: Messages,
+  locale: Locale,
   visuals?: DocVisuals,
 ): string[] {
+  const ru = locale === 'ru';
+  const pick = (en: string | undefined, zh: string | undefined, fallback: string): string =>
+    locale === 'en' ? (en ?? fallback) : locale === 'zh' ? (zh ?? fallback) : fallback;
+
+  // Снапшот до 0.9.0 переводов не несёт: печатать зону и технику по-русски
+  // внутри английского комплекта нельзя — фабрика прочитает половину.
+  const translated =
+    ru ||
+    artwork.placements.every((a) =>
+      locale === 'en'
+        ? a.zone_label_en && a.technique_label_en
+        : a.zone_label_zh && a.technique_label_zh,
+    );
+  if (!translated) return [];
+
   const pages = artwork.placements.map((a) => {
     const allover = a.kind === 'allover';
+    const zoneLabel = pick(a.zone_label_en, a.zone_label_zh, a.zone_label_ru);
     const params: [string, string][] = [
-      ['Зона', esc(a.zone_label_ru)],
-      ['Техника', labelled(a.technique, a.technique_label_ru)],
+      [t.art_zone, esc(zoneLabel)],
+      [
+        t.art_technique,
+        labelled(
+          a.technique,
+          pick(a.technique_label_en, a.technique_label_zh, a.technique_label_ru),
+        ),
+      ],
       ...(allover
         ? []
-        : ([['Отступ', `${value(a.offset_from_anchor_cm)} см ${esc(a.anchor_label_ru)}`]] as [
-            string,
-            string,
-          ][])),
+        : ([
+            [
+              t.art_offset,
+              `${value(a.offset_from_anchor_cm)} ${t.cm} ` +
+                `${esc(pick(a.anchor_label_en, a.anchor_label_zh, a.anchor_label_ru))}`,
+            ],
+          ] as [string, string][])),
       [
-        allover ? 'Шаг раппорта' : 'Размер отпечатка',
+        allover ? t.art_repeat_step : t.art_size,
         allover
-          ? `${value(a.size_cm.width)} см`
-          : `${value(a.size_cm.width)} × ${value(a.size_cm.height)} см`,
+          ? `${value(a.size_cm.width)} ${t.cm}`
+          : `${value(a.size_cm.width)} × ${value(a.size_cm.height)} ${t.cm}`,
       ],
       [
-        'Цвета',
+        t.art_colors,
         a.colors.model === 'full'
-          ? 'полноцветная печать'
-          : `${a.colors.count ? value(a.colors.count) : '—'} плашечных` +
+          ? esc(t.art_colors_full)
+          : `${a.colors.count ? value(a.colors.count) : '—'} ${esc(t.art_colors_spot)}` +
             (a.colors.codes.length ? ` · ${esc(a.colors.codes.join(', '))}` : ''),
       ],
-      ['Файл макета', a.file_name ? esc(a.file_name) : 'не приложен'],
-      ...(a.pattern
+      [t.art_file, a.file_name ? esc(a.file_name) : t.art_file_none],
+      ...(a.pattern && ru
         ? ([
             ['Путь реализации', esc(a.pattern.path_label_ru)],
             ...(a.pattern.mirrored
-              ? ([['Тип раппорта', 'зеркальный (блок 2×2)']] as [string, string][])
-              : ([['Тип раппорта', 'прямой']] as [string, string][])),
+              ? ([[t.art_repeat_type, t.art_repeat_mirror]] as [string, string][])
+              : ([[t.art_repeat_type, t.art_repeat_straight]] as [string, string][])),
             [
-              'Направление к долевой',
+              t.art_grain,
               labelled(a.pattern.grain, GRAIN_RU[a.pattern.grain.value] ?? a.pattern.grain.value),
             ],
             [
-              'Метраж печати',
-              a.pattern.yardage_m ? `${value(a.pattern.yardage_m)} м` : 'считается от тиража',
+              t.art_yardage,
+              a.pattern.yardage_m ? `${value(a.pattern.yardage_m)} ${t.m}` : t.art_yardage_tbd,
             ],
             [
               'Отпечаток тайла',
@@ -746,7 +776,7 @@ function artworkPages(
       .join('');
 
     return (
-      `<h2>${esc(a.id)} · ${esc(a.zone_label_ru)}</h2>` +
+      `<h2>${esc(a.id)} · ${esc(zoneLabel)}</h2>` +
       `<div class="grid2" style="flex:1;min-height:0">` +
       `<div>` +
       `<table><tbody>` +
@@ -755,16 +785,18 @@ function artworkPages(
         .join('') +
       `</tbody></table>` +
       `<div class="note" style="margin-top:4mm">` +
-      (allover
-        ? `Шаг раппорта — та величина, которую печатник отмеряет по полотну. Без неё ` +
-          `тайл можно напечатать в любом масштабе, и мотив выйдет хоть с ладонь, ` +
-          `хоть с монету. ${esc(a.pattern?.path_reason_ru ?? '')}`
-        : `Положение отмеряется по разложенному изделию рулеткой — от названной точки, ` +
-          `а не на глаз. Границы зоны показаны на техническом чертеже пунктиром. ` +
-          `Сам макет приложен файлом: на чертеже он не рисуется, потому что чертёж ` +
-          `задаёт место и размер, а не изображение.`) +
+      (ru
+        ? allover
+          ? `Шаг раппорта — та величина, которую печатник отмеряет по полотну. Без неё ` +
+            `тайл можно напечатать в любом масштабе, и мотив выйдет хоть с ладонь, ` +
+            `хоть с монету. ${esc(a.pattern?.path_reason_ru ?? '')}`
+          : `Положение отмеряется по разложенному изделию рулеткой — от названной точки, ` +
+            `а не на глаз. Границы зоны показаны на техническом чертеже пунктиром. ` +
+            `Сам макет приложен файлом: на чертеже он не рисуется, потому что чертёж ` +
+            `задаёт место и размер, а не изображение.`
+        : esc(t.art_ru_only)) +
       `</div>` +
-      (a.pattern?.colors_measured.length
+      (ru && a.pattern?.colors_measured.length
         ? `<h3>Краски — ${a.pattern.colors_measured.length} ` +
           `${a.pattern.colors_measured.length === 1 ? 'сетка' : 'сеток'}</h3>` +
           `<table><tbody>` +
@@ -785,19 +817,21 @@ function artworkPages(
           `и подтверждают выкрасом. ` +
           `${esc(a.pattern.vector_verdict_ru)}</div>`
         : '') +
-      (a.warnings_ru.length
+      (ru && a.warnings_ru.length
         ? `<h3>Ограничения</h3><ul class="plain">` +
           a.warnings_ru.map((w) => `<li>${esc(w)}</li>`).join('') +
           `</ul>`
         : '') +
       `</div>` +
-      `<div>` +
-      `<h3 style="margin-top:0">Проверка макета</h3>` +
-      `<table><tbody>${checks}</tbody></table>` +
-      `<div class="note" style="margin-top:4mm">● годится · ▲ обратите внимание · ` +
-      `■ печатать нельзя. Это те же вопросы, которые печатник задал бы письмом: ` +
-      `в каких сантиметрах печатать, хватит ли разрешения, что с фоном.</div>` +
-      `</div>` +
+      (ru
+        ? `<div>` +
+          `<h3 style="margin-top:0">Проверка макета</h3>` +
+          `<table><tbody>${checks}</tbody></table>` +
+          `<div class="note" style="margin-top:4mm">● годится · ▲ обратите внимание · ` +
+          `■ печатать нельзя. Это те же вопросы, которые печатник задал бы письмом: ` +
+          `в каких сантиметрах печатать, хватит ли разрешения, что с фоном.</div>` +
+          `</div>`
+        : '') +
       `</div>`
     );
   });
@@ -1277,7 +1311,13 @@ function summariseRu(diff: SpecDiff): string {
  * это свойство оптики, а не качество разбора. Точный цвет задан координатами
  * Lab и подтверждается лабдипом.
  */
-function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
+function colorwayPages(
+  spec: StyleSpec,
+  t: Messages,
+  locale: Locale,
+  visuals?: DocVisuals,
+): string[] {
+  const ru = locale === 'ru';
   const colorways = spec.bom?.colorways ?? [];
   // Единственный безымянный цвет по умолчанию — это не колорвей, а его
   // отсутствие. Лист ради него был бы листом ни о чём.
@@ -1287,6 +1327,9 @@ function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
   const flatOf = (hex: string): string =>
     renderFlatsFromSpec(spec, {
       ...flatDefaults(spec),
+      // Подписи видов внутри SVG — тоже текст документа: без локали
+      // на английском листе оставалось бы «ПЕРЕД».
+      ...viewLabels(t),
       layers: ['color', 'outline', 'seams'],
       colorFill: hex,
     }).front.svg;
@@ -1298,28 +1341,30 @@ function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
     const render = visuals?.colorwayRenders?.[c.id];
 
     const origin = sw
-      ? `снят с образца <b>${esc(sw.file_name)}</b>`
+      ? esc(t.cw_from_swatch(sw.file_name))
       : c.hex_approx
-        ? 'указан вами'
-        : 'не задан';
+        ? esc(t.cw_from_brand)
+        : esc(t.cw_not_set);
 
-    const rows: string[] = [`<tr><td class="k">Происхождение</td><td>${origin}</td></tr>`];
+    const rows: string[] = [`<tr><td class="k">${esc(t.cw_origin)}</td><td>${origin}</td></tr>`];
     if (hex) {
       rows.push(
-        `<tr><td class="k">Экранный цвет</td><td class="mono">${esc(hex.toUpperCase())}</td></tr>`,
+        `<tr><td class="k">${esc(t.cw_screen_color)}</td>` +
+          `<td class="mono">${esc(hex.toUpperCase())}</td></tr>`,
       );
     }
     if (sw) {
       // Lab — язык колориста: по нему подбирают рецепт крашения.
       // По hex не подбирает никто, он для экрана.
       rows.push(
-        `<tr><td class="k">Lab</td><td class="mono">L ${num(sw.lab.l)} · a ${num(sw.lab.a)} · ` +
+        `<tr><td class="k">${esc(t.cw_lab)}</td><td class="mono">L ${num(sw.lab.l)} · a ${num(sw.lab.a)} · ` +
           `b ${num(sw.lab.b)}</td></tr>`,
       );
     }
     if (c.book_code) {
       rows.push(
-        `<tr><td class="k">Номер цвета</td><td class="mono">${esc(c.book_code)}</td>` + `</tr>`,
+        `<tr><td class="k">${esc(t.cw_book_code)}</td><td class="mono">${esc(c.book_code)}</td>` +
+          `</tr>`,
       );
     }
 
@@ -1336,24 +1381,27 @@ function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
           ? `<div class="cw-swatch" style="background:${esc(hex)}"></div>`
           : `<div class="cw-swatch cw-empty"></div>`) +
       `<div><div class="ml">${esc(c.id)}</div><h3 style="margin:1mm 0 0">${esc(c.name_ru)}</h3>` +
-      (c.book_code ? `<div class="ml" style="margin-top:1mm">номер бренда</div>` : '') +
+      (c.book_code ? `<div class="ml" style="margin-top:1mm">${esc(t.cw_book_code)}</div>` : '') +
       `</div></div>` +
       visual +
       `<table class="plain"><tbody>${rows.join('')}</tbody></table>` +
-      (sw && !sw.uniform
+      (sw && !sw.uniform && ru
         ? `<div class="note warn" style="margin-top:2mm">${esc(sw.verdict_ru)}</div>`
         : '') +
       `</div>`
     );
   });
 
-  const footnote =
-    `<div class="note" style="margin-top:3mm"><b>Это визуальный референс, а не ` +
-    `цветопроба.</b> Экран, печать документа и свет при съёмке образца сдвигают оттенок; ` +
-    `по одному кадру отличить цвет ткани от цвета лампы нельзя — это свойство оптики, ` +
-    `а не качества разбора. Точный цвет задан координатами Lab в спецификации ` +
-    `и подтверждается <b>лабдипом</b> — выкрасом фабрики на этом самом полотне. ` +
-    `<span class="flag">не для приёмки цвета</span></div>`;
+  // Оговорка «это не цветопроба» обязана быть на любом языке: без неё
+  // фабрика примет наш экранный цвет за эталон крашения.
+  const footnote = ru
+    ? `<div class="note" style="margin-top:3mm"><b>Это визуальный референс, а не ` +
+      `цветопроба.</b> Экран, печать документа и свет при съёмке образца сдвигают оттенок; ` +
+      `по одному кадру отличить цвет ткани от цвета лампы нельзя — это свойство оптики, ` +
+      `а не качества разбора. Точный цвет задан координатами Lab в спецификации ` +
+      `и подтверждается <b>лабдипом</b> — выкрасом фабрики на этом самом полотне. ` +
+      `<span class="flag">не для приёмки цвета</span></div>`
+    : `<div class="note" style="margin-top:3mm">${esc(t.cw_ru_only)}</div>`;
 
   // Колонок ровно столько, сколько карточек на листе: две карточки в сетке
   // на три оставляли бы пустую треть, и лист читался бы как недоделанный.
@@ -1760,16 +1808,25 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
     return `<h2>${esc(t.section_construction)}</h2><table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>`;
   });
 
-  // Технологическая последовательность — русский текст операций из справочника.
-  // Перевода у него пока нет, и в нерусском комплекте лист опускается:
-  // отсутствующий лист честнее нечитаемого.
-  if (locale !== 'ru') return nodePages;
+  // Перевод операции едет со снапшотом. Если его там нет (документ собран
+  // до 0.9.0), лист опускается целиком: наполовину русская последовательность
+  // читается фабрикой хуже, чем её отсутствие.
+  const translated =
+    locale === 'ru' || c.sequence.every((s) => (locale === 'en' ? s.operation_en : s.operation_zh));
+  if (!translated) return nodePages;
+
+  const operation = (s: (typeof c.sequence)[number]): string =>
+    locale === 'en'
+      ? (s.operation_en ?? s.operation_ru)
+      : locale === 'zh'
+        ? (s.operation_zh ?? s.operation_ru)
+        : s.operation_ru;
 
   const seqPages = chunk(c.sequence, ROWS_PER_PAGE.sequence).map((steps, i, all) => {
     const rows = steps
       .map(
         (s) =>
-          `<tr><td class="num mono">${s.step}</td><td>${esc(s.operation_ru)}</td>` +
+          `<tr><td class="num mono">${s.step}</td><td>${esc(operation(s))}</td>` +
           `<td class="mono" title="${SPECIALTY_LABEL_RU[s.specialty as Specialty] ?? ''}">${s.specialty}</td>` +
           `<td class="note">${esc(machine(s.machine))}</td>` +
           `<td class="num v">${s.time_sec ?? '—'}</td></tr>`,
@@ -1777,15 +1834,20 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
       .join('');
 
     return (
-      `<h2>Технологическая последовательность</h2>` +
-      `<table><thead><tr><th>№</th><th>Неделимая операция</th><th>Спец.</th>` +
-      `<th>Оборудование</th><th class="num">Время, с</th></tr></thead><tbody>${rows}</tbody></table>` +
+      `<h2>${esc(t.seq_title)}</h2>` +
+      `<table><thead><tr><th>${esc(t.seq_no)}</th><th>${esc(t.seq_operation)}</th>` +
+      `<th>${esc(t.seq_specialty)}</th><th>${esc(t.seq_machine)}</th>` +
+      `<th class="num">${esc(t.seq_time)}</th></tr></thead><tbody>${rows}</tbody></table>` +
       (i === all.length - 1
-        ? `<div class="note" style="margin-top:3mm">Специальности: ` +
-          (Object.entries(SPECIALTY_LABEL_RU) as [Specialty, string][])
-            .map(([k, v]) => `${k} — ${v}`)
-            .join(', ') +
-          `. Нормы времени проставляет фабрика по своему цеху.</div>`
+        ? `<div class="note" style="margin-top:3mm">` +
+          (locale === 'ru'
+            ? `Специальности: ` +
+              (Object.entries(SPECIALTY_LABEL_RU) as [Specialty, string][])
+                .map(([k, v]) => `${k} — ${v}`)
+                .join(', ') +
+              `. `
+            : '') +
+          `${esc(t.seq_time_note)}</div>`
         : '')
     );
   });
@@ -1795,50 +1857,85 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
 
 // ---------------------------------------------------------------- маркировка
 
-function labelsPages(spec: StyleSpec): string[] {
+function labelsPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
   const l = spec.labels;
   if (!l) return [];
+  const ru = locale === 'ru';
+  // Названия реквизитов — наш текст, и без перевода лист бесполезен фабрике.
+  // Значения внутри останутся русскими: это надписи на ярлыке, их печатают
+  // буквально по ТР ТС 017/2011, а не читают.
+  const translated = ru || l.requisites.every((r) => (locale === 'en' ? r.label_en : r.label_zh));
+  if (!translated) return [];
+  // Подпись на языке комплекта, если перевод доехал со снапшотом. Нет —
+  // печатаем русскую: пустая ячейка в реквизитах хуже непереведённой.
+  const tr = (x: {
+    label_ru: string;
+    label_en?: string | undefined;
+    label_zh?: string | undefined;
+  }): string =>
+    locale === 'en'
+      ? (x.label_en ?? x.label_ru)
+      : locale === 'zh'
+        ? (x.label_zh ?? x.label_ru)
+        : x.label_ru;
 
   const requisites = l.requisites
     .map(
       (r) =>
-        `<tr><td>${esc(r.label_ru)}${r.required ? ' <span class="v">*</span>' : ''}</td>` +
-        `<td>${
+        `<tr><td>${esc(tr(r))}${r.required ? ' <span class="v">*</span>' : ''}</td>` +
+        // Значение — это ТЕКСТ НА ЯРЛЫКЕ. Он русский по ТР ТС 017/2011 даже
+        // в китайском комплекте: фабрика печатает его буквально, а не читает.
+        `<td data-ru-content>${
           r.value
             ? value(r.value)
-            : `<span class="flag">не заполнено</span> <span class="note">${esc(r.action_ru ?? '')}</span>`
+            : `<span class="flag">${esc(t.not_filled)}</span>` +
+              (ru ? ` <span class="note">${esc(r.action_ru ?? '')}</span>` : '')
         }</td></tr>`,
     )
     .join('');
 
-  const care = l.care_symbols.map((s) => esc(s.label_ru)).join(' · ');
+  // Символы ухода без перевода в нерусском комплекте не печатаем: это наши
+  // подписи, а не содержимое ярлыка, и половина строки по-русски бесполезна.
+  const careTranslated =
+    ru || l.care_symbols.every((s) => (locale === 'en' ? s.label_en : s.label_zh));
+  const care = careTranslated ? l.care_symbols.map((s) => esc(tr(s))).join(' · ') : '';
 
   const first =
     `<div class="grid2">` +
-    `<div><h2>Обязательные реквизиты</h2>` +
+    `<div><h2>${esc(t.labels_requisites)}</h2>` +
     `<table><tbody>${requisites}</tbody></table>` +
-    `<div class="note" style="margin-top:2mm">* обязательно по статье 9 ТР ТС 017/2011. ` +
-    `Все надписи — на русском языке, на изделии, этикетке, ярлыке или упаковке.</div></div>` +
-    `<div><h2>Символы ухода</h2>` +
-    `<div class="card"><div class="note">${care}</div></div>` +
-    `<div class="note" style="margin-top:2mm">Порядок символов по ГОСТ ISO 3758: стирка, ` +
-    `отбеливание, сушка, глажение, профессиональная чистка. Режим ухода зависит от ` +
-    `конкретного полотна — подтвердите у поставщика.</div></div>` +
+    `<div class="note" style="margin-top:2mm">` +
+    (ru
+      ? `* обязательно по статье 9 ТР ТС 017/2011. ` +
+        `Все надписи — на русском языке, на изделии, этикетке, ярлыке или упаковке.`
+      : esc(t.labels_ru_only)) +
+    `</div></div>` +
+    `<div><h2>${esc(t.labels_care)}</h2>` +
+    (care
+      ? `<div class="card"><div class="note">${care}</div></div>`
+      : `<div class="card"><div class="note">${esc(t.labels_care_ru_only)}</div></div>`) +
+    (ru
+      ? `<div class="note" style="margin-top:2mm">Порядок символов по ГОСТ ISO 3758: стирка, ` +
+        `отбеливание, сушка, глажение, профессиональная чистка. Режим ухода зависит от ` +
+        `конкретного полотна — подтвердите у поставщика.</div>`
+      : '') +
+    `</div>` +
     `</div>`;
 
   const skuPages = chunk(l.sku_matrix, ROWS_PER_PAGE.sku).map((rows, i, all) => {
     const body = rows
       .map(
         (s) =>
-          `<tr><td class="mono">${esc(s.sku)}</td><td>${esc(s.colorway_ru)}</td>` +
-          `<td class="num">${s.size_ru}</td><td class="note">присваивается в Нацкаталоге</td></tr>`,
+          `<tr><td class="mono">${esc(s.sku)}</td><td data-ru-content>${esc(s.colorway_ru)}</td>` +
+          `<td class="num">${s.size_ru}</td><td class="note">${esc(t.labels_gtin_tbd)}</td></tr>`,
       )
       .join('');
     return (
-      `<h2>Матрица артикулов</h2>` +
-      `<table><thead><tr><th>Артикул</th><th>Цвет</th><th class="num">Размер</th>` +
-      `<th>Код маркировки (GTIN)</th></tr></thead><tbody>${body}</tbody></table>` +
-      (i === all.length - 1
+      `<h2>${esc(t.labels_sku_matrix)}</h2>` +
+      `<table><thead><tr><th>${esc(t.labels_col_sku)}</th><th>${esc(t.labels_col_color)}</th>` +
+      `<th class="num">${esc(t.labels_col_size)}</th>` +
+      `<th>${esc(t.labels_col_gtin)}</th></tr></thead><tbody>${body}</tbody></table>` +
+      (i === all.length - 1 && ru
         ? `<div class="note" style="margin-top:3mm">Коды GTIN бренд получает в Нацкаталоге ` +
           `самостоятельно — мы оставляем плейсхолдеры. Атрибуты карточки Нацкаталога почти ` +
           `полностью совпадают с реквизитами ярлыка выше.</div>`

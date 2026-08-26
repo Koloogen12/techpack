@@ -425,14 +425,28 @@ export class KnowledgeBase {
   }
 
   /** Символы ухода в обязательном порядке ГОСТ ISO 3758: стирка → … → чистка. */
-  careSymbolsOrdered(profileId: string): { group: string; id: string; label_ru: string }[] {
+  careSymbolsOrdered(profileId: string): {
+    group: string;
+    id: string;
+    label_ru: string;
+    label_en?: string;
+    label_zh?: string;
+  }[] {
     const profile = this.careProfile(profileId);
     return this.care.order.flatMap((group) => {
       const variantId = profile.variants[group];
       if (!variantId) return [];
       const variant = this.care.variants.find((v) => v.id === variantId);
       if (!variant) throw new Error(`неизвестный символ ухода: ${variantId}`);
-      return [{ group, id: variant.id, label_ru: variant.label_ru }];
+      return [
+        {
+          group,
+          id: variant.id,
+          label_ru: variant.label_ru,
+          ...(variant.label_en ? { label_en: variant.label_en } : {}),
+          ...(variant.label_zh ? { label_zh: variant.label_zh } : {}),
+        },
+      ];
     });
   }
 

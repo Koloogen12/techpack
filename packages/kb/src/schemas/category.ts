@@ -18,6 +18,15 @@ import { MachineTypeSchema, SpecialtySchema } from './construction.js';
 export const TechOperationSchema = z.object({
   step: z.number().int().positive(),
   operation_ru: z.string().min(1),
+  /**
+   * Формулировки операции на языках экспорта.
+   *
+   * Необязательны: справочник мог быть собран до появления переводов,
+   * и молча падать из-за этого он не должен — раздел просто не поедет
+   * в нерусский комплект.
+   */
+  operation_en: z.string().min(1).optional(),
+  operation_zh: z.string().min(1).optional(),
   /** Узел обработки. null — операция без шва: заутюжить, вывернуть, упаковать. */
   node_id: z.string().nullable(),
   specialty: SpecialtySchema,

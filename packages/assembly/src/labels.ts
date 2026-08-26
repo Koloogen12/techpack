@@ -49,6 +49,8 @@ export interface LabelsInput {
 export interface LabelRequisiteValue {
   id: string;
   label_ru: string;
+  label_en?: string;
+  label_zh?: string;
   value: Tracked<string> | null;
   required: boolean;
   /** Что сделать, чтобы реквизит заполнился. Пусто, если значение есть. */
@@ -59,6 +61,8 @@ export interface CareSymbolValue {
   group: string;
   id: string;
   label_ru: string;
+  label_en?: string;
+  label_zh?: string;
 }
 
 export interface SkuRow {
@@ -136,6 +140,10 @@ export function buildLabels(input: LabelsInput, base: KnowledgeBase = defaultKb(
     return {
       id: r.id,
       label_ru: r.label_ru,
+      // Перевод едет в снапшот вместе с подписью: документ годовой давности
+      // обязан читаться так же, как читался в день отправки на фабрику.
+      ...(r.label_en ? { label_en: r.label_en } : {}),
+      ...(r.label_zh ? { label_zh: r.label_zh } : {}),
       value,
       required: r.required,
       action_ru: value === null ? (ACTIONS[r.id] ?? 'Заполните значение вручную') : null,

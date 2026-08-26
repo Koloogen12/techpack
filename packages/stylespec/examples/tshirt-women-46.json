@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.8.0",
+  "spec_version": "0.9.0",
   "style": {
     "id": "example-tshirt-women-46",
     "name": "Базовая футболка",
@@ -1438,6 +1438,8 @@
       {
         "step": 1,
         "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+        "operation_en": "Join shoulder seams with stay tape",
+        "operation_zh": "缝合肩缝并夹入防伸带",
         "node_id": "shoulder_seam_overlock",
         "specialty": "S",
         "machine": "overlock_4",
@@ -1446,6 +1448,8 @@
       {
         "step": 2,
         "operation_ru": "Стачать бейку горловины в кольцо, заутюжить",
+        "operation_en": "Close neck rib into a loop, press",
+        "operation_zh": "领口罗纹接圈缝合并烫平",
         "node_id": null,
         "specialty": "M",
         "machine": "single_needle_lockstitch",
@@ -1454,6 +1458,8 @@
       {
         "step": 3,
         "operation_ru": "Втачать бейку в горловину",
+        "operation_en": "Attach neck rib to neckline",
+        "operation_zh": "绱领口罗纹",
         "node_id": "neck_rib_band",
         "specialty": "S",
         "machine": "overlock_3",
@@ -1462,6 +1468,8 @@
       {
         "step": 4,
         "operation_ru": "Отстрочить горловину, настрочить тесьму, вложить размерник",
+        "operation_en": "Topstitch neckline, attach back neck tape, insert size label",
+        "operation_zh": "领口缉明线，压后领带，夹入尺码标",
         "node_id": "neck_topstitch_tape",
         "specialty": "S",
         "machine": "coverstitch_2n",
@@ -1470,6 +1478,8 @@
       {
         "step": 5,
         "operation_ru": "Втачать рукава в проймы",
+        "operation_en": "Set sleeves into armholes",
+        "operation_zh": "绱袖（装入袖窿）",
         "node_id": "sleeve_set_in",
         "specialty": "S",
         "machine": "overlock_4",
@@ -1478,6 +1488,8 @@
       {
         "step": 6,
         "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+        "operation_en": "Close side and underarm seam in one operation",
+        "operation_zh": "一次缝合摆缝与袖底缝",
         "node_id": "side_sleeve_seam",
         "specialty": "S",
         "machine": "overlock_4",
@@ -1486,6 +1498,8 @@
       {
         "step": 7,
         "operation_ru": "Подшить низ рукавов",
+        "operation_en": "Hem sleeve openings",
+        "operation_zh": "卷缝袖口",
         "node_id": "sleeve_hem_coverstitch",
         "specialty": "S",
         "machine": "coverstitch_2n",
@@ -1494,6 +1508,8 @@
       {
         "step": 8,
         "operation_ru": "Подшить низ изделия",
+        "operation_en": "Hem garment bottom",
+        "operation_zh": "卷缝下摆",
         "node_id": "hem_coverstitch",
         "specialty": "S",
         "machine": "coverstitch_2n",
@@ -1502,6 +1518,8 @@
       {
         "step": 9,
         "operation_ru": "Притачать составник в боковой шов",
+        "operation_en": "Attach content label into side seam",
+        "operation_zh": "侧缝夹缝成分标",
         "node_id": "care_label_stitched",
         "specialty": "M",
         "machine": "single_needle_lockstitch",
@@ -1510,6 +1528,8 @@
       {
         "step": 10,
         "operation_ru": "Чистка изделия, контроль качества",
+        "operation_en": "Trim threads, quality control",
+        "operation_zh": "剪线清理、质检",
         "node_id": null,
         "specialty": "R",
         "machine": "manual",
@@ -1518,6 +1538,8 @@
       {
         "step": 11,
         "operation_ru": "Влажно-тепловая обработка, упаковка",
+        "operation_en": "Final press, packing",
+        "operation_zh": "整烫、包装",
         "node_id": null,
         "specialty": "U",
         "machine": "iron",
@@ -1787,38 +1809,52 @@
       {
         "group": "wash",
         "id": "wash_30_delicate",
-        "label_ru": "Деликатная стирка при 30 °C"
+        "label_ru": "Деликатная стирка при 30 °C",
+        "label_en": "Delicate wash at 30 °C",
+        "label_zh": "30 °C 轻柔水洗"
       },
       {
         "group": "bleach",
         "id": "bleach_none",
-        "label_ru": "Отбеливание запрещено"
+        "label_ru": "Отбеливание запрещено",
+        "label_en": "Do not bleach",
+        "label_zh": "不可漂白"
       },
       {
         "group": "tumble_dry",
         "id": "tumble_none",
-        "label_ru": "Барабанная сушка запрещена"
+        "label_ru": "Барабанная сушка запрещена",
+        "label_en": "Do not tumble dry",
+        "label_zh": "不可翻转烘干"
       },
       {
         "group": "natural_dry",
         "id": "dry_flat",
-        "label_ru": "Сушить разложив на горизонтальной поверхности"
+        "label_ru": "Сушить разложив на горизонтальной поверхности",
+        "label_en": "Dry flat",
+        "label_zh": "平摊晾干"
       },
       {
         "group": "iron",
         "id": "iron_150",
-        "label_ru": "Глажение не выше 150 °C"
+        "label_ru": "Глажение не выше 150 °C",
+        "label_en": "Iron, max 150 °C",
+        "label_zh": "熨烫最高 150 °C"
       },
       {
         "group": "professional",
         "id": "prof_none",
-        "label_ru": "Профессиональная чистка запрещена"
+        "label_ru": "Профессиональная чистка запрещена",
+        "label_en": "Do not dry clean",
+        "label_zh": "不可干洗"
       }
     ],
     "requisites": [
       {
         "id": "product_name",
         "label_ru": "Наименование продукции",
+        "label_en": "Product name",
+        "label_zh": "产品名称",
         "value": {
           "value": "Футболка женская",
           "confidence": "user_input",
@@ -1830,6 +1866,8 @@
       {
         "id": "country",
         "label_ru": "Страна изготовления",
+        "label_en": "Country of manufacture",
+        "label_zh": "制造国",
         "value": null,
         "required": true,
         "action_ru": "Заполните страну производства в профиле бренда"
@@ -1837,6 +1875,8 @@
       {
         "id": "manufacturer",
         "label_ru": "Изготовитель: наименование и юридический адрес",
+        "label_en": "Manufacturer: name and registered address",
+        "label_zh": "制造商：名称及注册地址",
         "value": null,
         "required": true,
         "action_ru": "Заполните юрлицо и адрес в профиле бренда"
@@ -1844,6 +1884,8 @@
       {
         "id": "importer",
         "label_ru": "Импортёр или уполномоченное лицо",
+        "label_en": "Importer or authorised representative",
+        "label_zh": "进口商或授权代表",
         "value": null,
         "required": false,
         "action_ru": "Заполняется только для импортной продукции"
@@ -1851,6 +1893,8 @@
       {
         "id": "size",
         "label_ru": "Размер",
+        "label_en": "Size",
+        "label_zh": "尺码",
         "value": {
           "value": "RU 42 · RU 44 · RU 46 · RU 48 · RU 50 · RU 52",
           "confidence": "default_from_base",
@@ -1863,6 +1907,8 @@
       {
         "id": "composition",
         "label_ru": "Состав сырья, проценты по волокнам в порядке убывания",
+        "label_en": "Fibre composition, percentages in descending order",
+        "label_zh": "纤维成分，按含量降序标注百分比",
         "value": {
           "value": "100% хлопок; возможен эластан 5–10%",
           "confidence": "assumption",
@@ -1875,6 +1921,8 @@
       {
         "id": "trademark",
         "label_ru": "Товарный знак",
+        "label_en": "Trademark",
+        "label_zh": "商标",
         "value": null,
         "required": true,
         "action_ru": "Заполните товарный знак в профиле бренда"
@@ -1882,6 +1930,8 @@
       {
         "id": "production_date",
         "label_ru": "Дата изготовления: месяц и год",
+        "label_en": "Date of manufacture: month and year",
+        "label_zh": "生产日期：年月",
         "value": null,
         "required": true,
         "action_ru": "Дату проставляет фабрика при выпуске партии"
@@ -1889,6 +1939,8 @@
       {
         "id": "care_symbols",
         "label_ru": "Символы ухода по ГОСТ ISO 3758",
+        "label_en": "Care symbols per GOST ISO 3758",
+        "label_zh": "按 GOST ISO 3758 的洗涤标识",
         "value": {
           "value": "Деликатная стирка при 30 °C · Отбеливание запрещено · Барабанная сушка запрещена · Сушить разложив на горизонтальной поверхности · Глажение не выше 150 °C · Профессиональная чистка запрещена",
           "confidence": "default_from_base",
@@ -1900,6 +1952,8 @@
       {
         "id": "eac",
         "label_ru": "Знак обращения ЕАС",
+        "label_en": "EAC conformity mark",
+        "label_zh": "EAC 认证标志",
         "value": {
           "value": "EAC",
           "confidence": "default_from_base",

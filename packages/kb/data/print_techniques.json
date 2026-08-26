@@ -11,6 +11,7 @@
       "id": "screen",
       "label_ru": "Шелкография",
       "label_en": "Screen printing",
+      "label_zh": "丝网印刷",
       "fabric": {
         "fibers": ["cotton", "polyester", "blend"],
         "light_fabric_only": false
@@ -37,6 +38,7 @@
       "id": "dtf",
       "label_ru": "DTF (перенос с плёнки)",
       "label_en": "Direct-to-film",
+      "label_zh": "DTF 转印",
       "fabric": {
         "fibers": ["cotton", "polyester", "blend"],
         "light_fabric_only": false
@@ -62,6 +64,7 @@
       "id": "dtg",
       "label_ru": "DTG (прямая печать по ткани)",
       "label_en": "Direct-to-garment",
+      "label_zh": "DTG 直喷",
       "fabric": {
         "fibers": ["cotton"],
         "light_fabric_only": false
@@ -87,6 +90,7 @@
       "id": "sublimation",
       "label_ru": "Сублимация",
       "label_en": "Dye sublimation",
+      "label_zh": "热升华",
       "fabric": {
         "fibers": ["polyester"],
         "light_fabric_only": true
@@ -112,6 +116,7 @@
       "id": "embroidery",
       "label_ru": "Вышивка",
       "label_en": "Embroidery",
+      "label_zh": "刺绣",
       "fabric": {
         "fibers": ["cotton", "polyester", "blend"],
         "light_fabric_only": false
@@ -139,6 +144,7 @@
       "id": "pigment_roll",
       "label_ru": "Пигментная печать по рулону",
       "label_en": "Pigment roll printing",
+      "label_zh": "面料匹染颜料印花",
       "fabric": {
         "fibers": ["cotton", "polyester", "blend"],
         "light_fabric_only": true
@@ -161,5 +167,7 @@
       "gap": "Порог 30 метров и объём приладки — практика текстильных печатников, а не норматив: у каждого свой минимальный отрез и своя машина. Числа уходят в документ с пометкой «согласовать». Закрыть тремя прайсами рулонной печати.",
       "roll_capable": true
     }
-  ]
+  ],
+  "translation_verified": false,
+  "translation_gap": "переводы техник печати не проверены технологом-носителем языка"
 }
