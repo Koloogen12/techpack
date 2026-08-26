@@ -11,6 +11,7 @@ import {
   type MachineType,
   type NodeZone,
   type Specialty,
+  kb,
 } from '@seamsterly/kb';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import type { SpecDiff } from '@seamsterly/versions';
@@ -40,6 +41,7 @@ export const DOC_SECTIONS = [
   'preview',
   'flats',
   'measurements',
+  'grading',
   'bom',
   'colorways',
   'construction',
@@ -129,6 +131,7 @@ const ROWS_PER_PAGE = {
   sequence: 17,
   sku: 17,
   changes: 12,
+  grading: 15,
 } as const;
 
 const esc = (s: string): string =>
@@ -216,6 +219,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     ]);
   }
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
+  add('grading', 'Градация и приёмка', gradingPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
   if (include('colorways')) {
     const bodies = colorwayPages(spec, options.visuals);
@@ -774,6 +778,132 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
     `нанесения</b>: там шаг раппорта отложен в сантиметрах, и по ней сверяют масштаб ` +
     `мотива. Здесь масштаб приблизительный, а раскладка на готовом изделии зависит ` +
     `от раскроя.</div>`
+  );
+}
+
+// ---------------------------------------------------------------- градация
+
+/**
+ * Лист «Градация и приёмка».
+ *
+ * Таблица размеров уже стоит в табеле мер, и повторять её здесь значило бы
+ * занять лист копией. У эталона именно так: страница «Grading» дублирует
+ * колонки, и читать её незачем.
+ *
+ * Здесь другое — ПРАВИЛО, по которому таблица построена: на сколько растёт
+ * каждая точка при переходе на размер вверх. По правилу фабрика может
+ * проверить нашу градацию и продлить ряд за его края, чего по готовым
+ * числам сделать нельзя.
+ *
+ * И вторая половина листа — правила приёмки, которых поточечный допуск
+ * не выражает вовсе. Норма ГОСТ о ПАРНЫХ ДЕТАЛЯХ ловит несимметричность,
+ * при которой каждый рукав по отдельности в допуске, а изделие — брак.
+ * До сих пор этой нормы в документе не было ни строчки.
+ */
+function gradingPages(spec: StyleSpec, pro: boolean): string[] {
+  const base = kb();
+  const template = base.pomTemplate(spec.style.category);
+  const ruleOf = new Map(template.points.map((p) => [p.code, p.grading_key]));
+
+  const sorted = [...spec.base.size_range].sort((a, b) => a - b);
+
+  const rows: string[] = [];
+  const flat: { code: string; name_ru: string }[] = [];
+
+  // Точки конструктора скрыты в обычном режиме — здесь так же, как в табеле.
+  // Лист градации не может быть щелью, через которую в клиентский документ
+  // попадает то, чего в нём нет.
+  for (const point of spec.measurements.points.filter((p) => pro || !p.pro_only)) {
+    if (point.graded.length === 0) {
+      flat.push({ code: point.code, name_ru: point.name_ru });
+      continue;
+    }
+
+    // Шаг считается ИЗ ДОКУМЕНТА, а не из справочника: лист обязан описывать
+    // ту таблицу, которая напечатана рядом, а не ту, которую мы собирались
+    // напечатать. Разойдись они — лист покажет расхождение, а не скроет его.
+    const byRu = new Map(point.graded.map((g) => [g.ru, g.value.value]));
+    byRu.set(spec.base.base_size_ru, point.base.value);
+    const steps: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      const a = byRu.get(sorted[i - 1]!);
+      const b = byRu.get(sorted[i]!);
+      if (a === undefined || b === undefined) continue;
+      steps.push(Math.round((b - a) * 100) / 100);
+    }
+    if (!steps.length) continue;
+
+    const min = Math.min(...steps);
+    const max = Math.max(...steps);
+    const step = min === max ? num(min) : `${num(min)}…${num(max)}`;
+
+    const key = ruleOf.get(point.code);
+    let rule = '—';
+    let provenance = '';
+    if (key) {
+      try {
+        const r = base.gradingRule(key);
+        rule = r.label_ru;
+        provenance = r.verified ? 'первоисточник' : 'экспертная оценка';
+      } catch {
+        rule = key;
+      }
+    }
+
+    rows.push(
+      `<tr><td class="mono">${esc(point.code)}</td><td>${esc(point.name_ru)}</td>` +
+        `<td class="num v nowrap">+${step}</td><td>${esc(rule)}</td>` +
+        `<td class="note">${esc(provenance)}</td></tr>`,
+    );
+  }
+
+  const head =
+    `<div class="note" style="margin-bottom:3mm">Таблица размеров — в табеле мер. ` +
+    `Здесь <b>правило</b>, по которому она построена: на сколько растёт каждая точка ` +
+    `при переходе на размер вверх. По правилу градацию можно проверить и продлить ` +
+    `ряд за его края — по готовым числам этого сделать нельзя. ` +
+    `Шаг посчитан из напечатанной таблицы, а не взят из справочника: лист описывает ` +
+    `тот документ, который вы держите.</div>`;
+
+  const table = (part: string[]): string =>
+    `<table><thead><tr><th>Код</th><th>Точка</th><th class="num">На размер, см</th>` +
+    `<th>Правило</th><th>Происхождение</th></tr></thead><tbody>${part.join('')}</tbody></table>`;
+
+  const tail =
+    (flat.length
+      ? `<h3>Не градуируются</h3><div class="note">` +
+        `${flat.map((f) => `<b>${esc(f.code)}</b> ${esc(f.name_ru)}`).join(' · ')}. ` +
+        `Величина одинакова во всех размерах: высота рибаны и наклон плеча ` +
+        `не зависят от размера, и градуировать их значило бы придумать зависимость.</div>`
+      : '') +
+    `<h3>Приёмка: правила, которых поточечный допуск не выражает</h3>` +
+    `<ul class="dash">` +
+    base
+      .qcRules()
+      .map(
+        (r) =>
+          `<li>${esc(r.text_ru)}` +
+          (r.verified
+            ? ''
+            : ` <span class="tbc">— ${esc(r.gap ?? 'подлежит подтверждению')}</span>`) +
+          `</li>`,
+      )
+      .join('') +
+    `</ul>` +
+    `<div class="note" style="margin-top:3mm">Допуски в табеле мер даны по ` +
+    `<b>ГОСТ 23193-78</b>. Для сравнения: ` +
+    base
+      .toleranceComparisons()
+      .map((c) => esc(c.label_ru))
+      .join(', ') +
+    ` — по каждому классу ГОСТ строже. Мы не смягчаем допуск ради прохождения приёмки: ` +
+    `на тех же машинах и том же полотне смягчение не улучшает пошив, а перекладывает ` +
+    `брак на покупателя.</div>`;
+
+  const parts = chunk(rows, ROWS_PER_PAGE.grading);
+  if (!parts.length) return [head + tail];
+  return parts.map(
+    (part, i) => (i === 0 ? head : '') + table(part) + (i === parts.length - 1 ? tail : ''),
   );
 }
 

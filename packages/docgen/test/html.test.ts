@@ -405,6 +405,44 @@ describe('страница внешнего вида', () => {
   });
 });
 
+describe('градация и приёмка', () => {
+  /** Раздел режется на листы, поэтому проверяем его целиком. */
+  const gradingHtml = (): string =>
+    pagesOf(html())
+      .filter((p) => p.includes('data-section="grading"'))
+      .join('');
+
+  it('не дублирует таблицу размеров, а даёт правило', () => {
+    // У эталона страница «Grading» повторяет колонки размеров из табеля мер,
+    // и читать её незачем. Здесь — шаг на размер, по которому градацию можно
+    // проверить и продлить ряд.
+    const page = gradingHtml();
+    expect(page).toContain('На размер, см');
+    expect(page).toContain('Не градуируются');
+  });
+
+  it('несёт нормы приёмки, которых поточечный допуск не выражает', () => {
+    // Норма ГОСТ о парных деталях ловит несимметричность, при которой каждый
+    // рукав по отдельности в допуске, а изделие — брак. До сих пор этой нормы
+    // в документе не было ни строчки.
+    const page = gradingHtml();
+    expect(page).toContain('парных деталей');
+    expect(page).toContain('ГОСТ 23193-78');
+  });
+
+  it('шаг берётся из НАПЕЧАТАННОЙ таблицы, а не из справочника', () => {
+    // Лист описывает тот документ, который держит читатель. Разойдись они —
+    // лист обязан показать расхождение, а не скрыть его.
+    const spec = SPEC;
+    const t03 = spec.measurements.points.find((p) => p.code === 'T03')!;
+    const sorted = [...spec.base.size_range].sort((a, b) => a - b);
+    const byRu = new Map(t03.graded.map((g) => [g.ru, g.value.value]));
+    byRu.set(spec.base.base_size_ru, t03.base.value);
+    const step = byRu.get(sorted[1]!)! - byRu.get(sorted[0]!)!;
+    expect(gradingHtml()).toContain(`+${String(Math.round(step * 10) / 10)}`);
+  });
+});
+
 describe('страница нанесения', () => {
   const art = () => html(MIXED);
 
