@@ -29,6 +29,7 @@ import {
 } from '@seamsterly/vision';
 import { PHOTO_VIEWS, type PhotoView } from '@seamsterly/kb';
 import { chromium, type Browser } from 'playwright';
+import { flatDefaults, renderFlatsFromSpec } from '@seamsterly/flats';
 import {
   fitImage,
   renderPdf,
@@ -967,15 +968,20 @@ async function chooseLibraryFlat(
   }
 
   const t = messages('ru');
-  const point = (code: string, fallback: number): number =>
-    spec.measurements.points.find((p) => p.code === code)?.base.value ?? fallback;
-  const chestFlatCm = point('T03', 51);
-  const lengthCm = point('T01', 70);
+  // Габарит листа берём у собственного чертежа: он построен по табелю мер
+  // и нарисован в той же условности, что и шаблон, — с разведёнными
+  // рукавами. Сравнивать с ним осмысленно, с шириной груди — нет.
+  const master = renderFlatsFromSpec(spec, flatDefaults(spec));
+  const targetWidthCm = master.front.viewBox.width;
+  const targetHeightCm = master.front.viewBox.height;
 
   let id = options.template === 'ask' ? null : options.template;
 
   if (!id) {
-    const choice = proposeTemplates(spec, report ? { report } : {});
+    const choice = proposeTemplates(spec, {
+      ...(report ? { report } : {}),
+      aspect: targetWidthCm / targetHeightCm,
+    });
     if (choice.candidates.length === 0) {
       notes.push('Библиотека не предложила силуэта — чертёж построен параметрически.');
       return undefined;
@@ -999,8 +1005,8 @@ async function chooseLibraryFlat(
   if (!id) return undefined;
 
   const rendered = renderChosenTemplate(id, {
-    chestFlatCm,
-    lengthCm,
+    targetWidthCm,
+    targetHeightCm,
     disclaimer: t.flats_library_disclaimer,
     viewLabels: { front: t.view_front, back: t.view_back },
   });

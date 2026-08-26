@@ -24,6 +24,7 @@
     "@seamsterly/library": "workspace:*",
     "@seamsterly/versions": "workspace:*",
     "@seamsterly/i18n": "workspace:*",
-    "@seamsterly/templates": "workspace:*"
+    "@seamsterly/templates": "workspace:*",
+    "@seamsterly/flats": "workspace:*"
   }
 }

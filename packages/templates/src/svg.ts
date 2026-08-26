@@ -266,7 +266,70 @@ export function splitSubpaths(d: string): string[] {
 }
 
 /**
- * Все пути файла с их стилями и габаритами, разложенные до подпутей.
+ * Перевод примитива в путь.
+ *
+ * Illustrator пишет чертёж не одними путями: контур корпуса — путь, шов —
+ * <line>, люверс — <circle>, а рибана нередко <polygon>. Читать только
+ * <path> значит выбросить две трети рисунка: в датасете 42 тысячи путей
+ * против 32 тысяч полигонов, 20 тысяч окружностей и 8 тысяч линий. Именно
+ * из-за этого у половины силуэтов пропадали боковые швы и вся отстрочка.
+ */
+function shapeToPath(tag: string, attrs: string): string | null {
+  const num = (name: string): number => Number(attr(attrs, name) ?? 'NaN');
+  const points = (): number[] =>
+    (attr(attrs, 'points') ?? '')
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number)
+      .filter((n) => Number.isFinite(n));
+
+  switch (tag) {
+    case 'line': {
+      const [x1, y1, x2, y2] = [num('x1'), num('y1'), num('x2'), num('y2')];
+      if ([x1, y1, x2, y2].some((n) => !Number.isFinite(n))) return null;
+      return `M ${x1} ${y1} L ${x2} ${y2}`;
+    }
+    case 'polyline':
+    case 'polygon': {
+      const p = points();
+      if (p.length < 4) return null;
+      const parts = [`M ${p[0]} ${p[1]}`];
+      for (let i = 2; i + 1 < p.length; i += 2) parts.push(`L ${p[i]} ${p[i + 1]}`);
+      if (tag === 'polygon') parts.push('Z');
+      return parts.join(' ');
+    }
+    case 'rect': {
+      const [x, y, w, h] = [num('x') || 0, num('y') || 0, num('width'), num('height')];
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+      return `M ${x} ${y} H ${x + w} V ${y + h} H ${x} Z`;
+    }
+    case 'circle':
+    case 'ellipse': {
+      const cx = num('cx') || 0;
+      const cy = num('cy') || 0;
+      const rx = tag === 'circle' ? num('r') : num('rx');
+      const ry = tag === 'circle' ? num('r') : num('ry');
+      if (!Number.isFinite(rx) || !Number.isFinite(ry) || rx <= 0 || ry <= 0) return null;
+      // Две полудуги: одной командой дуги полный круг не описать —
+      // начальная и конечная точки совпали бы, и дуга выродилась бы.
+      return (
+        `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} ` +
+        `A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`
+      );
+    }
+    default:
+      return null;
+  }
+}
+
+const attr = (attrs: string, name: string): string | undefined =>
+  new RegExp(`\\b${name}="([^"]*)"`, 'i').exec(attrs)?.[1];
+
+/** Фигуры, которые встречаются в датасете. Порядок не важен: читаем все. */
+const SHAPES = ['path', 'line', 'polyline', 'polygon', 'rect', 'circle', 'ellipse'] as const;
+
+/**
+ * Все фигуры файла с их стилями и габаритами, разложенные до подпутей.
  *
  * Дальше по конвейеру подпуть — единица работы: его можно отнести к переду
  * или к спинке, посчитать его габарит, выбросить как мусор. Слитый путь
@@ -274,11 +337,13 @@ export function splitSubpaths(d: string): string[] {
  */
 export function readPaths(svg: string): RawPath[] {
   const out: RawPath[] = [];
-  for (const m of svg.matchAll(/<path\b([^>]*?)\/?>/gi)) {
-    const attrs = m[1] ?? '';
-    const d = /\bd="([^"]*)"/i.exec(attrs)?.[1];
+  const re = new RegExp(`<(${SHAPES.join('|')})\\b([^>]*?)/?>`, 'gi');
+  for (const m of svg.matchAll(re)) {
+    const tag = (m[1] ?? '').toLowerCase();
+    const attrs = m[2] ?? '';
+    const d = tag === 'path' ? attr(attrs, 'd') : shapeToPath(tag, attrs);
     if (!d) continue;
-    const style = /\bstyle="([^"]*)"/i.exec(attrs)?.[1] ?? '';
+    const style = attr(attrs, 'style') ?? '';
     for (const sub of splitSubpaths(d)) {
       const box = pathBox(sub);
       if (!box) continue;

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { lineArt, splitViews } from '../src/normalize.js';
 import { pathBox, readPaths, splitSubpaths } from '../src/svg.js';
-import { matchTemplates, scoreTemplate, type MatchQuery } from '../src/match.js';
+import {
+  AUTO_FIT_FRACTION,
+  isConfident,
+  matchTemplates,
+  scoreTemplate,
+  type MatchQuery,
+} from '../src/match.js';
 import { MAX_PROPORTION_DRIFT, renderLibraryView } from '../src/library.js';
 import type { TemplateEntry, TemplateTraits } from '../src/manifest.js';
 
@@ -24,7 +30,7 @@ const entry = (id: string, over: Partial<TemplateEntry> = {}): TemplateEntry => 
   group: 'hoodie_family',
   source_file: `Hoodies/SVG/${id}.svg`,
   svg_front: `packages/kb/data/templates/hoodie_family/${id}-front.svg`,
-  svg_back: null,
+  svg_back: `packages/kb/data/templates/hoodie_family/${id}-back.svg`,
   preview: null,
   aspect: 1.2,
   paths_front: 40,
@@ -81,40 +87,49 @@ describe('разбор путей', () => {
 });
 
 describe('сплит видов', () => {
-  const square = (x: number, y: number, w: number): { d: string; style: string } => ({
-    d: `M ${x} ${y} l ${w} 0 l 0 ${w} l ${-w} 0 z`,
-    style: 'fill:#C6C6C6',
-  });
+  /** Изделие — связная клякса из перекрывающихся деталей. */
+  const garment = (x: number, y: number, size: number): string =>
+    Array.from({ length: 5 }, (_, i) => {
+      const px = x + i * size * 0.18;
+      const py = y + i * size * 0.12;
+      return `<path style="fill:#C6C6C6" d="M ${px} ${py} l ${size} 0 l 0 ${size} l ${-size} 0 z"/>`;
+    }).join('');
 
-  it('делит лист по просвету между видами, а не пополам', () => {
+  it('делит лист на два вида, где бы они ни стояли', () => {
     // Композиция сдвинута вправо: деление пополам разрезало бы силуэт.
-    const svg =
-      '<svg viewBox="0 0 1000 1000">' +
-      [
-        square(100, 100, 60),
-        square(170, 100, 60),
-        square(240, 100, 60),
-        square(700, 100, 60),
-        square(770, 100, 60),
-        square(840, 100, 60),
-      ]
-        .map((p) => `<path style="${p.style}" d="${p.d}"/>`)
-        .join('') +
-      '</svg>';
+    const svg = `<svg viewBox="0 0 2000 1200">${garment(100, 100, 300)}${garment(1200, 100, 300)}</svg>`;
     const { front, back } = splitViews(readPaths(svg));
-    expect(front).toHaveLength(3);
-    expect(back).toHaveLength(3);
+    expect(front).toHaveLength(5);
+    expect(back).toHaveLength(5);
+    // Перед — слева: отраслевая условность подачи.
+    expect(Math.min(...front.map((p) => p.box.minX))).toBeLessThan(
+      Math.min(...back.map((p) => p.box.minX)),
+    );
   });
 
-  it('не делит лист, когда просвета нет', () => {
+  it('делит и вертикальную раскладку', () => {
+    // Половина датасета кладёт виды друг под друга: проекция на одну ось
+    // такие листы путала, кластеры — нет.
+    const svg = `<svg viewBox="0 0 1200 2000">${garment(100, 100, 300)}${garment(100, 1200, 300)}</svg>`;
+    const { front, back } = splitViews(readPaths(svg));
+    expect(front).toHaveLength(5);
+    expect(back).toHaveLength(5);
+    // Перед — сверху.
+    expect(Math.min(...front.map((p) => p.box.minY))).toBeLessThan(
+      Math.min(...back.map((p) => p.box.minY)),
+    );
+  });
+
+  it('одно изделие на листе не делит', () => {
+    const svg = `<svg viewBox="0 0 1200 1200">${garment(100, 100, 400)}</svg>`;
+    expect(splitViews(readPaths(svg)).back).toHaveLength(0);
+  });
+
+  it('мелкую деталь рядом с изделием за второй вид не принимает', () => {
+    // Бирка или увеличенный узел втрое мельче изделия — это не вид.
     const svg =
-      '<svg viewBox="0 0 1000 1000">' +
-      Array.from({ length: 8 }, (_, i) => square(100 + i * 90, 100, 100))
-        .map((p) => `<path style="${p.style}" d="${p.d}"/>`)
-        .join('') +
-      '</svg>';
-    const { back } = splitViews(readPaths(svg));
-    expect(back).toHaveLength(0);
+      `<svg viewBox="0 0 2000 1200">${garment(100, 100, 400)}${garment(1500, 100, 60)}</svg>`;
+    expect(splitViews(readPaths(svg)).back).toHaveLength(0);
   });
 });
 
@@ -157,16 +172,15 @@ describe('подбор силуэта', () => {
     expect(pullover.score).toBeGreaterThan(zip.score);
   });
 
-  it('шаблон со спинкой выигрывает у одностороннего', () => {
-    const withBack = scoreTemplate(entry('two', { svg_back: 'x-back.svg' }), query)!;
-    const oneSided = scoreTemplate(entry('one'), query)!;
-    expect(withBack.score).toBeGreaterThan(oneSided.score);
+  it('шаблон без вида спинки не предлагает', () => {
+    // Техпак с одним видом неполон, а датасет почти всегда даёт оба.
+    expect(scoreTemplate(entry('one-sided', { svg_back: null }), query)).toBeNull();
   });
 
   it('возвращает топ и отрыв лидера', () => {
     const result = matchTemplates(
       [
-        entry('best', { svg_back: 'b.svg' }),
+        entry('best'),
         entry('worse', { traits: traits({ fit: 'fitted', pocket: 'none' }) }),
         entry('alien', { traits: traits({ category: 'tank_top' }) }),
       ],
@@ -181,53 +195,82 @@ describe('подбор силуэта', () => {
 
 describe('силуэт в масштабе изделия', () => {
   const template =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140">' +
-    '<path style="fill:none;stroke:#0E0E0E;stroke-width:2" d="M 0 0 L 100 0 L 100 140 L 0 140 Z"/></svg>';
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100">' +
+    '<path style="fill:none;stroke:#0E0E0E;stroke-width:2" d="M 0 0 L 120 0 L 120 100 L 0 100 Z"/></svg>';
 
-  it('масштаб задаёт ширина груди', () => {
+  it('вписывает силуэт в габарит нашего чертежа', () => {
     const r = renderLibraryView(template, {
-      chestFlatCm: 60,
-      lengthCm: 84,
+      targetWidthCm: 120,
+      targetHeightCm: 100,
       viewLabel: 'Перед',
       disclaimer: 'Иллюстративный силуэт',
     });
-    // 100 единиц шаблона на 60 см изделия.
-    expect(r.scale).toBeCloseTo(0.6, 5);
-    // 140 × 0.6 = 84 см — ровно табельная длина, расхождения нет.
+    // Форма листа совпала — расхождения нет, масштаб один к одному.
     expect(r.proportionDrift).toBeCloseTo(0, 3);
+    expect(r.scale).toBeCloseTo(1, 5);
   });
 
-  it('расхождение пропорций считает и не прячет', () => {
+  it('расхождение формы листа считает и не прячет', () => {
+    // Лист шаблона вдвое шире своей высоты против нашего почти квадратного:
+    // это не разница условности рисунка, это другое изделие.
     const r = renderLibraryView(template, {
-      chestFlatCm: 60,
-      lengthCm: 60,
+      targetWidthCm: 100,
+      targetHeightCm: 140,
       viewLabel: 'Перед',
       disclaimer: 'Иллюстративный силуэт',
     });
-    // Нарисованные 84 см против табельных 60 — сорок процентов мимо.
     expect(r.proportionDrift).toBeGreaterThan(MAX_PROPORTION_DRIFT);
+  });
+
+  it('масштабирует равномерно, вписывая в габарит', () => {
+    const r = renderLibraryView(template, {
+      targetWidthCm: 60,
+      targetHeightCm: 100,
+      viewLabel: 'Перед',
+      disclaimer: 'п',
+    });
+    // Ширина упирается первой: 60/120 против 100/100.
+    expect(r.scale).toBeCloseTo(0.5, 5);
   });
 
   it('несёт плашку и подпись вида', () => {
     const r = renderLibraryView(template, {
-      chestFlatCm: 60,
-      lengthCm: 84,
+      targetWidthCm: 120,
+      targetHeightCm: 100,
       viewLabel: 'Перед',
       disclaimer: 'Иллюстративный силуэт — размеры в табеле мер',
     });
     expect(r.svg).toContain('Иллюстративный силуэт — размеры в табеле мер');
     expect(r.svg).toContain('Перед');
-    expect(r.viewBox.width).toBeGreaterThan(60);
   });
 
   it('толщину линии возвращает в единицы шаблона', () => {
     // Без этого крупный силуэт пришёл бы волосяным контуром, а мелкий жирным.
     const r = renderLibraryView(template, {
-      chestFlatCm: 60,
-      lengthCm: 84,
+      targetWidthCm: 60,
+      targetHeightCm: 100,
       viewLabel: 'Перед',
       disclaimer: 'п',
     });
-    expect(r.svg).toContain(`stroke-width="${Math.round((1 / 0.6) * 1e6) / 1e6}"`);
+    expect(r.svg).toContain('stroke-width="2"');
+  });
+});
+
+describe('уверенность подбора', () => {
+  it('меряется долей совпавших признаков, а не отрывом от второго', () => {
+    // В библиотеке из сотни худи полсотни совпадают по всем признакам:
+    // отрыв лидера от соседа там всегда близок к нулю и ничего не значит.
+    const twins = Array.from({ length: 5 }, (_, i) => entry(`twin-${i}`));
+    const result = matchTemplates(twins, query);
+    expect(result.margin).toBeLessThan(1);
+    expect(result.best!.fit_fraction).toBeCloseTo(1, 3);
+    expect(isConfident(result)).toBe(true);
+  });
+
+  it('промах по крупному признаку уводит долю ниже порога', () => {
+    const wrong = entry('no-hood', { traits: traits({ hood: false, pocket: 'none' }) });
+    const result = matchTemplates([wrong], query);
+    expect(result.best!.fit_fraction).toBeLessThan(AUTO_FIT_FRACTION);
+    expect(isConfident(result)).toBe(false);
   });
 });

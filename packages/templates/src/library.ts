@@ -13,16 +13,21 @@ import { boxHeight, boxWidth, type Box } from './svg.js';
  */
 
 export interface LibraryRenderOptions {
-  /** Ширина изделия в плоском виде, см — по ней задаётся масштаб. */
-  chestFlatCm: number;
-  /** Длина изделия, см — ею проверяется, что шаблон не врёт по пропорции. */
-  lengthCm: number;
+  /**
+   * Габарит листа НАШЕГО чертежа по этому изделию, в сантиметрах.
+   *
+   * Не ширина груди: в габарит чертежа входят разведённые рукава, и
+   * приравнять его к груди значило бы уменьшить силуэт вдвое. Габарит
+   * приходит из параметрического мастера, который построен по табелю мер, —
+   * то есть масштаб всё равно задан табелем, только через ту же условность
+   * рисунка, в какой нарисован и шаблон.
+   */
+  targetWidthCm: number;
+  targetHeightCm: number;
   /** Подпись вида: «Перед», «Спинка». */
   viewLabel: string;
   /** Текст плашки на языке комплекта. */
   disclaimer: string;
-  /** Ширина поля вывода в тех же см. */
-  frameWidthCm?: number;
 }
 
 export interface LibraryRenderResult {
@@ -37,11 +42,13 @@ export interface LibraryRenderResult {
   /** Во сколько раз единицы шаблона переведены в сантиметры. */
   scale: number;
   /**
-   * Насколько пропорции шаблона расходятся с табелем.
+   * Насколько пропорции шаблона расходятся с нашим чертежом.
    *
-   * 0.12 означает, что при совпадении по груди длина силуэта отличается от
-   * табельной на 12%. Значение не прячется: по нему решают, годится ли
-   * библиотечный силуэт или нужен параметрический мастер.
+   * Считается по отношению ширины к высоте: 0.12 означает, что лист
+   * шаблона на двенадцать процентов иной формы, чем наш. Часть этого
+   * расхождения — разница условности рисунка (угол отведения рукава),
+   * и небольшую разницу мы прощаем. Большая означает другое изделие:
+   * кроп вместо обычного, удлинённое вместо стандартного.
    */
   proportionDrift: number;
 }
@@ -77,21 +84,26 @@ export function renderLibraryView(
   const unitsTall = boxHeight(box);
   if (unitsWide <= 0 || unitsTall <= 0) throw new Error('вырожденный viewBox шаблона');
 
-  // Масштаб задаёт ГРУДЬ, а не длина: ширина в плоском виде — то, что
-  // на флэте сверяют глазом с табелем в первую очередь.
-  const scale = options.chestFlatCm / unitsWide;
-  const drawnLength = unitsTall * scale;
-  const proportionDrift =
-    options.lengthCm > 0 ? Math.abs(drawnLength - options.lengthCm) / options.lengthCm : 0;
+  // Расхождение считается ДО масштабирования и по форме листа, а не по
+  // размеру: размер мы задаём сами, а форму задал художник.
+  const templateAspect = unitsWide / unitsTall;
+  const targetAspect = options.targetWidthCm / options.targetHeightCm;
+  const proportionDrift = Math.abs(templateAspect - targetAspect) / targetAspect;
 
-  const frameWidth = options.frameWidthCm ?? options.chestFlatCm * 1.6;
-  const labelSpace = options.chestFlatCm * 0.09;
-  const plateHeight = options.chestFlatCm * 0.11;
-  const frameHeight = labelSpace + drawnLength + plateHeight * 1.6;
-  const offsetX = (frameWidth - options.chestFlatCm) / 2;
+  // Вписываем, а не растягиваем: неравномерный масштаб утолщил бы линию
+  // поперёк и утончил вдоль — чертёж поехал бы там, где его читают.
+  const scale = Math.min(options.targetWidthCm / unitsWide, options.targetHeightCm / unitsTall);
+  const drawnWidth = unitsWide * scale;
+  const drawnHeight = unitsTall * scale;
 
-  const fontLabel = options.chestFlatCm * 0.055;
-  const fontPlate = options.chestFlatCm * 0.042;
+  const labelSpace = options.targetHeightCm * 0.09;
+  const plateHeight = options.targetHeightCm * 0.1;
+  const frameWidth = options.targetWidthCm;
+  const frameHeight = labelSpace + drawnHeight + plateHeight * 1.6;
+  const offsetX = (frameWidth - drawnWidth) / 2;
+
+  const fontLabel = options.targetHeightCm * 0.05;
+  const fontPlate = options.targetHeightCm * 0.038;
 
   const body = innerOf(templateSvg);
   // Толщина линии живёт в единицах шаблона; при переносе в сантиметры её
@@ -106,13 +118,13 @@ export function renderLibraryView(
       `${escapeXml(options.viewLabel)}</text>`,
     `<g transform="translate(${r(offsetX)} ${r(labelSpace)}) scale(${r6(scale)}) ` +
       `translate(${r6(-box.minX)} ${r6(-box.minY)})" ` +
-      `vector-effect="non-scaling-stroke" stroke-width="${r6(strokeScale)}">`,
+      `stroke-width="${r6(strokeScale)}">`,
     body,
     '</g>',
-    `<rect x="${r(offsetX)}" y="${r(labelSpace + drawnLength + plateHeight * 0.35)}" ` +
-      `width="${r(options.chestFlatCm)}" height="${r(plateHeight)}" rx="${r(plateHeight * 0.25)}" ` +
+    `<rect x="${r(frameWidth * 0.12)}" y="${r(labelSpace + drawnHeight + plateHeight * 0.35)}" ` +
+      `width="${r(frameWidth * 0.76)}" height="${r(plateHeight)}" rx="${r(plateHeight * 0.25)}" ` +
       `fill="${PLATE_FILL}"/>`,
-    `<text x="${r(frameWidth / 2)}" y="${r(labelSpace + drawnLength + plateHeight * 1.05)}" ` +
+    `<text x="${r(frameWidth / 2)}" y="${r(labelSpace + drawnHeight + plateHeight * 1.05)}" ` +
       `text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${r(fontPlate)}" ` +
       `fill="${PLATE_TEXT}">${escapeXml(options.disclaimer)}</text>`,
     '</svg>',
@@ -127,14 +139,19 @@ export function renderLibraryView(
 }
 
 /**
- * Порог расхождения пропорций, за которым библиотечный силуэт не годится.
+ * Порог расхождения формы листа, за которым силуэт не годится.
  *
- * Пятая часть длины — это разница между обычным и укороченным изделием:
- * такую подмену увидит и заказчик, и фабрика, и никакая плашка её не
- * оправдает. Тогда честнее вернуться к параметрическому мастеру, который
- * построит силуэт ровно по табелю.
+ * Четверть — это уже другое изделие: кроп вместо обычного, удлинённое
+ * вместо стандартного. Такую подмену увидит и заказчик, и фабрика, и
+ * никакая плашка её не оправдает. Тогда честнее вернуться к
+ * параметрическому мастеру, который построит силуэт ровно по табелю.
+ *
+ * Меньшую разницу прощаем сознательно: часть её — не изделие, а условность
+ * рисунка. Угол отведения рукава меняет форму листа сильнее, чем длина
+ * изделия, и требовать здесь совпадения значило бы отвергать библиотеку
+ * целиком за то, что её рисовал другой человек.
  */
-export const MAX_PROPORTION_DRIFT = 0.2;
+export const MAX_PROPORTION_DRIFT = 0.25;
 
 const r = (n: number): string => (Math.round(n * 100) / 100).toString();
 const r6 = (n: number): string => (Math.round(n * 1e6) / 1e6).toString();

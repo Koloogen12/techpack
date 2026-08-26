@@ -54,6 +54,9 @@ interface Entry {
   paths_front: number;
   paths_back: number;
   notes: string[];
+  /** Переносится с прошлого приёма: получено из превью, а не из вектора. */
+  traits?: unknown;
+  promotion_score?: number;
 }
 
 function slug(name: string): string {
@@ -91,6 +94,31 @@ function main(): void {
   }
 
   mkdirSync(PREVIEW_DIR, { recursive: true });
+
+  // Разметка переживает повторный приём.
+  //
+  // Признаки шаблона получены из ПРЕВЬЮ, а превью делается из того же
+  // исходника датасета — значит правка конвейера векторов их не отменяет.
+  // Терять здесь разметку значило бы платить за каталогизацию заново при
+  // каждой починке разбора путей.
+  const manifestPath = join(OUT_DIR, 'template_manifest.json');
+  const known = new Map<string, { traits?: unknown; promotion_score?: number }>();
+  if (existsSync(manifestPath)) {
+    try {
+      const prev = JSON.parse(readFileSync(manifestPath, 'utf8')) as { entries?: Entry[] };
+      for (const e of prev.entries ?? []) {
+        const carry: { traits?: unknown; promotion_score?: number } = {};
+        if ((e as { traits?: unknown }).traits) carry.traits = (e as { traits?: unknown }).traits;
+        const score = (e as { promotion_score?: number }).promotion_score;
+        if (score) carry.promotion_score = score;
+        if (Object.keys(carry).length) known.set(e.id, carry);
+      }
+    } catch {
+      // Битый манифест — не повод отказаться от приёма: он всё равно
+      // пересобирается целиком, а разметку восстановит кэш каталогизации.
+    }
+  }
+
   const entries: Entry[] = [];
   let skipped = 0;
 
@@ -141,6 +169,7 @@ function main(): void {
       }
 
       entries.push({
+        ...known.get(id),
         id,
         group,
         source_file: `${folder}/SVG/${file}`,
@@ -166,10 +195,12 @@ function main(): void {
     ingested_entries: entries.length,
     entries,
   };
-  writeFileSync(join(OUT_DIR, 'template_manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 
   const withBack = entries.filter((e) => e.svg_back).length;
   const withPreview = entries.filter((e) => e.preview).length;
+  const carried = entries.filter((e) => known.has(e.id)).length;
+  if (carried) console.log(`разметка перенесена: ${carried}`);
   console.log(
     `принято ${entries.length} шаблонов · со спинкой ${withBack} · с превью ${withPreview} · ` +
       `пропущено ${skipped}`,

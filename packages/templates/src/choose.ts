@@ -49,8 +49,9 @@ export function proposeTemplates(spec: StyleSpec, options: ChooseOptions = {}): 
 }
 
 export interface RenderChoiceOptions {
-  chestFlatCm: number;
-  lengthCm: number;
+  /** Габарит листа нашего чертежа по этому изделию — им задан масштаб. */
+  targetWidthCm: number;
+  targetHeightCm: number;
   disclaimer: string;
   viewLabels: { front: string; back: string };
 }
@@ -81,8 +82,8 @@ export function renderChosenTemplate(
   if (!frontSvg) return null;
 
   const front = renderLibraryView(frontSvg, {
-    chestFlatCm: options.chestFlatCm,
-    lengthCm: options.lengthCm,
+    targetWidthCm: options.targetWidthCm,
+    targetHeightCm: options.targetHeightCm,
     viewLabel: options.viewLabels.front,
     disclaimer: options.disclaimer,
   });
@@ -91,8 +92,8 @@ export function renderChosenTemplate(
   const backSvg = readTemplateSvg(entry, 'back');
   const back = backSvg
     ? renderLibraryView(backSvg, {
-        chestFlatCm: options.chestFlatCm,
-        lengthCm: options.lengthCm,
+        targetWidthCm: options.targetWidthCm,
+        targetHeightCm: options.targetHeightCm,
         viewLabel: options.viewLabels.back,
         disclaimer: options.disclaimer,
       })

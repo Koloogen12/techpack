@@ -34,6 +34,15 @@ export interface MatchQuery {
 export interface MatchCandidate {
   entry: TemplateEntry;
   score: number;
+  /**
+   * Доля совпавших признаков, от нуля до единицы.
+   *
+   * Именно она отвечает на вопрос «годится ли шаблон», а не место в списке.
+   * В библиотеке из сотни худи полсотни совпадают по всем признакам разом,
+   * и «лидер обошёл второго на полбалла» не значит ничего — зато «совпало
+   * всё, что мы умеем проверить» значит.
+   */
+  fit_fraction: number;
   /** Из чего сложился счёт — читаемо в CLI и в логе подбора. */
   reasons: string[];
 }
@@ -68,9 +77,25 @@ const WEIGHTS = {
   pocket: 8,
   sleeve: 10,
   ribbed: 4,
-  hasBack: 6,
   confidenceHigh: 3,
 } as const;
+
+/**
+ * Наибольший счёт по признакам, без разрешения ничьих.
+ *
+ * Знаменатель доли совпадения: сумма весов всего, что мы умеем сверить.
+ * Пропорции и частота выбора сюда не входят — они разводят равных, а не
+ * говорят о пригодности.
+ */
+const MAX_TRAIT_SCORE =
+  WEIGHTS.categoryExact +
+  WEIGHTS.fitExact +
+  WEIGHTS.hood +
+  WEIGHTS.closure +
+  WEIGHTS.pocket +
+  WEIGHTS.sleeve +
+  WEIGHTS.ribbed +
+  WEIGHTS.confidenceHigh;
 
 export function scoreTemplate(entry: TemplateEntry, query: MatchQuery): MatchCandidate | null {
   const t = entry.traits;
@@ -78,6 +103,13 @@ export function scoreTemplate(entry: TemplateEntry, query: MatchQuery): MatchCan
   // и поставить его в один ряд с опознанными означало бы выдать случайный
   // силуэт за подходящий.
   if (!t) return null;
+
+  // Без вида спинки шаблон в библиотеку не годится. Техпак с одним видом
+  // неполон: фабрике негде посмотреть кокетку, шов спинки и посадку
+  // капюшона. Датасет отдаёт каждое изделие тройкой — лист с двумя видами
+  // и два отдельных, — поэтому требование ничего не теряет: полный лист
+  // есть почти у каждого силуэта.
+  if (!entry.svg_back) return null;
 
   let score = 0;
   const reasons: string[] = [];
@@ -123,13 +155,9 @@ export function scoreTemplate(entry: TemplateEntry, query: MatchQuery): MatchCan
   }
   if (t.ribbed === query.ribbed) score += WEIGHTS.ribbed;
 
-  // Шаблон со спинкой закрывает оба вида документа сам; у одностороннего
-  // спинку придётся рисовать нашим слоем, и это заметно на листе.
-  if (entry.svg_back) {
-    score += WEIGHTS.hasBack;
-    reasons.push('есть вид спинки');
-  }
   if (t.confidence === 'high') score += WEIGHTS.confidenceHigh;
+
+  const traitScore = score;
 
   // Пропорции разрешают ничью, а не решают исход: вес мал намеренно.
   if (query.aspect && entry.aspect > 0) {
@@ -141,7 +169,12 @@ export function scoreTemplate(entry: TemplateEntry, query: MatchQuery): MatchCan
   // силуэт, который люди уже выбирали, а не первый по алфавиту.
   score += Math.min(2, (entry.promotion_score ?? 0) * 0.1);
 
-  return { entry, score: Math.round(score * 100) / 100, reasons };
+  return {
+    entry,
+    score: Math.round(score * 100) / 100,
+    fit_fraction: Math.round((traitScore / MAX_TRAIT_SCORE) * 1000) / 1000,
+    reasons,
+  };
 }
 
 export interface MatchResult {
@@ -152,8 +185,8 @@ export interface MatchResult {
   /**
    * Отрыв лидера от второго места.
    *
-   * Малый отрыв означает, что выбор неочевиден: тогда спрашиваем человека,
-   * а не делаем вид, что уверены.
+   * Диагностика, а не критерий. При большой библиотеке отрыв всегда мал —
+   * не потому что подбор плох, а потому что подходящих силуэтов много.
    */
   margin: number;
 }
@@ -174,14 +207,16 @@ export function matchTemplates(
 }
 
 /**
- * Порог уверенности для автоподбора.
+ * Порог автоподбора: какая доля признаков должна совпасть.
  *
- * Ниже — показываем выбор человеку. Значение подобрано по весам: отрыв
- * меньше веса застёжки означает, что лидера от соседа отличает деталь
- * не крупнее кармана, и машинному «лучше» тут доверять нечему.
+ * Девять десятых означают, что разошлось не больше одной мелкой детали —
+ * рибаны или уверенности каталогизатора. Категория, капюшон, застёжка и
+ * рукав весят столько, что промах любого из них уводит долю ниже порога
+ * сам по себе. Ниже порога силуэт всё равно показывается человеком, но
+ * молча в документ не идёт.
  */
-export const AUTO_MARGIN = 8;
+export const AUTO_FIT_FRACTION = 0.9;
 
 export function isConfident(result: MatchResult): boolean {
-  return result.best !== null && result.margin >= AUTO_MARGIN;
+  return result.best !== null && result.best.fit_fraction >= AUTO_FIT_FRACTION;
 }
