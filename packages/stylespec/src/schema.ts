@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.7.0';
+export const SPEC_VERSION = '0.8.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -66,6 +66,21 @@ export const PomValueSchema = z.object({
   name_en: z.string().min(1),
   /** Показывается новичку по ховеру: он не знает терминов. */
   how_to_measure_ru: z.string().min(1),
+  /**
+   * Названия и инструкции на других языках.
+   *
+   * Лежат В СПЕКЕ, а не подтягиваются из справочника при печати: документ —
+   * проекция спеки, и версия, отправленная фабрике полгода назад, обязана
+   * читаться так же, как читалась тогда. Обнови мы формулировку в справочнике,
+   * старый снапшот молча изменил бы смысл.
+   *
+   * Необязательны: снапшоты до 0.8.0 их не содержат.
+   */
+  name_zh: z.string().min(1).optional(),
+  how_to_measure_en: z.string().min(1).optional(),
+  how_to_measure_zh: z.string().min(1).optional(),
+  /** Проверен ли перевод носителем-технологом. */
+  translation_verified: z.boolean().optional(),
   measure_kind: z.enum(MEASURE_KINDS),
   /** Значение базового размера, см. */
   base: tracked(z.number()),

@@ -39,6 +39,7 @@ import {
 } from '@seamsterly/docgen';
 import { FileRenderCache, visualize } from '@seamsterly/render';
 import { readSwatch } from '@seamsterly/pattern';
+import type { Locale } from '@seamsterly/i18n';
 import { ArtworkLibrary } from '@seamsterly/library';
 import { diffSpecs, VersionStore } from '@seamsterly/versions';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
@@ -93,6 +94,14 @@ export interface GenerateOptions {
    * пересборка не должна превращаться в новую версию для фабрики.
    */
   versionsDir?: string;
+  /**
+   * Языки фабричного комплекта помимо русского.
+   *
+   * Отдельными файлами, а не листами внутри одного: фабрика печатает пак
+   * и раскладывает по цеху, и лист на чужом языке в этой пачке просто
+   * не прочтут.
+   */
+  langs?: readonly Locale[];
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -106,6 +115,8 @@ export interface GenerateResult {
   fingerprint: string;
   pdfPath: string;
   rolePaths: { role: ExportRole; path: string }[];
+  /** Фабричные комплекты на других языках. */
+  langPaths: { locale: Locale; path: string }[];
   specPath: string | null;
   vision: { used: boolean; fromCache: boolean; cacheKey: string | null };
   /** Визуализация изделия. Её отсутствие документ не ломает. */
@@ -670,6 +681,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   }
 
   const rolePaths: { role: ExportRole; path: string }[] = [];
+  const langPaths: { locale: Locale; path: string }[] = [];
 
   // Отсчёт сборки документа начинается ПОСЛЕ ожидания картинки. Иначе
   // ожидание стороннего сервиса записывается в docgen, суммарное время
@@ -691,6 +703,14 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));
+
+    // Фабричные комплекты на других языках.
+    for (const locale of new Set(options.langs ?? [])) {
+      if (locale === 'ru') continue;
+      const path = options.outPath.replace(/\.pdf$/i, `--${locale}.pdf`);
+      writeFileSync(path, await renderPdf(spec, { ...docOptions, locale }));
+      langPaths.push({ locale, path });
+    }
 
     if (options.roles?.length) {
       const stem = options.outPath.replace(/\.pdf$/i, '');
@@ -735,6 +755,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     pdfPath: options.outPath,
     rolePaths,
     specPath,
+    langPaths,
     vision: { used: report !== null, fromCache, cacheKey },
     visual: {
       used: visual.ok,

@@ -12,6 +12,7 @@
     "@seamsterly/stylespec": "workspace:*",
     "playwright": "^1.62.1",
     "@seamsterly/kb": "workspace:*",
-    "@seamsterly/versions": "workspace:*"
+    "@seamsterly/versions": "workspace:*",
+    "@seamsterly/i18n": "workspace:*"
   }
 }

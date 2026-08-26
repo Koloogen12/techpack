@@ -15,6 +15,7 @@ import {
 } from '@seamsterly/kb';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import type { SpecDiff } from '@seamsterly/versions';
+import { messages, type Locale, type Messages } from '@seamsterly/i18n';
 import { DOC_CSS } from './styles.js';
 
 /**
@@ -51,6 +52,26 @@ export const DOC_SECTIONS = [
   'patterns',
 ] as const;
 export type DocSection = (typeof DOC_SECTIONS)[number];
+
+/**
+ * Разделы, переведённые ЦЕЛИКОМ.
+ *
+ * Нерусский комплект собирается только из них. Причина не в лени, а в том,
+ * что остальные разделы несут доменный текст, которого на английском
+ * и китайском у нас пока нет: названия узлов обработки, материалы, символы
+ * ухода, тексты проверок печати. Напечатать их по-русски в китайском техпаке
+ * значило бы отдать фабрике лист, половина которого ей недоступна, — она
+ * напишет письмо и будет ждать ответа сутки.
+ *
+ * Отсутствующий раздел честнее нечитаемого. На обложке сказано, каких
+ * разделов нет и почему.
+ */
+export const TRANSLATED_SECTIONS: readonly DocSection[] = [
+  'cover',
+  'flats',
+  'measurements',
+  'grading',
+];
 
 /** Картинка, готовая к вставке: data-URI, содержимого файлов в спеке нет. */
 export interface DocImage {
@@ -110,6 +131,15 @@ export interface HtmlOptions {
   /** Подпись роли в колонтитуле — для выгрузок по ролям. */
   roleLabel?: string;
   visuals?: DocVisuals;
+  /**
+   * Язык комплекта. По умолчанию русский.
+   *
+   * Нерусский комплект — ФАБРИЧНЫЙ: в нём разделы, которые фабрика читает,
+   * и нет длинных пояснений о происхождении значений. Они написаны для
+   * бренда и по-русски; печатать их русским текстом в китайском техпаке
+   * значило бы заставить фабрику писать письмо и ждать ответа сутки.
+   */
+  locale?: Locale;
   /**
    * Что изменилось с прошлой версии.
    *
@@ -183,10 +213,12 @@ interface Page {
 }
 
 export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
-  const sections = options.sections ?? DOC_SECTIONS;
+  const locale = options.locale ?? 'ru';
+  const sections = options.sections ?? (locale === 'ru' ? DOC_SECTIONS : TRANSLATED_SECTIONS);
   const pro = options.pro ?? false;
   const include = (s: DocSection): boolean => sections.includes(s);
 
+  const t = messages(locale);
   const pages: Page[] = [];
   const add = (section: DocSection, title: string, bodies: string[]): void => {
     if (!include(section)) return;
@@ -199,43 +231,49 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     );
   };
 
-  add('cover', 'Технический пакет', [coverBody(spec)]);
+  add('cover', t.section_cover, [coverBody(spec, t, locale)]);
   // Лист изменений идёт СРАЗУ за обложкой: человек, который уже читал прошлую
   // версию, не станет перечитывать сорок страниц ради двух правок. Без этого
   // листа «версия 2» означает «читайте всё заново», и её просто не читают.
   if (options.changes && include('changes')) {
-    add('changes', 'Что изменилось', changesPages(options.changes));
+    add('changes', t.section_changes, changesPages(options.changes));
   }
   // Страницы внешнего вида нет, если показывать нечего: пустой лист
   // с рамками хуже отсутствующего раздела. Тело собирается только когда
   // раздел действительно нужен — в нём мегабайты data-URI.
   if (include('preview')) {
     const preview = previewBody(spec, options.visuals);
-    if (preview) add('preview', 'Внешний вид', [preview]);
+    if (preview) add('preview', t.section_preview, [preview]);
   }
   if (include('flats')) {
-    add('flats', 'Технический чертёж', [
-      flatsBody(spec, renderFlatsFromSpec(spec, flatDefaults(spec))),
+    add('flats', t.section_flats, [
+      flatsBody(
+        spec,
+        renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) }),
+        t,
+        locale,
+      ),
     ]);
   }
-  add('measurements', 'Табель мер', measurementsPages(spec, pro));
-  add('grading', 'Градация и приёмка', gradingPages(spec, pro));
-  add('bom', 'Спецификация материалов', bomPages(spec));
+  add('measurements', t.section_measurements, measurementsPages(spec, pro, t, locale));
+  add('grading', t.section_grading, gradingPages(spec, pro, t, locale));
+  add('bom', t.section_bom, bomPages(spec));
   if (include('colorways')) {
     const bodies = colorwayPages(spec, options.visuals);
-    if (bodies.length) add('colorways', 'Колорвеи', bodies);
+    if (bodies.length) add('colorways', t.section_colorways, bodies);
   }
-  add('construction', 'Конструкция', constructionPages(spec, pro));
-  if (spec.artwork) add('artwork', 'Нанесение', artworkPages(spec, spec.artwork, options.visuals));
+  add('construction', t.section_construction, constructionPages(spec, pro));
+  if (spec.artwork)
+    add('artwork', t.section_artwork, artworkPages(spec, spec.artwork, options.visuals));
   // Фотореалистичное превью раппорта — ОТДЕЛЬНЫЙ раздел, а не третий лист
   // нанесения. Разделы это единица ролевой выгрузки: цеху и печатнику
   // такая картинка не нужна и только отвлекает от размерной раскладки.
   if (include('pattern_preview')) {
     const body = patternPreviewBody(spec, options.visuals);
-    if (body) add('pattern_preview', 'Раппорт на изделии', [body]);
+    if (body) add('pattern_preview', t.section_pattern_preview, [body]);
   }
-  add('labels', 'Маркировка и артикулы', labelsPages(spec));
-  add('patterns', 'Лекала и раскладка', [patternsBody()]);
+  add('labels', t.section_labels, labelsPages(spec));
+  add('patterns', t.section_patterns, [patternsBody()]);
 
   // Общее число листов известно только когда собраны все: футер печатает
   // «лист N из M», и документ без M заставляет технолога гадать, всё ли
@@ -269,18 +307,27 @@ function pageShell(
   total: number,
   options: HtmlOptions,
 ): string {
+  const t = messages(options.locale ?? 'ru');
   const brand = spec.style.brand?.trim();
-  const part = page.part ? ` · лист ${page.part.index} из ${page.part.total}` : '';
+  const part = page.part ? ` · ${t.sheet_of(page.part.index, page.part.total)}` : '';
 
   const meta: [string, string][] = [
-    ['Бренд', brand ? esc(brand) : tbc('профиль бренда')],
-    ['Модель', esc(spec.style.name)],
-    ['Артикул', esc(spec.style.article)],
-    ['Сезон', spec.style.season ? esc(spec.style.season) : tbc('анкета')],
-    ['Базовый размер', `RU ${spec.base.base_size_ru} · рост ${num(spec.base.base_height_cm)}`],
+    [t.meta_brand, brand ? esc(brand) : `<span class="tbc">${esc(t.meta_empty_brand)}</span>`],
+    [t.meta_model, esc(spec.style.name)],
+    [t.meta_article, esc(spec.style.article)],
     [
-      'Версия · тираж',
-      `${esc(spec.spec_version)}${spec.bom?.batch_qty ? ` · ${spec.bom.batch_qty} шт` : ''}`,
+      t.meta_season,
+      spec.style.season
+        ? esc(spec.style.season)
+        : `<span class="tbc">${esc(t.meta_empty_season)}</span>`,
+    ],
+    [
+      t.meta_base_size,
+      `RU ${spec.base.base_size_ru} · ${esc(t.meta_height)} ${num(spec.base.base_height_cm)}`,
+    ],
+    [
+      t.meta_version,
+      `${esc(spec.spec_version)}${spec.bom?.batch_qty ? ` · ${spec.bom.batch_qty} ${esc(t.meta_qty)}` : ''}`,
     ],
   ];
 
@@ -301,10 +348,31 @@ function pageShell(
     `<div class="body">${page.body}</div>` +
     `<div class="foot">` +
     `<span>Seamsterly · ${esc(spec.style.article)}</span>` +
-    `<span class="legend">${statusLegend()}</span>` +
-    `<span>Лист ${index} из ${total}</span>` +
+    `<span class="legend">${statusLegend(t)}</span>` +
+    `<span>${esc(t.sheet_of(index, total))}</span>` +
     `</div></section>`
   );
+}
+
+/**
+ * Название точки на языке комплекта.
+ *
+ * Русский и английский есть всегда, китайский появился со схемой 0.8.0.
+ * Если перевода нет — печатается АНГЛИЙСКОЕ название, а не русское:
+ * английские названия точек это отраслевая номенклатура, её читает
+ * любая фабрика. Русское слово в китайском листе не прочтёт никто.
+ */
+function pointName(p: StyleSpec['measurements']['points'][number], t: Messages): string {
+  if (t === messages('ru')) return p.name_ru;
+  if (t === messages('zh')) return p.name_zh ?? p.name_en;
+  return p.name_en;
+}
+
+function pointHow(p: StyleSpec['measurements']['points'][number], t: Messages): string {
+  if (t === messages('ru')) return p.how_to_measure_ru;
+  if (t === messages('zh'))
+    return p.how_to_measure_zh ?? p.how_to_measure_en ?? p.how_to_measure_ru;
+  return p.how_to_measure_en ?? p.how_to_measure_ru;
 }
 
 /** Заглушка всегда говорит, что сюда придёт и откуда. */
@@ -313,12 +381,24 @@ function tbc(source: string): string {
 }
 
 /** Мини-легенда статусов в футере: она нужна на каждом листе, а не только на первом. */
-function statusLegend(): string {
+function statusLegend(t: Messages): string {
   return LEGEND.map(
     ([c]) =>
       `<span class="legend-item"><span class="dot dot-${c}"></span>` +
-      `${esc(CONFIDENCE_LABEL_RU[c])}</span>`,
+      `${esc(statusLabel(t, c))}</span>`,
   ).join('');
+}
+
+/** Подпись статуса на языке комплекта. */
+function statusLabel(t: Messages, c: Confidence): string {
+  return {
+    fit_confirmed: t.status_fit_confirmed,
+    user_input: t.status_user_input,
+    measured_by_scale: t.status_measured_by_scale,
+    estimated_from_photo: t.status_estimated_from_photo,
+    default_from_base: t.status_default_from_base,
+    assumption: t.status_assumption,
+  }[c];
 }
 
 // ---------------------------------------------------------------- обложка
@@ -331,7 +411,9 @@ const LEGEND: [Confidence, string][] = [
   ['assumption', 'подтвердить по образцу до запуска партии'],
 ];
 
-function coverBody(spec: StyleSpec): string {
+function coverBody(spec: StyleSpec, t: Messages, locale: Locale): string {
+  if (locale !== 'ru') return coverFactory(spec, t);
+
   const passport: [string, string][] = [
     ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
     ['Посадка', FIT_INTENT_LABEL_RU[spec.base.fit_intent as FitIntent]],
@@ -359,7 +441,7 @@ function coverBody(spec: StyleSpec): string {
     .slice(0, room)
     .map((n) => `<b>${esc(n.label_ru)}.</b> ${esc(n.plain_ru)}`);
 
-  const flats = renderFlatsFromSpec(spec);
+  const flats = renderFlatsFromSpec(spec, viewLabels(t));
 
   return (
     `<div class="cover">` +
@@ -781,6 +863,69 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
   );
 }
 
+/**
+ * Обложка нерусского комплекта.
+ *
+ * Короче русской намеренно. Сводка честности, паспорт изделия и список узлов
+ * набраны доменным текстом, которого на этом языке у нас пока нет; собрать
+ * их наполовину значило бы отдать фабрике лист, где часть слов ей недоступна.
+ *
+ * Зато здесь есть то, чего нет на русской обложке: прямая оговорка о том,
+ * что это перевод и кем он не проверен. Умолчать значило бы дать фабрике
+ * основание померить по нашей формулировке и предъявить нам партию.
+ */
+function coverFactory(spec: StyleSpec, t: Messages): string {
+  const flats = renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) });
+  const missing = DOC_SECTIONS.filter((x) => !TRANSLATED_SECTIONS.includes(x) && x !== 'cover');
+  const label = (x: DocSection): string =>
+    ({
+      cover: t.section_cover,
+      changes: t.section_changes,
+      preview: t.section_preview,
+      flats: t.section_flats,
+      measurements: t.section_measurements,
+      grading: t.section_grading,
+      bom: t.section_bom,
+      colorways: t.section_colorways,
+      construction: t.section_construction,
+      artwork: t.section_artwork,
+      pattern_preview: t.section_pattern_preview,
+      labels: t.section_labels,
+      patterns: t.section_patterns,
+    })[x];
+
+  return (
+    `<div class="cover">` +
+    `<div class="canvas">` +
+    `<div class="ml">${esc(t.section_flats)}</div>` +
+    viewFigure(flats.front, t.view_front) +
+    viewFigure(flats.back, t.view_back) +
+    (flats.side ? viewFigure(flats.side, t.view_side) : '') +
+    `</div>` +
+    `<div style="display:flex;flex-direction:column;min-height:0">` +
+    `<h1${spec.style.name.length > 34 ? ' style="font-size:15pt"' : ''}>` +
+    `${esc(spec.style.name)}</h1>` +
+    `<div class="note">${esc(t.pom_intro)}</div>` +
+    `<div style="flex:1"></div>` +
+    `<div class="card warn">` +
+    `<div class="ml">${esc(LOCALE_NOTICE_TITLE)}</div>` +
+    `<div class="note" style="margin-top:2mm">${esc(t.translation_notice)}</div>` +
+    `</div>` +
+    `<div class="note" style="margin-top:3mm">${esc(RU_ONLY_TITLE)}: ` +
+    `${missing.map((x) => esc(label(x))).join(' · ')}.</div>` +
+    `</div></div>`
+  );
+}
+
+/** Подписи видов внутри SVG — на языке комплекта. */
+function viewLabels(t: Messages): { viewLabels: Record<'front' | 'back' | 'side', string> } {
+  return { viewLabels: { front: t.view_front, back: t.view_back, side: t.view_side } };
+}
+
+/** Подписи, одинаковые во всех языках: они называют язык, а не переводятся. */
+const LOCALE_NOTICE_TITLE = 'TRANSLATION / 译文';
+const RU_ONLY_TITLE = 'Issued in Russian only / 仅提供俄文';
+
 // ---------------------------------------------------------------- градация
 
 /**
@@ -800,7 +945,7 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
  * при которой каждый рукав по отдельности в допуске, а изделие — брак.
  * До сих пор этой нормы в документе не было ни строчки.
  */
-function gradingPages(spec: StyleSpec, pro: boolean): string[] {
+function gradingPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
   const base = kb();
   const template = base.pomTemplate(spec.style.category);
   const ruleOf = new Map(template.points.map((p) => [p.code, p.grading_key]));
@@ -808,14 +953,14 @@ function gradingPages(spec: StyleSpec, pro: boolean): string[] {
   const sorted = [...spec.base.size_range].sort((a, b) => a - b);
 
   const rows: string[] = [];
-  const flat: { code: string; name_ru: string }[] = [];
+  const flat: { code: string; name: string }[] = [];
 
   // Точки конструктора скрыты в обычном режиме — здесь так же, как в табеле.
   // Лист градации не может быть щелью, через которую в клиентский документ
   // попадает то, чего в нём нет.
   for (const point of spec.measurements.points.filter((p) => pro || !p.pro_only)) {
     if (point.graded.length === 0) {
-      flat.push({ code: point.code, name_ru: point.name_ru });
+      flat.push({ code: point.code, name: pointName(point, t) });
       continue;
     }
 
@@ -843,48 +988,59 @@ function gradingPages(spec: StyleSpec, pro: boolean): string[] {
     if (key) {
       try {
         const r = base.gradingRule(key);
-        rule = r.label_ru;
-        provenance = r.verified ? 'первоисточник' : 'экспертная оценка';
+        rule = locale === 'ru' ? r.label_ru : r.key;
+        provenance = r.verified ? t.grading_origin_primary : t.grading_origin_expert;
       } catch {
         rule = key;
       }
     }
 
     rows.push(
-      `<tr><td class="mono">${esc(point.code)}</td><td>${esc(point.name_ru)}</td>` +
+      `<tr><td class="mono">${esc(point.code)}</td><td>${esc(pointName(point, t))}</td>` +
         `<td class="num v nowrap">+${step}</td><td>${esc(rule)}</td>` +
         `<td class="note">${esc(provenance)}</td></tr>`,
     );
   }
 
   const head =
-    `<div class="note" style="margin-bottom:3mm">Таблица размеров — в табеле мер. ` +
-    `Здесь <b>правило</b>, по которому она построена: на сколько растёт каждая точка ` +
-    `при переходе на размер вверх. По правилу градацию можно проверить и продлить ` +
-    `ряд за его края — по готовым числам этого сделать нельзя. ` +
-    `Шаг посчитан из напечатанной таблицы, а не взят из справочника: лист описывает ` +
-    `тот документ, который вы держите.</div>`;
+    `<div class="note" style="margin-bottom:3mm">${esc(t.grading_intro)}` +
+    (locale === 'ru'
+      ? ` По правилу градацию можно проверить и продлить ряд за его края — ` +
+        `по готовым числам этого сделать нельзя. Шаг посчитан из напечатанной ` +
+        `таблицы, а не взят из справочника: лист описывает тот документ, ` +
+        `который вы держите.`
+      : '') +
+    `</div>`;
 
   const table = (part: string[]): string =>
-    `<table><thead><tr><th>Код</th><th>Точка</th><th class="num">На размер, см</th>` +
-    `<th>Правило</th><th>Происхождение</th></tr></thead><tbody>${part.join('')}</tbody></table>`;
+    `<table><thead><tr><th>${esc(t.pom_code)}</th><th>${esc(t.pom_point)}</th>` +
+    `<th class="num">${esc(t.grading_step)}</th>` +
+    `<th>${esc(t.grading_rule)}</th><th>${esc(t.grading_origin)}</th></tr></thead>` +
+    `<tbody>${part.join('')}</tbody></table>`;
 
   const notGraded = flat.length
-    ? `<h3>Не градуируются</h3><div class="note">` +
-      `${flat.map((f) => `<b>${esc(f.code)}</b> ${esc(f.name_ru)}`).join(' · ')}. ` +
-      `Величина одинакова во всех размерах: высота рибаны и наклон плеча ` +
-      `не зависят от размера, и градуировать их значило бы придумать зависимость.</div>`
+    ? `<h3>${esc(t.grading_not_graded)}</h3><div class="note">` +
+      `${flat.map((f) => `<b>${esc(f.code)}</b> ${esc(f.name)}`).join(' · ')}.` +
+      (locale === 'ru'
+        ? ` Величина одинакова во всех размерах: высота рибаны и наклон плеча ` +
+          `не зависят от размера, и градуировать их значило бы придумать зависимость.`
+        : '') +
+      `</div>`
     : '';
 
   // Правила приёмки — самостоятельный смысловой блок и занимают свой лист.
   // Прижать их к хвосту таблицы значило бы напечатать нормы ГОСТ в подвале.
+  //
+  // Тексты норм приёмки ЖИВУТ В СПРАВОЧНИКЕ и существуют только по-русски.
+  // В нерусском комплекте лист остаётся, но правила заменены отсылкой:
+  // печатать нормы ГОСТ русским текстом в китайском техпаке бесполезно,
+  // а выдумывать их перевод — опасно, это нормативные формулировки.
   const acceptance =
-    `<h2>Приёмка: правила, которых поточечный допуск не выражает</h2>` +
-    `<div class="note" style="margin-bottom:3mm">Табель мер задаёт допуск на каждую ` +
-    `точку. Этого мало: часть брака поточечная проверка пропускает по устройству.</div>` +
-    `<ul class="dash">` +
-    base
-      .qcRules()
+    `<h2>${esc(t.grading_acceptance_title)}</h2>` +
+    `<div class="note" style="margin-bottom:3mm">${esc(t.grading_acceptance_intro)}</div>` +
+    (locale !== 'ru' ? `<div class="note">GOST 23193-78 · ${esc(RU_ONLY_TITLE)}</div>` : '') +
+    (locale !== 'ru' ? '' : `<ul class="dash">`) +
+    (locale !== 'ru' ? [] : base.qcRules())
       .map(
         (r) =>
           `<li>${esc(r.text_ru)}` +
@@ -894,16 +1050,18 @@ function gradingPages(spec: StyleSpec, pro: boolean): string[] {
           `</li>`,
       )
       .join('') +
-    `</ul>` +
-    `<div class="note" style="margin-top:3mm">Допуски в табеле мер даны по ` +
-    `<b>ГОСТ 23193-78</b>. Для сравнения: ` +
-    base
-      .toleranceComparisons()
-      .map((c) => esc(c.label_ru))
-      .join(', ') +
-    ` — по каждому классу ГОСТ строже. Мы не смягчаем допуск ради прохождения приёмки: ` +
-    `на тех же машинах и том же полотне смягчение не улучшает пошив, а перекладывает ` +
-    `брак на покупателя.</div>`;
+    (locale !== 'ru' ? '' : `</ul>`) +
+    (locale !== 'ru'
+      ? ''
+      : `<div class="note" style="margin-top:3mm">Допуски в табеле мер даны по ` +
+        `<b>ГОСТ 23193-78</b>. Для сравнения: ` +
+        base
+          .toleranceComparisons()
+          .map((c) => esc(c.label_ru))
+          .join(', ') +
+        ` — по каждому классу ГОСТ строже. Мы не смягчаем допуск ради прохождения ` +
+        `приёмки: на тех же машинах и том же полотне смягчение не улучшает пошив, ` +
+        `а перекладывает брак на покупателя.</div>`);
 
   const parts = chunk(rows, ROWS_PER_PAGE.grading);
   if (!parts.length) return [head + notGraded, acceptance];
@@ -1207,6 +1365,8 @@ function sleeveNote(flats: { front: Rendered }): string {
 function flatsBody(
   spec: StyleSpec,
   flats: { front: Rendered; back: Rendered; side?: Rendered },
+  t: Messages,
+  locale: Locale,
 ): string {
   // Никаких таблиц на этой странице: один смысловой блок — один лист.
   // Воздух здесь работает — чертёж читают, а не проглядывают.
@@ -1214,28 +1374,32 @@ function flatsBody(
 
   return (
     `<div class="canvas">` +
-    `<div class="ml">Технический чертёж · виды в одном масштабе между собой, ` +
-    `размеры — в табеле мер</div>` +
-    viewFigure(flats.front, 'Перед') +
-    viewFigure(flats.back, 'Спинка') +
-    (flats.side ? viewFigure(flats.side, 'Бок') : '') +
+    `<div class="ml">${esc(t.flats_label)}</div>` +
+    viewFigure(flats.front, t.view_front) +
+    viewFigure(flats.back, t.view_back) +
+    (flats.side ? viewFigure(flats.side, t.view_side) : '') +
     `</div>` +
-    `<div class="note" style="margin-top:3mm">Чертёж построен из таблицы замеров: правка ` +
-    `значения перестраивает геометрию. Число пунктирных линий равно числу параллельных ` +
-    `строчек — по нему определяется тип машины.` +
-    sleeveNote(flats) +
-    (flats.side
-      ? ` <b>Перед и спинка — изделие разложенное, бок — изделие с объёмом.</b> ` +
-        `Иначе не бывает: у разложенного изделия глубины нет, она в замерах отсутствует ` +
-        `и выведена из обхвата груди по сетке и прибавки на свободу. Поэтому ширину ` +
-        `бока не сравнивают с шириной переда — это разные величины на разных видах, ` +
-        `и ни одна из них не заменяет табель мер.` +
-        (hasHood
-          ? ` Капюшон на переде показан разложенным вверх — отраслевая условность; ` +
-            `его профиль виден только сбоку.`
-          : '')
-      : '') +
-    `</div>`
+    // Длинные пояснения написаны для бренда и по-русски. В нерусском
+    // комплекте их нет: русский абзац в китайском техпаке не поясняет,
+    // а заставляет писать письмо.
+    (locale !== 'ru'
+      ? ''
+      : `<div class="note" style="margin-top:3mm">Чертёж построен из таблицы замеров: правка ` +
+        `значения перестраивает геометрию. Число пунктирных линий равно числу параллельных ` +
+        `строчек — по нему определяется тип машины.` +
+        sleeveNote(flats) +
+        (flats.side
+          ? ` <b>Перед и спинка — изделие разложенное, бок — изделие с объёмом.</b> ` +
+            `Иначе не бывает: у разложенного изделия глубины нет, она в замерах отсутствует ` +
+            `и выведена из обхвата груди по сетке и прибавки на свободу. Поэтому ширину ` +
+            `бока не сравнивают с шириной переда — это разные величины на разных видах, ` +
+            `и ни одна из них не заменяет табель мер.` +
+            (hasHood
+              ? ` Капюшон на переде показан разложенным вверх — отраслевая условность; ` +
+                `его профиль виден только сбоку.`
+              : '')
+          : '') +
+        `</div>`)
   );
 }
 
@@ -1253,6 +1417,9 @@ function flatsBody(
  * Строка про сравнение с мировой нормой — не хвастовство, а снятие вопроса,
  * который фабрика задаёт первым: «почему у вас допуски уже, чем мы привыкли».
  */
+/** Заголовок блока примечаний. Примечания приходят из движка по-русски. */
+const NOTES_TITLE = 'Примечания к значениям';
+
 function acceptanceNote(pro: boolean): string {
   const base =
     `<div class="note" style="margin-top:4mm">Замеры сняты с изделия в плоском виде. ` +
@@ -1276,7 +1443,7 @@ function acceptanceNote(pro: boolean): string {
   );
 }
 
-function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
+function measurementsPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
   const graded = spec.base.size_range.filter((ru) => ru !== spec.base.base_size_ru);
   const points = spec.measurements.points.filter((p) => pro || !p.pro_only);
 
@@ -1284,13 +1451,17 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
   // под таблицей. В ячейке остаётся только номер: калибровка добавляет
   // одну и ту же строку ко всем точкам, и восемнадцать одинаковых
   // примечаний в колонке топят в шуме те, ради которых блок существует.
-  const footnotes = groupNotes(points);
+  // Примечания к значениям приходят из движка по-русски: это объяснения
+  // происхождения величин, написанные для бренда. В нерусском комплекте
+  // их нет — вместе с номерами сносок, иначе в таблице остались бы
+  // указатели в никуда.
+  const footnotes = locale === 'ru' ? groupNotes(points) : [];
   const noteNumber = new Map<string, number>();
   footnotes.forEach((n, i) => noteNumber.set(n.text, i + 1));
 
   const head =
-    `<tr><th>Код</th><th>Точка измерения</th><th>Как мерить</th>` +
-    `<th class="num">RU ${spec.base.base_size_ru}</th><th class="num">Допуск</th>` +
+    `<tr><th>${esc(t.pom_code)}</th><th>${esc(t.pom_point)}</th><th>${esc(t.pom_how)}</th>` +
+    `<th class="num">RU ${spec.base.base_size_ru}</th><th class="num">${esc(t.pom_tolerance)}</th>` +
     `<th class="mark" title="Статус значения">●</th>` +
     graded.map((ru) => `<th class="num">${ru}</th>`).join('') +
     `</tr>`;
@@ -1302,14 +1473,14 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
         const ref = p.base.note ? noteNumber.get(p.base.note) : undefined;
         return (
           `<tr${p.pro_only ? ' class="pro"' : ''}>` +
-          `<td class="mono">${p.code}</td><td>${esc(p.name_ru)}</td>` +
-          `<td class="note">${esc(p.how_to_measure_ru)}</td>` +
+          `<td class="mono">${p.code}</td><td>${esc(pointName(p, t))}</td>` +
+          `<td class="note">${esc(pointHow(p, t))}</td>` +
           `<td class="num v nowrap">${num(p.base.value)}` +
           (ref ? `<sup class="fn-ref">${ref}</sup>` : '') +
           `</td>` +
           `<td class="num v">±${num(p.tolerance.value)}</td>` +
           `<td class="mark"><span class="dot dot-${p.base.confidence}" ` +
-          `title="${esc(CONFIDENCE_LABEL_RU[p.base.confidence])}"></span></td>` +
+          `title="${esc(statusLabel(t, p.base.confidence))}"></span></td>` +
           graded
             .map((ru) => `<td class="num v">${byRu.has(ru) ? num(byRu.get(ru)!) : '—'}</td>`)
             .join('') +
@@ -1321,7 +1492,7 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
     const isLast = i === all.length - 1;
     return (
       `<table><thead>${head}</thead><tbody>${body}</tbody></table>` +
-      (isLast ? acceptanceNote(pro) : '')
+      (isLast && locale === 'ru' ? acceptanceNote(pro) : '')
     );
   });
 
@@ -1329,7 +1500,7 @@ function measurementsPages(spec: StyleSpec, pro: boolean): string[] {
   // Всё, что помещается, печатается прямо под таблицей — там его и ищут.
   const notePages = chunk(footnotes, ROWS_PER_PAGE.notes).map(
     (group, i) =>
-      (i === 0 ? `<h2>Примечания к значениям</h2>` : '') +
+      (i === 0 ? `<h2>${esc(NOTES_TITLE)}</h2>` : '') +
       `<div class="fn"><ol>` +
       group
         .map((n) => `<li value="${noteNumber.get(n.text)}"><b>${n.codes}</b> — ${esc(n.text)}</li>`)

@@ -435,3 +435,24 @@ describe('лист изменений вмещается', () => {
     expect(report.sections).toContain('changes');
   }, 60_000);
 });
+
+describe('фабричный комплект на другом языке вмещается', () => {
+  /**
+   * Китайский набирается иероглифами, английский — длинными словами.
+   * Ширина колонок от этого меняется, а высота листа нет: проверять
+   * вёрстку на одном русском значит проверять один язык из трёх.
+   */
+  it.each(['en', 'zh'] as const)(
+    '%s',
+    async (locale) => {
+      const hoodie = SCENARIOS.find((s) => s.input.category === 'hoodie')!;
+      const { spec } = buildStyleSpec(hoodie.input);
+      const report = await checkLayout(spec, { browser, pro: true, locale });
+      expect(
+        report.overflows.map((o) => `лист ${o.index + 1} (${o.section}): +${o.overflowPx}px`),
+      ).toEqual([]);
+      expect(report.pages).toBeGreaterThan(2);
+    },
+    60_000,
+  );
+});

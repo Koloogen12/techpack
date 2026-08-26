@@ -47,6 +47,9 @@ importers:
       '@seamsterly/fit':
         specifier: workspace:*
         version: link:../../packages/fit
+      '@seamsterly/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@seamsterly/kb':
         specifier: workspace:*
         version: link:../../packages/kb
@@ -149,6 +152,9 @@ importers:
       '@seamsterly/flats':
         specifier: workspace:*
         version: link:../flats
+      '@seamsterly/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
@@ -196,6 +202,8 @@ importers:
       '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
+
+  packages/i18n: {}
 
   packages/kb:
     dependencies:

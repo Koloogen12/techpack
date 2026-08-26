@@ -9,6 +9,7 @@
  */
 import { createLogger, isSeamsterlyError } from '@seamsterly/core';
 import { EXPORT_ROLES, type ExportRole } from '@seamsterly/docgen';
+import { LOCALES, type Locale } from '@seamsterly/i18n';
 import { generate } from './generate.js';
 
 interface Cli {
@@ -22,6 +23,7 @@ interface Cli {
   /** Где лежит файл раппорта. По умолчанию библиотека бренда. */
   tileDir?: string;
   versionsDir?: string;
+  langs: Locale[];
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -30,11 +32,12 @@ function parseArgv(argv: readonly string[]): Cli {
     photos: [],
     out: 'out/pack.pdf',
     roles: [],
+    langs: [],
     spec: false,
     quiet: false,
     render: false,
   };
-  let mode: 'photos' | 'roles' | null = null;
+  let mode: 'photos' | 'roles' | 'langs' | null = null;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
@@ -69,6 +72,13 @@ function parseArgv(argv: readonly string[]): Cli {
     // История версий ведётся только по явной просьбе: концьерж часто
     // пересобирает документ на ходу, и каждая пересборка не должна
     // превращаться в новую версию для фабрики.
+    // Нерусский комплект — ФАБРИЧНЫЙ и уходит отдельным файлом. Смешивать
+    // языки в одном PDF нельзя: фабрика печатает его и раскладывает по цеху,
+    // и лист на чужом языке в этой пачке просто не прочтут.
+    if (arg === '--lang') {
+      mode = 'langs';
+      continue;
+    }
     if (arg === '--versions') {
       cli.versionsDir = argv[++i] ?? 'versions';
       mode = null;
@@ -89,7 +99,12 @@ function parseArgv(argv: readonly string[]): Cli {
     }
     if (arg.startsWith('--')) throw new Error(`неизвестный флаг: ${arg}`);
     if (mode === 'photos') cli.photos.push(arg);
-    else if (mode === 'roles') {
+    else if (mode === 'langs') {
+      if (!LOCALES.includes(arg as Locale)) {
+        throw new Error(`неизвестный язык: ${arg}. Доступны: ${LOCALES.join(', ')}`);
+      }
+      cli.langs.push(arg as Locale);
+    } else if (mode === 'roles') {
       if (!EXPORT_ROLES.includes(arg as ExportRole)) {
         throw new Error(`неизвестная роль: ${arg}. Доступны: ${EXPORT_ROLES.join(', ')}`);
       }
@@ -114,11 +129,13 @@ async function main(): Promise<void> {
     render: cli.render,
     ...(cli.tileDir ? { tileDir: cli.tileDir } : {}),
     ...(cli.versionsDir ? { versionsDir: cli.versionsDir } : {}),
+    langs: cli.langs,
     logger: createLogger({ level: cli.quiet ? 'error' : 'warn' }),
   });
 
   const { spec, cost } = result;
   console.log(`\n✓ ${result.pdfPath}`);
+  for (const l of result.langPaths) console.log(`  ${l.path}`);
   for (const r of result.rolePaths) console.log(`  ${r.path}`);
   if (result.specPath) console.log(`  ${result.specPath}`);
 

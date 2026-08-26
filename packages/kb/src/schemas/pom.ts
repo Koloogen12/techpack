@@ -143,6 +143,20 @@ export const PomPointSchema = z
     name_ru: z.string().min(1),
     /** Как мерить. Показывается новичку по ховеру вместе с мини-схемой. */
     how_to_measure_ru: z.string().min(1),
+    /**
+     * Название и инструкция на английском и китайском.
+     *
+     * Это ДАННЫЕ, а не оформление, и они подчиняются общему правилу: у перевода
+     * есть источник и статус проверки. Машинный перевод инструкции «где мерить» —
+     * не мелочь: фабрика меряет по ней, и сдвинутая на пять сантиметров точка
+     * даёт брак партии. Поэтому переводы помечены непроверенными, пока их
+     * не сверил технолог, для которого язык родной.
+     */
+    name_zh: z.string().min(1),
+    how_to_measure_en: z.string().min(1),
+    how_to_measure_zh: z.string().min(1),
+    translation_verified: z.boolean(),
+    translation_gap: z.string().min(1),
     measure_kind: MeasureKindSchema,
     /** Класс точки — источник допуска по умолчанию. */
     tolerance_class: ToleranceClassSchema,

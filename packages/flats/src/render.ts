@@ -62,6 +62,15 @@ export interface RenderOptions {
    * Ниже этого угла рукав не отводится, градусы. Из справочника условностей.
    */
   minSleeveAngleDeg?: number;
+  /**
+   * Подпись вида внутри SVG — заголовок и текст для чтения с экрана.
+   *
+   * Приходит снаружи, потому что чертёж живёт внутри документа, а документ
+   * бывает на трёх языках. Русское слово внутри китайского техпака —
+   * это не мелочь оформления: его читает программа чтения с экрана
+   * и печатает поиск по файлу.
+   */
+  viewLabel?: string;
   /** Какие слои показывать. По умолчанию все, кроме выносок. */
   layers?: readonly FlatLayer[];
   callouts?: readonly Callout[];
@@ -371,11 +380,11 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
       .join(''),
   );
 
-  const title = { front: 'ПЕРЕД', back: 'СПИНКА', side: 'БОК' }[options.view];
+  const title = options.viewLabel ?? { front: 'ПЕРЕД', back: 'СПИНКА', side: 'БОК' }[options.view];
 
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" ` +
-    `role="img" aria-label="Технический чертёж, вид: ${title.toLowerCase()}" ` +
+    `role="img" aria-label="${title}" ` +
     `data-view="${options.view}" color="#0E0E0E">` +
     `<title>${title}</title>` +
     patternDefs +
@@ -418,9 +427,14 @@ export function needsSideView(spec: StyleSpec): boolean {
 /** Рендер видов из спеки. Основной вход для документа и веб-вьювера. */
 export function renderFlatsFromSpec(
   spec: StyleSpec,
-  options: Omit<RenderOptions, 'view'> = {},
+  options: Omit<RenderOptions, 'view' | 'viewLabel'> & {
+    /** Подписи видов на языке комплекта. */
+    viewLabels?: Record<FlatView, string>;
+  } = {},
 ): { front: RenderResult; back: RenderResult; side?: RenderResult } {
   const m = measurementsFrom(spec);
+  const label = (view: FlatView): { viewLabel: string } | object =>
+    options.viewLabels ? { viewLabel: options.viewLabels[view] } : {};
 
   // Зоны нанесения берутся из спеки сами: чертёж — её проекция, и требовать
   // передавать их отдельно значило бы разрешить чертежу разойтись с таблицей.
@@ -458,12 +472,12 @@ export function renderFlatsFromSpec(
 
   const side =
     needsSideView(spec) && options.depthCm !== undefined
-      ? renderFlat(m, { ...options, view: 'side', paths })
+      ? renderFlat(m, { ...options, view: 'side', paths, ...label('side') })
       : undefined;
 
   return {
-    front: renderFlat(m, { ...options, view: 'front', paths, artwork }),
-    back: renderFlat(m, { ...options, view: 'back', paths, artwork }),
+    front: renderFlat(m, { ...options, view: 'front', paths, artwork, ...label('front') }),
+    back: renderFlat(m, { ...options, view: 'back', paths, artwork, ...label('back') }),
     ...(side ? { side } : {}),
   };
 }
