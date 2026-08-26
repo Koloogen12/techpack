@@ -80,6 +80,9 @@ export const EN: Messages = {
   view_back: 'Back',
   view_side: 'Side',
   flats_label: 'Technical flat · views share one scale, dimensions are in Points of Measure',
+  flats_library_disclaimer: 'Illustrative silhouette — dimensions are in the size chart',
+  flats_library_note:
+    'The silhouette comes from the model library and is scaled to the garment by chest width. Detail proportions on it are illustrative: the size chart is the only source of dimensions. Callouts are deliberately omitted from this view.',
 
   form_kicker: 'Measurement Sheet · Seamsterly',
   form_who: 'Measured by',

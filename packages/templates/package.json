@@ -1,0 +1,17 @@
+{
+  "name": "@seamsterly/templates",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/kb": "workspace:*",
+    "@seamsterly/stylespec": "workspace:*",
+    "@seamsterly/vision": "workspace:*",
+    "zod": "^4.1.12",
+    "@anthropic-ai/sdk": "^0.120.0"
+  }
+}

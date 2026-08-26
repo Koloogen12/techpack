@@ -24,6 +24,8 @@ interface Cli {
   tileDir?: string;
   versionsDir?: string;
   langs: Locale[];
+  /** Силуэт из библиотеки: «ask» — спросить, иначе идентификатор шаблона. */
+  template?: string;
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -84,6 +86,16 @@ function parseArgv(argv: readonly string[]): Cli {
       mode = null;
       continue;
     }
+    // Силуэт из библиотеки моделей вместо параметрического чертежа.
+    // Только по явной просьбе: библиотечный вид масштабируется, но не
+    // деформируется под замеры, и подменять им точный чертёж молча нельзя.
+    //   --template ask        показать кандидатов и спросить
+    //   --template <id>       взять названный шаблон
+    if (arg === '--template') {
+      cli.template = argv[++i] ?? 'ask';
+      mode = null;
+      continue;
+    }
     if (arg === '--tile-dir') {
       cli.tileDir = argv[++i] ?? '';
       mode = null;
@@ -130,6 +142,7 @@ async function main(): Promise<void> {
     ...(cli.tileDir ? { tileDir: cli.tileDir } : {}),
     ...(cli.versionsDir ? { versionsDir: cli.versionsDir } : {}),
     langs: cli.langs,
+    ...(cli.template ? { template: cli.template, askTemplate } : {}),
     logger: createLogger({ level: cli.quiet ? 'error' : 'warn' }),
   });
 
@@ -192,3 +205,33 @@ main().catch((e: unknown) => {
   }
   process.exit(1);
 });
+
+/**
+ * Микрошаг мастера в терминале: «какой силуэт ближе?».
+ *
+ * Вопрос задаётся только когда о библиотеке попросили флагом. Пустой ответ
+ * оставляет параметрический чертёж — тот, что строится по табелю и несёт
+ * выноски. Отказ здесь не ошибка, а осознанный выбор точности.
+ */
+async function askTemplate(
+  candidates: readonly { id: string; reasons: readonly string[]; score: number; preview: string | null }[],
+): Promise<string | null> {
+  console.log('\nСилуэты из библиотеки, подходящие под изделие:');
+  candidates.forEach((c, i) => {
+    console.log(`  ${i + 1}. ${c.id}  (${c.score})`);
+    console.log(`     ${c.reasons.join(', ')}`);
+    if (c.preview) console.log(`     превью: ${c.preview}`);
+  });
+  console.log('  0. оставить параметрический чертёж (по табелю мер, с выносками)');
+
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = (await rl.question('Какой ближе? [0] ')).trim();
+    const n = Number(answer);
+    if (!answer || !Number.isInteger(n) || n < 1 || n > candidates.length) return null;
+    return candidates[n - 1]!.id;
+  } finally {
+    rl.close();
+  }
+}

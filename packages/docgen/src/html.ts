@@ -108,6 +108,20 @@ export interface DocVisuals {
   /** Снимки, которые прислал заказчик. */
   photos?: readonly DocImage[];
   /**
+   * Готовые виды из библиотеки силуэтов.
+   *
+   * Заданы — раздел чертежа показывает их вместо параметрического построения.
+   * Такой силуэт масштабирован под габарит, но не деформирован под каждый
+   * замер, поэтому приходит уже с плашкой и без выносок; лист об этом
+   * говорит прямо, а не оставляет технолога догадываться.
+   */
+  libraryFlats?: {
+    front: { svg: string; viewBox: { width: number } };
+    back?: { svg: string; viewBox: { width: number } };
+    /** Идентификатор шаблона — попадает в подпись и в выгрузку исходников. */
+    templateId: string;
+  };
+  /**
    * Тайл раппорта для превью на изделии.
    *
    * Чертёж рисуется в сантиметрах, поэтому шаг здесь РАЗМЕРНО ТОЧЕН: 24 см
@@ -261,13 +275,16 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     if (preview) add('preview', t.section_preview, [preview]);
   }
   if (include('flats')) {
+    const library = options.visuals?.libraryFlats;
     add('flats', t.section_flats, [
-      flatsBody(
-        spec,
-        renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) }),
-        t,
-        locale,
-      ),
+      library
+        ? libraryFlatsBody(library, t)
+        : flatsBody(
+            spec,
+            renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) }),
+            t,
+            locale,
+          ),
     ]);
   }
   add('measurements', t.section_measurements, measurementsPages(spec, pro, t, locale));
@@ -1502,6 +1519,28 @@ function flatsBody(
               : '')
           : '') +
         `</div>`)
+  );
+}
+
+/**
+ * Раздел чертежа, собранный из библиотечного силуэта.
+ *
+ * Отдельная функция, а не флаг внутри общей: у этих двух листов разные
+ * обещания читателю. Параметрический чертёж говорит «правка замера
+ * перестраивает геометрию»; библиотечный обещать этого не может и обязан
+ * сказать обратное — размеры живут в табеле, а рисунок показывает силуэт.
+ */
+function libraryFlatsBody(library: NonNullable<DocVisuals['libraryFlats']>, t: Messages): string {
+  return (
+    `<div class="canvas">` +
+    `<div class="ml">${esc(t.flats_label)}</div>` +
+    viewFigure({ ...library.front, geometry: {} }, t.view_front) +
+    (library.back ? viewFigure({ ...library.back, geometry: {} }, t.view_back) : '') +
+    `</div>` +
+    `<div class="note" style="margin-top:3mm">${esc(t.flats_library_note)}</div>` +
+    // Идентификатор шаблона — не украшение: по нему бренд получает исходник
+    // силуэта в выгрузке, а мы понимаем, какой шаблон выбирают чаще прочих.
+    `<div class="note" style="margin-top:1mm;opacity:.7">${esc(library.templateId)}</div>`
   );
 }
 

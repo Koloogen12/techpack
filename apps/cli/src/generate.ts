@@ -42,7 +42,26 @@ import { readSwatch } from '@seamsterly/pattern';
 import type { Locale } from '@seamsterly/i18n';
 import { ArtworkLibrary } from '@seamsterly/library';
 import { diffSpecs, VersionStore } from '@seamsterly/versions';
+import {
+  findTemplate,
+  notePromotion,
+  proposeTemplates,
+  readTemplateSvg,
+  renderChosenTemplate,
+  templateLibraryExists,
+} from '@seamsterly/templates';
+import { messages } from '@seamsterly/i18n';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
+
+/** Кандидат в силуэт — то, что видит человек в микрошаге мастера. */
+export interface TemplateCandidateView {
+  id: string;
+  /** Почему шаблон попал в список: читаемые причины из скоринга. */
+  reasons: readonly string[];
+  score: number;
+  /** Путь к превью — мастер показывает картинку, терминал печатает путь. */
+  preview: string | null;
+}
 
 /**
  * Пайплайн генерации техпака целиком.
@@ -109,6 +128,23 @@ export interface GenerateOptions {
    * себестоимости.
    */
   onStage?: (stage: 'vision' | 'assembly' | 'render' | 'docgen', detail?: string) => void;
+  /**
+   * Силуэт из библиотеки моделей вместо параметрического чертежа.
+   *
+   * «ask» — подобрать и спросить, какой ближе; идентификатор — взять
+   * названный. Пусто — строим чертёж сами: он единственный, у которого
+   * правка замера перестраивает геометрию, а выноски указывают на
+   * размеченные точки.
+   */
+  template?: string;
+  /**
+   * Как задать вопрос про силуэт. Возвращает выбранный идентификатор или
+   * null, если пользователь остался с параметрическим чертежом.
+   *
+   * Передаётся снаружи: конвейер не знает, кто его спрашивает — терминал,
+   * мастер в браузере или тест.
+   */
+  askTemplate?: (candidates: readonly TemplateCandidateView[]) => Promise<string | null>;
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -129,6 +165,14 @@ export interface GenerateResult {
   /** Визуализация изделия. Её отсутствие документ не ломает. */
   visual: { used: boolean; fromCache: boolean; reason: string | null };
   notes: string[];
+  /**
+   * Силуэт из библиотеки, если чертёж собран из него.
+   *
+   * Исходники силуэта кладутся рядом с документом и уходят бренду вместе
+   * с ним: лицензия датасета это разрешает, а техпак без исходного вектора
+   * заставляет фабрику перерисовывать чертёж с растра.
+   */
+  template: { id: string; sources: string[] } | null;
   cost: { usd: number; ms: number; stages: readonly { stage: string; usd: number; ms: number }[] };
 }
 
@@ -692,6 +736,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
   const rolePaths: { role: ExportRole; path: string }[] = [];
   const langPaths: { locale: Locale; path: string }[] = [];
+  let usedTemplate: { id: string; sources: string[] } | null = null;
 
   // Отсчёт сборки документа начинается ПОСЛЕ ожидания картинки. Иначе
   // ожидание стороннего сервиса записывается в docgen, суммарное время
@@ -700,7 +745,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   options.onStage?.('docgen');
 
   try {
-    const visuals = await buildVisuals(
+    const built = await buildVisuals(
       browser,
       visual,
       shots.map((s) => s.path),
@@ -710,6 +755,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       swatchResult.bytes,
       colorwayVisuals,
     );
+    // Силуэт из библиотеки подбирается ПОСЛЕ сборки спеки: масштаб ему
+    // задаёт табель мер, а не наоборот. Отчёт зрения идёт следом только
+    // как источник деталей — карман и рукав в табеле не записаны.
+    const library = await chooseLibraryFlat(spec, options, report ?? undefined, notes);
+    if (library) usedTemplate = shipTemplateSources(library.templateId, options.outPath);
+    const visuals: DocVisuals = { ...built, ...(library ? { libraryFlats: library } : {}) };
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
@@ -774,6 +825,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       reason: visual.ok ? null : visual.reason,
     },
     notes,
+    template: usedTemplate,
     cost: ledger.summary(),
   };
 }
@@ -892,4 +944,105 @@ function visionNotes(report: VisionReport): string[] {
   }
 
   return notes;
+}
+
+/**
+ * Выбор библиотечного силуэта для листа чертежа.
+ *
+ * Возвращает null во всех спорных случаях — и это правильный ответ по
+ * умолчанию. Параметрический чертёж строится по табелю и несёт выноски;
+ * библиотечный только масштабируется. Подменять первое вторым можно лишь
+ * когда об этом попросили и когда подмена не искажает пропорции.
+ */
+async function chooseLibraryFlat(
+  spec: StyleSpec,
+  options: GenerateOptions,
+  report: VisionReport | undefined,
+  notes: string[],
+): Promise<DocVisuals['libraryFlats']> {
+  if (!options.template) return undefined;
+  if (!templateLibraryExists()) {
+    notes.push('Библиотека силуэтов не собрана — чертёж построен параметрически.');
+    return undefined;
+  }
+
+  const t = messages('ru');
+  const point = (code: string, fallback: number): number =>
+    spec.measurements.points.find((p) => p.code === code)?.base.value ?? fallback;
+  const chestFlatCm = point('T03', 51);
+  const lengthCm = point('T01', 70);
+
+  let id = options.template === 'ask' ? null : options.template;
+
+  if (!id) {
+    const choice = proposeTemplates(spec, report ? { report } : {});
+    if (choice.candidates.length === 0) {
+      notes.push('Библиотека не предложила силуэта — чертёж построен параметрически.');
+      return undefined;
+    }
+    // Уверенный подбор берём молча только если спрашивать некому: иначе
+    // вопрос стоит одного клика, а ошибка — целого техпака.
+    if (!options.askTemplate) {
+      id = choice.confident ? choice.candidates[0]!.entry.id : null;
+      if (!id) notes.push('Силуэт из библиотеки не выбран однозначно — чертёж построен параметрически.');
+    } else {
+      id = await options.askTemplate(
+        choice.candidates.map((c) => ({
+          id: c.entry.id,
+          reasons: c.reasons,
+          score: c.score,
+          preview: c.entry.preview,
+        })),
+      );
+    }
+  }
+  if (!id) return undefined;
+
+  const rendered = renderChosenTemplate(id, {
+    chestFlatCm,
+    lengthCm,
+    disclaimer: t.flats_library_disclaimer,
+    viewLabels: { front: t.view_front, back: t.view_back },
+  });
+  if (!rendered) {
+    notes.push(
+      `Силуэт «${id}» не подошёл по пропорциям к табелю мер — чертёж построен параметрически.`,
+    );
+    return undefined;
+  }
+
+  // Отметка о выборе — очередь на разметку контрольных точек: силуэт,
+  // который выбирают чаще прочих, заслуживает переезда в мастера.
+  notePromotion(rendered.templateId);
+  return {
+    front: rendered.front,
+    ...(rendered.back ? { back: rendered.back } : {}),
+    templateId: rendered.templateId,
+  };
+}
+
+/**
+ * Исходники силуэта — рядом с документом.
+ *
+ * Лицензия датасета разрешает отдавать бренду сам вектор, и это не мелочь:
+ * техпак без исходного чертежа заставляет фабрику обводить растр, теряя
+ * ровно ту точность, ради которой пак и собирался. Копия кладётся в тот же
+ * каталог, что и PDF, — значит уходит вместе с ним.
+ */
+function shipTemplateSources(
+  templateId: string,
+  outPath: string,
+): { id: string; sources: string[] } | null {
+  const entry = findTemplate(templateId);
+  if (!entry) return null;
+  const dir = dirname(outPath);
+  const sources: string[] = [];
+  for (const view of ['front', 'back'] as const) {
+    const svg = readTemplateSvg(entry, view);
+    if (!svg) continue;
+    const path = join(dir, `flat-${view}.svg`);
+    writeFileSync(path, svg);
+    sources.push(path);
+  }
+  return sources.length ? { id: templateId, sources } : null;
 }
