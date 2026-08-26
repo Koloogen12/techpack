@@ -108,6 +108,12 @@ export interface Messages {
   view_side: string;
   flats_label: string;
 
+  // --- Паспорт изделия на обложке --------------------------------------------
+  cover_category: string;
+  cover_fit: string;
+  cover_sizes: string;
+  cover_shell: string;
+
   // --- Общее -----------------------------------------------------------------
   sheet_of: (n: number, total: number) => string;
   cm: string;

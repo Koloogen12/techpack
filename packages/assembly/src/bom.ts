@@ -45,24 +45,12 @@ export interface BomInput {
   quantity?: number;
 }
 
-export interface BomLine {
-  /** Код строки: F-01 полотно, T-01 нитки, L-01 ярлыки. */
-  code: string;
-  role: MaterialRole;
-  material_id: string;
-  name_ru: string;
-  name_en: string;
-  composition: Tracked<string>;
-  gsm: Tracked<number> | null;
-  /** Где применяется: основное полотно, манжеты, горловина. */
-  placement_ru: string;
-  /** Расход на одно изделие. */
-  consumption: Tracked<number> | null;
-  consumption_unit: 'м' | 'шт' | 'компл';
-  /** Артикул поставщика. Всегда пусто: его заполняет бренд или фабрика. */
-  supplier_article: null;
-  note?: string;
-}
+/**
+ * Строка спецификации берётся ИЗ СХЕМЫ, а не описывается здесь заново —
+ * по той же причине, что и колорвей с узлом конструкции.
+ */
+export type { BomLine } from '@seamsterly/stylespec';
+import type { BomLine } from '@seamsterly/stylespec';
 
 export interface BomResult {
   /** Спецификация одна на колорвей: замена цвета меняет свотчи и Pantone. */
@@ -230,6 +218,9 @@ function buildLine(material: Material, role: MaterialRole, code: string, input: 
     material_id: material.id,
     name_ru: material.name_ru,
     name_en: material.name_en,
+    name_zh: material.name_zh,
+    composition_en: material.composition_default_en,
+    composition_zh: material.composition_default_zh,
     // Состав с фото не определяется никогда — даже когда полотно опознано.
     composition: assume(
       material.composition_default_ru,

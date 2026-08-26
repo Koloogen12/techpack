@@ -7,6 +7,7 @@ import {
   type TechOperation,
 } from '@seamsterly/kb';
 import type { PhotoConfidence } from './pom.js';
+import type { ConstructionNodeValue } from '@seamsterly/stylespec';
 
 /**
  * Движок конструкции: собирает набор узлов обработки и технологическую
@@ -46,26 +47,15 @@ export interface ConstructionInput {
 }
 
 /** Узел в собранном виде — то, что попадает в StyleSpec и в документ. */
-export interface ConstructionValue {
-  node_id: string;
-  zone: string;
-  label_ru: string;
-  plain_ru: string;
-  seam_code: string;
-  stitch_code: string;
-  spi: number;
-  machine: string;
-  specialty: string;
-  seam_allowance_cm: Tracked<number>;
-  finished_cm: Tracked<number> | null;
-  /** Присутствие узла в изделии: откуда мы знаем, что он там есть. */
-  presence: Tracked<boolean>;
-  visible_on_photo: boolean;
-  /** Узел требует машины вне парка цеха. Требование R6. */
-  requires_special_equipment: boolean;
-  /** Готовая замена под базовый парк. Заполняется, только если узел недоступен. */
-  alternative: { node_id: string; label_ru: string; machine: string } | null;
-}
+/**
+ * Узел в собранном виде берётся ИЗ СХЕМЫ, а не описывается здесь заново.
+ *
+ * Своя копия тут стояла и успела разойтись: у узла появились названия
+ * на языках экспорта, а копия про них не знала — движок молча отбрасывал
+ * поля, которые схема требует. Это четвёртый случай одного класса ошибки:
+ * одна сущность, описанная в двух местах, расходится не «если», а «когда».
+ */
+export type ConstructionValue = ConstructionNodeValue;
 
 export interface TechSequenceStep {
   step: number;
@@ -179,6 +169,10 @@ function buildNode(
     node_id: node.id,
     zone: node.zone,
     label_ru: node.label_ru,
+    label_en: node.label_en,
+    label_zh: node.label_zh,
+    plain_en: node.plain_en,
+    plain_zh: node.plain_zh,
     plain_ru: node.plain_ru,
     seam_code: node.seam_code,
     stitch_code: node.stitch_code,

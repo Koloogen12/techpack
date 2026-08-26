@@ -81,6 +81,11 @@ export const EN: Messages = {
   view_side: 'Side',
   flats_label: 'Technical flat · views share one scale, dimensions are in Points of Measure',
 
+  cover_category: 'Category',
+  cover_fit: 'Fit',
+  cover_sizes: 'Size range',
+  cover_shell: 'Shell fabric',
+
   sheet_of: (n, total) => `Sheet ${n} of ${total}`,
   cm: 'cm',
   pcs: 'pcs',

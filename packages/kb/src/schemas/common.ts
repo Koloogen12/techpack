@@ -89,9 +89,45 @@ export const CATEGORY_LABEL_RU: Record<Category, string> = {
   hoodie: 'худи',
 };
 
+/**
+ * Те же названия на языках экспорта.
+ *
+ * Отдельными картами, а не полем в справочнике: это ЗАМКНУТЫЕ перечисления,
+ * и запись в карте обязана появиться вместе с новым значением перечисления —
+ * иначе TypeScript не соберёт проект. Забыть перевод категории нельзя
+ * по устройству.
+ */
+export const CATEGORY_LABEL_EN: Record<Category, string> = {
+  tshirt: 't-shirt',
+  longsleeve: 'long sleeve tee',
+  sweatshirt: 'sweatshirt',
+  hoodie: 'hoodie',
+};
+
+export const CATEGORY_LABEL_ZH: Record<Category, string> = {
+  tshirt: 'T恤',
+  longsleeve: '长袖T恤',
+  sweatshirt: '卫衣',
+  hoodie: '连帽卫衣',
+};
+
 /** Силуэт / посадка. Спрашивается у пользователя в мастере, определяет прибавку. */
 export const FitIntentSchema = z.enum(['fitted', 'semi_fitted', 'loose', 'oversize']);
 export type FitIntent = z.infer<typeof FitIntentSchema>;
+
+export const FIT_INTENT_LABEL_EN: Record<FitIntent, string> = {
+  fitted: 'fitted',
+  semi_fitted: 'regular',
+  loose: 'loose',
+  oversize: 'oversized',
+};
+
+export const FIT_INTENT_LABEL_ZH: Record<FitIntent, string> = {
+  fitted: '修身',
+  semi_fitted: '常规',
+  loose: '宽松',
+  oversize: '超大廓形',
+};
 
 export const FIT_INTENT_LABEL_RU: Record<FitIntent, string> = {
   fitted: 'прилегающая',

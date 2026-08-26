@@ -81,6 +81,11 @@ export const RU: Messages = {
   view_side: 'Бок',
   flats_label: 'Технический чертёж · виды в одном масштабе между собой, размеры — в табеле мер',
 
+  cover_category: 'Категория',
+  cover_fit: 'Посадка',
+  cover_sizes: 'Размерный ряд',
+  cover_shell: 'Основное полотно',
+
   sheet_of: (n, total) => `Лист ${n} из ${total}`,
   cm: 'см',
   pcs: 'шт',

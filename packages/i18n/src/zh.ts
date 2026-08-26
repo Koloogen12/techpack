@@ -75,6 +75,11 @@ export const ZH: Messages = {
   view_side: '侧面',
   flats_label: '款式图 · 各视图同一比例,尺寸以尺寸表为准',
 
+  cover_category: '品类',
+  cover_fit: '版型',
+  cover_sizes: '尺码范围',
+  cover_shell: '面料',
+
   sheet_of: (n, total) => `第 ${n} 页,共 ${total} 页`,
   cm: '厘米',
   pcs: '件',

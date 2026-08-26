@@ -21,6 +21,24 @@ export const MATERIAL_ROLES = [
 export const MaterialRoleSchema = z.enum(MATERIAL_ROLES);
 export type MaterialRole = z.infer<typeof MaterialRoleSchema>;
 
+export const MATERIAL_ROLE_LABEL_EN: Record<MaterialRole, string> = {
+  shell: 'shell fabric',
+  rib: 'rib trim',
+  interlining: 'interlining',
+  thread: 'thread',
+  label: 'label',
+  packaging: 'packaging',
+};
+
+export const MATERIAL_ROLE_LABEL_ZH: Record<MaterialRole, string> = {
+  shell: '面料',
+  rib: '罗纹',
+  interlining: '衬布',
+  thread: '缝纫线',
+  label: '唛头',
+  packaging: '包装',
+};
+
 export const MATERIAL_ROLE_LABEL_RU: Record<MaterialRole, string> = {
   shell: 'основное полотно',
   rib: 'отделочное полотно (рибана, кашкорсе)',
@@ -44,6 +62,11 @@ export const MaterialSchema = z
     id: z.string().min(1),
     name_ru: z.string().min(1),
     name_en: z.string().min(1),
+    name_zh: z.string().min(1),
+    composition_default_en: z.string().min(1),
+    composition_default_zh: z.string().min(1),
+    translation_verified: z.boolean(),
+    translation_gap: z.string().min(1),
     role: MaterialRoleSchema,
     structure_ru: z.string().min(1),
     /** Типовой состав. С фото не определяется — всегда предположение. */

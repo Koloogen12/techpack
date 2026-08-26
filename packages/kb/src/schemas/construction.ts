@@ -35,6 +35,44 @@ export const MACHINE_TYPES = [
 export const MachineTypeSchema = z.enum(MACHINE_TYPES);
 export type MachineType = z.infer<typeof MachineTypeSchema>;
 
+export const MACHINE_LABEL_EN: Record<MachineType, string> = {
+  single_needle_lockstitch: 'single-needle lockstitch',
+  twin_needle_lockstitch: 'twin-needle lockstitch',
+  overlock_3: '3-thread overlock',
+  overlock_4: '4-thread overlock',
+  overlock_5: '5-thread overlock',
+  coverstitch_2n: '2-needle coverstitch',
+  coverstitch_3n: '3-needle coverstitch',
+  flatlock: 'flatlock',
+  buttonhole: 'buttonhole machine',
+  button_sew: 'button sewing machine',
+  bartack: 'bartack machine',
+  blindstitch: 'blindstitch machine',
+  eyelet_press: 'eyelet press',
+  fusing_press: 'fusing press',
+  iron: 'iron',
+  manual: 'hand work',
+};
+
+export const MACHINE_LABEL_ZH: Record<MachineType, string> = {
+  single_needle_lockstitch: '单针平车',
+  twin_needle_lockstitch: '双针车',
+  overlock_3: '三线拷边机',
+  overlock_4: '四线拷边机',
+  overlock_5: '五线拷边机',
+  coverstitch_2n: '双针绷缝机',
+  coverstitch_3n: '三针绷缝机',
+  flatlock: '平缝拼接机',
+  buttonhole: '锁眼机',
+  button_sew: '钉扣机',
+  bartack: '打枣机',
+  blindstitch: '暗缝机',
+  eyelet_press: '打鸡眼机',
+  fusing_press: '粘合机',
+  iron: '熨斗',
+  manual: '手工',
+};
+
 export const MACHINE_LABEL_RU: Record<MachineType, string> = {
   single_needle_lockstitch: 'прямострочная универсальная',
   twin_needle_lockstitch: 'двухигольная',
@@ -58,6 +96,24 @@ export const MACHINE_LABEL_RU: Record<MachineType, string> = {
 export const SPECIALTIES = ['M', 'S', 'A', 'R', 'U', 'P'] as const;
 export const SpecialtySchema = z.enum(SPECIALTIES);
 export type Specialty = z.infer<typeof SpecialtySchema>;
+
+export const SPECIALTY_LABEL_EN: Record<Specialty, string> = {
+  M: 'machine',
+  S: 'special machine',
+  A: 'automatic',
+  R: 'hand',
+  U: 'pressing',
+  P: 'press',
+};
+
+export const SPECIALTY_LABEL_ZH: Record<Specialty, string> = {
+  M: '机缝',
+  S: '专机',
+  A: '自动机',
+  R: '手工',
+  U: '熨烫',
+  P: '压烫',
+};
 
 export const SPECIALTY_LABEL_RU: Record<Specialty, string> = {
   M: 'машинная',
@@ -118,6 +174,32 @@ export const NODE_ZONES = [
 export const NodeZoneSchema = z.enum(NODE_ZONES);
 export type NodeZone = z.infer<typeof NodeZoneSchema>;
 
+export const ZONE_LABEL_EN: Record<NodeZone, string> = {
+  neckline: 'neckline',
+  shoulders: 'shoulder seams',
+  sleeves: 'sleeves',
+  sides: 'side seams',
+  hem: 'hem',
+  pockets: 'pockets',
+  closure: 'closure',
+  waistband: 'waistband',
+  hood: 'hood',
+  labels: 'labelling',
+};
+
+export const ZONE_LABEL_ZH: Record<NodeZone, string> = {
+  neckline: '领口',
+  shoulders: '肩缝',
+  sleeves: '袖子',
+  sides: '侧缝',
+  hem: '下摆',
+  pockets: '口袋',
+  closure: '门襟',
+  waistband: '腰头',
+  hood: '帽子',
+  labels: '唛头',
+};
+
 export const ZONE_LABEL_RU: Record<NodeZone, string> = {
   neckline: 'горловина',
   shoulders: 'плечевые швы',
@@ -168,6 +250,18 @@ export const ConstructionNodeSchema = z
      * `null` означает, что линии нет намеренно, и тогда обязано быть сказано
      * почему: узел, молча пропавший с рисунка, неотличим от забытого.
      */
+    /**
+     * Названия и объяснения на языках экспорта.
+     *
+     * Данные, а не оформление: по ним фабрика понимает, ЧТО делать.
+     * Помечены непроверенными, пока их не сверил технолог фабрики-партнёра.
+     */
+    label_en: z.string().min(1),
+    plain_en: z.string().min(1),
+    label_zh: z.string().min(1),
+    plain_zh: z.string().min(1),
+    translation_verified: z.boolean(),
+    translation_gap: z.string().min(1),
     flat_line: z.string().min(1).nullable(),
     flat_line_note_ru: z.string().min(1).nullable(),
     visible_on_photo: z.boolean(),

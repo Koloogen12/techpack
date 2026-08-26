@@ -111,6 +111,11 @@ export const ConstructionNodeValueSchema = z.object({
   node_id: z.string().min(1),
   zone: z.string().min(1),
   label_ru: z.string().min(1),
+  /** Названия и объяснения на языках экспорта. Необязательны до схемы 0.8.0. */
+  label_en: z.string().min(1).optional(),
+  label_zh: z.string().min(1).optional(),
+  plain_en: z.string().min(1).optional(),
+  plain_zh: z.string().min(1).optional(),
   /** То же простыми словами — для основателя бренда без техбэкграунда. */
   plain_ru: z.string().min(1),
   seam_code: z.string().min(3),
@@ -233,6 +238,10 @@ export const BomLineSchema = z.object({
   material_id: z.string().min(1),
   name_ru: z.string().min(1),
   name_en: z.string().min(1),
+  /** Название и состав на языках экспорта. Необязательны до схемы 0.8.0. */
+  name_zh: z.string().min(1).optional(),
+  composition_en: z.string().min(1).optional(),
+  composition_zh: z.string().min(1).optional(),
   composition: tracked(z.string().min(1)),
   /** Плотность, г/м². С фото не определяется никогда — всегда предположение. */
   gsm: tracked(z.number().positive()).nullable(),

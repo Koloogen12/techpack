@@ -12,6 +12,16 @@ import {
   type NodeZone,
   type Specialty,
   kb,
+  CATEGORY_LABEL_EN,
+  CATEGORY_LABEL_ZH,
+  FIT_INTENT_LABEL_EN,
+  FIT_INTENT_LABEL_ZH,
+  MACHINE_LABEL_EN,
+  MACHINE_LABEL_ZH,
+  MATERIAL_ROLE_LABEL_EN,
+  MATERIAL_ROLE_LABEL_ZH,
+  ZONE_LABEL_EN,
+  ZONE_LABEL_ZH,
 } from '@seamsterly/kb';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import type { SpecDiff } from '@seamsterly/versions';
@@ -71,6 +81,8 @@ export const TRANSLATED_SECTIONS: readonly DocSection[] = [
   'flats',
   'measurements',
   'grading',
+  'bom',
+  'construction',
 ];
 
 /** Картинка, готовая к вставке: data-URI, содержимого файлов в спеке нет. */
@@ -257,12 +269,12 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   }
   add('measurements', t.section_measurements, measurementsPages(spec, pro, t, locale));
   add('grading', t.section_grading, gradingPages(spec, pro, t, locale));
-  add('bom', t.section_bom, bomPages(spec));
+  add('bom', t.section_bom, bomPages(spec, t, locale));
   if (include('colorways')) {
     const bodies = colorwayPages(spec, options.visuals);
     if (bodies.length) add('colorways', t.section_colorways, bodies);
   }
-  add('construction', t.section_construction, constructionPages(spec, pro));
+  add('construction', t.section_construction, constructionPages(spec, pro, t, locale));
   if (spec.artwork)
     add('artwork', t.section_artwork, artworkPages(spec, spec.artwork, options.visuals));
   // Фотореалистичное превью раппорта — ОТДЕЛЬНЫЙ раздел, а не третий лист
@@ -412,7 +424,7 @@ const LEGEND: [Confidence, string][] = [
 ];
 
 function coverBody(spec: StyleSpec, t: Messages, locale: Locale): string {
-  if (locale !== 'ru') return coverFactory(spec, t);
+  if (locale !== 'ru') return coverFactory(spec, t, locale);
 
   const passport: [string, string][] = [
     ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
@@ -874,7 +886,21 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
  * что это перевод и кем он не проверен. Умолчать значило бы дать фабрике
  * основание померить по нашей формулировке и предъявить нам партию.
  */
-function coverFactory(spec: StyleSpec, t: Messages): string {
+/** Паспорт изделия на фабричной обложке — только переводимые перечисления. */
+function passportFactory(spec: StyleSpec, t: Messages, locale: Locale): [string, string][] {
+  const category = { ru: CATEGORY_LABEL_RU, en: CATEGORY_LABEL_EN, zh: CATEGORY_LABEL_ZH }[locale];
+  const fit = { ru: FIT_INTENT_LABEL_RU, en: FIT_INTENT_LABEL_EN, zh: FIT_INTENT_LABEL_ZH }[locale];
+  const shell = spec.bom?.lines.find((l) => l.role === 'shell');
+  const rows: [string, string][] = [
+    [t.cover_category, category[spec.style.category as Category]],
+    [t.cover_fit, fit[spec.base.fit_intent as FitIntent]],
+    [t.cover_sizes, spec.base.size_range.join(' · ')],
+  ];
+  if (shell) rows.push([t.cover_shell, materialName(shell, locale)]);
+  return rows;
+}
+
+function coverFactory(spec: StyleSpec, t: Messages, locale: Locale): string {
   const flats = renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) });
   const missing = DOC_SECTIONS.filter((x) => !TRANSLATED_SECTIONS.includes(x) && x !== 'cover');
   const label = (x: DocSection): string =>
@@ -905,7 +931,12 @@ function coverFactory(spec: StyleSpec, t: Messages): string {
     `<div style="display:flex;flex-direction:column;min-height:0">` +
     `<h1${spec.style.name.length > 34 ? ' style="font-size:15pt"' : ''}>` +
     `${esc(spec.style.name)}</h1>` +
-    `<div class="note">${esc(t.pom_intro)}</div>` +
+    `<table class="plain"><tbody>` +
+    passportFactory(spec, t, locale)
+      .map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>`)
+      .join('') +
+    `</tbody></table>` +
+    `<div class="note" style="margin-top:4mm">${esc(t.pom_intro)}</div>` +
     `<div style="flex:1"></div>` +
     `<div class="card warn">` +
     `<div class="ml">${esc(LOCALE_NOTICE_TITLE)}</div>` +
@@ -915,6 +946,29 @@ function coverFactory(spec: StyleSpec, t: Messages): string {
     `${missing.map((x) => esc(label(x))).join(' · ')}.</div>` +
     `</div></div>`
   );
+}
+
+/** Название материала на языке комплекта. */
+function materialName(
+  l: StyleSpec['bom'] extends undefined ? never : NonNullable<StyleSpec['bom']>['lines'][number],
+  locale: Locale,
+): string {
+  if (locale === 'ru') return l.name_ru;
+  if (locale === 'zh') return l.name_zh ?? l.name_en;
+  return l.name_en;
+}
+
+/**
+ * Состав на языке комплекта.
+ *
+ * В русском комплекте состав печатается со статусом значения: он бывает
+ * предположением, и это важно. В переводе статус остаётся точкой в легенде,
+ * а текст берётся переведённый — иначе состав был бы единственной русской
+ * строкой в таблице.
+ */
+function composition(l: NonNullable<StyleSpec['bom']>['lines'][number], locale: Locale): string {
+  if (locale === 'zh') return l.composition_zh ?? l.composition_en ?? l.composition.value;
+  return l.composition_en ?? l.composition.value;
 }
 
 /** Подписи видов внутри SVG — на языке комплекта. */
@@ -1538,7 +1592,7 @@ function groupNotes(
 
 // ---------------------------------------------------------------- материалы
 
-function bomPages(spec: StyleSpec): string[] {
+function bomPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
   const bom = spec.bom;
   if (!bom) return [];
 
@@ -1549,34 +1603,46 @@ function bomPages(spec: StyleSpec): string[] {
         (c.hex_approx
           ? `<span class="swatch" style="background:${esc(c.hex_approx)}"></span>`
           : '') +
-        `${esc(c.name_ru)}</span>`,
+        `${esc(locale === 'ru' ? c.name_ru : c.id)}</span>`,
     )
     .join('');
 
   const head =
-    `<tr><th>Код</th><th>Позиция</th><th>Назначение</th><th>Состав</th>` +
-    `<th class="num">г/м²</th><th class="num">Расход</th><th>Артикул поставщика</th></tr>`;
+    `<tr><th>${esc(t.bom_code)}</th><th>${esc(t.bom_item)}</th>` +
+    `<th>${esc(t.bom_purpose)}</th><th>${esc(t.bom_composition)}</th>` +
+    `<th class="num">${esc(t.bom_gsm)}</th><th class="num">${esc(t.bom_consumption)}</th>` +
+    `<th>${esc(t.bom_supplier)}</th></tr>`;
 
   return chunk(bom.lines, ROWS_PER_PAGE.bom).map((lines, i, all) => {
     const rows = lines
       .map(
         (l) =>
-          `<tr><td class="mono">${l.code}</td><td>${esc(l.name_ru)}</td>` +
-          `<td class="note">${esc(l.placement_ru)}</td>` +
-          `<td>${value(l.composition)}</td>` +
+          `<tr><td class="mono">${l.code}</td><td>${esc(materialName(l, locale))}</td>` +
+          // Назначение в нерусском комплекте берётся из РОЛИ материала,
+          // а не из вольного текста: роль — замкнутое перечисление, её перевод
+          // полон по устройству, а вольную строку пришлось бы переводить
+          // на каждый новый материал и однажды забыть.
+          `<td class="note">${esc(
+            locale === 'ru'
+              ? l.placement_ru
+              : locale === 'zh'
+                ? MATERIAL_ROLE_LABEL_ZH[l.role]
+                : MATERIAL_ROLE_LABEL_EN[l.role],
+          )}</td>` +
+          `<td>${locale === 'ru' ? value(l.composition) : esc(composition(l, locale))}</td>` +
           `<td class="num">${l.gsm ? value(l.gsm) : '—'}</td>` +
           `<td class="num v">${l.consumption ? `${num(l.consumption.value)} ${l.consumption_unit}` : '—'}</td>` +
-          `<td class="note">${l.supplier_article ?? 'уточняется у поставщика'}</td></tr>`,
+          `<td class="note">${l.supplier_article ?? esc(t.bom_supplier_tbd)}</td></tr>`,
       )
       .join('');
 
     const isLast = i === all.length - 1;
     return (
       (i === 0
-        ? `<div class="note" style="margin-bottom:3mm"><b>Колорвеи:</b> ${colorways}</div>`
+        ? `<div class="note" style="margin-bottom:3mm"><b>${esc(t.bom_colorways)}:</b> ${colorways}</div>`
         : '') +
       `<table><thead>${head}</thead><tbody>${rows}</tbody></table>` +
-      (isLast
+      (isLast && locale === 'ru'
         ? `<h3>Расход основного полотна</h3>` +
           `<div style="font-size:18pt;font-weight:700">${value(bom.fabric_consumption_m)}` +
           `<span class="v"> м</span>` +
@@ -1629,16 +1695,33 @@ function artworkCostLine(spec: StyleSpec): string {
 
 // ---------------------------------------------------------------- конструкция
 
-function constructionPages(spec: StyleSpec, pro: boolean): string[] {
+function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
   const c = spec.construction;
   if (!c) return [];
 
-  const machine = (m: string): string => MACHINE_LABEL_RU[m as MachineType] ?? m;
+  const MACHINE = { ru: MACHINE_LABEL_RU, en: MACHINE_LABEL_EN, zh: MACHINE_LABEL_ZH }[locale];
+  const ZONE = { ru: ZONE_LABEL_RU, en: ZONE_LABEL_EN, zh: ZONE_LABEL_ZH }[locale];
+  const machine = (m: string): string => MACHINE[m as MachineType] ?? m;
+  const label = (n: NonNullable<StyleSpec['construction']>['nodes'][number]): string =>
+    locale === 'ru'
+      ? n.label_ru
+      : locale === 'zh'
+        ? (n.label_zh ?? n.label_en ?? n.label_ru)
+        : (n.label_en ?? n.label_ru);
+  const plain = (n: NonNullable<StyleSpec['construction']>['nodes'][number]): string =>
+    locale === 'ru'
+      ? n.plain_ru
+      : locale === 'zh'
+        ? (n.plain_zh ?? n.plain_en ?? n.plain_ru)
+        : (n.plain_en ?? n.plain_ru);
 
   const nodeHead =
-    `<tr><th>№</th><th>Зона</th><th>Узел обработки</th>` +
-    (pro ? `<th>Шов / стежок</th><th class="num">SPI</th><th>Оборудование</th>` : '') +
-    `<th class="num">Припуск</th><th class="mark">●</th></tr>`;
+    `<tr><th>№</th><th>${esc(t.node_zone)}</th><th>${esc(t.node_name)}</th>` +
+    (pro
+      ? `<th>${esc(t.node_seam)} / ${esc(t.node_stitch)}</th>` +
+        `<th class="num">${esc(t.node_spi)}</th><th>${esc(t.node_machine)}</th>`
+      : '') +
+    `<th class="num">${esc(t.node_allowance)}</th><th class="mark">●</th></tr>`;
 
   const nodePages = chunk(c.nodes, ROWS_PER_PAGE.nodes).map((nodes, page) => {
     const rows = nodes
@@ -1646,12 +1729,19 @@ function constructionPages(spec: StyleSpec, pro: boolean): string[] {
         const number = page * ROWS_PER_PAGE.nodes + i + 1;
         return (
           `<tr><td class="num mono">${number}</td>` +
-          `<td class="note">${ZONE_LABEL_RU[n.zone as NodeZone] ?? esc(n.zone)}</td>` +
-          `<td><b>${esc(n.label_ru)}</b>` +
-          (n.requires_special_equipment ? ` <span class="flag">спецоборудование</span>` : '') +
-          `<div class="note">${esc(n.plain_ru)}</div>` +
+          `<td class="note">${ZONE[n.zone as NodeZone] ?? esc(n.zone)}</td>` +
+          `<td><b>${esc(label(n))}</b>` +
+          (n.requires_special_equipment
+            ? ` <span class="flag">${locale === 'ru' ? 'спецоборудование' : locale === 'zh' ? '专机' : 'special machine'}</span>`
+            : '') +
+          `<div class="note">${esc(plain(n))}</div>` +
+          // Замена под базовый парк — русский текст из справочника замен.
+          // В нерусском комплекте печатается только имя альтернативного узла
+          // и машина: они переведены, а пояснение нет.
           (n.alternative
-            ? `<div class="note warn">Замена под базовый парк цеха: ${esc(n.alternative.label_ru)} ` +
+            ? `<div class="note warn">${
+                locale === 'ru' ? 'Замена под базовый парк цеха: ' : ''
+              }${esc(locale === 'ru' ? n.alternative.label_ru : n.alternative.node_id)} ` +
               `(${esc(machine(n.alternative.machine))})</div>`
             : '') +
           `</td>` +
@@ -1662,13 +1752,18 @@ function constructionPages(spec: StyleSpec, pro: boolean): string[] {
             : '') +
           `<td class="num v">${num(n.seam_allowance_cm.value)}</td>` +
           `<td class="mark"><span class="dot dot-${n.presence.confidence}" ` +
-          `title="${esc(CONFIDENCE_LABEL_RU[n.presence.confidence])}"></span></td></tr>`
+          `title="${esc(statusLabel(t, n.presence.confidence))}"></span></td></tr>`
         );
       })
       .join('');
 
-    return `<h2>Узлы обработки</h2><table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>`;
+    return `<h2>${esc(t.section_construction)}</h2><table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>`;
   });
+
+  // Технологическая последовательность — русский текст операций из справочника.
+  // Перевода у него пока нет, и в нерусском комплекте лист опускается:
+  // отсутствующий лист честнее нечитаемого.
+  if (locale !== 'ru') return nodePages;
 
   const seqPages = chunk(c.sequence, ROWS_PER_PAGE.sequence).map((steps, i, all) => {
     const rows = steps
