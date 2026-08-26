@@ -2,6 +2,7 @@ import type { NodeZone } from '@seamsterly/kb';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import type { VisionReport } from '@seamsterly/vision';
 import { MAX_PROPORTION_DRIFT, renderLibraryView, type LibraryRenderResult } from './library.js';
+import type { SilhouetteDetails } from './zones.js';
 import { catalogedEntries, findTemplate, readTemplateSvg } from './load.js';
 import { isConfident, matchTemplates, type MatchCandidate, type MatchResult } from './match.js';
 import { queryFromSpec } from './query.js';
@@ -117,6 +118,13 @@ export interface RenderedTemplate {
   drift: number;
   /** Удалось ли замерить пропорцию — по незамеренной не отказывают. */
   driftMeasured: boolean;
+  /**
+   * Зоны, которых на силуэте не нашлось ни на переде, ни на спинке.
+   *
+   * Считается по ОБОИМ видам: карман не виден со спинки по построению, и
+   * называть его непоказанным из-за этого было бы неправдой.
+   */
+  missing: NodeZone[];
 }
 
 /**
@@ -136,7 +144,16 @@ export function renderChosenTemplate(
   const frontSvg = readTemplateSvg(entry, 'front');
   if (!frontSvg) return null;
 
-  const hood = entry.traits?.hood ?? false;
+  // Что силуэт рисует на самом деле — из его разметки. Зона детали, которой
+  // на нём нет, выноски не получит: указывать не на что.
+  const t = entry.traits;
+  const details: SilhouetteDetails = {
+    hood: t?.hood ?? false,
+    closure: (t?.closure ?? 'none') !== 'none',
+    pocket: (t?.pocket ?? 'none') !== 'none',
+    sleeves: (t?.sleeve ?? 'none') !== 'none',
+    ribbedWaist: t?.ribbed ?? false,
+  };
   const shown = (view: 'front' | 'back'): NodeZone[] =>
     options.zones.filter((z) => !HIDDEN[view].includes(z));
 
@@ -146,7 +163,7 @@ export function renderChosenTemplate(
     bodyWidthCm: options.bodyWidthCm,
     bodyRatio: options.bodyRatio,
     disclaimer: options.disclaimer,
-    callouts: { zones: shown('front'), label: options.zoneLabel, hood },
+    callouts: { zones: shown('front'), label: options.zoneLabel, details },
   });
   // Отказ только по ИЗМЕРЕННОМУ расхождению: если торс не отделился от
   // рукавов, мерить было нечем, и отсутствие улики уликой не считается.
@@ -160,15 +177,17 @@ export function renderChosenTemplate(
         bodyWidthCm: options.bodyWidthCm,
         bodyRatio: options.bodyRatio,
         disclaimer: options.disclaimer,
-        callouts: { zones: shown('back'), label: options.zoneLabel, hood },
+        callouts: { zones: shown('back'), label: options.zoneLabel, details },
       })
     : null;
 
+  const drawn = new Set([...front.zones, ...(back?.zones ?? [])]);
   return {
     templateId: entry.id,
     front,
     back,
     drift: front.proportionDrift,
     driftMeasured: front.proportionMeasured,
+    missing: options.zones.filter((z) => !drawn.has(z)),
   };
 }

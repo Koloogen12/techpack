@@ -236,6 +236,9 @@ describe('подбор силуэта', () => {
  * контуру. Числа выбраны круглыми: торс шириной 100 от плеча на 60 до
  * низа на 280 — пропорция 100/220.
  */
+/** Что силуэт-макет рисует: у него есть всё, кроме застёжки и кармана. */
+const DETAILS = { hood: true, closure: false, pocket: false, sleeves: true, ribbedWaist: true };
+
 const FLAT_HOOD =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">' +
   '<path style="fill:none;stroke:#0E0E0E;stroke-width:2" d="M 130 0 L 170 0 L 170 60 ' +
@@ -333,21 +336,21 @@ describe('зоны изделия', () => {
   it('капюшон рисует по разметке шаблона, а не по геометрии', () => {
     // Над плечами бывает и воротник, и просто поле; принять их за капюшон
     // значило бы поставить выноску на пустое место.
-    expect(zonesOf(FLAT_HOOD, { hood: true }).has('hood')).toBe(true);
-    expect(zonesOf(FLAT_HOOD, { hood: false }).has('hood')).toBe(false);
+    expect(zonesOf(FLAT_HOOD, DETAILS).has('hood')).toBe(true);
+    expect(zonesOf(FLAT_HOOD, { ...DETAILS, hood: false }).has('hood')).toBe(false);
     // А у силуэта без капюшона его нет и при включённой разметке.
-    expect(zonesOf(FLAT_PLAIN, { hood: true }).has('hood')).toBe(false);
+    expect(zonesOf(FLAT_PLAIN, DETAILS).has('hood')).toBe(false);
   });
 
   it('горловину ставит под плечами, а не на макушке', () => {
-    const z = zonesOf(FLAT_HOOD, { hood: true });
+    const z = zonesOf(FLAT_HOOD, DETAILS);
     const L = landmarksOf(FLAT_HOOD)!;
     expect(z.get('neckline')!.y).toBeGreaterThan(L.shoulderY);
     expect(z.get('hood')!.y).toBeLessThan(L.shoulderY);
   });
 
   it('ось ведёт по торсу, а не по середине листа', () => {
-    const z = zonesOf(FLAT_HOOD, { hood: true });
+    const z = zonesOf(FLAT_HOOD, DETAILS);
     expect(z.get('hem')!.x).toBeCloseTo(150, 0);
   });
 });
@@ -360,7 +363,7 @@ describe('выноски на зоны', () => {
       bodyWidthCm: 100,
       bodyRatio: 100 / 280,
       disclaimer: 'Иллюстративный силуэт',
-      callouts: { zones, label: (z) => `зона:${z}`, hood: false },
+      callouts: { zones, label: (z) => `зона:${z}`, details: { ...DETAILS, hood: false } },
     });
 
   it('помечает каждую зону, на которую встала выноска', () => {
@@ -390,7 +393,7 @@ describe('выноски на зоны', () => {
         bodyRatio: 100 / 280,
         disclaimer: 'п',
         ...(callouts
-          ? { callouts: { zones: ['hem' as NodeZone], label: () => 'низ', hood: false } }
+          ? { callouts: { zones: ['hem' as NodeZone], label: () => 'низ', details: DETAILS } }
           : {}),
       });
     expect(at(false).scale).toBeGreaterThan(at(true).scale);
@@ -411,5 +414,77 @@ describe('выноски на зоны', () => {
         expect(rows[i]! - rows[i - 1]!).toBeGreaterThan(1);
       }
     }
+  });
+});
+
+describe('деталь, которой на силуэте нет', () => {
+  const flat = FLAT_PLAIN;
+
+  it('выноску в пустоту не рисует и называет пропущенное', () => {
+    // Изделие требует карман и застёжку, силуэт их не рисует. Указывать
+    // выноской не на что — но и молчать нельзя.
+    const r = renderLibraryView(flat, {
+      targetWidthCm: 300,
+      targetHeightCm: 300,
+      bodyWidthCm: 100,
+      bodyRatio: 100 / 280,
+      disclaimer: 'п',
+      callouts: {
+        zones: ['neckline', 'pockets', 'closure', 'hem'],
+        label: (z) => `зона:${z}`,
+        details: { hood: false, closure: false, pocket: false, sleeves: true, ribbedWaist: false },
+      },
+    });
+    expect(r.zones.sort()).toEqual(['hem', 'neckline']);
+    expect(r.missing.sort()).toEqual(['closure', 'pockets']);
+    expect(r.svg).not.toContain('data-zone="pockets"');
+    expect(r.svg).not.toContain('зона:pockets');
+  });
+
+  it('деталь, которая на силуэте есть, подписывает как обычно', () => {
+    const r = renderLibraryView(flat, {
+      targetWidthCm: 300,
+      targetHeightCm: 300,
+      bodyWidthCm: 100,
+      bodyRatio: 100 / 280,
+      disclaimer: 'п',
+      callouts: {
+        zones: ['pockets'],
+        label: (z) => `зона:${z}`,
+        details: { hood: false, closure: false, pocket: true, sleeves: true, ribbedWaist: false },
+      },
+    });
+    expect(r.zones).toEqual(['pockets']);
+    expect(r.missing).toEqual([]);
+  });
+});
+
+describe('штраф за отсутствующую деталь', () => {
+  it('силуэт без требуемого кармана уходит ниже порога автоподбора', () => {
+    // Карман другого кроя — неточность: выноска всё равно на карман.
+    // Кармана НЕТ — дыра: указывать нечем, и лист приходится оговаривать.
+    const other = scoreTemplate(entry('patch', { traits: traits({ pocket: 'patch' }) }), query)!;
+    const none = scoreTemplate(entry('none', { traits: traits({ pocket: 'none' }) }), query)!;
+    expect(none.score).toBeLessThan(other.score);
+    expect(none.fit_fraction).toBeLessThan(AUTO_FIT_FRACTION);
+    expect(none.reasons).toContain('кармана на силуэте нет');
+  });
+
+  it('силуэт без капюшона у худи проигрывает разгромно', () => {
+    const full = scoreTemplate(entry('ok'), query)!;
+    const bald = scoreTemplate(entry('bald', { traits: traits({ hood: false }) }), query)!;
+    expect(full.score - bald.score).toBeGreaterThan(30);
+  });
+
+  it('доля совпадения не уходит ниже нуля', () => {
+    // Штрафы могут увести счёт в минус, но «минус тридцать процентов
+    // совпадения» — не величина, а бессмыслица.
+    const bad = scoreTemplate(
+      entry('bad', {
+        traits: traits({ hood: false, pocket: 'none', sleeve: 'none', ribbed: false, fit: 'fitted' }),
+      }),
+      query,
+    );
+    if (bad) expect(bad.fit_fraction).toBeGreaterThanOrEqual(0);
   });
 });

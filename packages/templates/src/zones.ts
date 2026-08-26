@@ -15,6 +15,23 @@ import { boxHeight, boxWidth, pathPoints, readPaths, unionBox, type Box, type Ra
  * четверть листа — это капюшон, а у футболки — уже плечи.
  */
 
+/**
+ * Что на силуэте нарисовано на самом деле.
+ *
+ * Берётся из разметки шаблона, а не из геометрии: над плечами бывает и
+ * воротник, и просто поле, а карман от тени не отличить. Зона, детали
+ * которой на силуэте нет, точки привязки не получает вовсе — выноска в
+ * пустоту хуже отсутствующей.
+ */
+export interface SilhouetteDetails {
+  hood: boolean;
+  closure: boolean;
+  pocket: boolean;
+  sleeves: boolean;
+  /** Пояс-рибана: без него зона пояса не подписывается. */
+  ribbedWaist: boolean;
+}
+
 export interface ZoneAnchor {
   zone: NodeZone;
   /** Точка внутри зоны, в координатах viewBox шаблона. */
@@ -255,7 +272,7 @@ export function landmarksOf(svg: string): ViewLandmarks | null {
  * силуэте не видно (маркировка), не возвращаются вовсе: выноска в пустоту
  * хуже отсутствующей.
  */
-export function zonesOf(svg: string, options: { hood: boolean }): Map<NodeZone, ZoneAnchor> {
+export function zonesOf(svg: string, details: SilhouetteDetails): Map<NodeZone, ZoneAnchor> {
   const L = landmarksOf(svg);
   const out = new Map<NodeZone, ZoneAnchor>();
   if (!L) return out;
@@ -269,18 +286,21 @@ export function zonesOf(svg: string, options: { hood: boolean }): Map<NodeZone, 
     out.set(zone, { zone, x, y });
   };
 
-  // Есть ли капюшон, решает разметка шаблона, а не геометрия: над плечами
-  // бывает и воротник, и просто поле, и принять их за капюшон значило бы
-  // поставить выноску на пустое место.
-  if (options.hood && L.aboveShoulders) add('hood', cx, top + (L.shoulderY - top) * 0.5);
+  // Зоны, которые есть у любого изделия: горловина, плечи, бока, низ.
+  // Их край виден на силуэте всегда, чем бы он ни был.
   add('neckline', cx, L.shoulderY + height * 0.02);
   add('shoulders', cx - w * 0.3, L.shoulderY + height * 0.01);
-  // Рукав показываем у самого края размаха: там его ни с чем не спутать.
-  add('sleeves', L.sleeveMinX + w * 0.12, L.sleeveY);
   add('sides', L.torsoLeftX, L.armpitY + bodyLength * 0.45);
-  add('closure', cx, L.shoulderY + bodyLength * 0.35);
-  add('pockets', cx, L.shoulderY + bodyLength * 0.62);
   add('hem', cx, L.bodyBottomY);
-  add('waistband', cx + w * 0.28, L.bodyBottomY);
+
+  // Зоны отдельных деталей — только если деталь на силуэте нарисована.
+  // Иначе выноска указывала бы на пустое место, а лист обещал бы карман,
+  // которого на рисунке нет.
+  if (details.hood && L.aboveShoulders) add('hood', cx, top + (L.shoulderY - top) * 0.5);
+  // Рукав показываем у самого края размаха: там его ни с чем не спутать.
+  if (details.sleeves) add('sleeves', L.sleeveMinX + w * 0.12, L.sleeveY);
+  if (details.closure) add('closure', cx, L.shoulderY + bodyLength * 0.35);
+  if (details.pocket) add('pockets', cx, L.shoulderY + bodyLength * 0.62);
+  if (details.ribbedWaist) add('waistband', cx + w * 0.28, L.bodyBottomY);
   return out;
 }

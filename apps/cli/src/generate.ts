@@ -5,7 +5,9 @@ import { CostLedger, SeamsterlyError, defined, type Logger } from '@seamsterly/c
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
+  ZONE_LABEL_EN,
   ZONE_LABEL_RU,
+  ZONE_LABEL_ZH,
   kb,
   type Category,
   type KnowledgeBase,
@@ -38,6 +40,7 @@ import {
   renderRolePdfs,
   type DocImage,
   type DocVisuals,
+  type LibraryFlatViews,
   type ExportRole,
 } from '@seamsterly/docgen';
 import { FileRenderCache, visualize } from '@seamsterly/render';
@@ -76,6 +79,13 @@ export type DrawingSource = 'auto' | 'library' | 'parametric';
  * входа даёт тот же результат — не потому что модель стабильна, а потому что
  * её ответ закэширован по содержимому входа (ADR-0003).
  */
+
+/** Подписи зон по языкам комплекта. */
+const ZONE_LABEL_BY_LOCALE: Record<Locale, Record<NodeZone, string>> = {
+  ru: ZONE_LABEL_RU,
+  en: ZONE_LABEL_EN,
+  zh: ZONE_LABEL_ZH,
+};
 
 const FORMATS: Record<string, PhotoFormat> = {
   '.jpg': 'jpg',
@@ -787,8 +797,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // как источник деталей — карман и рукав в табеле не записаны.
     const picked: { candidates: CandidateView[] } = { candidates: [] };
     const library = await chooseLibraryFlat(spec, options, report ?? undefined, notes, picked);
-    if (library) {
-      const shipped = shipTemplateSources(library.templateId, options.outPath);
+    const chosenId = library?.ru?.templateId;
+    if (chosenId) {
+      const shipped = shipTemplateSources(chosenId, options.outPath);
       usedTemplate = shipped ? { ...shipped, candidates: picked.candidates } : null;
     }
     const visuals: DocVisuals = { ...built, ...(library ? { libraryFlats: library } : {}) };
@@ -1003,6 +1014,9 @@ async function chooseLibraryFlat(
     return undefined;
   }
 
+  // Языки комплекта: плашка на силуэте вшита в SVG, поэтому набор видов
+  // строится на каждый язык отдельно. Русский нужен всегда — он основной.
+  const locales: Locale[] = [...new Set<Locale>(['ru', ...(options.langs ?? [])])];
   const t = messages('ru');
   // Габарит листа берём у собственного чертежа: он построен по табелю мер
   // и нарисован в той же условности, что и шаблон, — с разведёнными
@@ -1087,14 +1101,34 @@ async function chooseLibraryFlat(
     return undefined;
   }
 
+  const byLocale: Partial<Record<Locale, LibraryFlatViews>> = {};
+  for (const locale of locales) {
+    const lt = messages(locale);
+    const views = renderChosenTemplate(id, {
+      ...renderOptions,
+      disclaimer: lt.flats_library_disclaimer,
+      zoneLabel: (z: NodeZone) => ZONE_LABEL_BY_LOCALE[locale][z],
+    });
+    if (!views) continue;
+    byLocale[locale] = {
+      front: views.front,
+      ...(views.back ? { back: views.back } : {}),
+      templateId: views.templateId,
+      missing: views.missing,
+    };
+  }
+
   // Отметка о выборе — очередь на разметку контрольных точек: силуэт,
   // который выбирают чаще прочих, заслуживает переезда в мастера.
   notePromotion(rendered.templateId);
-  return {
-    front: rendered.front,
-    ...(rendered.back ? { back: rendered.back } : {}),
-    templateId: rendered.templateId,
-  };
+  if (rendered.missing.length) {
+    notes.push(
+      `На силуэте библиотеки не показаны: ${rendered.missing
+        .map((z) => ZONE_LABEL_RU[z])
+        .join(', ')}. Их обработка описана в разделе конструкции.`,
+    );
+  }
+  return byLocale;
 }
 
 /**

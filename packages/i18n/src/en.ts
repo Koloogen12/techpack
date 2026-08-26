@@ -83,6 +83,8 @@ export const EN: Messages = {
   flats_library_disclaimer: 'Illustrative silhouette — callouts mark an area, not a point',
   flats_library_note:
     'The silhouette comes from the model library and is fitted to the drawing footprint derived from the size chart. Detail proportions on it are illustrative: the size chart is the only source of dimensions. Callouts mark an area of the garment, not a point of measure — a library silhouette carries no control points, so no dimension may be read off it.',
+  flats_library_missing: 'Details not shown on the illustrative silhouette',
+  flats_library_source: 'Library silhouette · the source vector ships with this pack',
 
   form_kicker: 'Measurement Sheet · Seamsterly',
   form_who: 'Measured by',

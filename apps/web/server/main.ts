@@ -1074,7 +1074,7 @@ const server = createServer(async (req, res) => {
           // браузер для неё не нужен, а без него лист чертежа вернулся бы к
           // параметрическому виду — и выгрузка разошлась бы с экраном.
           const chosen = readJobTemplate(dir);
-          const library = chosen.id ? renderJobTemplate(spec, chosen.id) : null;
+          const library = chosen.id ? renderJobTemplate(spec, chosen.id, locale ?? 'ru') : null;
           writeFileSync(
             pdfPath,
             await renderPdf(spec, {
@@ -1082,16 +1082,10 @@ const server = createServer(async (req, res) => {
                 ? { sections: profile.sections, pro: profile.pro, roleLabel: profile.label_ru }
                 : { pro: true }),
               ...(locale ? { locale } : {}),
+              // Набор видов строится на язык выгрузки: плашка вшита в SVG,
+              // и русская оговорка в китайском комплекте бесполезна.
               ...(library
-                ? {
-                    visuals: {
-                      libraryFlats: {
-                        front: library.front,
-                        ...(library.back ? { back: library.back } : {}),
-                        templateId: library.templateId,
-                      },
-                    },
-                  }
+                ? { visuals: { libraryFlats: { [locale ?? 'ru']: library } } }
                 : {}),
             }),
           );

@@ -1,8 +1,15 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { kb, ZONE_LABEL_RU, type NodeZone } from '@seamsterly/kb';
+import { kb, ZONE_LABEL_EN, ZONE_LABEL_RU, ZONE_LABEL_ZH, type NodeZone } from '@seamsterly/kb';
 import { flatDefaults, renderFlatsFromSpec } from '@seamsterly/flats';
-import { messages } from '@seamsterly/i18n';
+import { messages, type Locale } from '@seamsterly/i18n';
+
+/** Подписи зон по языкам комплекта. */
+const ZONE_LABEL: Record<Locale, Record<NodeZone, string>> = {
+  ru: ZONE_LABEL_RU,
+  en: ZONE_LABEL_EN,
+  zh: ZONE_LABEL_ZH,
+};
 import {
   candidateViews,
   notePromotion,
@@ -71,12 +78,13 @@ export function zonesOfSpec(spec: StyleSpec): NodeZone[] {
 export function renderJobTemplate(
   spec: StyleSpec,
   templateId: string,
+  locale: Locale = 'ru',
 ): ReturnType<typeof renderChosenTemplate> {
-  return renderChosenTemplate(templateId, renderOptions(spec));
+  return renderChosenTemplate(templateId, renderOptions(spec, locale));
 }
 
 /** Настройки отрисовки силуэта под конкретный табель мер. */
-function renderOptions(spec: StyleSpec): Parameters<typeof renderChosenTemplate>[1] {
+function renderOptions(spec: StyleSpec, locale: Locale = 'ru'): Parameters<typeof renderChosenTemplate>[1] {
   const master = renderFlatsFromSpec(spec, flatDefaults(spec));
   const at = (code: string): number | undefined =>
     spec.measurements.points.find((p) => p.code === code)?.base.value;
@@ -87,9 +95,9 @@ function renderOptions(spec: StyleSpec): Parameters<typeof renderChosenTemplate>
     targetHeightCm: master.front.viewBox.height,
     bodyWidthCm,
     bodyRatio: bodyWidthCm / bodyLengthCm,
-    disclaimer: messages('ru').flats_library_disclaimer,
+    disclaimer: messages(locale).flats_library_disclaimer,
     zones: zonesOfSpec(spec),
-    zoneLabel: (z) => ZONE_LABEL_RU[z],
+    zoneLabel: (z) => ZONE_LABEL[locale][z],
   };
 }
 

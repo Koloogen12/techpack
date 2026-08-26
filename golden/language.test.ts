@@ -11,6 +11,7 @@ import {
   ZONE_LABEL_RU,
   NODE_ZONES,
 } from '@seamsterly/kb';
+import { LOCALES, messages } from '@seamsterly/i18n';
 import { SCENARIOS } from './scenarios.js';
 
 /**
@@ -160,6 +161,36 @@ describe('в документе нет внутренних ключей на а
       .toLowerCase();
     for (const key of LEAKS) {
       expect(text, `«${key}» в тексте документа`).not.toContain(key);
+    }
+  });
+});
+
+/**
+ * Лист чертежа из библиотеки — на языке комплекта целиком.
+ *
+ * Плашка вшита в сам SVG силуэта, а не в разметку листа, и об этом легко
+ * забыть: русская оговорка в китайском паке выглядит как мелочь ровно до
+ * той минуты, когда фабрика её не читает.
+ */
+describe('библиотечный чертёж говорит на языке комплекта', () => {
+  const CYRILLIC = /[А-Яа-яЁё]/;
+
+  it.each(LOCALES.filter((l) => l !== 'ru'))('%s: в оговорках нет кириллицы', (locale) => {
+    const t = messages(locale);
+    for (const key of [
+      'flats_library_disclaimer',
+      'flats_library_note',
+      'flats_library_missing',
+      'flats_library_source',
+    ] as const) {
+      expect(t[key], `${locale}.${key}`).not.toMatch(CYRILLIC);
+    }
+  });
+
+  it('у каждого языка своя оговорка, а не копия русской', () => {
+    const ru = messages('ru').flats_library_disclaimer;
+    for (const locale of LOCALES.filter((l) => l !== 'ru')) {
+      expect(messages(locale).flats_library_disclaimer).not.toBe(ru);
     }
   });
 });

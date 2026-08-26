@@ -76,6 +76,8 @@ export const ZH: Messages = {
   flats_label: '款式图 · 各视图同一比例,尺寸以尺寸表为准',
   flats_library_disclaimer: '示意轮廓 — 引线指向部位,而非测量点',
   flats_library_note: '此轮廓取自款式库,按尺寸表推算的图幅缩放。图中细节比例仅供示意:尺寸唯一以尺寸表为准。引线指向服装部位,而非测量点——款式库轮廓没有控制点,不可据此量取尺寸。',
+  flats_library_missing: '示意轮廓上未画出的部位',
+  flats_library_source: '款式库轮廓 · 原始矢量文件随本技术包提供',
 
   form_kicker: '测量表 · Seamsterly',
   form_who: '测量人',

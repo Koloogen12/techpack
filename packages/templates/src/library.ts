@@ -1,6 +1,6 @@
 import type { NodeZone } from '@seamsterly/kb';
 import { boxHeight, boxWidth, type Box } from './svg.js';
-import { landmarksOf, zonesOf } from './zones.js';
+import { landmarksOf, zonesOf, type SilhouetteDetails } from './zones.js';
 
 /**
  * Отрисовка силуэта из библиотеки в масштабе изделия.
@@ -54,8 +54,8 @@ export interface LibraryRenderOptions {
     zones: readonly NodeZone[];
     /** Подпись зоны на языке комплекта. */
     label: (zone: NodeZone) => string;
-    /** Есть ли у силуэта капюшон — по разметке шаблона, не по геометрии. */
-    hood: boolean;
+    /** Что на силуэте нарисовано — по разметке шаблона, не по геометрии. */
+    details: SilhouetteDetails;
   };
 }
 
@@ -87,6 +87,14 @@ export interface LibraryRenderResult {
    * не улика. Годность силуэта тогда решают признаки каталога.
    */
   proportionMeasured: boolean;
+  /**
+   * Зоны, которых на этом силуэте не нашлось.
+   *
+   * Изделие их требует — узел обработки есть, — а силуэт такой детали не
+   * рисует. Выноску мы не ставим, но и молчать нельзя: лист говорит прямо,
+   * что деталь на иллюстрации не показана.
+   */
+  missing: NodeZone[];
   /**
    * Зоны, на которые действительно встали выноски.
    *
@@ -208,6 +216,7 @@ export function renderLibraryView(
     scale,
     proportionDrift: Math.round(proportionDrift * 1000) / 1000,
     proportionMeasured: measured,
+    missing: (options.callouts?.zones ?? []).filter((z) => !drawn.includes(z)),
     zones: drawn,
   };
 }
@@ -236,7 +245,7 @@ function calloutLayer(
     onDraw: (zone: NodeZone) => void;
   },
 ): string {
-  const anchors = zonesOf(templateSvg, { hood: callouts.hood });
+  const anchors = zonesOf(templateSvg, callouts.details);
   const toX = (x: number): number => geom.offsetX + (x - geom.box.minX) * geom.scale;
   const toY = (y: number): number => (y - geom.box.minY) * geom.scale;
 

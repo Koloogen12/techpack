@@ -137,23 +137,49 @@ export function scoreTemplate(entry: TemplateEntry, query: MatchQuery): MatchCan
     }
   }
 
+  /**
+   * Деталь, которой на силуэте нет вовсе, стоит вдвое дороже несовпадения.
+   *
+   * Карман другого кроя — это неточность: выноска всё равно указывает на
+   * карман. Кармана НЕТ — это дыра: указывать выноской не на что, и лист
+   * приходится оговаривать словами. Поэтому мимо проходит не только вес
+   * признака, но и штраф того же размера — совпадение падает ниже порога
+   * автоподбора, и силуэт молча не возьмётся.
+   */
+  const detail = (want: boolean, has: boolean, weight: number, label: string): void => {
+    if (want === has) return;
+    if (want && !has) {
+      score -= weight;
+      reasons.push(`${label} на силуэте нет`);
+    }
+  };
+
   if (t.hood === query.hood) {
     score += WEIGHTS.hood;
     reasons.push(query.hood ? 'капюшон есть' : 'без капюшона');
   }
+  detail(query.hood, t.hood, WEIGHTS.hood, 'капюшона');
+
   if (t.closure === query.closure) {
     score += WEIGHTS.closure;
     reasons.push(`застёжка: ${t.closure}`);
   }
+  detail(query.closure !== 'none', t.closure !== 'none', WEIGHTS.closure, 'застёжки');
+
   if (t.pocket === query.pocket) {
     score += WEIGHTS.pocket;
     reasons.push(`карман: ${t.pocket}`);
   }
+  detail(query.pocket !== 'none', t.pocket !== 'none', WEIGHTS.pocket, 'кармана');
+
   if (t.sleeve === query.sleeve) {
     score += WEIGHTS.sleeve;
     reasons.push(`рукав: ${t.sleeve}`);
   }
+  detail(query.sleeve !== 'none', t.sleeve !== 'none', WEIGHTS.sleeve, 'рукавов');
+
   if (t.ribbed === query.ribbed) score += WEIGHTS.ribbed;
+  detail(query.ribbed, t.ribbed, WEIGHTS.ribbed, 'рибаны');
 
   if (t.confidence === 'high') score += WEIGHTS.confidenceHigh;
 
@@ -172,7 +198,10 @@ export function scoreTemplate(entry: TemplateEntry, query: MatchQuery): MatchCan
   return {
     entry,
     score: Math.round(score * 100) / 100,
-    fit_fraction: Math.round((traitScore / MAX_TRAIT_SCORE) * 1000) / 1000,
+    // Доля не уходит ниже нуля: штрафы за отсутствующие детали могут
+    // увести счёт в минус, но «минус тридцать процентов совпадения» —
+    // не величина, а бессмыслица.
+    fit_fraction: Math.max(0, Math.round((traitScore / MAX_TRAIT_SCORE) * 1000) / 1000),
     reasons,
   };
 }

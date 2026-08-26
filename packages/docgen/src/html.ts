@@ -102,25 +102,40 @@ export interface DocImage {
  * до мегабайтов, отпечаток начинает зависеть от байтов картинки,
  * и воспроизводимость документа ломается на ровном месте.
  */
+/** Набор видов из библиотеки на одном языке. */
+export interface LibraryFlatViews {
+  front: { svg: string; viewBox: { width: number } };
+  back?: { svg: string; viewBox: { width: number } };
+  /** Идентификатор шаблона — попадает в подпись и в выгрузку исходников. */
+  templateId: string;
+  /**
+   * Зоны, которых на силуэте не нашлось.
+   *
+   * Узел обработки у изделия есть, а деталь силуэт не рисует. Выноску на
+   * пустое место не ставим — но и молчать нельзя: технолог обязан узнать,
+   * что карман на иллюстрации не показан, а не искать его глазами.
+   */
+  missing?: readonly NodeZone[];
+}
+
 export interface DocVisuals {
   /** Визуализация изделия из спеки. Превью, не источник размеров. */
   render?: DocImage;
   /** Снимки, которые прислал заказчик. */
   photos?: readonly DocImage[];
   /**
-   * Готовые виды из библиотеки силуэтов.
+   * Готовые виды из библиотеки силуэтов — по одному набору на язык.
    *
-   * Заданы — раздел чертежа показывает их вместо параметрического построения.
-   * Такой силуэт масштабирован под габарит, но не деформирован под каждый
-   * замер, поэтому приходит уже с плашкой и без выносок; лист об этом
-   * говорит прямо, а не оставляет технолога догадываться.
+   * Заданы — раздел чертежа показывает их вместо параметрического
+   * построения. Такой силуэт масштабирован под габарит, но не деформирован
+   * под каждый замер, поэтому приходит уже с плашкой и без выносок на
+   * размерные точки; лист об этом говорит прямо.
+   *
+   * По языкам, а не одним набором: плашка вшита в сам SVG, и русская
+   * оговорка в китайском комплекте так же бесполезна, как русский абзац
+   * под чертежом — фабрика её просто не прочтёт.
    */
-  libraryFlats?: {
-    front: { svg: string; viewBox: { width: number } };
-    back?: { svg: string; viewBox: { width: number } };
-    /** Идентификатор шаблона — попадает в подпись и в выгрузку исходников. */
-    templateId: string;
-  };
+  libraryFlats?: Partial<Record<Locale, LibraryFlatViews>>;
   /**
    * Тайл раппорта для превью на изделии.
    *
@@ -275,10 +290,13 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     if (preview) add('preview', t.section_preview, [preview]);
   }
   if (include('flats')) {
-    const library = options.visuals?.libraryFlats;
+    // Своего языка нет — берём русский набор: чертёж без плашки на нужном
+    // языке всё равно лучше, чем отсутствие чертежа.
+    const byLocale = options.visuals?.libraryFlats;
+    const library = byLocale ? (byLocale[locale] ?? byLocale.ru) : undefined;
     add('flats', t.section_flats, [
       library
-        ? libraryFlatsBody(library, t)
+        ? libraryFlatsBody(library, t, locale)
         : flatsBody(
             spec,
             renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) }),
@@ -1530,7 +1548,9 @@ function flatsBody(
  * перестраивает геометрию»; библиотечный обещать этого не может и обязан
  * сказать обратное — размеры живут в табеле, а рисунок показывает силуэт.
  */
-function libraryFlatsBody(library: NonNullable<DocVisuals['libraryFlats']>, t: Messages): string {
+function libraryFlatsBody(library: LibraryFlatViews, t: Messages, locale: Locale): string {
+  const zoneLabel = { ru: ZONE_LABEL_RU, en: ZONE_LABEL_EN, zh: ZONE_LABEL_ZH }[locale];
+  const missing = (library.missing ?? []).map((z) => zoneLabel[z]);
   return (
     `<div class="canvas">` +
     `<div class="ml">${esc(t.flats_label)}</div>` +
@@ -1538,10 +1558,16 @@ function libraryFlatsBody(library: NonNullable<DocVisuals['libraryFlats']>, t: M
     (library.back ? viewFigure({ ...library.back, geometry: {} }, t.view_back) : '') +
     `</div>` +
     `<div class="note" style="margin-top:3mm">${esc(t.flats_library_note)}</div>` +
+    // Список того, чего на рисунке нет, — отдельной строкой и заметно:
+    // это единственное место, где лист признаёт свою неполноту.
+    (missing.length
+      ? `<div class="note" style="margin-top:1.5mm"><b>${esc(t.flats_library_missing)}: ` +
+        `${esc(missing.join(', '))}.</b></div>`
+      : '') +
     // Идентификатор шаблона — не украшение: по нему бренд получает исходник
     // силуэта в выгрузке, а мы понимаем, какой шаблон выбирают чаще прочих.
-    `<div class="note" style="margin-top:1mm;opacity:.65">Силуэт библиотеки: ` +
-    `${esc(library.templateId)} · исходный вектор приложен к комплекту</div>`
+    `<div class="note" style="margin-top:1mm;opacity:.65">` +
+    `${esc(t.flats_library_source)}: ${esc(library.templateId)}</div>`
   );
 }
 
