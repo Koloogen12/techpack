@@ -31,11 +31,17 @@ export function LiveFlat({
   spec,
   defaults,
   pulse,
+  compact,
+  onCallout,
 }: {
   spec: StyleSpec;
   defaults: { depthCm?: number; minSleeveAngleDeg?: number };
   /** Метка последней правки — по ней вспыхивает рамка «чертёж обновлён». */
   pulse: number;
+  /** Режим обложки: без панели слоёв, вписан в контейнер. */
+  compact?: boolean;
+  /** Клик по чертежу ведёт в конструкцию — выноски связывают их. */
+  onCallout?: () => void;
 }) {
   const [view, setView] = useState<'front' | 'back' | 'side'>('front');
   const [layers, setLayers] = useState<Set<FlatLayer>>(
@@ -64,6 +70,18 @@ export function LiveFlat({
       return null;
     }
   }, [spec, view, layers, defaults]);
+
+  if (compact) {
+    return (
+      <div style={{ height: '100%', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+        {svg ? (
+          <div style={{ width: '70%' }} dangerouslySetInnerHTML={{ __html: svg }} />
+        ) : (
+          <span style={{ color: 'var(--secondary)' }}>Чертёж не построился</span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -153,6 +171,11 @@ export function LiveFlat({
       <div style={{ color: 'var(--secondary)', fontSize: 12.5, marginTop: 10 }}>
         Геометрия правится только через данные: измените замер — чертёж перестроится. Колесо —
         масштаб, перетаскивание — сдвиг.
+        {onCallout && (
+          <a style={{ cursor: 'pointer', marginLeft: 10 }} onClick={onCallout}>
+            Узлы обработки этого чертежа — в Конструкции →
+          </a>
+        )}
       </div>
     </div>
   );

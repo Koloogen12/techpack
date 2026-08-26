@@ -219,11 +219,19 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
 }
 
 function createClient(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new SeamsterlyError('CONFIG_MISSING', 'ANTHROPIC_API_KEY не задан', {
+  // Обход геоблока: Anthropic отвечает 403 с российских адресов, и боевой
+  // сервер стоит именно там. CometAPI проксирует /v1/messages в родном
+  // формате — модель та же, меняется только адрес и ключ. Проверено живым
+  // вызовом, не выведено из документации.
+  const baseURL = process.env.SEAMSTERLY_VISION_BASE_URL;
+  const apiKey = baseURL
+    ? (process.env.SEAMSTERLY_VISION_KEY ?? process.env.COMETAPI_KEY)
+    : process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new SeamsterlyError('CONFIG_MISSING', 'ключ анализа фотографий не задан', {
       userMessage: 'Сервис анализа фотографий недоступен.',
       userAction: 'Повторить позже. Это на нашей стороне, лимит не списан.',
     });
   }
-  return new Anthropic();
+  return new Anthropic({ apiKey, ...(baseURL ? { baseURL } : {}) });
 }

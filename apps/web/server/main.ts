@@ -174,6 +174,14 @@ function readBody(req: IncomingMessage, limit: number): Promise<Buffer | null> {
   });
 }
 
+function safeStatus(id: string): JobStatus | null {
+  try {
+    return JSON.parse(readFileSync(join(jobDir(id), 'status.json'), 'utf8')) as JobStatus;
+  } catch {
+    return null;
+  }
+}
+
 function specOf(id: string): StyleSpec | null {
   const path = join(jobDir(id), 'spec.json');
   if (!existsSync(path)) return null;
@@ -230,6 +238,60 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { name: invite.name, org: invite.org });
     }
 
+    if (req.method === 'GET' && url.pathname === '/app/api/jobs') {
+      const { readdirSync } = await import('node:fs');
+      const list = readdirSync(join(DATA, 'jobs'), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .filter((id) => {
+          try {
+            return (
+              readFileSync(join(jobDir(id), 'owner.txt'), 'utf8') === invite.token &&
+              !existsSync(join(jobDir(id), 'deleted.flag'))
+            );
+          } catch {
+            return false;
+          }
+        })
+        .map((id) => {
+          const status = statuses.get(id) ?? safeStatus(id);
+          let name = '';
+          let article = '';
+          let category = '';
+          const spec = specOf(id);
+          if (spec) {
+            name = spec.style.name;
+            article = spec.style.article;
+            category = spec.style.category;
+          } else {
+            try {
+              const a = JSON.parse(readFileSync(join(jobDir(id), 'answers.json'), 'utf8')) as {
+                name?: string;
+                article?: string;
+                category?: string;
+              };
+              name = a.name ?? '';
+              article = a.article ?? '';
+              category = a.category ?? '';
+            } catch {
+              /* каталог без анкеты — не показываем */
+            }
+          }
+          return {
+            id,
+            name,
+            article,
+            category,
+            stage: status?.stage ?? 'queued',
+            created_at: status?.history[0]?.at ?? null,
+            assumptions: spec?.meta.assumptions_count ?? null,
+          };
+        })
+        .filter((j) => j.name)
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+      return json(res, 200, { jobs: list });
+    }
+
     if (req.method === 'POST' && url.pathname === '/app/api/jobs') {
       const body = await readBody(req, 64 * 1024);
       if (!body) return json(res, 413, { error: 'анкета слишком большая' });
@@ -244,7 +306,29 @@ const server = createServer(async (req, res) => {
       }
       const id = randomBytes(8).toString('hex');
       mkdirSync(jobDir(id), { recursive: true });
-      writeFileSync(join(jobDir(id), 'answers.json'), body);
+      // Юрданные из библиотеки бренда каскадом уходят в ярлыки.
+      let enriched = body.toString('utf8');
+      const profilePath = join(DATA, 'profiles', `${invite.token}.json`);
+      if (existsSync(profilePath)) {
+        try {
+          const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as {
+            legal?: { company?: string; inn?: string; address?: string };
+          };
+          const parsed = JSON.parse(enriched) as Record<string, unknown>;
+          if (profile.legal?.company && !parsed.brand_profile) {
+            parsed.brand_profile = {
+              company_name: profile.legal.company,
+              ...(profile.legal.inn ? { inn: profile.legal.inn } : {}),
+              ...(profile.legal.address ? { address: profile.legal.address } : {}),
+            };
+            if (!parsed.brand) parsed.brand = profile.legal.company;
+          }
+          enriched = JSON.stringify(parsed);
+        } catch {
+          /* профиль битый — анкета как есть */
+        }
+      }
+      writeFileSync(join(jobDir(id), 'answers.json'), enriched);
       writeFileSync(join(jobDir(id), 'photos.json'), '[]');
       writeFileSync(join(jobDir(id), 'owner.txt'), invite.token);
       statuses.set(id, { id, stage: 'queued', history: [] });
@@ -330,6 +414,97 @@ const server = createServer(async (req, res) => {
         return json(res, 200, { ...(specPayload(result.spec) as object), changed: result.changed });
       }
 
+      // Детали пака: бренд, название, сезон, описание. До сборки — в анкету,
+      // после — прямо в спеку: эти поля не участвуют в геометрии.
+      if (req.method === 'PATCH' && rest === '/meta') {
+        const body = await readBody(req, 8 * 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const patch = JSON.parse(body.toString('utf8')) as {
+          name?: string;
+          brand?: string;
+          season?: string;
+          description?: string;
+        };
+        const cut = (x: unknown, n: number): string | undefined =>
+          typeof x === 'string' && x.trim() ? x.trim().slice(0, n) : undefined;
+        const clean = {
+          name: cut(patch.name, 120),
+          brand: cut(patch.brand, 120),
+          season: cut(patch.season, 60),
+          description: cut(patch.description, 1000),
+        };
+        const spec = specOf(id);
+        if (spec) {
+          const next = {
+            ...spec,
+            style: {
+              ...spec.style,
+              ...(clean.name ? { name: clean.name } : {}),
+              ...(clean.brand ? { brand: clean.brand } : {}),
+              ...(clean.season ? { season: clean.season } : {}),
+              ...(clean.description ? { description: clean.description } : {}),
+            },
+          };
+          writeFileSync(join(dir, 'spec.json'), JSON.stringify(next, null, 2));
+          writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        }
+        try {
+          const answers = JSON.parse(readFileSync(join(dir, 'answers.json'), 'utf8')) as Record<
+            string,
+            unknown
+          >;
+          writeFileSync(
+            join(dir, 'answers.json'),
+            JSON.stringify({ ...answers, ...JSON.parse(JSON.stringify(clean)) }),
+          );
+        } catch {
+          /* анкета неизменна */
+        }
+        logEvent(invite.name, 'meta', {
+          id,
+          fields: Object.keys(clean).filter((k) => clean[k as keyof typeof clean]),
+        });
+        return json(res, 200, { ok: true });
+      }
+
+      // Дублировать пак / взять за основу: новая джоба с той же анкетой.
+      if (req.method === 'POST' && rest === '/duplicate') {
+        const answers = readFileSync(join(dir, 'answers.json'), 'utf8');
+        const copy = randomBytes(8).toString('hex');
+        mkdirSync(jobDir(copy), { recursive: true });
+        const parsed = JSON.parse(answers) as Record<string, unknown>;
+        parsed.id = `demo-${Date.now()}`;
+        parsed.article = `DEMO-${String(Date.now()).slice(-6)}`;
+        writeFileSync(join(jobDir(copy), 'answers.json'), JSON.stringify(parsed));
+        writeFileSync(join(jobDir(copy), 'photos.json'), '[]');
+        writeFileSync(join(jobDir(copy), 'owner.txt'), invite.token);
+        statuses.set(copy, { id: copy, stage: 'queued', history: [] });
+        logEvent(invite.name, 'duplicate', { from: id, to: copy });
+        return json(res, 200, { id: copy });
+      }
+
+      // Удаление недеструктивное: флаг, а не rm. Вердикт «удалил и пожалел»
+      // на демо должен быть обратим руками.
+      if (req.method === 'DELETE' && rest === '') {
+        writeFileSync(join(dir, 'deleted.flag'), '1');
+        logEvent(invite.name, 'delete', { id });
+        return json(res, 200, { ok: true });
+      }
+
+      // HTML-предпросмотр документа: превью первой страницы в экспорте
+      // и read-only «ссылка для фабрики». Тот же renderHtml, что печатает PDF.
+      if (req.method === 'GET' && rest === '/preview') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const { renderHtml } = await import('@seamsterly/docgen');
+        const locale = (['ru', 'en', 'zh'] as const).find(
+          (l) => l === url.searchParams.get('locale'),
+        );
+        const html = renderHtml(spec, { pro: true, ...(locale ? { locale } : {}) });
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        return res.end(html);
+      }
+
       if (req.method === 'GET' && rest === '/pdf') {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
@@ -351,6 +526,25 @@ const server = createServer(async (req, res) => {
           'content-disposition': `attachment; filename="${spec.style.article}.pdf"`,
         });
         return res.end(readFileSync(pdfPath));
+      }
+    }
+
+    // Библиотека бренда: юрданные и материалы. Хранится на инвайт и
+    // ПОДМЕШИВАЕТСЯ В АНКЕТУ следующей генерации: заполнил юрданные —
+    // ярлыки перестали быть пробелами. Каскад из хендоффа, по-настоящему.
+    if (url.pathname === '/app/api/profile') {
+      const path = join(DATA, 'profiles', `${invite.token}.json`);
+      if (req.method === 'GET') {
+        if (!existsSync(path)) return json(res, 200, { profile: null });
+        return json(res, 200, { profile: JSON.parse(readFileSync(path, 'utf8')) });
+      }
+      if (req.method === 'PUT') {
+        const body = await readBody(req, 32 * 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        mkdirSync(join(DATA, 'profiles'), { recursive: true });
+        writeFileSync(path, body);
+        logEvent(invite.name, 'profile_saved', null);
+        return json(res, 200, { ok: true });
       }
     }
 

@@ -1,4 +1,5 @@
 import type { StyleSpec } from '@seamsterly/stylespec';
+import type { BrandProfile, JobRow } from './store.js';
 /**
  * Клиент API. Токен инвайта живёт в URL и в sessionStorage: человек получил
  * ссылку в мессенджере, открыл — и он внутри. Никаких паролей на созвоне.
@@ -62,6 +63,18 @@ export const api = {
     const token = inviteToken();
     return `/app/api/jobs/${id}/pdf?t=${token ?? ''}`;
   },
+  jobs: () => call<{ jobs: JobRow[] }>('/jobs'),
+  meta: (id: string, patch: Record<string, string>) =>
+    call<{ ok: true }>(`/jobs/${id}/meta`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  duplicate: (id: string) => call<{ id: string }>(`/jobs/${id}/duplicate`, { method: 'POST' }),
+  remove: (id: string) => call<{ ok: true }>(`/jobs/${id}`, { method: 'DELETE' }),
+  previewUrl: (id: string, locale?: string) => {
+    const token = inviteToken();
+    return `/app/api/jobs/${id}/preview?t=${token ?? ''}${locale ? `&locale=${locale}` : ''}`;
+  },
+  profile: () => call<{ profile: BrandProfile | null }>('/profile'),
+  saveProfile: (profile: unknown) =>
+    call<{ ok: true }>('/profile', { method: 'PUT', body: JSON.stringify(profile) }),
   event: (type: string, payload?: unknown) =>
     call<{ ok: true }>('/events', {
       method: 'POST',
