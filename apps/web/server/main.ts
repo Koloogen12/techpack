@@ -261,6 +261,36 @@ const server = createServer(async (req, res) => {
       }
     }
 
+    // Документ по фабричной ссылке: read-only HTML без аккаунта и инвайта.
+    // Токен ссылки — отдельный от инвайта, знание токена и есть доступ.
+    const shareMatch = url.pathname.match(/^\/p\/([a-f0-9]{16})$/);
+    if (req.method === 'GET' && shareMatch) {
+      const tok = shareMatch[1]!;
+      const { readdirSync } = await import('node:fs');
+      const id = readdirSync(join(DATA, 'jobs'), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .find((jid) => {
+          try {
+            return (
+              readFileSync(join(jobDir(jid), 'share.txt'), 'utf8').trim() === tok &&
+              !existsSync(join(jobDir(jid), 'deleted.flag'))
+            );
+          } catch {
+            return false;
+          }
+        });
+      const spec = id ? specOf(id) : null;
+      if (!spec) return json(res, 404, { error: 'нет такого документа' });
+      const { renderHtml } = await import('@seamsterly/docgen');
+      logEvent('фабрика', 'share_open', { id });
+      res.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+        'x-robots-tag': 'noindex, nofollow',
+      });
+      return res.end(renderHtml(spec, { pro: true }));
+    }
+
     // Всё остальное — только по инвайту.
     if (!invite) {
       return json(res, 401, {
@@ -557,25 +587,54 @@ const server = createServer(async (req, res) => {
         return res.end(html);
       }
 
+      // Ссылка для фабрики: отдельный токен, живёт в каталоге джобы.
+      // Идемпотентно — повторный запрос возвращает тот же токен.
+      if (req.method === 'POST' && rest === '/share') {
+        const path = join(dir, 'share.txt');
+        let token: string;
+        if (existsSync(path)) token = readFileSync(path, 'utf8').trim();
+        else {
+          token = randomBytes(8).toString('hex');
+          writeFileSync(path, token);
+          logEvent(invite.name, 'share_created', { id });
+        }
+        return json(res, 200, { token });
+      }
+
       if (req.method === 'GET' && rest === '/pdf') {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
-        const pdfPath = join(dir, 'pack.pdf');
-        if (existsSync(join(dir, 'pdf-stale.flag')) || !existsSync(pdfPath)) {
-          const { renderPdf } = await import('@seamsterly/docgen');
-          writeFileSync(pdfPath, await renderPdf(spec, { pro: true }));
-          try {
-            writeFileSync(join(dir, 'pdf-stale.flag'), '');
-            const { unlinkSync } = await import('node:fs');
-            unlinkSync(join(dir, 'pdf-stale.flag'));
-          } catch {
-            /* не мешает */
-          }
+        const locale = (['en', 'zh'] as const).find((l) => l === url.searchParams.get('locale'));
+        const role = (['technologist', 'cutter', 'qc', 'supply'] as const).find(
+          (r) => r === url.searchParams.get('role'),
+        );
+        const variant = `${role ?? 'full'}-${locale ?? 'ru'}`;
+        const pdfPath = join(dir, variant === 'full-ru' ? 'pack.pdf' : `pack-${variant}.pdf`);
+        // Свежесть — по времени спеки: вариантов несколько, а правка замера
+        // обязана устаревить их все разом.
+        const { statSync } = await import('node:fs');
+        const specM = statSync(join(dir, 'spec.json')).mtimeMs;
+        if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < specM) {
+          const { renderPdf, roleProfile } = await import('@seamsterly/docgen');
+          const profile = role ? roleProfile(role) : null;
+          writeFileSync(
+            pdfPath,
+            await renderPdf(spec, {
+              ...(profile
+                ? { sections: profile.sections, pro: profile.pro, roleLabel: profile.label_ru }
+                : { pro: true }),
+              ...(locale ? { locale } : {}),
+            }),
+          );
         }
-        logEvent(invite.name, 'pdf', { id });
+        logEvent(invite.name, 'pdf', {
+          id,
+          ...(role ? { role } : {}),
+          ...(locale ? { locale } : {}),
+        });
         res.writeHead(200, {
           'content-type': 'application/pdf',
-          'content-disposition': `attachment; filename="${spec.style.article}.pdf"`,
+          'content-disposition': `attachment; filename="${spec.style.article}${role ? `-${role}` : ''}${locale ? `-${locale}` : ''}.pdf"`,
         });
         return res.end(readFileSync(pdfPath));
       }

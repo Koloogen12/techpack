@@ -158,6 +158,47 @@ sub(
   1,
 );
 
+// Макетный контент прототипа (сид-материалы библиотеки, история списаний
+// с макетными паками) живёт только в демо-режиме ?demo=1 — обычный гость
+// и инвайт-пользователь начинают с нуля.
+sub(
+  '<div style="display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid #EFEDE9">\n<span style="width:14px;height:14px;flex:none;border-radius:5px;background:#0E0E0E;border:1px solid rgba(14,14,14,.14)"></span>\n<span style="flex:1;min-width:0"><span style="display:block;font:600 11.5px/16px Sora,sans-serif">Рибана 2×2 · 240 г/м²</span>',
+  '<sc-if value="{{ demoSeedOn }}" hint-placeholder-val="{{ true }}">\n<div style="display:flex;align-items:center;gap:9px;padding:10px 13px;border-bottom:1px solid #EFEDE9">\n<span style="width:14px;height:14px;flex:none;border-radius:5px;background:#0E0E0E;border:1px solid rgba(14,14,14,.14)"></span>\n<span style="flex:1;min-width:0"><span style="display:block;font:600 11.5px/16px Sora,sans-serif">Рибана 2×2 · 240 г/м²</span>',
+  1,
+);
+sub(
+  '>877 C</span>\n</div>\n<sc-for list="{{ libMatRows }}"',
+  '>877 C</span>\n</div>\n</sc-if>\n<sc-for list="{{ libMatRows }}"',
+  1,
+);
+sub(
+  '<div style="border-top:1px solid #E4E1DC">\n<div style="padding:8px 15px;font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67;background:rgba(14,14,14,.02);border-bottom:1px solid #EFEDE9">История списаний</div>',
+  '<sc-if value="{{ demoSeedOn }}" hint-placeholder-val="{{ true }}">\n<div style="border-top:1px solid #E4E1DC">\n<div style="padding:8px 15px;font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67;background:rgba(14,14,14,.02);border-bottom:1px solid #EFEDE9">История списаний</div>',
+  1,
+);
+sub(
+  'color:#2F7C5A">0</span></div>\n</div>\n</div>',
+  'color:#2F7C5A">0</span></div>\n</div>\n</sc-if>\n</div>',
+  1,
+);
+
+// Баланс генераций — одна логика во всех трёх местах (сайдбар-меню, план).
+sub(
+  '<span style="font:500 34px/38px \'JetBrains Mono\',monospace">2</span>',
+  '<span style="font:500 34px/38px \'JetBrains Mono\',monospace">{{ planBig }}</span>',
+  1,
+);
+sub(
+  '<span style="display:block;width:66%;height:100%;border-radius:99px;background:#0E0E0E"></span>',
+  '<span style="{{ balBarStyle }}"></span>',
+  2,
+);
+sub(
+  '<span style="font:500 10.5px/15px \'JetBrains Mono\',monospace">2 / 3</span>',
+  '<span style="font:500 10.5px/15px \'JetBrains Mono\',monospace">{{ balSlash }}</span>',
+  1,
+);
+
 // Диалог просчёта: в прототипе его список назывался fabRows и затирался
 // одноимённым списком вида фабрики (duplicate key в return renderVals) —
 // диалог рендерился с пустыми полями. Даём ему своё имя.

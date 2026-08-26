@@ -28,6 +28,19 @@ const TOKEN = (() => {
   }
 })();
 
+// Демо-режим прототипа: ?demo=1 без инвайта. Это эталон для сверки с
+// макетами; обычный гость и инвайт-пользователь начинают с нуля —
+// макетного техпака и сид-данных для них не существует.
+const DEMO =
+  !TOKEN &&
+  (() => {
+    try {
+      return new URLSearchParams(location.search).get('demo') === '1';
+    } catch {
+      return false;
+    }
+  })();
+
 const apiCall = async (path, init) => {
   const r = await fetch('/app/api' + path, {
     ...(init || {}),
@@ -531,6 +544,7 @@ class Component extends DCLogic {
     openIds: [],
     genStages: null,
     genError: null,
+    shareTok: null,
   };
 
   _specs = {};
@@ -585,8 +599,8 @@ class Component extends DCLogic {
     };
     window.addEventListener('keydown', this._kz);
 
+    if (!DEMO) this.setState({ wshots: [] });
     if (TOKEN) {
-      this.setState({ wshots: [] });
       apiCall('/me')
         .then((me) => this.setState({ me }))
         .catch(() => {});
@@ -671,9 +685,17 @@ class Component extends DCLogic {
       undoStack: [],
       sel: null,
       onlyGuess: false,
+      shareTok: null,
       ...(p ? { curSpec: p.spec, curDefaults: p.flat_defaults } : {}),
     }));
     this.openDoc(section);
+    // Ссылка для фабрики создаётся заранее: к моменту клика «Скопировать»
+    // она уже есть, и тост не врёт.
+    if (TOKEN) {
+      apiCall('/jobs/' + id + '/share', { method: 'POST' })
+        .then((r) => this.setState({ shareTok: r.token }))
+        .catch(() => {});
+    }
     if (!p) {
       this.loadSpec(id)
         .then((q) => this.setState({ curSpec: q.spec, curDefaults: q.flat_defaults }))
@@ -1239,7 +1261,7 @@ class Component extends DCLogic {
 
     // --- проводка: реальный контекст ---
     const jobsLive = Array.isArray(s.jobs);
-    const fresh = jobsLive ? s.jobs.length === 0 : s.fresh;
+    const fresh = jobsLive ? s.jobs.length === 0 : DEMO ? s.fresh : true;
     const doc = s.curSpec;
     const curJob = jobsLive && s.curId ? s.jobs.find((j) => j.id === s.curId) : null;
     const docNameVal = doc ? doc.style.name : curJob ? curJob.name : 'Структурный жакет';
@@ -1399,6 +1421,7 @@ class Component extends DCLogic {
         ask: () => this.setState({ fabQOpen: s.fabQOpen === code ? null : code, fabQText: '' }),
         sendQ: () => {
           const t = s.fabQText || 'Уточните, пожалуйста, эту строку';
+          if (TOKEN && s.curId) track('fab_question', { id: s.curId, code, text: t.slice(0, 300) });
           this.setState((p) => ({ fabQ: { ...p.fabQ, [code]: t }, fabQOpen: null, fabQText: '' }));
           this.showToast(FT[s.fabLang].sent + ' — ' + code);
         },
@@ -1556,10 +1579,14 @@ class Component extends DCLogic {
       ['Рибана 2×2 · 240 г/м²', '92% CO / 8% EA', '#0E0E0E', 'Black 6 C'],
       ['Молния YKK №3 · металл', 'никель', '#B8B8B4', '877 C'],
     ];
-    const libAllMats = libBase.concat(s.libMats.map((m) => [m.name, m.spec, m.hex, m.pan]));
+    const libAllMats = (DEMO ? libBase : []).concat(
+      s.libMats.map((m) => [m.name, m.spec, m.hex, m.pan]),
+    );
     const packNames = jobsLive
       ? s.jobs.map((j) => j.name)
-      : ['Структурный жакет', 'Худи оверсайз', 'Брюки прямые'];
+      : DEMO
+        ? ['Структурный жакет', 'Худи оверсайз', 'Брюки прямые']
+        : [];
 
     const zipName = s.swapped ? 'Молния по центру переда' : 'Молния по асимметрии';
     const zipDesc = s.swapped
@@ -1819,6 +1846,14 @@ class Component extends DCLogic {
       };
     });
 
+    const WHY_LIVE = {
+      user: WHY.user,
+      photo:
+        'Оценили по фотографиям изделия через пропорции силуэта и эталон масштаба. Точность ±1–2 см.',
+      lib: 'Типовое значение из размерной базы (ГОСТ + отраслевые таблицы).',
+      guess: WHY.guess,
+    };
+    const HIST_SRC = doc ? { ...HIST0, photo: 'ИИ · оценка по фото' } : HIST0;
     const infoData = infoReal || [
       ['Категория', 'Жакет трикотажный', 'photo'],
       ['Силуэт', 'Прилегающий, асимметрия', 'photo'],
@@ -2034,6 +2069,31 @@ class Component extends DCLogic {
           location.href = PDF_URL(s.curId);
           track('pdf_click', { id: s.curId });
           this.showToast('Собираем «PDF полный» — скачается автоматически');
+          return;
+        }
+        if (ci === 1 && TOKEN && s.curId && doc) {
+          const map = {
+            Технолог: 'technologist',
+            Закройщик: 'cutter',
+            ОТК: 'qc',
+            Снабжение: 'supply',
+          };
+          const picked = Object.keys(s.roles).filter((k) => s.roles[k] && map[k]);
+          if (!picked.length)
+            return this.showToast(
+              'Выберите роли чипами ниже — технолог, закройщик, ОТК, снабжение',
+            );
+          picked.forEach((k, i) =>
+            setTimeout(() => {
+              const a = document.createElement('a');
+              a.href = PDF_URL(s.curId) + '&role=' + map[k];
+              a.click();
+            }, i * 500),
+          );
+          track('pdf_roles', { id: s.curId, roles: picked.length });
+          this.showToast(
+            'Собираем PDF по ролям: ' + picked.join(', ') + ' — скачаются автоматически',
+          );
           return;
         }
         if (ci === 2 && doc) {
@@ -2265,35 +2325,37 @@ class Component extends DCLogic {
             j.article || '',
           ];
         })
-      : [
-          [
-            'Структурный жакет',
-            'Жакет · 16 июл, 07:10',
-            'v1.0',
-            st0,
-            'url(assets/flat-alt.png) 50% 50%/contain no-repeat',
-            null,
-            '498BA296',
-          ],
-          [
-            'Худи оверсайз',
-            'Худи · 12 июл, 18:02',
-            'v2.1',
-            'Готов',
-            'url(assets/thumb.jpg) 50% 50%/contain no-repeat',
-            null,
-            '7A2C1105',
-          ],
-          [
-            'Брюки прямые',
-            'Брюки · сегодня, 03:40',
-            'черновик',
-            'Черновик',
-            'url(assets/flat-main.png) 50% 50%/contain no-repeat',
-            null,
-            'B4E80233',
-          ],
-        ];
+      : !DEMO
+        ? []
+        : [
+            [
+              'Структурный жакет',
+              'Жакет · 16 июл, 07:10',
+              'v1.0',
+              st0,
+              'url(assets/flat-alt.png) 50% 50%/contain no-repeat',
+              null,
+              '498BA296',
+            ],
+            [
+              'Худи оверсайз',
+              'Худи · 12 июл, 18:02',
+              'v2.1',
+              'Готов',
+              'url(assets/thumb.jpg) 50% 50%/contain no-repeat',
+              null,
+              '7A2C1105',
+            ],
+            [
+              'Брюки прямые',
+              'Брюки · сегодня, 03:40',
+              'черновик',
+              'Черновик',
+              'url(assets/flat-main.png) 50% 50%/contain no-repeat',
+              null,
+              'B4E80233',
+            ],
+          ];
     const q = (s.dashQ || '').toLowerCase();
     const dashCards = dashSrc
       .filter(
@@ -2425,12 +2487,20 @@ class Component extends DCLogic {
           packs.length +
           ' ' +
           plural(packs.length, 'пак', 'пака', 'паков'),
-      notifDotStyle: fresh
-        ? 'display:none'
-        : 'position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:#C0392B;border:1.5px solid #fff',
+      notifDotStyle:
+        !DEMO || fresh
+          ? 'display:none'
+          : 'position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:#C0392B;border:1.5px solid #fff',
       balLabel: fresh ? '3 из 3' : '2 из 3',
       balShort: fresh ? '3/3' : '2/3',
       packCount: String(packs.length),
+      planBig: fresh ? '3' : '2',
+      balSlash: fresh ? '3 / 3' : '2 / 3',
+      balBarStyle:
+        'display:block;width:' +
+        (fresh ? 100 : 66) +
+        '%;height:100%;border-radius:99px;background:#0E0E0E',
+      demoSeedOn: DEMO,
       centerWrapStyle: narrow
         ? 'position:relative;width:100%;margin:0 auto'
         : 'position:relative;width:100%;max-width:1030px;min-width:820px;margin:0 auto',
@@ -2448,7 +2518,7 @@ class Component extends DCLogic {
         : 'position:absolute;right:64px;top:11px;bottom:11px;width:312px;z-index:12',
       greetText: fresh
         ? 'Привет' + (s.me ? ', ' + s.me.name : '') + ' — добро пожаловать в Seamsterly.'
-        : 'Привет, ' + (s.me ? s.me.name : 'Данил') + ' — с возвращением.',
+        : 'Привет' + (s.me ? ', ' + s.me.name : DEMO ? ', Данил' : '') + ' — с возвращением.',
       heroExOn: !fresh,
       pvSection: PV.sec,
       pvL1: PV.l[0],
@@ -2478,6 +2548,14 @@ class Component extends DCLogic {
             this.showToast('SVG сохранён: «' + docNameVal + ' — чертёж»');
             return;
           }
+        }
+        if (doc && s.gal === 'photo' && TOKEN && s.curId) {
+          const a = document.createElement('a');
+          a.href = PHOTO_URL(s.curId, 1);
+          a.download = artShortVal + '-photo-1.jpg';
+          a.click();
+          this.showToast('Фото сохранено: «' + docNameVal + ' — референс 1»');
+          return;
         }
         this.showToast('PNG сохранён: «' + docNameVal + ' — ' + g.k.toLowerCase() + '» (имитация)');
       },
@@ -2526,7 +2604,7 @@ class Component extends DCLogic {
             ['assets/flat-alt.png', 'sketch-back.png', '374 КБ'],
             ['assets/thumb.jpg', 'detail-zip.jpg', '88 КБ'],
           ];
-          if (TOKEN) this._files.splice(si, 1);
+          if (!DEMO) this._files.splice(si, 1);
           this.set(
             'wshots',
             cur.filter((x, xi) => xi !== si),
@@ -2541,7 +2619,7 @@ class Component extends DCLogic {
           : 'Перетащите фото или эскиз — ' + n + ' из 6';
       })(),
       wizAddShot: () => {
-        if (TOKEN) {
+        if (!DEMO) {
           if ((s.wshots || []).length >= 6) return this.showToast('Уже 6 файлов — это максимум');
           this.pickFiles(false);
           return;
@@ -2609,7 +2687,7 @@ class Component extends DCLogic {
       selTolVal: selRow ? s.tols[s.sel] || selRow[4] : '',
       selStLabel: ST[selKind].l,
       selDotStyle: this.dot(selKind, 8),
-      selWhy: WHY[selKind],
+      selWhy: (doc ? WHY_LIVE : WHY)[selKind],
       selHow: selRow ? selRow[11] : '',
       schemeStyle:
         (schemeReal
@@ -2650,12 +2728,20 @@ class Component extends DCLogic {
           delete conf[s.sel];
           return { vals, tols, confirmed: conf };
         });
-        this.showToast(s.sel + ' сброшено к рассчитанному значению');
+        this.showToast(
+          doc
+            ? s.sel + ' — локальная правка сброшена; применённое значение отменит ⌘Z'
+            : s.sel + ' сброшено к рассчитанному значению',
+        );
       },
       deselect: () => this.set('sel', null),
       resetAll: () => {
         this.setState({ vals: {}, tols: {}, confirmed: {} });
-        this.showToast('Все правки сброшены к рассчитанным значениям');
+        this.showToast(
+          doc
+            ? 'Локальные правки сброшены — применённые значения отменит ⌘Z'
+            : 'Все правки сброшены к рассчитанным значениям',
+        );
       },
       recalc: () => this.showToast('Градация пересчитана от базы ' + INT_OF(bru, bru)),
       gradTipEnter: this.mkTip(
@@ -2874,7 +2960,7 @@ class Component extends DCLogic {
             },
           })),
       })),
-      matCount: String(2 + s.libMats.length),
+      matCount: String((DEMO ? 2 : 0) + s.libMats.length),
       libMatRows: s.libMats.map((m) => ({
         name: m.name,
         spec: m.spec + ' · добавлен вами',
@@ -2969,9 +3055,9 @@ class Component extends DCLogic {
       legalEdit: () =>
         this.setState({
           legalOpen: true,
-          legalOrg: s.legalOrg || 'ИП Кочнев Д. А.',
-          legalInn: s.legalInn || '662345678901',
-          legalAddr: s.legalAddr || 'Екатеринбург, ул. Мира 32',
+          legalOrg: s.legalOrg || (DEMO ? 'ИП Кочнев Д. А.' : ''),
+          legalInn: s.legalInn || (DEMO ? '662345678901' : ''),
+          legalAddr: s.legalAddr || (DEMO ? 'Екатеринбург, ул. Мира 32' : ''),
         }),
       legalOrgIn: s.legalOrg,
       legalInnIn: s.legalInn,
@@ -3055,9 +3141,9 @@ class Component extends DCLogic {
       addScale: () => {
         this.set('scaleShot', true);
         this.showToast(
-          TOKEN
-            ? 'Хорошо — положите лист А4 в кадр, эталон улучшит допуск до ±1 см'
-            : 'Эталон найден: А4 = 29,7 см — допуск улучшен до ±1 см',
+          DEMO
+            ? 'Эталон найден: А4 = 29,7 см — допуск улучшен до ±1 см'
+            : 'Хорошо — положите лист А4 в кадр, эталон улучшит допуск до ±1 см',
         );
       },
       manualOk: !!(s.manual || '').trim(),
@@ -3154,8 +3240,12 @@ class Component extends DCLogic {
         (s.screen === 'doc' || s.screen === 'wizard' ? '10px' : '0px'),
       notifOn: s.notifOpen,
       toggleNotif: () => {
-        if (fresh)
-          return this.showToast('Уведомлений пока нет — они появятся после первой генерации');
+        if (!DEMO || fresh)
+          return this.showToast(
+            fresh
+              ? 'Уведомлений пока нет — они появятся после первой генерации'
+              : 'Новых уведомлений нет',
+          );
         this.setState({ notifOpen: !s.notifOpen, userMenu: false });
       },
       closeNotif: () => this.set('notifOpen', false),
@@ -3325,21 +3415,19 @@ class Component extends DCLogic {
         name: f,
         bg:
           'width:22px;height:22px;flex:none;border-radius:6px;border:1px solid #E4E1DC;background:' +
-          (TOKEN && s.wshots && s.wshots[i]
-            ? 'url(' + s.wshots[i][0] + ')'
-            : 'url(assets/flat-main.png)') +
+          (s.wshots && s.wshots[i] ? 'url(' + s.wshots[i][0] + ')' : 'url(assets/flat-main.png)') +
           ' 50% 50%/cover no-repeat',
         del: (e) => {
           e.stopPropagation();
-          if (TOKEN) this._files.splice(i, 1);
+          if (!DEMO) this._files.splice(i, 1);
           this.setState((p) => ({
             refFiles: p.refFiles.filter((_, j) => j !== i),
-            ...(TOKEN ? { wshots: (p.wshots || []).filter((_, j) => j !== i) } : {}),
+            ...(!DEMO ? { wshots: (p.wshots || []).filter((_, j) => j !== i) } : {}),
           }));
         },
       })),
       addRef: () => {
-        if (TOKEN) {
+        if (!DEMO) {
           if (s.refFiles.length >= 4) return this.showToast('Максимум 4 референса');
           this.pickFiles(true);
           return;
@@ -3429,25 +3517,41 @@ class Component extends DCLogic {
       toggleUserMenu: () => this.set('userMenu', !s.userMenu),
       closeUserMenu: () => this.set('userMenu', false),
       goPlanMenu: () => this.setState({ screen: 'plan', userMenu: false, toolMode: null }),
-      signOut: () =>
-        this.setState({ screen: 'auth', userMenu: false, toolMode: null, authStep: 'email' }),
+      signOut: () => {
+        if (TOKEN) {
+          try {
+            sessionStorage.removeItem('seamsterly_invite');
+          } catch {
+            /* приватный режим */
+          }
+          location.href = '/app/';
+          return;
+        }
+        if (!DEMO) return this.showToast('Вы гость — вход по инвайт-ссылке');
+        this.setState({ screen: 'auth', userMenu: false, toolMode: null, authStep: 'email' });
+      },
       userChevStyle:
         'transition:transform .16s ease;transform:rotate(' + (s.userMenu ? 180 : 0) + 'deg)',
       userEmail: s.me
         ? s.me.name + (s.me.org ? ' · ' + s.me.org : '')
-        : 'danilkochneff652@gmail.com',
+        : DEMO
+          ? 'danilkochneff652@gmail.com'
+          : 'Гость · вход по инвайт-ссылке',
       passVal: s.pass,
       onPass: (e) => this.set('pass', e.target.value),
       signIn: () => {
+        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
         this.setState({ screen: 'home', fresh: false });
         this.showToast('С возвращением — продолжим с того же места');
       },
       yandexIn: () => {
+        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
         this.setState({ screen: 'home', fresh: false });
         this.showToast('Вход через Яндекс ID выполнен');
       },
       forgotPw: () => this.showToast('Отправили ссылку для сброса — проверьте почту'),
       signUpT: () => {
+        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
         this.setState({
           screen: 'home',
           fresh: true,
@@ -3560,7 +3664,7 @@ class Component extends DCLogic {
         ? [
             {
               t: curJob ? fmtDay(curJob.created_at) : '16.07',
-              txt: HIST0[selRow[10]] + ' → ' + selRow[3] + ' см',
+              txt: HIST_SRC[selRow[10]] + ' → ' + selRow[3] + ' см',
             },
           ]
         : []
@@ -3569,7 +3673,17 @@ class Component extends DCLogic {
       diffHas: diffRows.length > 0,
       diffNone: diffRows.length === 0,
       diffCount: diffRows.length ? diffRows.length + ' изм.' : 'нет изменений',
-      copyShare: () => this.showToast('Ссылка скопирована — фабрика откроет без аккаунта'),
+      copyShare: () => {
+        if (TOKEN && s.curId && s.shareTok) {
+          try {
+            navigator.clipboard.writeText('https://' + location.host + '/p/' + s.shareTok);
+          } catch {
+            /* без клипборда ссылка остаётся видимой текстом рядом */
+          }
+          track('share_copy', { id: s.curId });
+        }
+        this.showToast('Ссылка скопирована — фабрика откроет без аккаунта');
+      },
       openFab: () => this.setState({ fabView: true, docMenu: false, exportOpen: false }),
       dmFab: () => this.setState({ fabView: true, docMenu: false }),
       fabClose: () => this.setState({ fabView: false, fabQOpen: null }),
@@ -3649,19 +3763,24 @@ class Component extends DCLogic {
       isWork: s.screen === 'doc' || s.screen === 'wizard',
       isDocScreen: s.screen === 'doc',
       goDash: () => this.setState({ screen: 'dash', toolMode: null }),
-      goAuth: () =>
+      goAuth: () => {
+        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
         this.setState({
           screen: 'auth',
           authStep: 'email',
           code: '',
           codeErr: false,
           toolMode: null,
-        }),
+        });
+      },
       authEmail: s.authStep === 'email',
       authCode: s.authStep === 'code',
       emailVal: s.email,
       onEmail: (e) => this.set('email', e.target.value),
-      sendCode: () => this.set('authStep', 'code'),
+      sendCode: () =>
+        DEMO
+          ? this.set('authStep', 'code')
+          : this.showToast('Публичного входа нет — вход по инвайт-ссылке'),
       codeVal: s.code,
       onCode: (e) => this.setState({ code: e.target.value, codeErr: false }),
       codeInputStyle:
@@ -3677,11 +3796,11 @@ class Component extends DCLogic {
       },
       backEmail: () => this.setState({ authStep: 'email', code: '', codeErr: false }),
       skipAuth: () => this.setState({ screen: 'home' }),
-      dashEmpty: jobsLive ? fresh : s.dashEmpty,
-      dashFull: jobsLive ? !fresh : !s.dashEmpty,
-      toggleDashEmpty: () => this.set('dashEmpty', !s.dashEmpty),
-      dashToggleLabel: s.dashEmpty ? 'показать с паками' : 'показать пустое состояние',
-      fillDash: () => this.setState({ dashEmpty: false, fresh: false }),
+      dashEmpty: jobsLive ? fresh : DEMO ? s.dashEmpty : true,
+      dashFull: jobsLive ? !fresh : DEMO ? !s.dashEmpty : false,
+      toggleDashEmpty: () => DEMO && this.set('dashEmpty', !s.dashEmpty),
+      dashToggleLabel: !DEMO ? '' : s.dashEmpty ? 'показать с паками' : 'показать пустое состояние',
+      fillDash: () => DEMO && this.setState({ dashEmpty: false, fresh: false }),
       dashQ: s.dashQ,
       onDashQ: (e) => this.set('dashQ', e.target.value),
       dashCount: jobsLive
@@ -3691,7 +3810,9 @@ class Component extends DCLogic {
           ' · ' +
           s.jobs.filter((j) => j.stage === 'done').length +
           ' готовы'
-        : '3 пака · 2 готовы',
+        : DEMO
+          ? '3 пака · 2 готовы'
+          : '',
       dashFilters,
       dashCards,
       t1Style: toolBtn('new'),
@@ -3726,7 +3847,7 @@ class Component extends DCLogic {
       toolCtaGo: () => {
         if (!tmv || !tmv.on || s.toolBusy !== null) return;
         if (s.toolMode === 'new') {
-          if (TOKEN) {
+          if (TOKEN || !DEMO) {
             this.setState({ toolMode: null, screen: 'wizard', wizStep: 2, wizMode: 'photo' });
             return;
           }
@@ -3735,7 +3856,7 @@ class Component extends DCLogic {
           return;
         }
         if (s.toolMode === 'draw') {
-          if (TOKEN) {
+          if (TOKEN || !DEMO) {
             this.setState({
               toolMode: null,
               drawFile: false,
@@ -3749,6 +3870,10 @@ class Component extends DCLogic {
           this.setState({ toolMode: null, drawFile: false });
           this.openDoc('flats');
           this.showToast('Чертёж построен — 3 вида, бесплатно');
+          return;
+        }
+        if (!DEMO) {
+          this.showToast(tmv.title + ' появится после беты — сначала соберём полный техпак');
           return;
         }
         this.startToolRun(s.toolMode);
@@ -3848,8 +3973,9 @@ class Component extends DCLogic {
       refreshPdf: () => this.showToast('Превью PDF пересобрано по текущим данным'),
       downloadPdf: () => {
         if (TOKEN && s.curId && doc) {
-          location.href = PDF_URL(s.curId);
-          track('pdf_click', { id: s.curId });
+          const loc = { English: 'en', 中文: 'zh' }[s.pdfLang] || '';
+          location.href = PDF_URL(s.curId) + (loc ? '&locale=' + loc : '');
+          track('pdf_click', { id: s.curId, locale: loc || 'ru' });
           this.showToast('Собираем PDF — скачается автоматически');
           return;
         }
@@ -3962,6 +4088,7 @@ class Component extends DCLogic {
             this.launchGeneration();
             return;
           }
+          if (!DEMO) return this.showToast('Запуск генерации — по инвайт-ссылке');
           this.setState({ screen: 'gen' });
           return this.startGen();
         }
@@ -3971,7 +4098,11 @@ class Component extends DCLogic {
       docArt: docArtVal,
       artShort: artShortVal,
       docUpdated: docUpdatedVal,
-      shareLink: 'seamster.pro/p/' + artShortVal + (doc ? '' : '-123E'),
+      shareLink: doc
+        ? s.shareTok
+          ? location.host + '/p/' + s.shareTok
+          : 'готовим ссылку…'
+        : 'seamster.pro/p/' + artShortVal + '-123E',
       coverBrand: doc ? doc.style.brand || 'не указан' : 'не указан',
       coverBrandStyle:
         'font:300 12px/18px Inter,sans-serif;color:' +
