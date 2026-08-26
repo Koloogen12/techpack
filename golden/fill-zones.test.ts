@@ -200,12 +200,26 @@ describe.each(CATEGORIES)('заливка чертежа: %s', (category) => {
     const m = measurementsFrom(spec);
     const g = buildGeometry(m, 'front', defaults.minSleeveAngleDeg);
 
+    // Точка на рукаве строится ОТ САМОГО РУКАВА, а не от его габарита:
+    // середина низа рукава, отступя назад вдоль верхнего сгиба. Так она
+    // остаётся внутри детали при любом угле отведения. Прежняя точка брала
+    // абсциссу вдоль сгиба, а ординату — от половины высоты конца рукава,
+    // и держалась внутри только пока рукав лежал полого: стоило опустить его
+    // вдоль корпуса, как она уехала на белый фон. Тест ловил не заливку,
+    // а укладку рукава.
+    const dir = { x: Math.cos(g.sleeveAngle), y: Math.sin(g.sleeveAngle) };
+    const cuffMid = {
+      x: (g.sleeveTopEnd.x + g.sleeveBottomEnd.x) / 2,
+      y: (g.sleeveTopEnd.y + g.sleeveBottomEnd.y) / 2,
+    };
+    const back = m.sleeveLength * 0.3;
+
     // Точки, каждая из которых лежит на конкретной детали изделия.
     // Долевая проверка говорит «где-то не залито»; эти точки говорят ГДЕ.
     const points = [
       { x: g.underarm.x * 0.5, y: g.underarm.y + 4 },
       { x: g.shoulderPoint.x * 0.6, y: g.shoulderPoint.y * 0.6 },
-      { x: g.sleeveTopEnd.x * 0.55 + g.shoulderPoint.x * 0.45, y: g.sleeveTopEnd.y * 0.5 + 3 },
+      { x: cuffMid.x - dir.x * back, y: cuffMid.y - dir.y * back },
     ];
     const labels = ['грудь', 'плечо', 'рукав'];
 

@@ -61,6 +61,7 @@ import {
   type BodyCrossSectionFile,
   type BodyRatio,
   type FlatConventionsFile,
+  type FlatProportion,
   type SleeveAngle,
   ScaleReferencesFileSchema,
   type ScaleReference,
@@ -252,6 +253,18 @@ export class KnowledgeBase {
     const found = this.flatConventions.sleeve_angles.find((a) => a.kind === kind);
     if (!found) throw new Error(`нет условности отведения рукава: ${kind}`);
     return found;
+  }
+
+  /**
+   * Эталонные диапазоны пропорций технического чертежа.
+   *
+   * Отдаются целиком, а не по одному: тест-бенчмарк обязан пройти ВСЕ записи,
+   * иначе добавленная сюда пропорция будет молча непроверяемой. Читать список
+   * и решать, что из него применимо к изделию, — дело вызывающей стороны:
+   * у футболки нет капюшона, и требовать от неё пропорцию капюшона незачем.
+   */
+  flatProportions(): readonly FlatProportion[] {
+    return this.flatConventions.proportions;
   }
 
   bodyRatio(gender: Gender): BodyRatio {
@@ -566,6 +579,16 @@ export class KnowledgeBase {
       if (!r.verified) push('labeling_requirements', r.id, r.gap);
     }
     if (!this.visibility.verified) push('visibility_map', 'map', this.visibility.gap);
+    // Условности чертежа в бэклог не попадали вовсе — ни угол отведения рукава,
+    // ни диапазоны пропорций. Справочник, которого нет в отчёте, выглядит
+    // проверенным, хотя не проверен ни один его пункт: ровно так угол в 32°
+    // и прожил в продукте, ни разу не показавшись в списке долгов.
+    for (const a of this.flatConventions.sleeve_angles) {
+      if (!a.verified) push('flat_conventions', `sleeve_angle/${a.kind}`, a.gap);
+    }
+    for (const p of this.flatConventions.proportions) {
+      if (!p.verified) push('flat_conventions', `${p.id}/${p.scope}`, p.gap);
+    }
     return out;
   }
 }

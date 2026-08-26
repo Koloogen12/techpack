@@ -80,6 +80,47 @@
 9. Внутренние элементы — пунктиром или на inside view.
 10. Подпись вида: FRONT / BACK / DETAIL A.
 
+## 7. Пропорции: эталонные диапазоны и как они замерены
+
+Правило §6.3 «пропорции — реальные, из POM-таблицы» до августа 2026 не было
+ничем измерено: генератор проверялся на связность (боковой шов на половине
+ширины, правка замера двигает разметку), но никто не сравнивал ГОТОВЫЙ чертёж
+с профессиональным флэтом. Из-за этого длинный рукав полгода рисовался
+отведённым в сторону под 32° и давал лист вдвое шире своей высоты.
+
+**Отведение длинного рукава.** Контуры двух профессиональных флэтов сняты
+попиксельно по порогу яркости, угол посчитан по хорде от плечевой точки
+до крайней точки рукава: худи — 65.6°, свитшот — 69.9° к горизонтали
+(посегментно 59–88°: рукав сужается к манжете и к низу идёт почти отвесно).
+Вывод, который важнее самого числа: **на техническом флэте длинный рукав висит
+ВДОЛЬ корпуса, а не отведён в сторону.** Отсюда же следует, что ширина рукава
+под проймой НА ЧЕРТЕЖЕ заметно меньше замера T12 — при 68° она составляет
+около трети его, и это нормально для флэта: ткань у проймы подобрана. Замер
+берётся из табеля мер, о чём на листе сказано отдельной оговоркой.
+
+**Где лежат диапазоны.** `packages/kb/data/flat_conventions.json`, массив
+`proportions`: у каждой величины источник, границы и метка достоверности.
+Проверяются тестом `packages/flats/test/proportions.test.ts` на всех категориях
+и всех посадках. Величины с источником: длина изделия к ширине по груди,
+ширина плеч к ширине по груди, длина рукава к длине изделия, низ рукава
+к ширине по груди, отношение каждого нарисованного размера к табличному.
+
+**Чего в открытых данных нет.** Ширину рукава под проймой (T12), пройму,
+ширину горловины, размеры капюшона, кармана и высоты рибан не публикует
+ни один блэнк-бренд — проверены Gildan, Comfort Colors, Champion, Sport-Tek,
+Independent Trading, Bella+Canvas, LAT, AS Colour, Stanley/Stella, Iron Heart,
+DIFUZED. LAT Apparel — единственный, кто эти точки хотя бы ОПРЕДЕЛЯЕТ
+(«Hood Height: measure from top to bottom of hood opening»), но значений
+не даёт. Это отраслевое молчание, а не недосмотр поиска: такие числа живут
+только внутри фабричных техпаков.
+
+⚠️ Ловушка при сборе эталонов: «Sleeve Length» у разных брендов означает три
+разные величины — от центра спинки (Gildan, Comfort Colors, Sport-Tek),
+от плечевой точки (Stanley/Stella), от шва проймы (LAT). Разница около 25 см.
+Наш T10 — от плечевой точки, и сравнивать его можно только с последними двумя.
+
+Источники замеров: [флэт худи](https://www.fashiondesign411.com/wp-content/uploads/004-mens-pullover-hoodie-sweatshirt-kangaroo-pocket-flat-sketch.webp) · [флэт свитшота](https://www.fashiondesign411.com/wp-content/uploads/1008-Knits-Menswear-Fashion-Sketches-Template.webp) · [Points of Measure — масштаб чертежа](https://www.pointsofmeasure.com/tutorials-education/how-to-draw-technical-flats-by-hand) · [Stanley/Stella STTU755](https://api.stanleystella.com/ProductSheet/en_US/STTU755.pdf) · [Iron Heart IHSW-49](https://ironheart.co.uk/products/ihsw-49-olv) · [LAT Measuring Guide](https://www.latapparel.com/live/documents/MeasuringGuideforWeb.pdf) · [DIFUZED](https://blog.difuzed.com/wp-content/uploads/2021/03/DIFUZED-Measurement-sheets-Apparel-Men.pdf)
+
 ## Источники
 
 [Techpacker — Flat Sketches](https://techpacker.com/blog/design/fashion-technical-flat-sketches/) · [FittDesign](https://www.fittdesign.com/blog/flat-design-sketches-vs-technical-sketches-key-differences-in-apparel-design) · [Fashion Index](https://www.fashionindex.com/blog/apparel-tech-pack-technical-design-sketches) · [Arcus AG](https://www.arcusag.com/fashion-design-sketches-that-manufacturers-understand/) · [Techpack Wizard](https://techpackwizard.com/what-are-flats-in-fashion-design-and-why-they-re-important/) · [Wearview](https://www.wearview.co/glossary/flat-sketch)
