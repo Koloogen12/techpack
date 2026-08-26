@@ -199,10 +199,59 @@ sub(
   1,
 );
 
-// Диалог просчёта: в прототипе его список назывался fabRows и затирался
-// одноимённым списком вида фабрики (duplicate key в return renderVals) —
-// диалог рендерился с пустыми полями. Даём ему своё имя.
-sub('<sc-for list="{{ fabRows }}" as="fb"', '<sc-for list="{{ fabsList }}" as="fb"', 1);
+// Уведомления: три выдуманные строки макета заменяются реальным списком.
+// Разметка строки — та же самая, что в прототипе, только повторяется по данным.
+sub(
+  `<div onClick="{{ notifCalc }}" style="display:flex;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer" style-hover="background:rgba(14,14,14,.045)">
+<span style="width:7px;height:7px;flex:none;border-radius:50%;background:#2F7C5A;margin-top:4px"></span>
+<span style="min-width:0"><span style="display:block;font:600 11px/15px Sora,sans-serif">Пришли просчёты — 2 фабрики</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67">Структурный жакет · сегодня, 09:12</span></span>
+</div>
+<div onClick="{{ notifPom }}" style="display:flex;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer" style-hover="background:rgba(14,14,14,.045)">
+<span style="width:7px;height:7px;flex:none;border-radius:50%;background:#C0392B;margin-top:4px"></span>
+<span style="min-width:0"><span style="display:block;font:600 11px/15px Sora,sans-serif">Подтвердите 5 предположений</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67">до отправки на производство</span></span>
+</div>
+<div onClick="{{ closeNotif }}" style="display:flex;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer" style-hover="background:rgba(14,14,14,.045)">
+<span style="width:7px;height:7px;flex:none;border-radius:50%;background:#B0ADA6;margin-top:4px"></span>
+<span style="min-width:0"><span style="display:block;font:600 11px/15px Sora,sans-serif;color:#6B6B67">Генерация «Худи оверсайз» готова</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#B0ADA6">12 июл, 18:02 · прочитано</span></span>
+</div>`,
+  `<sc-for list="{{ notifItems }}" as="nt" hint-placeholder-count="3">
+<div onClick="{{ nt.go }}" style="display:flex;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer" style-hover="background:rgba(14,14,14,.045)">
+<span style="{{ nt.dotStyle }}"></span>
+<span style="min-width:0"><span style="{{ nt.titleStyle }}">{{ nt.title }}</span><span style="{{ nt.subStyle }}">{{ nt.sub }}</span></span>
+</div>
+</sc-for>
+<sc-if value="{{ notifEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:9px;padding:8px 9px;border-radius:9px">
+<span style="width:7px;height:7px;flex:none;border-radius:50%;background:#B0ADA6;margin-top:4px"></span>
+<span style="min-width:0"><span style="display:block;font:600 11px/15px Sora,sans-serif;color:#6B6B67">Пока пусто</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#B0ADA6">события появятся после первой генерации</span></span>
+</div>
+</sc-if>`,
+  1,
+);
+
+// Просчёт: выбирать из трёх выдуманных фабрик человеку не дадим. В рабочем
+// режиме это заявка консьержу — с полем комментария и честным сроком.
+sub(
+  `<div style="display:flex;flex-direction:column;gap:7px">
+<sc-for list="{{ fabRows }}" as="fb" hint-placeholder-count="3">`,
+  `<sc-if value="{{ quoteRealOn }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="border-radius:10px;border:1px solid rgba(31,138,76,.28);background:#fff;padding:11px 12px">
+<div style="font:600 11.5px/16px Sora,sans-serif">Партнёрская сеть фабрик Seamsterly</div>
+<div style="font:400 10px/15px Sora,sans-serif;color:#6B6B67;margin-top:3px">Отправим ваш техпак фабрикам, которые шьют такие изделия, и вернёмся с ценами. Выбор фабрик и переписку берём на себя.</div>
+</div>
+<input value="{{ quoteComment }}" onChange="{{ onQuoteComment }}" placeholder="Что важно учесть: сроки, тираж, пожелания по цене" style="width:100%;padding:9px 10px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#fff;font:400 11px/15px Sora,sans-serif" style-focus="border-color:rgba(14,14,14,.35)">
+</div>
+</sc-if>
+<div style="display:flex;flex-direction:column;gap:7px">
+<sc-for list="{{ fabsList }}" as="fb" hint-placeholder-count="3">`,
+  1,
+);
+sub(
+  `<span style="font:400 10px/15px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">Фабрики получат PDF и вернут цену за единицу при вашем тираже. Статус пака сменится на «На просчёте».</span>`,
+  `<span style="font:400 10px/15px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ quoteNote }}</span>`,
+  1,
+);
 
 // Живой чертёж: в экран «Чертёж» добавляется слой реальных SVG из спеки.
 // Демо-SVG прототипа остаётся нетронутым и показывается, пока спеки нет.
@@ -215,6 +264,64 @@ sub(
     '<svg viewBox="{{ flatVB }}" preserveAspectRatio="xMidYMid meet" style="{{ flatSvgStyle }}">',
   1,
 );
+// Пункт «Пригласить друга» в меню аккаунта вёл в closeUserMenu (заглушка) —
+// теперь открывает реальную реферальную программу.
+sub(
+  '<div onClick="{{ closeUserMenu }}" style="display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer;margin-top:4px"',
+  '<div onClick="{{ inviteFriend }}" style="display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;cursor:pointer;margin-top:4px"',
+  1,
+);
+
+// Три модальных окна, которых в прототипе не было, потому что там эти
+// действия были тостами-имитациями. Собраны из его же токенов и паттерна
+// модалки «Выйти из мастера?»: белая карточка 14px, тень 0 24px 56px,
+// sfup, кнопки 27px — ничего нового не изобретено.
+sub(
+  '<sc-if value="{{ tipOn }}" hint-placeholder-val="{{ false }}">',
+  `<sc-if value="{{ modalOn }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:44;background:rgba(14,14,14,.34);display:flex;align-items:center;justify-content:center;padding:20px">
+<div onClick="{{ modalStop }}" style="width:100%;max-width:420px;border-radius:14px;background:#fff;border:1px solid rgba(14,14,14,.1);box-shadow:0 24px 56px rgba(0,0,0,.24);padding:20px 22px 18px;animation:sfup .18s ease">
+<div style="display:flex;align-items:center;gap:10px">
+<span style="{{ modalIconStyle }}">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4.5 4.5L19 7"></path></svg>
+</span>
+<span style="font:700 15px/21px Sora,sans-serif;letter-spacing:-.1px">{{ modalTitle }}</span>
+</div>
+<div style="font:400 11.5px/18px Sora,sans-serif;color:#5A5A56;margin-top:11px;text-wrap:pretty">{{ modalText }}</div>
+<sc-if value="{{ modalLinkOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:7px;margin-top:13px">
+<span style="flex:1;min-width:0;padding:9px 11px;border-radius:9px;background:rgba(14,14,14,.04);font:400 10.5px/15px 'JetBrains Mono',monospace;color:#5A5A56;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ modalLink }}</span>
+<span onClick="{{ modalCopy }}" style="flex:none;height:33px;border-radius:9px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 12px;font:600 10.5px/15px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Скопировать</span>
+</div>
+</sc-if>
+<sc-if value="{{ modalStatsOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:9px;margin-top:13px">
+<span style="flex:1;border-radius:10px;border:1px solid #E4E1DC;padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace">{{ refInvited }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67">приглашено</span></span>
+<span style="flex:1;border-radius:10px;border:1px solid #E4E1DC;padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace">{{ refJoined }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67">подключилось</span></span>
+<span style="flex:1;border-radius:10px;border:1px solid rgba(41,117,82,.22);background:rgba(228,247,239,.5);padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace;color:#2F7C5A">{{ refCredits }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#2F7C5A">генераций</span></span>
+</div>
+</sc-if>
+<sc-if value="{{ modalFormOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:13px">
+<input value="{{ claimName }}" onChange="{{ onClaimName }}" placeholder="Как вас зовут" style="width:100%;padding:10px 11px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11.5px/16px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
+<input value="{{ claimContact }}" onChange="{{ onClaimContact }}" placeholder="Телеграм или почта для ответа" style="width:100%;padding:10px 11px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11.5px/16px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
+<input value="{{ claimNote }}" onChange="{{ onClaimNote }}" placeholder="Что шьёте — пара слов" style="width:100%;padding:10px 11px 26px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11.5px/16px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
+</div>
+</sc-if>
+<div style="display:flex;gap:7px;margin-top:16px">
+<span onClick="{{ modalGo }}" style="{{ modalCtaStyle }}">{{ modalCta }}</span>
+<sc-if value="{{ modalCancelOn }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ closeModal }}" style="flex:none;height:34px;border-radius:9px;border:1px solid rgba(14,14,14,.12);display:flex;align-items:center;padding:0 14px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Отмена</span>
+</sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ tipOn }}" hint-placeholder-val="{{ false }}">`,
+  1,
+);
+
 sub(
   '</svg>\n<span style="position:absolute;left:12px;top:12px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.92);border:1px solid #E4E1DC;font:400 9.7px/14px \'JetBrains Mono\',monospace;color:#5A5A56">{{ viewBadge }}</span>',
   '</svg>\n</sc-if>\n<span style="position:absolute;left:12px;top:12px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.92);border:1px solid #E4E1DC;font:400 9.7px/14px \'JetBrains Mono\',monospace;color:#5A5A56">{{ viewBadge }}</span>',

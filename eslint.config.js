@@ -5,6 +5,8 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/**',
+      // Рабочие копии субагентов: у них свой прогон проверок.
+      '.claude/worktrees/**',
       '**/dist/**',
       'coverage/**',
       'design_handoff_seamsterly/**',

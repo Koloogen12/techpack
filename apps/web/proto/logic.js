@@ -41,13 +41,28 @@ const DEMO =
     }
   })();
 
+// Код приглашения из адреса: гость пришёл по ссылке бренда и должен
+// получить форму заявки, а не пустой кабинет без объяснений.
+const REF = (() => {
+  try {
+    return new URLSearchParams(location.search).get('ref') || null;
+  } catch {
+    return null;
+  }
+})();
+
 const apiCall = async (path, init) => {
   const r = await fetch('/app/api' + path, {
     ...(init || {}),
     headers: { ...((init && init.headers) || {}), ...(TOKEN ? { 'x-invite': TOKEN } : {}) },
   });
   const b = await r.json().catch(() => null);
-  if (!r.ok || b === null) throw new Error((b && b.error) || 'ошибка ' + r.status);
+  if (!r.ok || b === null) {
+    const err = new Error((b && b.error) || 'ошибка ' + r.status);
+    if (r.status === 402) err.limit = true;
+    if (b && b.action) err.action = b.action;
+    throw err;
+  }
   return b;
 };
 
@@ -170,6 +185,30 @@ const SECTIONS = [
   { id: 'vers', label: 'Версии', sub: 'примерки образцов' },
   { id: 'export', label: 'Экспорт', sub: 'PDF, SVG, фабрики' },
 ];
+/** Уведомления макета: живут только в демо-режиме сверки. */
+const DEMO_NOTES = [
+  {
+    title: 'Пришли просчёты — 2 фабрики',
+    sub: 'Структурный жакет · сегодня, 09:12',
+    tone: 'ok',
+    read: false,
+  },
+  {
+    title: 'Подтвердите 5 предположений',
+    sub: 'до отправки на производство',
+    tone: 'alert',
+    read: false,
+    section: 'pom',
+    guesses: true,
+  },
+  {
+    title: 'Генерация «Худи оверсайз» готова',
+    sub: '12 июл, 18:02 · прочитано',
+    tone: 'muted',
+    read: true,
+  },
+];
+
 const FIT_DEMO = [
   ['A', 'Полуобхват груди', 52.0, 1.0, '52,8'],
   ['C', 'Ширина плеч', 41.0, 0.5, '41,2'],
@@ -545,6 +584,14 @@ class Component extends DCLogic {
     genStages: null,
     genError: null,
     shareTok: null,
+    modal: null,
+    notifs: [],
+    ref: null,
+    quoteComment: '',
+    claimName: '',
+    claimContact: '',
+    claimNote: '',
+    claimSent: false,
   };
 
   _specs = {};
@@ -600,7 +647,18 @@ class Component extends DCLogic {
     window.addEventListener('keydown', this._kz);
 
     if (!DEMO) this.setState({ wshots: [] });
+    if (!TOKEN && REF) {
+      // Пришёл по приглашению: сразу объясняем, что происходит, и просим контакт.
+      this.setState({
+        modal: { kind: 'claim', title: 'Вас пригласили в Seamsterly' },
+      });
+    }
     if (TOKEN) {
+      this.pollNotifs();
+      this._nt = setInterval(() => this.pollNotifs(), 60_000);
+      apiCall('/referral')
+        .then((r) => this.setState({ ref: r }))
+        .catch(() => {});
       apiCall('/me')
         .then((me) => this.setState({ me }))
         .catch(() => {});
@@ -637,6 +695,7 @@ class Component extends DCLogic {
     clearInterval(this._tw);
     clearInterval(this._tb);
     clearInterval(this._pl);
+    clearInterval(this._nt);
     clearTimeout(this._t);
     clearTimeout(this._dl);
     clearTimeout(this._fl);
@@ -647,6 +706,13 @@ class Component extends DCLogic {
   }
 
   /* ------------------------------------------------------------- проводка */
+
+  pollNotifs() {
+    if (!TOKEN) return;
+    apiCall('/notifications')
+      .then((r) => this.setState({ notifs: r.items || [] }))
+      .catch(() => {});
+  }
 
   refreshJobs() {
     if (!TOKEN) return;
@@ -975,14 +1041,24 @@ class Component extends DCLogic {
         this.refreshJobs();
         this.startRealGen(id);
       } catch (e) {
+        const msg = String((e && e.message) || e);
+        // Лимит — не сбой: человеку нужен понятный разговор, а не экран ошибки.
+        if (e && e.limit) {
+          this.setState({
+            screen: 'home',
+            modal: {
+              kind: 'limit',
+              title: 'Лимит генераций исчерпан',
+              text: msg + ' ' + (e.action || ''),
+            },
+          });
+          return;
+        }
         this.setState({
           genErr: true,
-          genError: {
-            message: String((e && e.message) || e),
-            action: 'Проверьте инвайт-ссылку и повторите.',
-          },
+          genError: { message: msg, action: 'Проверьте инвайт-ссылку и повторите.' },
         });
-        this.showToast('Не получилось запустить: ' + String((e && e.message) || e));
+        this.showToast('Не получилось запустить: ' + msg);
       }
     })();
   }
@@ -1269,6 +1345,9 @@ class Component extends DCLogic {
     const artShortVal = doc ? doc.style.article : '498BA296';
     const docUpdatedVal = curJob ? fmtWhen(curJob.created_at) : '16 июл, 07:10';
     const bru = doc && doc.base ? doc.base.base_size_ru || 46 : 46;
+    // Остаток генераций: сервер — единственный источник правды, интерфейс
+    // только показывает. До ответа /me держим месячную норму.
+    const lim = (s.me && s.me.limits) || { used: 0, limit: 3, credits: 0, left: 3, resets_at: '' };
     const pomReal = this.curPOM();
     const bomReal = this.curBOM();
     const nodesReal = this.curNodes();
@@ -2487,18 +2566,17 @@ class Component extends DCLogic {
           packs.length +
           ' ' +
           plural(packs.length, 'пак', 'пака', 'паков'),
-      notifDotStyle:
-        !DEMO || fresh
-          ? 'display:none'
-          : 'position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:#C0392B;border:1.5px solid #fff',
-      balLabel: fresh ? '3 из 3' : '2 из 3',
-      balShort: fresh ? '3/3' : '2/3',
+      notifDotStyle: (TOKEN ? !s.notifs.some((n) => !n.read) : !DEMO || fresh)
+        ? 'display:none'
+        : 'position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:50%;background:#C0392B;border:1.5px solid #fff',
+      balLabel: lim.left + ' из ' + lim.limit,
+      balShort: lim.left + '/' + lim.limit,
       packCount: String(packs.length),
-      planBig: fresh ? '3' : '2',
-      balSlash: fresh ? '3 / 3' : '2 / 3',
+      planBig: String(lim.left),
+      balSlash: lim.used + ' / ' + lim.limit,
       balBarStyle:
         'display:block;width:' +
-        (fresh ? 100 : 66) +
+        Math.round((Math.max(0, lim.limit - lim.used) / Math.max(1, lim.limit)) * 100) +
         '%;height:100%;border-radius:99px;background:#0E0E0E',
       demoSeedOn: DEMO,
       centerWrapStyle: narrow
@@ -3207,8 +3285,27 @@ class Component extends DCLogic {
         this.showToast(
           'GTIN выдаёт ГС1 РУС — сгенерируем номера при первом тираже, гид в базе знаний',
         ),
-      upgradePlan: () =>
-        this.showToast('Записали в лист ожидания «Студии» — оплата откроется после беты'),
+      upgradePlan: () => {
+        if (TOKEN) {
+          apiCall('/waitlist', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ plan: 'Студия' }),
+          }).catch(() => {});
+        }
+        this.setState({ modal: { kind: 'waitlist', title: 'Записали в лист ожидания' } });
+      },
+      inviteFriend: () => {
+        if (!TOKEN)
+          return this.showToast('Приглашения доступны участникам беты — вход по инвайт-ссылке');
+        apiCall('/referral')
+          .then((r) => this.setState({ ref: r }))
+          .catch(() => {});
+        this.setState({
+          userMenu: false,
+          modal: { kind: 'referral', title: 'Пригласить друга' },
+        });
+      },
       legalDocs: () => this.showToast('Документ откроется на seamster.pro (имитация)'),
       panelModelName: s.panelAlt ? 'Стандартная точность' : 'Максимальная точность',
       panelModelTime: s.panelAlt ? 'Модель · ~3–4 мин' : 'Модель · ~6–10 мин',
@@ -3238,8 +3335,37 @@ class Component extends DCLogic {
         (s.screen === 'doc' || s.screen === 'wizard' ? '0px' : '34px') +
         ');padding-top:' +
         (s.screen === 'doc' || s.screen === 'wizard' ? '10px' : '0px'),
+      notifItems: (TOKEN ? s.notifs : DEMO ? DEMO_NOTES : []).map((n) => ({
+        title: n.title,
+        sub: n.sub,
+        dotStyle:
+          'width:7px;height:7px;flex:none;border-radius:50%;margin-top:4px;background:' +
+          (n.tone === 'ok' ? '#2F7C5A' : n.tone === 'alert' ? '#C0392B' : '#B0ADA6'),
+        titleStyle:
+          'display:block;font:600 11px/15px Sora,sans-serif' + (n.read ? ';color:#6B6B67' : ''),
+        subStyle:
+          'display:block;font:400 9.5px/13px Sora,sans-serif;color:' +
+          (n.read ? '#B0ADA6' : '#6B6B67'),
+        go: () => {
+          this.setState({ notifOpen: false });
+          if (TOKEN) {
+            apiCall('/notifications', { method: 'POST' })
+              .then(() => this.pollNotifs())
+              .catch(() => {});
+          }
+          if (n.guesses) this.setState({ onlyGuess: true });
+          if (n.job) this.openJobDoc(n.job, n.section || 'cover');
+          else if (n.section) this.setState({ screen: 'doc', section: n.section });
+        },
+      })),
+      notifEmpty: TOKEN ? s.notifs.length === 0 : !DEMO,
       notifOn: s.notifOpen,
       toggleNotif: () => {
+        if (TOKEN) {
+          this.pollNotifs();
+          this.setState({ notifOpen: !s.notifOpen, userMenu: false });
+          return;
+        }
         if (!DEMO || fresh)
           return this.showToast(
             fresh
@@ -3464,26 +3590,49 @@ class Component extends DCLogic {
       // В прототипе этот список тоже назывался fabRows и затирался списком
       // вида фабрики ниже — диалог просчёта рендерился с пустыми полями.
       // Здесь у него своё имя, разметка диалога указывает на него.
-      fabsList: [
-        ['f1', 'Швейный цех №3, Иваново', 'трикотаж · свой раскрой', 'от 50 ед'],
-        ['f2', 'Meridian Textile, Бишкек', 'полный цикл · дешевле на объёме', 'от 300 ед'],
-        ['f3', 'TexLine, Челябинск', 'трикотаж и ткань · быстрый образец', 'от 100 ед'],
-      ].map(([id, name, sub, terms]) => ({
-        name,
-        sub,
-        terms,
-        style:
-          'display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;cursor:pointer;background:#fff;border:1px solid ' +
-          (s.fabs[id] ? 'rgba(47,124,90,.35)' : '#E4E1DC'),
-        boxStyle:
-          'width:17px;height:17px;flex:none;border-radius:6px;display:flex;align-items:center;justify-content:center;' +
-          (s.fabs[id]
-            ? 'background:#1F8A4C'
-            : 'background:#fff;border:1px solid rgba(14,14,14,.2)'),
-        go: () => this.setState((p) => ({ fabs: { ...p.fabs, [id]: !p.fabs[id] } })),
-      })),
-      sendCalcLabel: 'Отправить ' + Object.values(s.fabs).filter(Boolean).length + ' фабрикам',
+      fabsList: DEMO
+        ? [
+            ['f1', 'Швейный цех №3, Иваново', 'трикотаж · свой раскрой', 'от 50 ед'],
+            ['f2', 'Meridian Textile, Бишкек', 'полный цикл · дешевле на объёме', 'от 300 ед'],
+            ['f3', 'TexLine, Челябинск', 'трикотаж и ткань · быстрый образец', 'от 100 ед'],
+          ].map(([id, name, sub, terms]) => ({
+            name,
+            sub,
+            terms,
+            style:
+              'display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;cursor:pointer;background:#fff;border:1px solid ' +
+              (s.fabs[id] ? 'rgba(47,124,90,.35)' : '#E4E1DC'),
+            boxStyle:
+              'width:17px;height:17px;flex:none;border-radius:6px;display:flex;align-items:center;justify-content:center;' +
+              (s.fabs[id]
+                ? 'background:#1F8A4C'
+                : 'background:#fff;border:1px solid rgba(14,14,14,.2)'),
+            go: () => this.setState((p) => ({ fabs: { ...p.fabs, [id]: !p.fabs[id] } })),
+          }))
+        : [],
+      sendCalcLabel: DEMO
+        ? 'Отправить ' + Object.values(s.fabs).filter(Boolean).length + ' фабрикам'
+        : 'Отправить на просчёт',
       sendCalc: () => {
+        if (TOKEN && s.curId && doc) {
+          apiCall('/jobs/' + s.curId + '/quote', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ comment: s.quoteComment }),
+          })
+            .then(() => {
+              this.setState({
+                calcOpen: false,
+                onCalc: true,
+                quoteComment: '',
+                modal: { kind: 'quote-sent', title: 'Отправлено на просчёт' },
+              });
+              this.pollNotifs();
+              this.refreshJobs();
+            })
+            .catch((e) => this.showToast('Не отправилось: ' + e.message));
+          return;
+        }
         this.setState({ calcOpen: false, onCalc: true });
         this.showToast(
           'Пак у ' +
@@ -3990,6 +4139,101 @@ class Component extends DCLogic {
               .join(', '),
         );
       },
+      // --- модальные окна: подтверждения и формы, которых в макете не было ---
+      modalOn: !!s.modal,
+      modalTitle: s.modal ? s.modal.title : '',
+      modalText: s.modal
+        ? s.modal.text ||
+          {
+            'quote-sent':
+              'Техпак ушёл нашим партнёрским фабрикам. Соберём предложения по цене и срокам и вернёмся к вам в течение 24 часов — ответ придёт на ваш контакт и в уведомления кабинета.',
+            referral:
+              'Отправьте ссылку тому, кто шьёт свою одежду. Когда друг подключится, вам начислится дополнительная генерация — она не сгорает в конце месяца.',
+            claim:
+              'Seamsterly собирает производственный техпак по фотографиям изделия: чертёж, замеры с допусками, материалы и конструкцию. Оставьте контакт — пришлём доступ.',
+            waitlist:
+              'Оплата откроется после беты. Записали вас в лист ожидания — сообщим, как только тариф заработает, и учтём условия раннего доступа.',
+          }[s.modal.kind] ||
+          ''
+        : '',
+      modalIconStyle:
+        'width:30px;height:30px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;' +
+        (s.modal && s.modal.kind === 'limit'
+          ? 'background:rgba(192,57,43,.1);color:#C0392B'
+          : 'background:rgba(47,124,90,.12);color:#2F7C5A'),
+      modalLinkOn: !!(s.modal && s.modal.kind === 'referral' && s.ref),
+      modalLink: s.ref ? location.host + '/app/?ref=' + s.ref.code : '',
+      modalCopy: () => {
+        if (!s.ref) return;
+        const link = 'https://' + location.host + '/app/?ref=' + s.ref.code;
+        try {
+          navigator.clipboard.writeText(link);
+        } catch {
+          /* без клипборда ссылка остаётся видимой текстом */
+        }
+        track('referral_copy', null);
+        this.showToast('Ссылка скопирована — отправьте её другу');
+      },
+      modalStatsOn: !!(s.modal && s.modal.kind === 'referral' && s.ref),
+      refInvited: s.ref ? String(s.ref.invited) : '0',
+      refJoined: s.ref ? String(s.ref.joined) : '0',
+      refCredits: s.ref ? '+' + String(s.ref.credits) : '+0',
+      modalFormOn: !!(s.modal && s.modal.kind === 'claim' && !s.claimSent),
+      claimName: s.claimName,
+      claimContact: s.claimContact,
+      claimNote: s.claimNote,
+      onClaimName: (e) => this.set('claimName', e.target.value),
+      onClaimContact: (e) => this.set('claimContact', e.target.value),
+      onClaimNote: (e) => this.set('claimNote', e.target.value),
+      modalCancelOn: !!(s.modal && (s.modal.kind === 'referral' || s.modal.kind === 'claim')),
+      modalCta: s.modal
+        ? { claim: s.claimSent ? 'Закрыть' : 'Отправить заявку', referral: 'Готово' }[
+            s.modal.kind
+          ] || 'Понятно'
+        : '',
+      modalCtaStyle:
+        'flex:1;height:34px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;justify-content:center;font:600 11px/16px Sora,sans-serif;cursor:pointer',
+      modalGo: () => {
+        const kind = s.modal && s.modal.kind;
+        if (kind === 'claim' && !s.claimSent) {
+          if (!s.claimName.trim() || !s.claimContact.trim())
+            return this.showToast('Заполните имя и контакт — иначе не сможем ответить');
+          apiCall('/referral/claim', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              ref: REF || '',
+              name: s.claimName,
+              contact: s.claimContact,
+              note: s.claimNote,
+            }),
+          })
+            .then(() =>
+              this.setState({
+                claimSent: true,
+                modal: {
+                  kind: 'claim',
+                  title: 'Заявка отправлена',
+                  text: 'Спасибо! Пришлём доступ на указанный контакт — обычно в течение дня. Пока можно посмотреть, как устроен готовый техпак.',
+                },
+              }),
+            )
+            .catch((e) => this.showToast('Не отправилось: ' + e.message));
+          return;
+        }
+        this.set('modal', null);
+      },
+      closeModal: () => this.set('modal', null),
+      // Клик внутри карточки не должен доходить до затемнения: иначе
+      // «Отправить» открывал бы новое состояние и тут же его закрывал.
+      modalStop: (e) => e.stopPropagation(),
+      // Просчёт: в рабочем режиме выбирать не из чего — фабрики подключаем мы.
+      quoteRealOn: !DEMO,
+      quoteComment: s.quoteComment,
+      onQuoteComment: (e) => this.set('quoteComment', e.target.value),
+      quoteNote: DEMO
+        ? 'Фабрики получат PDF и вернут цену за единицу при вашем тираже. Статус пака сменится на «На просчёте».'
+        : 'Отправим PDF техпака подходящим фабрикам и вернёмся с ценами в течение 24 часов. Статус пака сменится на «На просчёте».',
       tipOn: !!s.tip,
       tipText: s.tip ? s.tip.text : '',
       tipStyle: s.tip

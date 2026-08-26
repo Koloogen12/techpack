@@ -27,14 +27,24 @@ import { kb } from '@seamsterly/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
 import { generate } from '../../cli/src/generate.js';
 import { parseAnswers } from '../../cli/src/answers.js';
+import { FREE_PER_MONTH, Limits } from './limits.js';
+import { Notifications } from './notify.js';
+import { Referrals, refCode } from './referrals.js';
+import { tgDocument, tgNotify, tgTrace, telegramReady } from './telegram.js';
 
 const PORT = Number(process.env.PORT ?? 8131);
 const DATA = process.env.DATA_DIR ?? 'data';
 const ADMIN = process.env.ADMIN_TOKEN ?? '';
 const MAX_PHOTO = 12 * 1024 * 1024;
+/** Адрес, по которому кабинет виден снаружи — из него собираются ссылки. */
+const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN ?? 'https://seamster.pro';
 const MAX_PHOTOS = 6;
 
 mkdirSync(join(DATA, 'jobs'), { recursive: true });
+
+const limits = new Limits(join(DATA, 'limits'));
+const notes = new Notifications(join(DATA, 'notifications'));
+const referrals = new Referrals(join(DATA, 'referrals'));
 
 // ---------------------------------------------------------------- инвайты
 
@@ -43,6 +53,14 @@ interface Invite {
   name: string;
   org: string;
   note?: string;
+  /** Персональная месячная квота: фабрике-валидатору генерации не нужны. */
+  limit?: number;
+  /** Кто пригласил — код реферала. Проставляется при одобрении заявки. */
+  ref?: string;
+}
+
+function monthlyOf(invite: Invite): number {
+  return typeof invite.limit === 'number' && invite.limit >= 0 ? invite.limit : FREE_PER_MONTH;
 }
 
 function invites(): Invite[] {
@@ -72,6 +90,12 @@ function logEvent(who: string, type: string, payload: unknown): void {
     join(DATA, 'events.jsonl'),
     JSON.stringify({ at: new Date().toISOString(), who, type, payload }) + '\n',
   );
+  // В Телеграм уходит ВСЁ, но по-разному: важное — сразу, шум — дайджестом
+  // раз в десять минут. Иначе авария утонет между переходами по разделам.
+  const short = JSON.stringify(payload ?? '')
+    .replace(/^"|"$/g, '')
+    .slice(0, 120);
+  tgTrace(who, short ? `${type} · ${short}` : type);
 }
 
 // ---------------------------------------------------------------- очередь
@@ -104,12 +128,23 @@ function setStage(id: string, stage: Stage, detail?: string): void {
   writeFileSync(join(jobDir(id), 'status.json'), JSON.stringify(s, null, 2));
 }
 
+/** Владелец джобы — по нему считается лимит и адресуются уведомления. */
+function ownerOf(id: string): Invite | null {
+  try {
+    const token = readFileSync(join(jobDir(id), 'owner.txt'), 'utf8').trim();
+    return invites().find((i) => i.token === token) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function pump(): Promise<void> {
   if (running) return;
   const id = queue.shift();
   if (!id) return;
   running = true;
   const started = Date.now();
+  const owner = ownerOf(id);
   try {
     const dir = jobDir(id);
     const photos = (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[]).map(
@@ -133,6 +168,25 @@ async function pump(): Promise<void> {
     s.notes = result.notes;
     s.cost_ms = Date.now() - started;
     setStage(id, 'done');
+
+    // Списываем ТОЛЬКО здесь: пак собран, значит человек получил ценность.
+    const sec = Math.round((Date.now() - started) / 1000);
+    const assumptions = result.spec.meta.assumptions_count ?? 0;
+    if (owner) {
+      const view = limits.charge(owner.token, monthlyOf(owner));
+      notes.push(owner.token, {
+        title: `Техпак «${result.spec.style.name}» готов`,
+        sub: `${sec} с · ${assumptions} ${assumptions === 1 ? 'предположение' : 'предположений'} к подтверждению`,
+        tone: 'ok',
+        job: id,
+        section: 'cover',
+      });
+      tgNotify(`✅ Пак готов — ${owner.name}`, [
+        `${result.spec.style.name} · ${result.spec.style.article}`,
+        `${sec} с · предположений: ${assumptions}`,
+        `Осталось генераций: ${view.left} (из ${view.limit} + ${view.credits} подарено)`,
+      ]);
+    }
   } catch (error) {
     console.error(`job ${id}:`, error);
     const s = statuses.get(id);
@@ -141,6 +195,19 @@ async function pump(): Promise<void> {
         ? { message: error.userMessage, action: error.userAction }
         : { message: 'Генерация не получилась.', action: 'Повторите — лимит не списан.' };
       setStage(id, 'error');
+      if (owner) {
+        notes.push(owner.token, {
+          title: 'Генерация не удалась',
+          sub: `${s.error.message} Лимит не списан.`,
+          tone: 'alert',
+        });
+      }
+      // Сбой генерации — то, ради чего стоит поднять телефон: человек
+      // сидит на созвоне и смотрит в экран прямо сейчас.
+      tgNotify(`⛔️ Сбой генерации — ${owner?.name ?? 'неизвестный'}`, [
+        s.error.message,
+        String(error).slice(0, 300),
+      ]);
     }
   } finally {
     running = false;
@@ -172,6 +239,29 @@ function readBody(req: IncomingMessage, limit: number): Promise<Buffer | null> {
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', () => resolve(null));
   });
+}
+
+/**
+ * Частотный предел для публичных ручек — единственная защита у форм,
+ * которые открыты без инвайта. Капчу мы не ставим: она стоит человеку
+ * больше, чем нам стоит спам, а объёмы здесь штучные.
+ */
+const publicHits = new Map<string, number[]>();
+
+function tooOften(ip: string, perMinute = 3): boolean {
+  const now = Date.now();
+  const hits = (publicHits.get(ip) ?? []).filter((t) => now - t < 60_000);
+  hits.push(now);
+  publicHits.set(ip, hits);
+  if (publicHits.size > 5000) publicHits.clear();
+  return hits.length > perMinute;
+}
+
+function ipOf(req: IncomingMessage): string {
+  const fwd = String(req.headers['x-forwarded-for'] ?? '')
+    .split(',')[0]
+    ?.trim();
+  return fwd || req.socket.remoteAddress || 'unknown';
 }
 
 function safeStatus(id: string): JobStatus | null {
@@ -261,6 +351,29 @@ const server = createServer(async (req, res) => {
       }
     }
 
+    // Самопроверка телеграм-канала: бот не может написать первым, пока
+    // человек не нажал Start. Эта ручка отвечает, дошло ли сообщение.
+    if (url.pathname === '/app/api/admin/tg-test' && ADMIN && url.searchParams.get('k') === ADMIN) {
+      const token = process.env.TELEGRAM_BOT_TOKEN ?? '';
+      const chat = process.env.TELEGRAM_ADMIN_ID ?? '';
+      if (!token || !chat) return json(res, 200, { ok: false, why: 'токен или chat_id не заданы' });
+      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chat,
+          text: 'Проверка связи — канал Seamsterly работает.',
+        }),
+      });
+      const body = (await r.json()) as { ok?: boolean; description?: string };
+      return json(res, 200, {
+        ok: Boolean(body.ok),
+        why: body.ok
+          ? 'доставлено'
+          : `${body.description ?? 'сбой'} — откройте бота в Телеграме и нажмите Start`,
+      });
+    }
+
     // Документ по фабричной ссылке: read-only HTML без аккаунта и инвайта.
     // Токен ссылки — отдельный от инвайта, знание токена и есть доступ.
     const shareMatch = url.pathname.match(/^\/p\/([a-f0-9]{16})$/);
@@ -291,6 +404,126 @@ const server = createServer(async (req, res) => {
       return res.end(renderHtml(spec, { pro: true }));
     }
 
+    // Вопрос от фабрики по строке документа. Раньше он оставался внутри
+    // read-only страницы и не долетал никуда — теперь доходит и до бренда,
+    // и до нас: фабрика на созвоне обязана видеть, что её услышали.
+    const askMatch = url.pathname.match(/^\/p\/([a-f0-9]{16})\/question$/);
+    if (req.method === 'POST' && askMatch) {
+      if (tooOften(ipOf(req))) return json(res, 429, { error: 'слишком часто' });
+      const body = await readBody(req, 4096);
+      if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+      const { code, text } = JSON.parse(body.toString('utf8')) as { code?: string; text?: string };
+      const { readdirSync } = await import('node:fs');
+      const jid = readdirSync(join(DATA, 'jobs'), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .find((x) => {
+          try {
+            return readFileSync(join(jobDir(x), 'share.txt'), 'utf8').trim() === askMatch[1];
+          } catch {
+            return false;
+          }
+        });
+      if (!jid) return json(res, 404, { error: 'нет такого документа' });
+      const owner = ownerOf(jid);
+      const spec = specOf(jid);
+      const row = String(code ?? '').slice(0, 8);
+      const question = String(text ?? '').slice(0, 500);
+      if (owner) {
+        notes.push(owner.token, {
+          title: `Вопрос от фабрики${row ? ` по точке ${row}` : ''}`,
+          sub: question || 'Уточнение по документу',
+          tone: 'alert',
+          job: jid,
+          section: 'pom',
+        });
+      }
+      logEvent('фабрика', 'question', { id: jid, code: row });
+      tgNotify('❓ Вопрос от фабрики', [
+        `Пак: ${spec?.style.name ?? jid} · ${spec?.style.article ?? ''}`,
+        `Бренд: ${owner?.name ?? '—'}`,
+        row ? `Точка: ${row}` : '',
+        question,
+      ]);
+      return json(res, 200, { ok: true });
+    }
+
+    // Заявка по реферальной ссылке: публичная, потому что у пришедшего
+    // друга ещё нет инвайта — в этом весь смысл приглашения.
+    if (req.method === 'POST' && url.pathname === '/app/api/referral/claim') {
+      if (tooOften(ipOf(req))) return json(res, 429, { error: 'слишком часто' });
+      const body = await readBody(req, 4096);
+      if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+      const raw = JSON.parse(body.toString('utf8')) as {
+        ref?: string;
+        name?: string;
+        contact?: string;
+        note?: string;
+      };
+      const ref = String(raw.ref ?? '').slice(0, 16);
+      const name = String(raw.name ?? '')
+        .trim()
+        .slice(0, 120);
+      const contact = String(raw.contact ?? '')
+        .trim()
+        .slice(0, 160);
+      if (!name || !contact) return json(res, 400, { error: 'нужны имя и контакт' });
+      const inviter = invites().find((i) => refCode(i.token) === ref) ?? null;
+      const claim = referrals.add({
+        ref,
+        name,
+        contact,
+        note: String(raw.note ?? '').slice(0, 300),
+      });
+      logEvent('гость', 'referral_claim', { ref, name });
+      tgNotify('🎟 Заявка на доступ', [
+        `Имя: ${name}`,
+        `Контакт: ${contact}`,
+        claim.note ? `О себе: ${claim.note}` : '',
+        inviter ? `Пригласил: ${inviter.name} (${inviter.org})` : 'Без реферала',
+        ADMIN
+          ? `Одобрить: ${PUBLIC_ORIGIN}/app/api/admin/approve?k=${ADMIN}&claim=${claim.id}`
+          : '',
+      ]);
+      return json(res, 200, { ok: true });
+    }
+
+    // Одобрение заявки одной ссылкой из Телеграма: заводит инвайт и
+    // начисляет пригласившему обещанную генерацию.
+    if (url.pathname === '/app/api/admin/approve' && ADMIN && url.searchParams.get('k') === ADMIN) {
+      const claimId = String(url.searchParams.get('claim') ?? '');
+      const claim = referrals.all().find((c) => c.id === claimId);
+      if (!claim) return json(res, 404, { error: 'нет такой заявки' });
+      if (claim.approved) {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        return res.end(
+          `<meta charset="utf-8"><p>Заявка уже одобрена. Ссылка: ${PUBLIC_ORIGIN}/app/?t=${claim.approved}</p>`,
+        );
+      }
+      const token = randomBytes(10).toString('hex');
+      const list = invites();
+      list.push({ token, name: claim.name, org: claim.contact, ref: claim.ref });
+      writeFileSync(join(DATA, 'invites.json'), JSON.stringify({ invites: list }, null, 2));
+      referrals.approve(claim.id, token);
+      const inviter = invites().find((i) => refCode(i.token) === claim.ref);
+      if (inviter) {
+        const view = limits.grant(inviter.token, 1);
+        notes.push(inviter.token, {
+          title: `Новый участник по вашей ссылке: ${claim.name}`,
+          sub: `Начислена генерация · доступно ${view.left}`,
+          tone: 'ok',
+        });
+      }
+      const link = `${PUBLIC_ORIGIN}/app/?t=${token}`;
+      tgNotify('✅ Заявка одобрена', [
+        `${claim.name} · ${claim.contact}`,
+        `Ссылка: ${link}`,
+        inviter ? `+1 генерация: ${inviter.name}` : '',
+      ]);
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      return res.end(`<meta charset="utf-8"><p>Готово. Ссылка для ${claim.name}:<br>${link}</p>`);
+    }
+
     // Всё остальное — только по инвайту.
     if (!invite) {
       return json(res, 401, {
@@ -301,7 +534,55 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/app/api/me') {
       logEvent(invite.name, 'open', { org: invite.org });
-      return json(res, 200, { name: invite.name, org: invite.org });
+      return json(res, 200, {
+        name: invite.name,
+        org: invite.org,
+        limits: limits.view(invite.token, monthlyOf(invite)),
+        unread: notes.unread(invite.token),
+        ref: refCode(invite.token),
+      });
+    }
+
+    // Уведомления бренду: живут файлом, поэтому переживают рестарт и
+    // возвращение человека через сутки.
+    if (url.pathname === '/app/api/notifications') {
+      if (req.method === 'GET') {
+        return json(res, 200, {
+          items: notes.list(invite.token),
+          unread: notes.unread(invite.token),
+        });
+      }
+      if (req.method === 'POST') {
+        notes.markRead(invite.token);
+        return json(res, 200, { ok: true });
+      }
+    }
+
+    // Реферальная программа: код, ссылка и статистика приглашённых.
+    if (req.method === 'GET' && url.pathname === '/app/api/referral') {
+      const code = refCode(invite.token);
+      const claims = referrals.byRef(code);
+      return json(res, 200, {
+        code,
+        invited: claims.length,
+        joined: claims.filter((c) => c.approved).length,
+        credits: limits.view(invite.token, monthlyOf(invite)).credits,
+      });
+    }
+
+    // Лист ожидания платного тарифа. Цены и обещания — решение СЕО,
+    // поэтому здесь не оплата, а заявка: она уходит ему в Телеграм.
+    if (req.method === 'POST' && url.pathname === '/app/api/waitlist') {
+      const body = await readBody(req, 4096);
+      const plan = body
+        ? String((JSON.parse(body.toString('utf8')) as { plan?: string }).plan ?? '')
+        : '';
+      logEvent(invite.name, 'waitlist', { plan });
+      tgNotify('⭐️ Заявка на тариф', [
+        `${invite.name} · ${invite.org}`,
+        `Тариф: ${plan.slice(0, 60) || 'Студия'}`,
+      ]);
+      return json(res, 200, { ok: true });
     }
 
     if (req.method === 'GET' && url.pathname === '/app/api/jobs') {
@@ -359,6 +640,13 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/app/api/jobs') {
+      // Квота проверяется до создания джобы: отказать на входе честнее,
+      // чем дать собрать анкету и упереться в лимит на кнопке «Запустить».
+      const gate = limits.check(invite.token, running || queue.length ? 1 : 0, monthlyOf(invite));
+      if (!gate.ok) {
+        logEvent(invite.name, 'limit_blocked', { reason: gate.error });
+        return json(res, 402, { error: gate.error, action: gate.action });
+      }
       const body = await readBody(req, 64 * 1024);
       if (!body) return json(res, 413, { error: 'анкета слишком большая' });
       let answers;
@@ -440,11 +728,89 @@ const server = createServer(async (req, res) => {
       }
 
       if (req.method === 'POST' && rest === '/start') {
+        // Вторая проверка не дублирует первую: между созданием джобы и
+        // стартом человек мог открыть вкладку второй раз или добить квоту.
+        const gate = limits.check(invite.token, running || queue.length ? 1 : 0, monthlyOf(invite));
+        if (!gate.ok) {
+          logEvent(invite.name, 'limit_blocked', { id, reason: gate.error });
+          return json(res, 402, { error: gate.error, action: gate.action });
+        }
         if (!queue.includes(id) && statuses.get(id)?.stage === 'queued') {
           queue.push(id);
+          limits.noteStart(invite.token);
           void pump();
         }
         logEvent(invite.name, 'job_started', { id });
+        let what = '';
+        try {
+          const a = JSON.parse(readFileSync(join(dir, 'answers.json'), 'utf8')) as {
+            name?: string;
+            category?: string;
+          };
+          what = `${a.name ?? ''} · ${a.category ?? ''}`;
+        } catch {
+          /* анкета нечитаема — сообщение всё равно уходит */
+        }
+        const photos = (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[])
+          .length;
+        tgNotify(`▶️ Запущена генерация — ${invite.name}`, [
+          `${invite.org}`,
+          what,
+          `Фотографий: ${photos}`,
+        ]);
+        return json(res, 200, { ok: true });
+      }
+
+      // Отправка на просчёт: пак уходит в админский Телеграм документом,
+      // человеку показывается подтверждение. Фабрики подключены вручную —
+      // консьерж-этап, и притворяться автоматикой мы не будем.
+      if (req.method === 'POST' && rest === '/quote') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const body = await readBody(req, 4096);
+        const comment = body
+          ? String((JSON.parse(body.toString('utf8')) as { comment?: string }).comment ?? '').slice(
+              0,
+              500,
+            )
+          : '';
+        const pdfPath = join(dir, 'pack.pdf');
+        const { statSync } = await import('node:fs');
+        const specM = statSync(join(dir, 'spec.json')).mtimeMs;
+        if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < specM) {
+          const { renderPdf } = await import('@seamsterly/docgen');
+          writeFileSync(pdfPath, await renderPdf(spec, { pro: true }));
+        }
+        const points = spec.measurements.points.length;
+        const assumptions = spec.meta.assumptions_count ?? 0;
+        await tgDocument(
+          pdfPath,
+          `${spec.style.article}.pdf`,
+          [
+            '<b>📩 Запрос на просчёт</b>',
+            `Бренд: ${invite.name} · ${invite.org}`,
+            `Изделие: ${spec.style.name} · ${spec.style.article}`,
+            `Категория: ${spec.style.category} · база RU ${spec.base.base_size_ru}`,
+            `Размерный ряд: ${spec.base.size_range.join(', ')}`,
+            `Замеров: ${points} · предположений: ${assumptions}`,
+            comment ? `Комментарий: ${comment}` : '',
+            'Ответить бренду: заметка в админке или напрямую.',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        );
+        writeFileSync(
+          join(dir, 'quote.json'),
+          JSON.stringify({ at: new Date().toISOString(), by: invite.name, comment }, null, 2),
+        );
+        notes.push(invite.token, {
+          title: `«${spec.style.name}» отправлен на просчёт`,
+          sub: 'Вернёмся с ценами от фабрик в течение 24 часов',
+          tone: 'ok',
+          job: id,
+          section: 'export',
+        });
+        logEvent(invite.name, 'quote_sent', { id, article: spec.style.article });
         return json(res, 200, { ok: true });
       }
 
@@ -761,4 +1127,14 @@ function adminPage(): string {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`demo server on 127.0.0.1:${PORT} · data: ${DATA} · invites: ${invites().length}`);
   if (!ADMIN) console.log('ADMIN_TOKEN не задан — админ-просмотр выключен');
+  if (!telegramReady) console.log('TELEGRAM_BOT_TOKEN/ADMIN_ID не заданы — канал выключен');
+  // Незапланированный рестарт видно по этому сообщению: если оно пришло
+  // ночью и его никто не ждал, значит сервис падал.
+  tgNotify('🟢 Кабинет запущен', [`${PUBLIC_ORIGIN}/app/`, `Инвайтов: ${invites().length}`], true);
+});
+
+// Падение процесса не должно быть тихим.
+process.on('uncaughtException', (error) => {
+  console.error('uncaught:', error);
+  tgNotify('🔴 Сбой сервера кабинета', [String(error).slice(0, 400)]);
 });
