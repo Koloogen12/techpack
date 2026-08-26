@@ -6,6 +6,7 @@
  * Инструмент concierge-режима и отладки промпта. Печатает отчёт,
  * себестоимость вызова и ключ кэша — по нему прогон воспроизводится.
  */
+import { CATEGORIES } from '@seamsterly/kb';
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
 import { CostLedger, createLogger, isSeamsterlyError } from '@seamsterly/core';
@@ -33,7 +34,6 @@ function readPhoto(path: string): Photo {
   return { bytes: readFileSync(path), format, label: basename(path) };
 }
 
-const CATEGORIES = ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const;
 type CliCategory = (typeof CATEGORIES)[number];
 
 async function main(): Promise<void> {

@@ -1,0 +1,118 @@
+{
+  "id": "category_defaults/tank_top",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты майки: кулирка, горловина и проймы на окантовке. Рукава нет — самая короткая последовательность из всех категорий.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
+    "https://tristar.uz/news/post/tehnologiya-poshiva-futbolki"
+  ],
+  "category": "tank_top",
+  "fabric_kind": "knit",
+  "default_nodes": [
+    "neck_binding",
+    "armhole_binding",
+    "shoulder_seam_overlock",
+    "shoulder_stay_tape",
+    "side_sleeve_seam",
+    "hem_coverstitch",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "single_jersey",
+    "rib": "rib_1x1",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "hardware": [],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "operation_en": "Join shoulder seams with stay tape",
+      "operation_zh": "缝合肩缝并夹入防伸带",
+      "node_id": "shoulder_seam_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Обработать горловину окантовкой",
+      "operation_en": "Bind the neckline",
+      "operation_zh": "领口滚边",
+      "node_id": "neck_binding",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Обработать проймы окантовкой",
+      "operation_en": "Bind the armholes",
+      "operation_zh": "袖窿滚边",
+      "node_id": "armhole_binding",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Стачать боковые швы",
+      "operation_en": "Close the side seams",
+      "operation_zh": "缝合摆缝",
+      "node_id": "side_sleeve_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Подшить низ изделия",
+      "operation_en": "Hem garment bottom",
+      "operation_zh": "卷缝下摆",
+      "node_id": "hem_coverstitch",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach content label into side seam",
+      "operation_zh": "侧缝夹缝成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Чистка изделия, контроль качества",
+      "operation_en": "Trim threads, quality control",
+      "operation_zh": "剪线清理、质检",
+      "node_id": null,
+      "specialty": "A",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Влажно-тепловая обработка, упаковка",
+      "operation_en": "Final press, packing",
+      "operation_zh": "整烫、包装",
+      "node_id": null,
+      "specialty": "P",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1); без неё документ остаётся расчётопригодным по перечню операций, но не даёт нормо-часов.",
+  "translation_verified": false,
+  "translation_gap": "переводы техпоследовательности сделаны нами и не проверены технологом-носителем языка"
+}

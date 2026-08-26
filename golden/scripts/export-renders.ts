@@ -1,3 +1,4 @@
+import { CATEGORIES } from '@seamsterly/kb';
 /**
  * Выгрузка живых визуализаций из кэша в референсы голден-набора.
  *
@@ -29,7 +30,7 @@ const browser = await chromium.launch();
 mkdirSync('golden/renders', { recursive: true });
 
 try {
-  for (const cat of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
+  for (const cat of CATEGORIES) {
     const answers = parseAnswers(
       JSON.parse(readFileSync(`golden/answers/${cat}-women-46.json`, 'utf8')),
     );

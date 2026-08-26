@@ -216,9 +216,9 @@ export function buildPaths(
     // Горловина — четверть эллипса от центра переда к высшей точке плеча.
     neckArc(g.hps.x, neckDrop),
     L(g.shoulderPoint),
-    sleeveTop,
-    sleeveEnd,
-    sleeveUnder,
+    // У безрукавки контур идёт СРАЗУ ПО ПРОЙМЕ: рукава нет, и нарисованный
+    // рукав обещал бы фабрике деталь кроя, которой в раскладке не будет.
+    ...(m.sleeveless ? [armhole] : [sleeveTop, sleeveEnd, sleeveUnder]),
     sideToWaist,
     waistToHem,
     L(g.hemCenter),
@@ -227,6 +227,9 @@ export function buildPaths(
   // --- Конструктивные швы ------------------------------------------------------
   // Пройма идёт первой и помечена: по этой линии технолог читает узел
   // втачивания рукава, и связь «узел ↔ линия на чертеже» проверяется тестом.
+  // Линия проймы: у изделия с рукавом это шов втачивания, у безрукавки —
+  // сам край, и он уже нарисован контуром. Второй раз его не проводим,
+  // но линия узла нужна: пройму окантовывают, и это операция.
   const seams: SeamLine[] = [{ id: 'armhole', d: `${M(g.shoulderPoint)} ${armhole}` }];
 
   // Шов втачивания бейки — тот же эллипс с полуосями, увеличенными на высоту
@@ -261,7 +264,11 @@ export function buildPaths(
 
   const perp = { x: -Math.sin(g.sleeveAngle), y: Math.cos(g.sleeveAngle) };
   const dir = { x: Math.cos(g.sleeveAngle), y: Math.sin(g.sleeveAngle) };
-  for (let i = 0; m.cuffRibHeight === undefined && i < options.sleeveStitchRows; i++) {
+  for (
+    let i = 0;
+    !m.sleeveless && m.cuffRibHeight === undefined && i < options.sleeveStitchRows;
+    i++
+  ) {
     const back = options.sleeveHemAllowance - i * 0.35;
     const a = { x: g.sleeveTopEnd.x - dir.x * back, y: g.sleeveTopEnd.y - dir.y * back };
     const b = { x: a.x + perp.x * m.sleeveOpening, y: a.y + perp.y * m.sleeveOpening };
@@ -293,7 +300,7 @@ export function buildPaths(
     }
   }
 
-  if (m.cuffRibHeight !== undefined) {
+  if (m.cuffRibHeight !== undefined && !m.sleeveless) {
     const back = m.cuffRibHeight;
     const a = { x: g.sleeveTopEnd.x - dir.x * back, y: g.sleeveTopEnd.y - dir.y * back };
     const b = { x: a.x + perp.x * m.sleeveOpening, y: a.y + perp.y * m.sleeveOpening };
@@ -370,20 +377,73 @@ export function buildPaths(
   if (view === 'front' && m.pocketWidth !== undefined && m.pocketHeight !== undefined) {
     const bottom = g.hem.y - (m.waistRibHeight ?? 2) - 1.5;
     const top = bottom - m.pocketHeight;
-    const halfWidth = m.pocketWidth / 2;
-    const openingInner = halfWidth * 0.52;
-    const openingDrop = m.pocketHeight * 0.42;
 
-    pocket.push({
-      id: 'pocket',
-      d:
-        `${M({ x: 0, y: top })} L ${f(openingInner)} ${f(top)} ` +
-        `L ${f(halfWidth)} ${f(top + openingDrop)} ` +
-        `L ${f(halfWidth)} ${f(bottom)} L 0 ${f(bottom)}`,
-    });
+    if (m.zipPlacketWidth !== undefined) {
+      // Изделие с застёжкой: карман не может пересекать центр переда, он
+      // накладной и лежит СБОКУ от молнии. Кенгуру здесь был бы разрезан
+      // молнией пополам — то есть перестал бы быть карманом.
+      const inner = m.zipPlacketWidth + 1.5;
+      const outer = inner + m.pocketWidth;
+      pocket.push({
+        id: 'pocket',
+        d:
+          `${M({ x: inner, y: top })} L ${f(outer)} ${f(top)} ` +
+          `L ${f(outer)} ${f(bottom)} L ${f(inner)} ${f(bottom)} Z`,
+      });
+    } else {
+      // Карман-кенгуру: верхний край от центра, диагональный вход для руки,
+      // внешний край вниз и нижний край обратно к центру.
+      const halfWidth = m.pocketWidth / 2;
+      const openingInner = halfWidth * 0.52;
+      const openingDrop = m.pocketHeight * 0.42;
+      pocket.push({
+        id: 'pocket',
+        d:
+          `${M({ x: 0, y: top })} L ${f(openingInner)} ${f(top)} ` +
+          `L ${f(halfWidth)} ${f(top + openingDrop)} ` +
+          `L ${f(halfWidth)} ${f(bottom)} L 0 ${f(bottom)}`,
+      });
+    }
   }
 
   const center = `${M(g.neckCenter)} L 0 ${f(g.hem.y)}`;
+
+  // --- Застёжка на молнии ---------------------------------------------------
+  // Молния идёт по центру переда от горловины до низа, планка — полосой
+  // вдоль неё. Рисуется только на переде: со спины застёжки не видно, и
+  // линия там означала бы шов, которого нет.
+  if (view === 'front' && m.zipPlacketWidth !== undefined) {
+    const top = neckDrop;
+    const bottom = g.hem.y;
+    seams.push({ id: 'zip_line', d: `${M({ x: 0, y: top })} L 0 ${f(bottom)}` });
+    stitches.push({
+      id: 'zip_stitch',
+      d: `${M({ x: m.zipPlacketWidth, y: top })} L ${f(m.zipPlacketWidth)} ${f(bottom)}`,
+    });
+  }
+
+  // --- Воротник и планка поло ------------------------------------------------
+  // Воротник лежит на плечах: его ширина — половина длины втачивания, высота
+  // на чертеже — ширина отлёта. Планка идёт вниз от горловины полосой.
+  if (view === 'front' && m.collarLength !== undefined) {
+    const spread = m.collarSpread ?? m.collarLength * 0.13;
+    const half = Math.min(m.collarLength / 2, g.shoulderPoint.x * 0.92);
+    seams.push({
+      id: 'collar',
+      d:
+        `${M({ x: 0, y: neckDrop })} L ${f(half)} ${f(g.hps.y + spread * 0.35)} ` +
+        `L ${f(half * 0.82)} ${f(g.hps.y - spread)} L 0 ${f(neckDrop - spread)}`,
+    });
+    if (m.placketLength !== undefined) {
+      const w = m.placketWidth ?? m.placketLength * 0.22;
+      stitches.push({
+        id: 'placket',
+        d:
+          `${M({ x: 0, y: neckDrop })} L ${f(w)} ${f(neckDrop)} ` +
+          `L ${f(w)} ${f(neckDrop + m.placketLength)} L 0 ${f(neckDrop + m.placketLength)}`,
+      });
+    }
+  }
 
   // Область капюшона: контур, доведённый по центру до горловины и замкнутый
   // ПО ЛИНИИ ГОРЛОВИНЫ, а не по хорде. Хорда оставляла у выреза белый клин:
@@ -409,7 +469,18 @@ export function buildPaths(
 
   const panels: FlatPanel[] = [
     { id: 'body', d: outline, material: 'shell', grain_deg: 0 },
-    { id: 'sleeve', d: sleevePanel, material: 'shell', grain_deg: sleeveGrainDeg },
+    // Рукав — отдельная деталь кроя. У безрукавки его в раскладке нет,
+    // и панели тоже быть не должно: заливка красила бы пустоту.
+    ...(m.sleeveless
+      ? []
+      : [
+          {
+            id: 'sleeve',
+            d: sleevePanel,
+            material: 'shell' as const,
+            grain_deg: sleeveGrainDeg,
+          },
+        ]),
   ];
   if (hoodFill.length) {
     panels.push({ id: 'hood', d: hoodFill[0]!, material: 'shell', grain_deg: 0 });

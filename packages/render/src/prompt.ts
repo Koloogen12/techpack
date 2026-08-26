@@ -180,4 +180,7 @@ const ENGLISH_CATEGORY: Record<Category, string> = {
   longsleeve: 'long-sleeve crew-neck knit top',
   sweatshirt: 'crew-neck sweatshirt',
   hoodie: 'pullover hoodie',
+  zip_hoodie: 'full-zip hoodie with a two-way front zipper',
+  polo: 'short-sleeve polo shirt with a ribbed collar and a two-button placket',
+  tank_top: 'sleeveless tank top with bound armholes',
 };

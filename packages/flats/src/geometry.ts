@@ -81,6 +81,26 @@ export interface FlatMeasurements {
   pocketWidth?: Centimeters;
   /** H05 высота кармана кенгуру. */
   pocketHeight?: Centimeters;
+  /**
+   * Z02 ширина планки под молнию. Пусто — застёжки нет.
+   *
+   * Именно ширина, а не сам факт молнии: линию центра переда чертёж рисует
+   * и у пуловера, и без ширины планки её не отличить от разреза.
+   */
+  zipPlacketWidth?: Centimeters;
+  /** P01 длина воротника поло по шву втачивания. Пусто — воротника нет. */
+  collarLength?: Centimeters;
+  /** P03 ширина отлёта воротника. */
+  collarSpread?: Centimeters;
+  /** P04 длина планки поло. */
+  placketLength?: Centimeters;
+  /** P05 ширина планки поло. */
+  placketWidth?: Centimeters;
+  /**
+   * Изделие без рукава. Не выводится из отсутствия замеров: у майки замер
+   * ширины плеч есть, а рукава нет, и рисовать его было бы враньём.
+   */
+  sleeveless?: boolean;
 }
 
 export interface FlatGeometry {

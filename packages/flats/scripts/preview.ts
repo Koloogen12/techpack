@@ -18,6 +18,9 @@ const LABEL: Record<Category, string> = {
   longsleeve: 'Лонгслив',
   sweatshirt: 'Свитшот',
   hoodie: 'Худи',
+  zip_hoodie: 'Худи на молнии',
+  polo: 'Поло',
+  tank_top: 'Майка',
 };
 
 const blocks = CATEGORIES.map((category) => {

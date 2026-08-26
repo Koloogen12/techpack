@@ -142,8 +142,15 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     hoodHeight: optional('H01'),
     hoodWidth: optional('H02'),
     hoodOpening: optional('H03'),
-    pocketWidth: optional('H04'),
-    pocketHeight: optional('H05'),
+    pocketWidth: optional('H04') ?? optional('H09'),
+    pocketHeight: optional('H05') ?? optional('H10'),
+    // Застёжка и воротник: величины есть только у тех категорий, где деталь
+    // существует, — рисунок не догадывается, а читает табель мер.
+    zipPlacketWidth: optional('Z02'),
+    collarLength: optional('P01'),
+    collarSpread: optional('P03'),
+    placketLength: optional('P04'),
+    placketWidth: optional('P05'),
   };
 
   return {
@@ -151,7 +158,7 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     chestFlat: value('T03', 51),
     waistFlat: value('T04', 49),
     hemFlat: value('T05', 51),
-    shoulderWidth: value('T06', 44),
+    shoulderWidth: value('T06', optional('K02') ?? 44),
     armhole: value('T09', 22),
     sleeveLength: value('T10', 20),
     bicep: value('T12', 20),
@@ -162,6 +169,9 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     shoulderSlope: value('T18', 4),
     // Ключи с undefined не добавляются: их отсутствие — значимая информация.
     ...Object.fromEntries(Object.entries(detail).filter(([, v]) => v !== undefined)),
+    // Безрукавка объявляется прямо: у майки ширина плеч есть, а рукава нет,
+    // и вывести одно из другого нельзя.
+    ...(spec.style.category === 'tank_top' ? { sleeveless: true } : {}),
   };
 }
 

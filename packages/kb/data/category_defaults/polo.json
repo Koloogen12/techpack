@@ -1,0 +1,162 @@
+{
+  "id": "category_defaults/polo",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты поло: полотно пике, готовый воротник-рибана, планка с двумя-тремя петлями. Петли требуют обмёточной машины вне базового парка — подготовлена замена кнопками.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
+    "https://tristar.uz/news/post/tehnologiya-poshiva-futbolki"
+  ],
+  "category": "polo",
+  "fabric_kind": "knit",
+  "default_nodes": [
+    "polo_collar_set_in",
+    "polo_placket",
+    "placket_buttonholes",
+    "button_sew",
+    "shoulder_seam_overlock",
+    "shoulder_stay_tape",
+    "sleeve_set_in",
+    "side_sleeve_seam",
+    "sleeve_hem_coverstitch",
+    "hem_coverstitch",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "pique",
+    "rib": "rib_1x1",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "hardware": ["button_polo"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "operation_en": "Join shoulder seams with stay tape",
+      "operation_zh": "缝合肩缝并夹入防伸带",
+      "node_id": "shoulder_seam_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Настрочить планки на разрез центра переда",
+      "operation_en": "Attach plackets to the CF slit",
+      "operation_zh": "前中开口绱门襟",
+      "node_id": "polo_placket",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Втачать готовый воротник в горловину",
+      "operation_en": "Set the finished collar into the neckline",
+      "operation_zh": "绱成品领",
+      "node_id": "polo_collar_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Обметать петли на планке",
+      "operation_en": "Work buttonholes on the placket",
+      "operation_zh": "门襟锁扣眼",
+      "node_id": "placket_buttonholes",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Пришить пуговицы напротив петель",
+      "operation_en": "Sew buttons opposite the buttonholes",
+      "operation_zh": "按扣眼位钉纽扣",
+      "node_id": "button_sew",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Втачать рукава в проймы",
+      "operation_en": "Set sleeves into armholes",
+      "operation_zh": "绱袖（装入袖窿）",
+      "node_id": "sleeve_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+      "operation_en": "Close side and underarm seam in one operation",
+      "operation_zh": "一次缝合摆缝与袖底缝",
+      "node_id": "side_sleeve_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Подшить низ рукавов",
+      "operation_en": "Hem sleeve openings",
+      "operation_zh": "卷缝袖口",
+      "node_id": "sleeve_hem_coverstitch",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Подшить низ изделия",
+      "operation_en": "Hem garment bottom",
+      "operation_zh": "卷缝下摆",
+      "node_id": "hem_coverstitch",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach content label into side seam",
+      "operation_zh": "侧缝夹缝成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Чистка изделия, контроль качества",
+      "operation_en": "Trim threads, quality control",
+      "operation_zh": "剪线清理、质检",
+      "node_id": null,
+      "specialty": "A",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Влажно-тепловая обработка, упаковка",
+      "operation_en": "Final press, packing",
+      "operation_zh": "整烫、包装",
+      "node_id": null,
+      "specialty": "P",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1); без неё документ остаётся расчётопригодным по перечню операций, но не даёт нормо-часов.",
+  "translation_verified": false,
+  "translation_gap": "переводы техпоследовательности сделаны нами и не проверены технологом-носителем языка"
+}

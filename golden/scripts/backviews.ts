@@ -1,3 +1,4 @@
+import { CATEGORIES } from '@seamsterly/kb';
 /**
  * Кадры спинки для голден-набора.
  *
@@ -45,7 +46,7 @@ async function toPng(bytes: Uint8Array, mediaType: string): Promise<Buffer> {
   }
 }
 
-for (const cat of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
+for (const cat of CATEGORIES) {
   const front = readFileSync(`golden/photos/${cat}-front.png`);
   const prompt = [
     'The reference image shows the FRONT of a garment laid flat, shot from directly above.',

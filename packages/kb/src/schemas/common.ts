@@ -76,17 +76,44 @@ export type Range = z.infer<typeof RangeSchema>;
 export const FabricKindSchema = z.enum(['knit', 'woven']);
 export type FabricKind = z.infer<typeof FabricKindSchema>;
 
-/** Категории трикотажного ядра MVP. Всё остальное гейтится честным отказом. */
-export const CategorySchema = z.enum(['tshirt', 'longsleeve', 'sweatshirt', 'hoodie']);
+/**
+ * Категории трикотажа. Всё остальное гейтится честным отказом.
+ *
+ * Порядок расширения задан рынком, а не удобством кода: худи на молнии и
+ * поло держат 13 и 8 фабрик-контрактников из четырнадцати опрошенных,
+ * а поло — единственная растущая категория верха (Lamoda, +80% за год).
+ * Ткань (брюки, рубашка, юбка) сюда не входит: у неё вдвое жёстче допуски,
+ * своя таблица прибавок и полсотни разделов конструкции вместо тринадцати.
+ */
+export const CategorySchema = z.enum([
+  'tshirt',
+  'longsleeve',
+  'sweatshirt',
+  'hoodie',
+  'zip_hoodie',
+  'polo',
+  'tank_top',
+]);
 export type Category = z.infer<typeof CategorySchema>;
 
-export const CATEGORIES: readonly Category[] = ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'];
+export const CATEGORIES: readonly Category[] = [
+  'tshirt',
+  'longsleeve',
+  'sweatshirt',
+  'hoodie',
+  'zip_hoodie',
+  'polo',
+  'tank_top',
+];
 
 export const CATEGORY_LABEL_RU: Record<Category, string> = {
   tshirt: 'футболка',
   longsleeve: 'лонгслив',
   sweatshirt: 'свитшот',
   hoodie: 'худи',
+  zip_hoodie: 'худи на молнии',
+  polo: 'поло',
+  tank_top: 'майка',
 };
 
 /**
@@ -102,6 +129,9 @@ export const CATEGORY_LABEL_EN: Record<Category, string> = {
   longsleeve: 'long sleeve tee',
   sweatshirt: 'sweatshirt',
   hoodie: 'hoodie',
+  zip_hoodie: 'zip-through hoodie',
+  polo: 'polo shirt',
+  tank_top: 'tank top',
 };
 
 export const CATEGORY_LABEL_ZH: Record<Category, string> = {
@@ -109,6 +139,9 @@ export const CATEGORY_LABEL_ZH: Record<Category, string> = {
   longsleeve: '长袖T恤',
   sweatshirt: '卫衣',
   hoodie: '连帽卫衣',
+  zip_hoodie: '拉链连帽卫衣',
+  polo: 'POLO衫',
+  tank_top: '背心',
 };
 
 /** Силуэт / посадка. Спрашивается у пользователя в мастере, определяет прибавку. */
@@ -151,6 +184,11 @@ export const CATEGORY_GRAMMATICAL_GENDER: Record<Category, 'f' | 'm' | 'n'> = {
   longsleeve: 'm',
   sweatshirt: 'm',
   hoodie: 'n',
+  // «Худи на молнии женское» — та же несклоняемая форма, что и у худи.
+  zip_hoodie: 'n',
+  // «Поло» тоже не склоняется: на ярлыке «поло женское».
+  polo: 'n',
+  tank_top: 'f',
 };
 
 const GENDER_FORMS: Record<Gender, Record<'f' | 'm' | 'n', string>> = {

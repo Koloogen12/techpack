@@ -87,29 +87,42 @@ function samples(m: FlatMeasurements, g: FlatGeometry): Sample[] {
     value,
   });
 
+  // У безрукавки нет ни рукава, ни его замеров: пропорции рукава к ней
+  // неприменимы, а «ширина плеч» у неё означает расстояние между бретелями
+  // и живёт в своём диапазоне.
+  const sleeved = !m.sleeveless;
+
   return [
     // Чертёж в масштабе: каждый снятый размер равен табличному.
     at('drawn_to_spec', 'all', 'T03 ширина по груди', chestDrawn / m.chestFlat),
     at('drawn_to_spec', 'all', 'T05 ширина по низу', (2 * g.hem.x) / m.hemFlat),
-    at('drawn_to_spec', 'all', 'T06 ширина плеч', (2 * g.shoulderPoint.x) / m.shoulderWidth),
     at('drawn_to_spec', 'all', 'T14 ширина горловины', (2 * g.hps.x) / m.neckWidth),
     at('drawn_to_spec', 'all', 'T01 длина изделия', g.hem.y / m.bodyLength),
-    at('drawn_to_spec', 'all', 'T10 длина рукава', sleeveLength / m.sleeveLength),
-    at('drawn_to_spec', 'all', 'T13 низ рукава', sleeveOpening / m.sleeveOpening),
+    ...(sleeved
+      ? [
+          at('drawn_to_spec', 'all', 'T06 ширина плеч', (2 * g.shoulderPoint.x) / m.shoulderWidth),
+          at('drawn_to_spec', 'all', 'T10 длина рукава', sleeveLength / m.sleeveLength),
+          at('drawn_to_spec', 'all', 'T13 низ рукава', sleeveOpening / m.sleeveOpening),
+        ]
+      : []),
 
     // Пропорции формы. Ширина листа берётся по габариту построенной геометрии —
     // по тем самым крайним точкам, между которыми лист и растягивается.
-    at('drawing_aspect', sleeveScope, 'размах к длине', (2 * g.bounds.width) / g.hem.y),
-    at(
-      'sleeve_angle_deg',
-      sleeveScope,
-      'верхний сгиб к горизонтали',
-      (g.sleeveAngle * 180) / Math.PI,
-    ),
     at('body_length_over_chest', 'all', 'T01 к T03', g.hem.y / chestDrawn),
-    at('shoulder_over_chest', 'all', 'T06 к T03', (2 * g.shoulderPoint.x) / chestDrawn),
-    at('sleeve_length_over_body_length', sleeveScope, 'T10 к T01', sleeveLength / g.hem.y),
-    at('sleeve_opening_over_chest', openingScope, 'T13 к T03', sleeveOpening / chestDrawn),
+    ...(sleeved
+      ? [
+          at('drawing_aspect', sleeveScope, 'размах к длине', (2 * g.bounds.width) / g.hem.y),
+          at(
+            'sleeve_angle_deg',
+            sleeveScope,
+            'верхний сгиб к горизонтали',
+            (g.sleeveAngle * 180) / Math.PI,
+          ),
+          at('shoulder_over_chest', 'all', 'T06 к T03', (2 * g.shoulderPoint.x) / chestDrawn),
+          at('sleeve_length_over_body_length', sleeveScope, 'T10 к T01', sleeveLength / g.hem.y),
+          at('sleeve_opening_over_chest', openingScope, 'T13 к T03', sleeveOpening / chestDrawn),
+        ]
+      : []),
   ];
 }
 

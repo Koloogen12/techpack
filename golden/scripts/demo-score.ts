@@ -13,6 +13,7 @@
  * Файлы пишутся во ВРЕМЕННЫЙ каталог и в репозиторий не попадают: выдуманные
  * замеры в `golden/measured` откалибровали бы справочник по выдумке.
  */
+import { CATEGORIES } from '@seamsterly/kb';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -29,8 +30,6 @@ const BIAS = 1.07;
 const root = mkdtempSync(join(tmpdir(), 'specform-fit-demo-'));
 mkdirSync(join(root, 'measured'), { recursive: true });
 mkdirSync(join(root, 'vision-reports'), { recursive: true });
-
-const CATEGORIES = ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const;
 
 for (const category of CATEGORIES) {
   const answers = parseAnswers(

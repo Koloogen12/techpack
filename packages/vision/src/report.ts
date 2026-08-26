@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CATEGORIES } from '@seamsterly/kb';
 
 /**
  * VisionReport — строго типизированный выход анализа фото.
@@ -21,7 +22,7 @@ export type VisionConfidence = z.infer<typeof VisionConfidenceSchema>;
 
 export const VisionReportSchema = z.object({
   category: z.object({
-    value: z.enum(['tshirt', 'longsleeve', 'sweatshirt', 'hoodie', 'other']),
+    value: z.enum([...CATEGORIES, 'other'] as unknown as [string, ...string[]]),
     confidence: VisionConfidenceSchema,
     /** Что именно на фото, если категория «другое». Нужно для гейта категорий. */
     other_description: z

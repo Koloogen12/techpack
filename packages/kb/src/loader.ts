@@ -78,6 +78,7 @@ import {
   type QcRule,
   type ToleranceClassesFile,
   type VisibilityMapFile,
+  CATEGORIES,
 } from './schemas/index.js';
 
 const DATA_DIR = new URL('../data/', import.meta.url).pathname;
@@ -157,7 +158,7 @@ export class KnowledgeBase {
     const defaults = new Map<Category, CategoryDefaultsFile>();
     // Категории добавляются по мере готовности шаблонов; гейт вне MVP —
     // в мастере, а не здесь: отсутствующий шаблон обязан падать явно.
-    for (const category of ['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const) {
+    for (const category of CATEGORIES) {
       pom.set(category, loadFile(`pom_templates/${category}.json`, PomTemplateFileSchema));
       defaults.set(
         category,

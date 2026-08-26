@@ -1,0 +1,204 @@
+{
+  "id": "category_defaults/zip_hoodie",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты худи на молнии: тот же футер с начёсом и капюшон, но перед разрезан по центру и собран на разъёмной молнии, а вместо кармана-кенгуру два накладных кармана. Молния — покупная фурнитура, её длина считается по изделию и попадает в спецификацию строкой.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#5"
+  ],
+  "category": "zip_hoodie",
+  "fabric_kind": "knit",
+  "default_nodes": [
+    "zip_set_in",
+    "zip_placket_topstitch",
+    "hood_set_in",
+    "hood_drawcord_casing",
+    "hood_eyelets",
+    "patch_pocket",
+    "pocket_bartack",
+    "shoulder_seam_overlock",
+    "shoulder_stay_tape",
+    "sleeve_set_in",
+    "side_sleeve_seam",
+    "cuff_rib",
+    "waistband_rib",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "french_terry_3t",
+    "rib": "rib_2x2",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "hardware": ["zipper_separating", "drawcord_flat", "eyelet_metal", "cord_tip"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Настрочить накладные карманы на перед",
+      "operation_en": "Topstitch patch pockets onto the fronts",
+      "operation_zh": "前片缉缝贴袋",
+      "node_id": "patch_pocket",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Поставить закрепки в углах входа в карман",
+      "operation_en": "Bartack pocket opening corners",
+      "operation_zh": "袋口两端打套结",
+      "node_id": "pocket_bartack",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "operation_en": "Join shoulder seams with stay tape",
+      "operation_zh": "缝合肩缝并夹入防伸带",
+      "node_id": "shoulder_seam_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Втачать разъёмную молнию в планки центра переда",
+      "operation_en": "Set the separating zip into the CF plackets",
+      "operation_zh": "前中门襟绱开尾拉链",
+      "node_id": "zip_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Отстрочить планки молнии в край",
+      "operation_en": "Edge-stitch the zip plackets",
+      "operation_zh": "门襟压止口明线",
+      "node_id": "zip_placket_topstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Стачать капюшон и втачать его в горловину",
+      "operation_en": "Assemble hood and set into neckline",
+      "operation_zh": "缝合帽子并绱至领口",
+      "node_id": "hood_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Обработать лицевой край капюшона кулиской",
+      "operation_en": "Finish hood face edge with drawcord casing",
+      "operation_zh": "帽口做穿绳通道",
+      "node_id": "hood_drawcord_casing",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Установить люверсы в кулиску",
+      "operation_en": "Set eyelets into the casing",
+      "operation_zh": "通道上安装气眼",
+      "node_id": "hood_eyelets",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Втачать рукава в проймы",
+      "operation_en": "Set sleeves into armholes",
+      "operation_zh": "绱袖（装入袖窿）",
+      "node_id": "sleeve_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+      "operation_en": "Close side and underarm seam in one operation",
+      "operation_zh": "一次缝合摆缝与袖底缝",
+      "node_id": "side_sleeve_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Стачать манжеты в кольцо и притачать к низу рукавов",
+      "operation_en": "Close cuffs into loops and attach to sleeve openings",
+      "operation_zh": "袖口罗纹接圈并绱至袖口",
+      "node_id": "cuff_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Притачать пояс-рибану к низу изделия",
+      "operation_en": "Attach the waistband rib to the garment bottom",
+      "operation_zh": "下摆绱罗纹",
+      "node_id": "waistband_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Вдеть шнур, закрепить наконечники",
+      "operation_en": "Insert drawcord, fit cord tips",
+      "operation_zh": "穿绳并装绳头",
+      "node_id": null,
+      "specialty": "A",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach content label into side seam",
+      "operation_zh": "侧缝夹缝成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 15,
+      "operation_ru": "Чистка изделия, контроль качества",
+      "operation_en": "Trim threads, quality control",
+      "operation_zh": "剪线清理、质检",
+      "node_id": null,
+      "specialty": "A",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 16,
+      "operation_ru": "Влажно-тепловая обработка, упаковка",
+      "operation_en": "Final press, packing",
+      "operation_zh": "整烫、包装",
+      "node_id": null,
+      "specialty": "P",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1).",
+  "translation_verified": false,
+  "translation_gap": "переводы техпоследовательности сделаны нами и не проверены технологом-носителем языка"
+}

@@ -218,10 +218,23 @@ describe.each(CATEGORIES)('заливка чертежа: %s', (category) => {
     // Долевая проверка говорит «где-то не залито»; эти точки говорят ГДЕ.
     const points = [
       { x: g.underarm.x * 0.5, y: g.underarm.y + 4 },
-      { x: g.shoulderPoint.x * 0.6, y: g.shoulderPoint.y * 0.6 },
-      { x: cuffMid.x - dir.x * back, y: cuffMid.y - dir.y * back },
+      // Середина плечевого ската, отступя вниз от линии плеча. Прежняя точка
+      // брала долю от ширины плеч и держалась внутри, только пока плечи были
+      // широкими: у майки с узкими бретелями она уехала в вырез горловины,
+      // и тест ловил не заливку, а ширину плеч.
+      {
+        x: (g.hps.x + g.shoulderPoint.x) / 2,
+        y: (g.hps.y + g.shoulderPoint.y) / 2 + Math.max(1.5, g.shoulderPoint.y * 0.5),
+      },
     ];
-    const labels = ['грудь', 'плечо', 'рукав'];
+    const labels = ['грудь', 'плечо'];
+
+    // У безрукавки пробу рукава ставить некуда: детали нет, и точка попала бы
+    // на белый фон — тест ловил бы отсутствие рукава как незалитую зону.
+    if (!m.sleeveless) {
+      points.push({ x: cuffMid.x - dir.x * back, y: cuffMid.y - dir.y * back });
+      labels.push('рукав');
+    }
 
     if (m.hoodHeight !== undefined) {
       // Две точки капюшона, и вторая — та самая, где полгода зиял белый клин:
