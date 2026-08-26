@@ -12,7 +12,7 @@
  * иначе сборка падает: молча разъехаться с прототипом нельзя.
  */
 import { createRequire } from 'node:module';
-import { copyFileSync, cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,7 +23,13 @@ const handoff = join(repoRoot, 'design_handoff_seamsterly');
 const dist = join(webRoot, 'dist');
 const require = createRequire(import.meta.url);
 
-const src = readFileSync(join(handoff, 'SpecForm - Воркспейс.dc.html'), 'utf8');
+// Имя файла с кириллицей: macOS отдаёт его в NFD, Linux хранит как принёс
+// rsync — ищем по нормализованной форме, а не по байтам.
+const protoName = readdirSync(handoff).find(
+  (f) => f.normalize('NFC') === 'SpecForm - Воркспейс.dc.html'.normalize('NFC'),
+);
+if (!protoName) throw new Error('в хендоффе не найден SpecForm - Воркспейс.dc.html');
+const src = readFileSync(join(handoff, protoName), 'utf8');
 
 // ------------------------------------------------------------------ шаблон
 
