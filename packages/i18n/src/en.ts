@@ -81,6 +81,27 @@ export const EN: Messages = {
   view_side: 'Side',
   flats_label: 'Technical flat · views share one scale, dimensions are in Points of Measure',
 
+  form_kicker: 'Measurement Sheet · Seamsterly',
+  form_who: 'Measured by',
+  form_date: 'Date',
+  form_label_size: 'Size on the label',
+  form_tool: 'Measured with',
+  form_rules_title: 'How to measure so the figures can be compared',
+  form_rules: [
+    'Lay the garment face up on a flat hard surface and smooth it by hand. Do not stretch or pull the fabric — rib and jersey give, and a stretched reading runs a centimetre or more over.',
+    'Measure the garment laid flat, not on a person and not on a form. Readings taken on a body run systematically larger, and the two cannot be mixed in one set.',
+    'Lay the tape flat, with no slack and no pressure. Read to the nearest half centimetre.',
+    'Chest, waist and sweep are measured seam to seam laid flat — that is half the circumference. Do not double it.',
+    'If a point is unclear, measure it twice and write both figures down. A gap of more than two centimetres means the two readings were taken differently.',
+    'Photograph the same garment on the same table from above: measurements without a photo of that same garment calibrate nothing.',
+  ],
+  form_th_point: 'Point of measure and how to take it',
+  form_th_value: 'Measured, cm',
+  form_th_repeat: 'Repeat, cm',
+  form_th_note: 'Note',
+  form_foot:
+    'Send the filled sheet back together with the photograph of the same garment. We will compare it against the tech pack and issue the next version with the confirmed figures.',
+
   cover_category: 'Category',
   cover_fit: 'Fit',
   cover_sizes: 'Size range',

@@ -317,3 +317,37 @@ describe('предел разрешения рулетки', () => {
     expect(report.hints.find((h) => h.code === 'T01')).toBeDefined();
   });
 });
+
+describe('бланк замеров на трёх языках', () => {
+  /**
+   * Самый ответственный текст продукта. Мерит тот, у кого изделие в руках,
+   * и это бывает иностранная фабрика: правила измерения на незнакомом языке
+   * означают, что мерить будут как привыкли, а не как здесь написано.
+   */
+  it.each(['ru', 'en', 'zh'] as const)('%s собирается', (locale) => {
+    expect(renderMeasurementForm({ category: 'hoodie', locale }).length).toBeGreaterThan(1000);
+  });
+
+  it.each(['en', 'zh'] as const)('в %s не осталось кириллицы', (locale) => {
+    const html = renderMeasurementForm({ category: 'hoodie', locale })
+      .replace(/<style[\s\S]*?<\/style>/g, '')
+      .replace(/<[^>]+>/g, ' ');
+    expect(html.match(/[а-яА-ЯёЁ]{3,}/g) ?? []).toEqual([]);
+  });
+
+  it('правила измерения переведены целиком, а не наполовину', () => {
+    // Шесть правил, и каждое отвечает за свой источник систематической
+    // ошибки: натяжение, манекен, провисание ленты, удвоение половины
+    // обхвата, разное понимание точки, отсутствие снимка.
+    for (const locale of ['ru', 'en', 'zh'] as const) {
+      const html = renderMeasurementForm({ category: 'hoodie', locale });
+      expect((html.match(/<li>/g) ?? []).length).toBe(6);
+    }
+  });
+
+  it('китайский бланк называет точки иероглифами', () => {
+    const html = renderMeasurementForm({ category: 'hoodie', locale: 'zh' });
+    expect(html).toContain('肩宽');
+    expect(html).toContain('平铺');
+  });
+});

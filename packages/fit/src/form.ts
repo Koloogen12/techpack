@@ -1,9 +1,12 @@
 import {
+  CATEGORY_LABEL_EN,
   CATEGORY_LABEL_RU,
+  CATEGORY_LABEL_ZH,
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
 } from '@seamsterly/kb';
+import { messages, type Locale } from '@seamsterly/i18n';
 
 /**
  * Печатный бланк замеров.
@@ -56,6 +59,12 @@ const MEASURING_ORDER = [
 ];
 
 export interface FormOptions {
+  /**
+   * Язык бланка. Мерит тот, у кого изделие в руках, и это бывает
+   * иностранная фабрика: правила измерения на незнакомом языке
+   * означают, что мерить будут как привыкли, а не как здесь написано.
+   */
+  locale?: Locale;
   category: Category;
   /** Что за вещь. Печатается в шапке, чтобы бланки не перепутались. */
   title?: string;
@@ -73,12 +82,22 @@ export function renderMeasurementForm(
     .slice()
     .sort((a, b) => rank(a.code) - rank(b.code));
 
+  const t = messages(options.locale ?? 'ru');
+  const name = (p: (typeof points)[number]): string =>
+    options.locale === 'zh' ? p.name_zh : options.locale === 'en' ? p.name_en : p.name_ru;
+  const how = (p: (typeof points)[number]): string =>
+    options.locale === 'zh'
+      ? p.how_to_measure_zh
+      : options.locale === 'en'
+        ? p.how_to_measure_en
+        : p.how_to_measure_ru;
+
   const rows = points
     .map(
       (p) =>
         `<tr>` +
         `<td class="code">${p.code}</td>` +
-        `<td><b>${esc(p.name_ru)}</b><div class="how">${esc(p.how_to_measure_ru)}</div></td>` +
+        `<td><b>${esc(name(p))}</b><div class="how">${esc(how(p))}</div></td>` +
         `<td class="box"></td>` +
         `<td class="box"></td>` +
         `<td class="note-cell"></td>` +
@@ -86,10 +105,15 @@ export function renderMeasurementForm(
     )
     .join('');
 
-  const title = options.title ?? capitalize(CATEGORY_LABEL_RU[options.category]);
+  const category = {
+    ru: CATEGORY_LABEL_RU,
+    en: CATEGORY_LABEL_EN,
+    zh: CATEGORY_LABEL_ZH,
+  }[options.locale ?? 'ru'];
+  const title = options.title ?? capitalize(category[options.category]);
 
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8">
-<title>Бланк замеров — ${esc(title)}</title>
+  return `<!doctype html><html lang="${options.locale ?? 'ru'}"><head><meta charset="utf-8">
+<title>${esc(t.form_kicker)} — ${esc(title)}</title>
 <style>
   @page { size: A4 portrait; margin: 12mm 10mm; }
   * { box-sizing: border-box; }
@@ -116,39 +140,28 @@ export function renderMeasurementForm(
   .foot { margin-top: 4mm; font-size: 7.4pt; color: #5A5A56; line-height: 1.45; }
 </style></head><body>
 <div class="head">
-  <div class="kicker">Бланк замеров · Seamsterly</div>
+  <div class="kicker">${esc(t.form_kicker)}</div>
   <h1>${esc(title)}</h1>
 </div>
 
 <div class="meta">
-  <div class="field"><div class="label">Кто мерил</div></div>
-  <div class="field"><div class="label">Дата</div></div>
-  <div class="field"><div class="label">Размер на ярлыке</div></div>
-  <div class="field"><div class="label">Чем мерили</div></div>
+  <div class="field"><div class="label">${esc(t.form_who)}</div></div>
+  <div class="field"><div class="label">${esc(t.form_date)}</div></div>
+  <div class="field"><div class="label">${esc(t.form_label_size)}</div></div>
+  <div class="field"><div class="label">${esc(t.form_tool)}</div></div>
 </div>
 
 <div class="rules">
-  <b>Как мерить, чтобы замеры можно было сравнивать</b>
-  <ol>
-    <li>Разложите вещь на ровной твёрдой поверхности лицом вверх, разгладьте руками. Не растягивайте и не натягивайте полотно — рибана и трикотаж тянутся, и натянутый замер завышен на сантиметр и больше.</li>
-    <li>Мерьте по разложенному изделию, а не на человеке и не на манекене. Замер на фигуре систематически больше, и смешивать их в одной выборке нельзя.</li>
-    <li>Ленту кладите плашмя, без провисания и без нажима. Читайте с точностью до половины сантиметра.</li>
-    <li>Ширины по груди, талии и низу — от шва до шва в плоском виде, то есть половина обхвата. Не удваивайте.</li>
-    <li>Сомневаетесь в точке — померьте второй раз и запишите оба значения. Расхождение больше двух сантиметров означает, что мерили по-разному.</li>
-    <li>Сфотографируйте ту же вещь на том же столе сверху: замеры без снимка того же изделия не калибруют ничего.</li>
-  </ol>
+  <b>${esc(t.form_rules_title)}</b>
+  <ol>${t.form_rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>
 </div>
 
 <table>
-  <thead><tr><th>Код</th><th>Точка измерения и как её мерить</th><th>Замер, см</th><th>Повтор, см</th><th>Примечание</th></tr></thead>
+  <thead><tr><th>${esc(t.pom_code)}</th><th>${esc(t.form_th_point)}</th><th>${esc(t.form_th_value)}</th><th>${esc(t.form_th_repeat)}</th><th>${esc(t.form_th_note)}</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
 
-<div class="foot">
-  Заполненный бланк переносится в файл <code>golden/measured/&lt;имя&gt;.json</code> — формат
-  и порядок работы описаны в <code>docs/RULER-PROTOCOL.md</code>. Сравнение с документом
-  запускается командой <code>pnpm fit:score</code>.
-</div>
+<div class="foot">${t.form_foot}</div>
 </body></html>`;
 }
 

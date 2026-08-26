@@ -114,6 +114,25 @@ export interface Messages {
   cover_sizes: string;
   cover_shell: string;
 
+  // --- Бланк замеров ---------------------------------------------------------
+  //
+  // Самый ответственный текст продукта. По этим правилам человек мерит
+  // отшитый образец, и от них зависит, СРАВНИМЫ ли замеры вообще. Натянутая
+  // лента даёт плюс сантиметр, замер на манекене — систематический сдвиг,
+  // и оба испортят не один документ, а всю калибровку.
+  form_kicker: string;
+  form_who: string;
+  form_date: string;
+  form_label_size: string;
+  form_tool: string;
+  form_rules_title: string;
+  form_rules: readonly string[];
+  form_th_point: string;
+  form_th_value: string;
+  form_th_repeat: string;
+  form_th_note: string;
+  form_foot: string;
+
   // --- Общее -----------------------------------------------------------------
   sheet_of: (n: number, total: number) => string;
   cm: string;

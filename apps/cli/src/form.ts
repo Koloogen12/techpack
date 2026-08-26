@@ -2,7 +2,7 @@
 /**
  * Печать бланка замеров.
  *
- *   pnpm fit:form --category hoodie --out out/бланк-худи.pdf [--required]
+ *   pnpm fit:form --category hoodie --out out/бланк-худи.pdf [--required] [--lang zh]
  *
  * Бланк идёт в руки тому, кто мерит вещь рулеткой. Точки на нём стоят
  * в порядке ИЗМЕРЕНИЯ, а не в порядке кодов: вещь берут в руки один раз.
@@ -13,11 +13,13 @@ import { chromium } from 'playwright';
 import { isSeamsterlyError } from '@seamsterly/core';
 import { CATEGORIES, type Category } from '@seamsterly/kb';
 import { renderMeasurementForm } from '@seamsterly/fit';
+import { LOCALES, type Locale } from '@seamsterly/i18n';
 
 interface Cli {
   category: Category;
   out: string;
   requiredOnly: boolean;
+  locale: Locale;
   title?: string;
 }
 
@@ -25,6 +27,7 @@ function parseArgv(argv: readonly string[]): Cli {
   let category: string | undefined;
   let out = 'out/measurement-form.pdf';
   let requiredOnly = false;
+  let locale: Locale = 'ru';
   let title: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
@@ -35,6 +38,14 @@ function parseArgv(argv: readonly string[]): Cli {
     }
     if (arg === '--out') {
       out = argv[++i] ?? out;
+      continue;
+    }
+    if (arg === '--lang') {
+      const value = argv[++i];
+      if (!LOCALES.includes(value as Locale)) {
+        throw new Error(`неизвестный язык: ${value}. Доступны: ${LOCALES.join(', ')}`);
+      }
+      locale = value as Locale;
       continue;
     }
     if (arg === '--title') {
@@ -52,7 +63,13 @@ function parseArgv(argv: readonly string[]): Cli {
   if (!CATEGORIES.includes(category as Category)) {
     throw new Error(`неизвестная категория: ${category}. Доступны: ${CATEGORIES.join(', ')}`);
   }
-  return { category: category as Category, out, requiredOnly, ...(title ? { title } : {}) };
+  return {
+    category: category as Category,
+    out,
+    requiredOnly,
+    locale,
+    ...(title ? { title } : {}),
+  };
 }
 
 async function main(): Promise<void> {
@@ -60,6 +77,7 @@ async function main(): Promise<void> {
   const html = renderMeasurementForm({
     category: cli.category,
     requiredOnly: cli.requiredOnly,
+    locale: cli.locale,
     ...(cli.title ? { title: cli.title } : {}),
   });
 

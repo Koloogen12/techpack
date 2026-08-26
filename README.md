@@ -85,6 +85,7 @@ pnpm fit:apply <бланк-замеров.json>                # примерк�
 pnpm versions [артикул] [номер]                    # история и что изменилось
 pnpm admin                                         # панель консьержа → out/admin.html
 pnpm generate --answers <анкета> --lang en zh      # фабричные комплекты на трёх языках
+pnpm fit:form --category hoodie --lang zh          # бланк замеров на языке того, кто мерит
 
 pnpm rfq --answers анкета.json --out out/rfq.pdf   # лист на просчёт + текст в мессенджер
 pnpm rfq:report --init rfq/responses.csv           # завести журнал ответов фабрик

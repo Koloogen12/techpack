@@ -173,6 +173,9 @@ importers:
       '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
+      '@seamsterly/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
