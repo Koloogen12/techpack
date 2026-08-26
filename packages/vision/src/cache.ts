@@ -29,6 +29,11 @@ export interface CacheKeyInput {
   /** Отпечаток остальных ответов мастера, влияющих на промпт. */
   answersFingerprint: string;
   /**
+   * Отпечаток собранного промпта этой категории. Заменяет глобальную
+   * PROMPT_VERSION: правка справочника худи не обязана ронять кэш футболок.
+   */
+  promptFingerprint?: string;
+  /**
    * Ракурсы кадров в порядке снимков. Входят в ключ ОТДЕЛЬНО от хешей файлов:
    * те же самые фотографии, объявленные другими ракурсами, — это другой
    * промпт и другой разбор.
@@ -42,6 +47,11 @@ export interface CacheKeyInput {
  *
  * Смена промпта, модели или схемы отчёта меняет ключ. Это не побочный эффект,
  * а требование: любая такая правка обязана пройти через голден-сет.
+ *
+ * Отпечаток промпта берётся ПО КОНКРЕТНОЙ КАТЕГОРИИ, а не глобальной
+ * версией: иначе добавление пятой категории обнуляло бы кэш всех четырёх
+ * прежних — и каждая новая категория стоила бы платного перепрогона всего
+ * голден-сета плюс холодного старта у всех, кто уже работает.
  */
 export function cacheKey(input: CacheKeyInput): string {
   const parts = [
@@ -50,7 +60,7 @@ export function cacheKey(input: CacheKeyInput): string {
     input.views.map((v) => v ?? '-').join(','),
     input.category,
     input.answersFingerprint,
-    PROMPT_VERSION,
+    input.promptFingerprint ?? PROMPT_VERSION,
     input.model,
     VISION_SCHEMA_VERSION,
   ];

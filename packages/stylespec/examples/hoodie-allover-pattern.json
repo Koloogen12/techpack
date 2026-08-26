@@ -1874,6 +1874,84 @@
         "supplier_article": null
       },
       {
+        "code": "H-01",
+        "role": "hardware",
+        "material_id": "drawcord_flat",
+        "name_ru": "Шнур плоский 12 мм",
+        "name_en": "Flat drawcord, 12 mm",
+        "name_zh": "扁抽绳 12 毫米",
+        "composition_en": "100% cotton or cotton/polyester",
+        "composition_zh": "100% 棉或棉涤混纺",
+        "composition": {
+          "value": "100% хлопок либо хлопок с полиэфиром",
+          "confidence": "assumption",
+          "source": "kb:materials#drawcord_flat.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "Плетёный шнур в кулиску капюшона",
+        "consumption": {
+          "value": 1,
+          "confidence": "default_from_base",
+          "source": "kb:materials#drawcord_flat.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "H-02",
+        "role": "hardware",
+        "material_id": "eyelet_metal",
+        "name_ru": "Люверс металлический №4",
+        "name_en": "Metal eyelet, size 4",
+        "name_zh": "金属鸡眼 4 号",
+        "composition_en": "electroplated brass",
+        "composition_zh": "黄铜电镀",
+        "composition": {
+          "value": "латунь с гальваническим покрытием",
+          "confidence": "assumption",
+          "source": "kb:materials#eyelet_metal.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "Два люверса в кулиску капюшона, установка прессом",
+        "consumption": {
+          "value": 2,
+          "confidence": "default_from_base",
+          "source": "kb:materials#eyelet_metal.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
+        "code": "H-03",
+        "role": "hardware",
+        "material_id": "cord_tip",
+        "name_ru": "Наконечник шнура",
+        "name_en": "Cord tip",
+        "name_zh": "绳头",
+        "composition_en": "metal or plastic, brand's choice",
+        "composition_zh": "金属或塑料，由品牌方选择",
+        "composition": {
+          "value": "металл либо пластик по выбору бренда",
+          "confidence": "assumption",
+          "source": "kb:materials#cord_tip.composition",
+          "note": "состав по фото не определяется — подтвердить у поставщика полотна"
+        },
+        "gsm": null,
+        "placement_ru": "Два наконечника на концы шнура",
+        "consumption": {
+          "value": 2,
+          "confidence": "default_from_base",
+          "source": "kb:materials#cord_tip.consumption",
+          "note": "типовое количество на изделие"
+        },
+        "consumption_unit": "шт",
+        "supplier_article": null
+      },
+      {
         "code": "L-01",
         "role": "label",
         "material_id": "care_label",
@@ -2323,6 +2401,6 @@
       "pom_templates/hoodie": "0.1.0",
       "category_defaults/hoodie": "0.1.0"
     },
-    "assumptions_count": 12
+    "assumptions_count": 15
   }
 }

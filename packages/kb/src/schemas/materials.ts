@@ -15,6 +15,15 @@ export const MATERIAL_ROLES = [
   'rib',
   'interlining',
   'thread',
+  /**
+   * Фурнитура: шнур, люверсы, наконечники, молния, пуговицы.
+   *
+   * Роль появилась не «на будущее»: у худи в технологической
+   * последовательности стояли операции «установить люверсы» и «вдеть шнур»,
+   * а в спецификации материалов этих позиций не было вовсе — фабрика
+   * получала операцию без строки закупки.
+   */
+  'hardware',
   'label',
   'packaging',
 ] as const;
@@ -26,6 +35,7 @@ export const MATERIAL_ROLE_LABEL_EN: Record<MaterialRole, string> = {
   rib: 'rib trim',
   interlining: 'interlining',
   thread: 'thread',
+  hardware: 'hardware and trims',
   label: 'label',
   packaging: 'packaging',
 };
@@ -35,6 +45,7 @@ export const MATERIAL_ROLE_LABEL_ZH: Record<MaterialRole, string> = {
   rib: '罗纹',
   interlining: '衬布',
   thread: '缝纫线',
+  hardware: '五金辅料',
   label: '唛头',
   packaging: '包装',
 };
@@ -44,6 +55,7 @@ export const MATERIAL_ROLE_LABEL_RU: Record<MaterialRole, string> = {
   rib: 'отделочное полотно (рибана, кашкорсе)',
   interlining: 'прокладочные материалы',
   thread: 'нитки',
+  hardware: 'фурнитура',
   label: 'ярлыки и этикетки',
   packaging: 'упаковка',
 };
@@ -74,6 +86,13 @@ export const MaterialSchema = z
     /** Плотность, г/м². С фото не определяется никогда. */
     gsm: WithDefault.optional(),
     applications: z.array(CategorySchema),
+    /**
+     * Штук на изделие — только для фурнитуры. У полотна расход считается
+     * раскладкой, у ниток и упаковки хватает единицы: там ошибка на штуку
+     * ничего не стоит, а у люверсов их ровно два, и снабжение закупает по
+     * этому числу.
+     */
+    qty_per_unit: z.number().positive().optional(),
     photo_detectable: PhotoDetectabilitySchema,
     /** Профиль символов ухода из care_symbols. */
     care_profile_id: z.string().min(1).optional(),

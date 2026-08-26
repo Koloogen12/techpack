@@ -25,6 +25,7 @@
     "rib": "rib_2x2",
     "threads": ["thread_40_2", "thread_textured"],
     "interlinings": ["stay_tape"],
+    "hardware": [],
     "labels": ["care_label", "size_label", "hangtag"],
     "packaging": ["polybag"]
   },

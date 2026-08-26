@@ -171,7 +171,7 @@ export interface HtmlOptions {
 const ROWS_PER_PAGE = {
   measurements: 15,
   notes: 17,
-  bom: 14,
+  bom: 11,
   nodes: 7,
   sequence: 17,
   sku: 17,

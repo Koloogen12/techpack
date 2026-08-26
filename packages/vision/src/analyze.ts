@@ -4,7 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { SeamsterlyError, silentLogger, type CostLedger, type Logger } from '@seamsterly/core';
 import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamsterly/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
-import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt } from './prompt.js';
+import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt, promptFingerprint } from './prompt.js';
 import { VisionReportSchema, type VisionReport } from './report.js';
 
 /** Форматы, которые принимает Claude API. */
@@ -109,6 +109,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
     views: photos.map((p) => p.view),
     category,
     answersFingerprint,
+    promptFingerprint: promptFingerprint(base, category),
     model,
   });
 

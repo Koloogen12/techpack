@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import {
+  CATEGORIES,
   CATEGORY_LABEL_RU,
   type Category,
   type KnowledgeBase,
@@ -24,6 +26,14 @@ export const PROMPT_VERSION = 'v2';
  * Разойтись они не могут. Префикс стабилен для категории, поэтому кэшируется
  * целиком — фотографии идут после него.
  */
+/** Отпечаток промпта категории — им кэш отличает «промпт изменился» от «нет». */
+export function promptFingerprint(base: KnowledgeBase, category: Category): string {
+  return createHash('sha256')
+    .update(`${PROMPT_VERSION}\n${buildSystemPrompt(base, category)}`)
+    .digest('hex')
+    .slice(0, 16);
+}
+
 export function buildSystemPrompt(base: KnowledgeBase, category: Category): string {
   // Шаблон берётся по ЗАЯВЛЕННОЙ пользователем категории. Раньше здесь стояла
   // футболка для любого изделия: модель получала список её точек и разбирала
@@ -42,9 +52,9 @@ export function buildSystemPrompt(base: KnowledgeBase, category: Category): stri
   const visible = map.visible.map((f) => `  ${f.key} — ${f.label_ru}. ${f.hint_ru}`).join('\n');
   const invisible = map.not_visible.map((f) => `  ${f.key} — ${f.label_ru}`).join('\n');
 
-  const categories = (['tshirt', 'longsleeve', 'sweatshirt', 'hoodie'] as const)
-    .map((c) => `${c} (${CATEGORY_LABEL_RU[c]})`)
-    .join(', ');
+  // Список берётся из перечисления: копия здесь однажды разошлась бы
+  // с CategorySchema, и модель предлагала бы категорию, которой нет.
+  const categories = CATEGORIES.map((c) => `${c} (${CATEGORY_LABEL_RU[c]})`).join(', ');
 
   return [
     'Ты — технолог швейного производства. Тебе показывают фотографии изделия, по которым будет собран производственный технический пакет для фабрики.',

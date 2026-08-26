@@ -53,6 +53,8 @@ export const CategoryDefaultsFileSchema = RefBookMetaSchema.extend({
     rib: z.string().min(1).nullable(),
     threads: z.array(z.string().min(1)),
     interlinings: z.array(z.string().min(1)),
+    /** Фурнитура категории. Пусто у изделий без шнуров, молний и кнопок. */
+    hardware: z.array(z.string().min(1)).default([]),
     labels: z.array(z.string().min(1)).min(1),
     packaging: z.array(z.string().min(1)),
   }),

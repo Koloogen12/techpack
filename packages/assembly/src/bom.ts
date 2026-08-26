@@ -70,6 +70,7 @@ const ROLE_PREFIX: Record<MaterialRole, string> = {
   rib: 'F',
   interlining: 'I',
   thread: 'T',
+  hardware: 'H',
   label: 'L',
   packaging: 'P',
 };
@@ -79,6 +80,7 @@ const PLACEMENT: Record<MaterialRole, string> = {
   rib: 'горловина, манжеты, пояс',
   interlining: 'плечевой шов',
   thread: 'все швы',
+  hardware: 'по узлам обработки',
   label: 'горловина, боковой шов, навесной',
   packaging: 'индивидуальная упаковка',
 };
@@ -113,6 +115,7 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
     ...(defaults.rib ? [{ id: defaults.rib, role: 'rib' as const }] : []),
     ...defaults.threads.map((id) => ({ id, role: 'thread' as const })),
     ...defaults.interlinings.map((id) => ({ id, role: 'interlining' as const })),
+    ...(defaults.hardware ?? []).map((id) => ({ id, role: 'hardware' as const })),
     ...defaults.labels.map((id) => ({ id, role: 'label' as const })),
     ...defaults.packaging.map((id) => ({ id, role: 'packaging' as const })),
   ];
@@ -235,11 +238,18 @@ function buildLine(material: Material, role: MaterialRole, code: string, input: 
             `${material.gsm.max} г/м² — подтвердить у поставщика`,
         )
       : null,
-    placement_ru: PLACEMENT[role],
+    // У фурнитуры место установки конкретное — «два люверса в кулиску
+    // капюшона». Общая формулировка роли здесь бесполезна: закройщик
+    // по ней не поймёт, куда ставить.
+    placement_ru: role === 'hardware' ? material.structure_ru : PLACEMENT[role],
     consumption:
       role === 'shell'
         ? null // расход полотна считается отдельно, ниже по документу
-        : fromBase(1, `${source}.consumption`, 'типовое количество на изделие'),
+        : fromBase(
+            material.qty_per_unit ?? 1,
+            `${source}.consumption`,
+            'типовое количество на изделие',
+          ),
     consumption_unit: role === 'shell' || role === 'rib' ? 'м' : 'шт',
     supplier_article: null,
     ...(isShellFromPhoto ? { note: 'класс полотна опознан по фактуре на фото' } : {}),

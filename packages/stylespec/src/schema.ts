@@ -237,7 +237,7 @@ export const ColorwaySchema = z.object({
 
 export const BomLineSchema = z.object({
   code: z.string().min(1),
-  role: z.enum(['shell', 'rib', 'interlining', 'thread', 'label', 'packaging']),
+  role: z.enum(['shell', 'rib', 'interlining', 'thread', 'hardware', 'label', 'packaging']),
   material_id: z.string().min(1),
   name_ru: z.string().min(1),
   name_en: z.string().min(1),

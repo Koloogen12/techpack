@@ -4,11 +4,13 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { isSeamsterlyError } from '@seamsterly/core';
 import { generate } from '@seamsterly/cli';
+import { kb } from '@seamsterly/kb';
 import {
   FileVisionCache,
   cacheKey,
   defaultModel,
   hashPhoto,
+  promptFingerprint,
   type VisionReport,
 } from '@seamsterly/vision';
 import { checkSpec } from './invariants.js';
@@ -37,7 +39,7 @@ const ANSWERS = {
   id: 'vision-path',
   name: 'Футболка по фото',
   article: 'TSH-VP-001',
-  category: 'tshirt',
+  category: 'tshirt' as const,
   gender: 'women',
   base_size_ru: 46,
   base_height_cm: 170,
@@ -99,11 +101,15 @@ function prime(over: Partial<VisionReport> = {}): { answersPath: string; photoPa
   const answersPath = join(tmp, 'answers.json');
   writeFileSync(answersPath, JSON.stringify(ANSWERS));
 
+  // Ключ строится ровно так же, как его строит продукт, включая отпечаток
+  // промпта: разойдись они — тест бы «прогревал» кэш мимо, и мы бы узнали
+  // об этом попыткой сходить в платный API прямо из теста.
   const key = cacheKey({
     photoHashes: [hashPhoto(PNG)],
     views: [undefined],
     category: ANSWERS.category,
     answersFingerprint: fingerprint,
+    promptFingerprint: promptFingerprint(kb(), ANSWERS.category),
     model: defaultModel(),
   });
   new FileVisionCache(join(tmp, 'cache')).set(key, { ...REPORT, ...over });
