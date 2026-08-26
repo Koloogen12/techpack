@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseStyleSpec, type StyleSpec } from '@specform/stylespec';
+import { diffSpecs } from '@specform/versions';
 import {
   DOC_SECTIONS,
   EXPORT_ROLES,
@@ -28,8 +29,19 @@ const VISUALS = {
   patternRender: { dataUri: PIXEL },
 };
 
+/**
+ * Лист изменений условен так же, как «нанесение»: у первой версии его нет,
+ * и это правильно. Чтобы состав документа проверялся целиком, диффом
+ * снабжаем фикстуру явно.
+ */
+const CHANGES = {
+  from_version: 1,
+  to_version: 2,
+  diff: diffSpecs(MIXED, SPEC),
+};
+
 const html = (spec: StyleSpec = SPEC, options = {}) =>
-  renderHtml(spec, { pro: true, visuals: VISUALS, ...options });
+  renderHtml(spec, { pro: true, visuals: VISUALS, changes: CHANGES, ...options });
 const pagesOf = (h: string): string[] => h.split('<section class="page"').slice(1);
 const sectionsOf = (h: string): string[] =>
   [...h.matchAll(/data-section="([a-z_]+)"/g)].map((m) => m[1]!);
@@ -212,7 +224,12 @@ describe('выгрузка по ролям', () => {
       const profile = roleProfile(role);
       const sections = new Set(
         sectionsOf(
-          renderHtml(PATTERN, { sections: profile.sections, pro: profile.pro, visuals: VISUALS }),
+          renderHtml(PATTERN, {
+            sections: profile.sections,
+            pro: profile.pro,
+            visuals: VISUALS,
+            changes: CHANGES,
+          }),
         ),
       );
       for (const s of profile.sections) expect(sections, role).toContain(s);
@@ -368,10 +385,23 @@ describe('страница внешнего вида', () => {
     expect([...h.matchAll(/Снимок заказчика/g)]).toHaveLength(3);
   });
 
-  it('идёт сразу после обложки — это первое, что открывают', () => {
-    const sections = sectionsOf(html());
+  it('у первой версии идёт сразу после обложки — это первое, что открывают', () => {
+    const sections = sectionsOf(renderHtml(SPEC, { pro: true, visuals: VISUALS }));
     expect(sections[0]).toBe('cover');
     expect(sections[1]).toBe('preview');
+  });
+
+  it('у повторной версии его опережает лист изменений', () => {
+    // Читатель второй версии уже видел вещь. Ему нужна дельта, а не
+    // повторное знакомство: без листа изменений «версия 2» означает
+    // «читайте сорок страниц заново», и её просто не читают.
+    const sections = sectionsOf(html());
+    const preview = sections.indexOf('preview');
+    // Изменений может быть на несколько листов — важно, что ДО внешнего вида
+    // идёт только обложка и они.
+    expect(new Set(sections.slice(0, preview))).toEqual(new Set(['cover', 'changes']));
+    expect(sections[0]).toBe('cover');
+    expect(sections[1]).toBe('changes');
   });
 });
 

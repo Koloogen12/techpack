@@ -35,6 +35,7 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
     purpose_ru: 'весь комплект для размещения заказа',
     sections: [
       'cover',
+      'changes',
       'preview',
       'flats',
       'measurements',
@@ -51,19 +52,21 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
   technologist: {
     label_ru: 'технологу',
     purpose_ru: 'узлы обработки, коды швов и технологическая последовательность',
-    sections: ['cover', 'preview', 'flats', 'construction'],
+    sections: ['cover', 'changes', 'preview', 'flats', 'construction'],
     pro: true,
   },
   cutter: {
     label_ru: 'закройщику',
     purpose_ru: 'чертёж, замеры и припуски для раскроя',
-    sections: ['cover', 'preview', 'flats', 'measurements', 'patterns'],
+    sections: ['cover', 'changes', 'preview', 'flats', 'measurements', 'patterns'],
     pro: true,
   },
   qc: {
     label_ru: 'ОТК',
     purpose_ru: 'табель мер с допусками для приёмки',
-    sections: ['cover', 'preview', 'measurements'],
+    // ОТК читает лист изменений первым: он принимал партию по прошлой версии,
+    // и ему важно ровно то, что с тех пор сдвинулось.
+    sections: ['cover', 'changes', 'preview', 'measurements'],
     pro: false,
   },
   printer: {

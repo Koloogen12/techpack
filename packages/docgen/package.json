@@ -11,6 +11,7 @@
     "@specform/flats": "workspace:*",
     "@specform/stylespec": "workspace:*",
     "playwright": "^1.62.1",
-    "@specform/kb": "workspace:*"
+    "@specform/kb": "workspace:*",
+    "@specform/versions": "workspace:*"
   }
 }

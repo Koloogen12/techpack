@@ -11,6 +11,7 @@ import {
   EXPORT_ROLES,
 } from '@specform/docgen';
 import type { StyleSpec } from '@specform/stylespec';
+import { diffSpecs } from '@specform/versions';
 import { SCENARIOS } from './scenarios.js';
 
 /**
@@ -410,5 +411,27 @@ describe('страницы с картинками тоже вмещаются',
     ).toEqual([]);
     expect(report.sections).toContain('artwork');
     expect(report.sections).toContain('colorways');
+  }, 60_000);
+});
+
+describe('лист изменений вмещается', () => {
+  /**
+   * Изменений между версиями бывает много: смена посадки трогает почти весь
+   * табель. Лист с обрезанным хвостом читается как полный — и человек уходит
+   * работать, не увидев половины правок.
+   */
+  it('смена посадки меняет почти весь табель и всё равно помещается', async () => {
+    const hoodie = SCENARIOS.find((s) => s.input.category === 'hoodie')!;
+    const prev = buildStyleSpec(hoodie.input).spec;
+    const next = buildStyleSpec({ ...hoodie.input, fit_intent: 'semi_fitted' }).spec;
+    const report = await checkLayout(next, {
+      browser,
+      pro: true,
+      changes: { from_version: 1, to_version: 2, diff: diffSpecs(prev, next) },
+    });
+    expect(
+      report.overflows.map((o) => `лист ${o.index + 1} (${o.section}): +${o.overflowPx}px`),
+    ).toEqual([]);
+    expect(report.sections).toContain('changes');
   }, 60_000);
 });

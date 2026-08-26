@@ -21,6 +21,7 @@ interface Cli {
   render: boolean;
   /** Где лежит файл раппорта. По умолчанию библиотека бренда. */
   tileDir?: string;
+  versionsDir?: string;
 }
 
 function parseArgv(argv: readonly string[]): Cli {
@@ -65,6 +66,14 @@ function parseArgv(argv: readonly string[]): Cli {
       mode = null;
       continue;
     }
+    // История версий ведётся только по явной просьбе: концьерж часто
+    // пересобирает документ на ходу, и каждая пересборка не должна
+    // превращаться в новую версию для фабрики.
+    if (arg === '--versions') {
+      cli.versionsDir = argv[++i] ?? 'versions';
+      mode = null;
+      continue;
+    }
     if (arg === '--tile-dir') {
       cli.tileDir = argv[++i] ?? '';
       mode = null;
@@ -104,6 +113,7 @@ async function main(): Promise<void> {
     writeSpec: cli.spec,
     render: cli.render,
     ...(cli.tileDir ? { tileDir: cli.tileDir } : {}),
+    ...(cli.versionsDir ? { versionsDir: cli.versionsDir } : {}),
     logger: createLogger({ level: cli.quiet ? 'error' : 'warn' }),
   });
 

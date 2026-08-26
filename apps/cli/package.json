@@ -21,6 +21,7 @@
     "@specform/fit": "workspace:*",
     "@specform/render": "workspace:*",
     "@specform/pattern": "workspace:*",
-    "@specform/library": "workspace:*"
+    "@specform/library": "workspace:*",
+    "@specform/versions": "workspace:*"
   }
 }

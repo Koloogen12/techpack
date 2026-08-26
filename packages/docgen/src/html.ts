@@ -13,6 +13,7 @@ import {
   type Specialty,
 } from '@specform/kb';
 import type { StyleSpec } from '@specform/stylespec';
+import type { SpecDiff } from '@specform/versions';
 import { DOC_CSS } from './styles.js';
 
 /**
@@ -35,6 +36,7 @@ import { DOC_CSS } from './styles.js';
 
 export const DOC_SECTIONS = [
   'cover',
+  'changes',
   'preview',
   'flats',
   'measurements',
@@ -106,6 +108,13 @@ export interface HtmlOptions {
   /** Подпись роли в колонтитуле — для выгрузок по ролям. */
   roleLabel?: string;
   visuals?: DocVisuals;
+  /**
+   * Что изменилось с прошлой версии.
+   *
+   * Передаётся снаружи, потому что чтение истории — это ввод-вывод, а рендер
+   * документа обязан оставаться чистой функцией спеки.
+   */
+  changes?: { from_version: number; to_version: number; diff: SpecDiff };
 }
 
 /**
@@ -119,6 +128,7 @@ const ROWS_PER_PAGE = {
   nodes: 7,
   sequence: 17,
   sku: 17,
+  changes: 12,
 } as const;
 
 const esc = (s: string): string =>
@@ -187,6 +197,12 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   };
 
   add('cover', 'Технический пакет', [coverBody(spec)]);
+  // Лист изменений идёт СРАЗУ за обложкой: человек, который уже читал прошлую
+  // версию, не станет перечитывать сорок страниц ради двух правок. Без этого
+  // листа «версия 2» означает «читайте всё заново», и её просто не читают.
+  if (options.changes && include('changes')) {
+    add('changes', 'Что изменилось', changesPages(options.changes));
+  }
   // Страницы внешнего вида нет, если показывать нечего: пустой лист
   // с рамками хуже отсутствующего раздела. Тело собирается только когда
   // раздел действительно нужен — в нём мегабайты data-URI.
@@ -759,6 +775,140 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
     `мотива. Здесь масштаб приблизительный, а раскладка на готовом изделии зависит ` +
     `от раскроя.</div>`
   );
+}
+
+// ---------------------------------------------------------------- изменения
+
+/**
+ * Лист «Что изменилось».
+ *
+ * Отвечает на единственный вопрос возвращающегося читателя: что тронули.
+ * Два сорта изменений показаны РАЗДЕЛЬНО, потому что они означают разное:
+ * сдвинувшееся значение требует пересмотра лекала, а поднявшийся статус
+ * не требует ничего — он снимает вопрос. Свалить их в одну таблицу значило
+ * бы заставить технолога вычитывать, где из этого работа.
+ */
+function changesPages(changes: {
+  from_version: number;
+  to_version: number;
+  diff: SpecDiff;
+}): string[] {
+  const { diff, from_version, to_version } = changes;
+
+  const head =
+    `<div class="ml">версия ${from_version} → ${to_version}</div>` +
+    `<h2 style="margin-top:1mm">${diff.identical ? 'Содержание не изменилось' : summariseRu(diff)}</h2>`;
+
+  if (diff.identical) {
+    return [
+      head +
+        `<div class="note">Документ пересобран, но ни одно значение, ни один узел ` +
+        `и ни одна позиция спецификации не изменились. Работать можно по прошлой версии.</div>`,
+    ];
+  }
+
+  const moved = diff.points.filter((p) => p.delta_cm !== null && p.delta_cm !== 0);
+  const confirmedOnly = diff.points.filter((p) => p.confirmed && (p.delta_cm ?? 0) === 0);
+
+  const rows = (list: SpecDiff['points']): string =>
+    list
+      .map(
+        (p) =>
+          `<tr><td class="mono">${esc(p.code)}</td><td>${esc(p.name_ru)}</td>` +
+          `<td class="num v">${p.from_cm === null ? '—' : num(p.from_cm)}</td>` +
+          `<td class="num v">${p.to_cm === null ? '—' : num(p.to_cm)}</td>` +
+          `<td class="num v">${p.delta_cm === null ? '—' : (p.delta_cm > 0 ? '+' : '') + num(p.delta_cm)}</td>` +
+          `<td class="note">${
+            p.from_confidence && p.to_confidence && p.from_confidence !== p.to_confidence
+              ? `${esc(CONFIDENCE_LABEL_RU[p.from_confidence])} → <b>${esc(CONFIDENCE_LABEL_RU[p.to_confidence])}</b>`
+              : ''
+          }</td></tr>`,
+      )
+      .join('');
+
+  const table = (title: string, why: string, list: SpecDiff['points']): string =>
+    list.length
+      ? `<h3>${title}</h3><div class="note" style="margin-bottom:2mm">${why}</div>` +
+        `<table><thead><tr><th>Код</th><th>Точка</th><th class="num">Было</th>` +
+        `<th class="num">Стало</th><th class="num">Δ см</th><th>Статус</th></tr></thead>` +
+        `<tbody>${rows(list)}</tbody></table>`
+      : '';
+
+  const structural = [
+    ...diff.nodes.added.map((id) => `добавлен узел ${id}`),
+    ...diff.nodes.removed.map((id) => `убран узел ${id}`),
+    ...diff.bom.added.map((c) => `добавлена позиция ${c}`),
+    ...diff.bom.removed.map((c) => `убрана позиция ${c}`),
+    ...diff.colorways.added.map((c) => `добавлен цвет ${c}`),
+    ...diff.colorways.removed.map((c) => `убран цвет ${c}`),
+  ];
+
+  // Изменений может оказаться много — таблица режется по листам тем же
+  // правилом, что и остальные. Лист с обрезанным хвостом читается как
+  // полный, и это худший сорт ошибки вёрстки.
+  const blocks: string[] = [];
+  chunk(moved, ROWS_PER_PAGE.changes).forEach((part, i) =>
+    blocks.push(
+      table(
+        i === 0 ? 'Значения сдвинулись' : 'Значения сдвинулись · продолжение',
+        i === 0
+          ? 'Здесь работа: правка лекала, пересчёт раскладки, новый контроль на приёмке.'
+          : '',
+        part,
+      ),
+    ),
+  );
+  chunk(confirmedOnly, ROWS_PER_PAGE.changes).forEach((part, i) =>
+    blocks.push(
+      table(
+        i === 0 ? 'Подтвердились без изменения' : 'Подтвердились без изменения · продолжение',
+        i === 0
+          ? 'Цифра прежняя, но она перестала быть догадкой. Работы не требует — снимает вопрос.'
+          : '',
+        part,
+      ),
+    ),
+  );
+  if (structural.length) {
+    blocks.push(
+      `<h3>Конструкция и спецификация</h3><ul class="dash">` +
+        structural.map((x) => `<li>${esc(x)}</li>`).join('') +
+        `</ul>`,
+    );
+  }
+
+  const footer =
+    `<div class="note" style="margin-top:3mm">Предположений в документе: ` +
+    `<b>${diff.assumptions.from} → ${diff.assumptions.to}</b>. ` +
+    `Прошлая версия не переписана и остаётся действительной: спор с фабрикой ` +
+    `разрешается сверкой с тем файлом, который ей прислали.</div>`;
+
+  if (!blocks.length) return [head + footer];
+  return blocks.map(
+    (block, i) => (i === 0 ? head : '') + block + (i === blocks.length - 1 ? footer : ''),
+  );
+}
+
+/** Согласование числительного. В документе на русском это не мелочь. */
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+/** Та же сводка, что в консоли, но словами документа. */
+function summariseRu(diff: SpecDiff): string {
+  const confirmed = diff.points.filter((p) => p.confirmed).length;
+  const moved = diff.points.filter((p) => (p.delta_cm ?? 0) !== 0).length;
+  const parts: string[] = [];
+  if (moved)
+    parts.push(
+      `${moved} ${plural(moved, 'значение сдвинулось', 'значения сдвинулись', 'значений сдвинулось')}`,
+    );
+  if (confirmed) parts.push(`${confirmed} подтверждено по образцу`);
+  return parts.join(', ') || 'изменения в конструкции и спецификации';
 }
 
 // ---------------------------------------------------------------- колорвеи

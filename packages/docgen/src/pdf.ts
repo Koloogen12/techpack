@@ -62,6 +62,7 @@ export async function renderRolePdfs(
   roles: readonly ExportRole[],
   browser?: Browser,
   visuals?: DocVisuals,
+  changes?: HtmlOptions['changes'],
 ): Promise<{ role: ExportRole; label_ru: string; pdf: Buffer }[]> {
   const own = browser === undefined;
   const shared = browser ?? (await chromium.launch());
@@ -78,6 +79,7 @@ export async function renderRolePdfs(
           sections: profile.sections,
           pro: profile.pro,
           roleLabel: profile.label_ru,
+          ...(changes ? { changes } : {}),
           ...(visuals ? { visuals } : {}),
         }),
       });

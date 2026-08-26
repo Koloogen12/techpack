@@ -40,6 +40,7 @@ import {
 import { FileRenderCache, visualize } from '@specform/render';
 import { readSwatch } from '@specform/pattern';
 import { ArtworkLibrary } from '@specform/library';
+import { diffSpecs, VersionStore } from '@specform/versions';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
 /**
@@ -84,6 +85,14 @@ export interface GenerateOptions {
   tileDir?: string;
   /** Где лежат образцы полотна. По умолчанию рядом с артами бренда. */
   swatchDir?: string;
+  /**
+   * Каталог истории версий. Задан — пак сравнивается с прошлой версией,
+   * получает лист изменений и сохраняется новой версией.
+   *
+   * Только по явной просьбе: концьерж пересобирает документ на ходу, и каждая
+   * пересборка не должна превращаться в новую версию для фабрики.
+   */
+  versionsDir?: string;
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -631,6 +640,35 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
   const colorwayVisuals = new Map(extraColorways.map((c, i) => [c.id, extraVisuals[i]!]));
 
+  // --- История версий -------------------------------------------------------
+  // Прошлая версия НЕ переписывается: спор с фабрикой разрешается сверкой
+  // с тем файлом, который ей прислали (ADR-0001 §4).
+  let changes:
+    { from_version: number; to_version: number; diff: ReturnType<typeof diffSpecs> } | undefined;
+  let versionNote: string | null = null;
+  if (options.versionsDir) {
+    const store = new VersionStore(options.versionsDir);
+    const previous = store.latest(spec.style.article);
+    const entry = store.save(
+      spec.style.article,
+      spec,
+      previous ? 'пересборка документа' : 'первая сборка',
+    );
+    if (previous && entry) {
+      changes = {
+        from_version: previous.entry.n,
+        to_version: entry.n,
+        diff: diffSpecs(previous.spec, spec),
+      };
+      versionNote = `Версия ${entry.n}: ${changes.diff.points.length} изменений против версии ${previous.entry.n}.`;
+    } else if (previous) {
+      versionNote = `Содержание совпало с версией ${previous.entry.n} — новая версия не создана.`;
+    } else if (entry) {
+      versionNote = `Версия ${entry.n} — первая.`;
+    }
+    if (versionNote) notes.push(versionNote);
+  }
+
   const rolePaths: { role: ExportRole; path: string }[] = [];
 
   // Отсчёт сборки документа начинается ПОСЛЕ ожидания картинки. Иначе
@@ -651,13 +689,14 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     );
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
 
-    writeFileSync(options.outPath, await renderPdf(spec, { pro: true, browser, visuals }));
+    const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
+    writeFileSync(options.outPath, await renderPdf(spec, docOptions));
 
     if (options.roles?.length) {
       const stem = options.outPath.replace(/\.pdf$/i, '');
       // Повторы ролей отбрасываем: два одинаковых файла никому не нужны.
       const roles = [...new Set(options.roles)];
-      for (const { role, pdf } of await renderRolePdfs(spec, roles, browser, visuals)) {
+      for (const { role, pdf } of await renderRolePdfs(spec, roles, browser, visuals, changes)) {
         const path = `${stem}--${role}.pdf`;
         writeFileSync(path, pdf);
         rolePaths.push({ role, path });
