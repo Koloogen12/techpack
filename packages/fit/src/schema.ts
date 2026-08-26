@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SpecFormError } from '@specform/core';
+import { SeamsterlyError } from '@seamsterly/core';
 
 /**
  * Замеры реального изделия, снятые рулеткой.
@@ -110,7 +110,7 @@ export function parseMeasuredSet(raw: unknown): MeasuredSet {
     const issues = parsed.error.issues
       .map((i) => `  ${i.path.join('.') || '(корень)'}: ${i.message}`)
       .join('\n');
-    throw new SpecFormError('SPEC_INVALID', `бланк замеров не прошёл проверку:\n${issues}`, {
+    throw new SeamsterlyError('SPEC_INVALID', `бланк замеров не прошёл проверку:\n${issues}`, {
       userMessage: 'В бланке замеров не хватает данных или они противоречат друг другу.',
       userAction: 'Проверьте поля, перечисленные ниже, и повторите',
       details: { issues },

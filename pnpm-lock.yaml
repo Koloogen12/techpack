@@ -35,37 +35,37 @@ importers:
 
   apps/cli:
     dependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../../packages/assembly
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@specform/docgen':
+      '@seamsterly/docgen':
         specifier: workspace:*
         version: link:../../packages/docgen
-      '@specform/fit':
+      '@seamsterly/fit':
         specifier: workspace:*
         version: link:../../packages/fit
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../../packages/kb
-      '@specform/library':
+      '@seamsterly/library':
         specifier: workspace:*
         version: link:../../packages/library
-      '@specform/pattern':
+      '@seamsterly/pattern':
         specifier: workspace:*
         version: link:../../packages/pattern
-      '@specform/render':
+      '@seamsterly/render':
         specifier: workspace:*
         version: link:../../packages/render
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../../packages/stylespec
-      '@specform/versions':
+      '@seamsterly/versions':
         specifier: workspace:*
         version: link:../../packages/versions
-      '@specform/vision':
+      '@seamsterly/vision':
         specifier: workspace:*
         version: link:../../packages/vision
       playwright:
@@ -77,40 +77,40 @@ importers:
 
   golden:
     dependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../packages/assembly
-      '@specform/cli':
+      '@seamsterly/cli':
         specifier: workspace:*
         version: link:../apps/cli
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../packages/core
-      '@specform/docgen':
+      '@seamsterly/docgen':
         specifier: workspace:*
         version: link:../packages/docgen
-      '@specform/fit':
+      '@seamsterly/fit':
         specifier: workspace:*
         version: link:../packages/fit
-      '@specform/flats':
+      '@seamsterly/flats':
         specifier: workspace:*
         version: link:../packages/flats
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../packages/kb
-      '@specform/pattern':
+      '@seamsterly/pattern':
         specifier: workspace:*
         version: link:../packages/pattern
-      '@specform/render':
+      '@seamsterly/render':
         specifier: workspace:*
         version: link:../packages/render
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../packages/stylespec
-      '@specform/versions':
+      '@seamsterly/versions':
         specifier: workspace:*
         version: link:../packages/versions
-      '@specform/vision':
+      '@seamsterly/vision':
         specifier: workspace:*
         version: link:../packages/vision
       playwright:
@@ -119,13 +119,13 @@ importers:
 
   packages/assembly:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../stylespec
       zod:
@@ -140,19 +140,19 @@ importers:
 
   packages/docgen:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/flats':
+      '@seamsterly/flats':
         specifier: workspace:*
         version: link:../flats
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../stylespec
-      '@specform/versions':
+      '@seamsterly/versions':
         specifier: workspace:*
         version: link:../versions
       playwright:
@@ -161,42 +161,42 @@ importers:
 
   packages/fit:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../stylespec
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
 
   packages/flats:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../stylespec
     devDependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
 
   packages/kb:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -205,7 +205,7 @@ importers:
 
   packages/library:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -214,13 +214,13 @@ importers:
 
   packages/pattern:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
-      '@specform/render':
+      '@seamsterly/render':
         specifier: workspace:*
         version: link:../render
       playwright:
@@ -229,46 +229,46 @@ importers:
 
   packages/render:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../stylespec
     devDependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
 
   packages/stylespec:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
 
   packages/versions:
     dependencies:
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/stylespec':
+      '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../stylespec
     devDependencies:
-      '@specform/assembly':
+      '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
 
@@ -277,10 +277,10 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.120.0
         version: 0.120.0(zod@4.4.3)
-      '@specform/core':
+      '@seamsterly/core':
         specifier: workspace:*
         version: link:../core
-      '@specform/kb':
+      '@seamsterly/kb':
         specifier: workspace:*
         version: link:../kb
       zod:

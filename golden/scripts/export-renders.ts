@@ -12,11 +12,11 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { buildStyleSpec } from '@specform/assembly';
-import { VisionReportSchema } from '@specform/vision';
-import { FileRenderCache, visualize } from '@specform/render';
-import { fitImage } from '@specform/docgen';
-import { parseAnswers, specInputFrom } from '@specform/cli';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import { VisionReportSchema } from '@seamsterly/vision';
+import { FileRenderCache, visualize } from '@seamsterly/render';
+import { fitImage } from '@seamsterly/docgen';
+import { parseAnswers, specInputFrom } from '@seamsterly/cli';
 
 /** Дата фиксирована: она не влияет на промпт, но влияет на отпечаток спеки. */
 const AT = new Date('2026-08-25T00:00:00.000Z');

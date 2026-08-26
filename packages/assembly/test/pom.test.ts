@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { isSpecFormError } from '@specform/core';
-import { kb } from '@specform/kb';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { kb } from '@seamsterly/kb';
 import { buildMeasurements, photoRatiosFrom, type PomInput } from '../src/index.js';
 
 const base = kb();
@@ -224,8 +224,8 @@ describe('категорийный гейт и трикотажное ядро',
       buildMeasurements({ ...INPUT, category: 'dress' as never }, base);
       expect.unreachable('должно было отказать');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) {
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) {
         expect(e.code).toBe('CATEGORY_UNSUPPORTED');
         expect(e.userAction).toContain('лист ожидания');
       }
@@ -278,8 +278,8 @@ describe('честность и воспроизводимость', () => {
       buildMeasurements({ ...INPUT, base_size_ru: 60 }, base);
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) expect(e.userAction.length).toBeGreaterThan(10);
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) expect(e.userAction.length).toBeGreaterThan(10);
     }
   });
 });
@@ -341,8 +341,8 @@ describe('защита от мусорного входа', () => {
       buildMeasurements({ ...INPUT, size_range: [42, 46, 46, 48] }, base);
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) expect(e.userMessage).toContain('46');
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) expect(e.userMessage).toContain('46');
     }
   });
 

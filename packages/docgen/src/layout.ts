@@ -1,5 +1,5 @@
 import { chromium, type Browser } from 'playwright';
-import type { StyleSpec } from '@specform/stylespec';
+import type { StyleSpec } from '@seamsterly/stylespec';
 import { renderHtml, type HtmlOptions } from './html.js';
 
 /**

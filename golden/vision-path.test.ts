@@ -2,15 +2,15 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { isSpecFormError } from '@specform/core';
-import { generate } from '@specform/cli';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { generate } from '@seamsterly/cli';
 import {
   FileVisionCache,
   cacheKey,
   defaultModel,
   hashPhoto,
   type VisionReport,
-} from '@specform/vision';
+} from '@seamsterly/vision';
 import { checkSpec } from './invariants.js';
 
 /**
@@ -236,8 +236,8 @@ describe('расхождения между фото и ответами', () =>
       );
       expect.unreachable('должно было отказать');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) {
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) {
         expect(e.code).toBe('CATEGORY_UNSUPPORTED');
         expect(e.userMessage).toContain('Пальто');
       }

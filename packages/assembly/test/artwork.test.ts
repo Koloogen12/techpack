@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kb } from '@specform/kb';
+import { kb } from '@seamsterly/kb';
 import { buildArtwork, type ArtworkEngineInput } from '../src/index.js';
 
 const base = kb();

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@specform/assembly';
+import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
 import {
   checkLayout,
   fitImage,
@@ -9,9 +9,9 @@ import {
   renderHtml,
   roleProfile,
   EXPORT_ROLES,
-} from '@specform/docgen';
-import type { StyleSpec } from '@specform/stylespec';
-import { diffSpecs } from '@specform/versions';
+} from '@seamsterly/docgen';
+import type { StyleSpec } from '@seamsterly/stylespec';
+import { diffSpecs } from '@seamsterly/versions';
 import { SCENARIOS } from './scenarios.js';
 
 /**

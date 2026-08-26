@@ -1,6 +1,6 @@
 import { chromium, type Browser } from 'playwright';
-import { SpecFormError } from '@specform/core';
-import type { StyleSpec } from '@specform/stylespec';
+import { SeamsterlyError } from '@seamsterly/core';
+import type { StyleSpec } from '@seamsterly/stylespec';
 import { renderHtml, type DocVisuals, type HtmlOptions } from './html.js';
 import { roleProfile, type ExportRole } from './roles.js';
 
@@ -25,7 +25,7 @@ export async function renderPdf(spec: StyleSpec, options: PdfOptions = {}): Prom
   try {
     browser = options.browser ?? (await chromium.launch());
   } catch (cause) {
-    throw new SpecFormError('RENDER_FAILED', 'не удалось запустить браузер для печати PDF', {
+    throw new SeamsterlyError('RENDER_FAILED', 'не удалось запустить браузер для печати PDF', {
       userMessage: 'Не удалось собрать документ.',
       userAction: 'Повторить бесплатно. Если повторяется — напишите нам, это на нашей стороне.',
       cause,
@@ -46,7 +46,7 @@ export async function renderPdf(spec: StyleSpec, options: PdfOptions = {}): Prom
     await page.close();
     return pdf;
   } catch (cause) {
-    throw new SpecFormError('RENDER_FAILED', 'ошибка печати PDF', {
+    throw new SeamsterlyError('RENDER_FAILED', 'ошибка печати PDF', {
       userMessage: 'Не удалось собрать документ.',
       userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
       cause,

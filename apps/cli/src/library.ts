@@ -8,8 +8,8 @@
  * Рисунок — актив бренда, а не приложение к одному техпаку: одна и та же
  * графика идёт на футболку, худи и свитшот капсулы.
  */
-import { isSpecFormError } from '@specform/core';
-import { ArtworkLibrary } from '@specform/library';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { ArtworkLibrary } from '@seamsterly/library';
 import { pluralRu } from './rfq-log.js';
 
 const id = process.argv[2];
@@ -79,7 +79,7 @@ try {
       `  паки:     ${a.used_in.length ? a.used_in.join(', ') : 'ещё не использован'}`,
   );
 } catch (e: unknown) {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
   } else {
     console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);

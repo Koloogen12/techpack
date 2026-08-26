@@ -1,5 +1,5 @@
-import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
-import type { StyleSpec } from '@specform/stylespec';
+import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
+import type { StyleSpec } from '@seamsterly/stylespec';
 
 /**
  * Проверка связи «узел обработки ↔ линия на чертеже».

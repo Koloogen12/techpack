@@ -1,11 +1,11 @@
-import { renderFlatsFromSpec } from '@specform/flats';
+import { renderFlatsFromSpec } from '@seamsterly/flats';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
   type Category,
   type FitIntent,
-} from '@specform/kb';
-import type { StyleSpec } from '@specform/stylespec';
+} from '@seamsterly/kb';
+import type { StyleSpec } from '@seamsterly/stylespec';
 
 /**
  * Лист на просчёт (RFQ).

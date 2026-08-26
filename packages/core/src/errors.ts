@@ -18,7 +18,7 @@ export type ErrorCode =
   | 'RENDER_FAILED'
   | 'CONFIG_MISSING';
 
-export interface SpecFormErrorOptions {
+export interface SeamsterlyErrorOptions {
   /** Человеческим языком, для пользователя. Без терминов и кодов. */
   userMessage: string;
   /** Что сделать, чтобы починить. Всегда конкретное действие. */
@@ -27,15 +27,15 @@ export interface SpecFormErrorOptions {
   cause?: unknown;
 }
 
-export class SpecFormError extends Error {
+export class SeamsterlyError extends Error {
   readonly code: ErrorCode;
   readonly userMessage: string;
   readonly userAction: string;
   readonly details: Record<string, unknown>;
 
-  constructor(code: ErrorCode, technicalMessage: string, options: SpecFormErrorOptions) {
+  constructor(code: ErrorCode, technicalMessage: string, options: SeamsterlyErrorOptions) {
     super(technicalMessage, options.cause === undefined ? undefined : { cause: options.cause });
-    this.name = 'SpecFormError';
+    this.name = 'SeamsterlyError';
     this.code = code;
     this.userMessage = options.userMessage;
     this.userAction = options.userAction;
@@ -48,6 +48,6 @@ export class SpecFormError extends Error {
   }
 }
 
-export function isSpecFormError(e: unknown): e is SpecFormError {
-  return e instanceof SpecFormError;
+export function isSeamsterlyError(e: unknown): e is SeamsterlyError {
+  return e instanceof SeamsterlyError;
 }

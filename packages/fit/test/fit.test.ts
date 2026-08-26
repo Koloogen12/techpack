@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isSpecFormError } from '@specform/core';
-import { buildStyleSpec, type StyleSpecInput } from '@specform/assembly';
-import { kb } from '@specform/kb';
-import type { StyleSpec } from '@specform/stylespec';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
+import { kb } from '@seamsterly/kb';
+import type { StyleSpec } from '@seamsterly/stylespec';
 import {
   ACCEPTANCE,
   anchorSuspect,
@@ -81,8 +81,8 @@ describe('бланк замеров', () => {
       });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) expect(e.details.issues).toContain('перемерьте');
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) expect(e.details.issues).toContain('перемерьте');
     }
   });
 

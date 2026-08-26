@@ -1,4 +1,9 @@
-import { CATEGORY_LABEL_RU, type Category, type KnowledgeBase, type PhotoView } from '@specform/kb';
+import {
+  CATEGORY_LABEL_RU,
+  type Category,
+  type KnowledgeBase,
+  type PhotoView,
+} from '@seamsterly/kb';
 
 /**
  * Промпт vision-этапа, версия 1.

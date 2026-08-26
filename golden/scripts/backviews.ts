@@ -10,7 +10,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { generateImage } from '@specform/render';
+import { generateImage } from '@seamsterly/render';
 
 /** Что видно со спинки именно у этой категории. */
 const BACK_DETAILS: Record<string, string> = {

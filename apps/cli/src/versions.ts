@@ -8,9 +8,9 @@
 
  * Каталог версий по умолчанию `versions/`, меняется флагом --versions.
  */
-import { isSpecFormError } from '@specform/core';
-import { diffSpecs, summarise, VersionStore } from '@specform/versions';
-import { CONFIDENCE_LABEL_RU } from '@specform/core';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { diffSpecs, summarise, VersionStore } from '@seamsterly/versions';
+import { CONFIDENCE_LABEL_RU } from '@seamsterly/core';
 
 const args = process.argv.slice(2);
 const dirFlag = args.indexOf('--versions');
@@ -76,7 +76,7 @@ try {
   for (const id of diff.nodes.removed) console.log(`  − узел ${id}`);
   console.log();
 } catch (error) {
-  if (isSpecFormError(error)) {
+  if (isSeamsterlyError(error)) {
     console.error(`\n${error.userMessage}\n${error.userAction}\n`);
     process.exit(1);
   }

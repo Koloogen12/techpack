@@ -1,12 +1,12 @@
-import { assume, fromBase, roundCm, type Tracked } from '@specform/core';
-import { SpecFormError } from '@specform/core';
+import { assume, fromBase, roundCm, type Tracked } from '@seamsterly/core';
+import { SeamsterlyError } from '@seamsterly/core';
 import {
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
   type Material,
   type MaterialRole,
-} from '@specform/kb';
+} from '@seamsterly/kb';
 import type { PhotoConfidence } from './pom.js';
 
 /**
@@ -31,8 +31,8 @@ import type { PhotoConfidence } from './pom.js';
  * трижды дал расхождение на сборке входа спеки: одна сущность, описанная
  * в двух местах, расходится не «если», а «когда».
  */
-export type { Colorway } from '@specform/stylespec';
-import type { Colorway } from '@specform/stylespec';
+export type { Colorway } from '@seamsterly/stylespec';
+import type { Colorway } from '@seamsterly/stylespec';
 
 export interface BomInput {
   category: Category;
@@ -106,7 +106,7 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
   if (dupIds.length) {
     // Два цвета с одним идентификатором дают одинаковые артикулы SKU —
     // на складе и в «Честном знаке» это два разных товара под одним кодом.
-    throw new SpecFormError(
+    throw new SeamsterlyError(
       'SPEC_INVALID',
       `дубли идентификаторов колорвеев: ${dupIds.join(', ')}`,
       {

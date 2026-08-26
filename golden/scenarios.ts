@@ -1,4 +1,4 @@
-import type { StyleSpecInput } from '@specform/assembly';
+import type { StyleSpecInput } from '@seamsterly/assembly';
 
 /**
  * Матрица сценариев голден-сета.

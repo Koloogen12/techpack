@@ -1,5 +1,5 @@
 {
-  "name": "@specform/pattern",
+  "name": "@seamsterly/pattern",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,9 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@specform/core": "workspace:*",
-    "@specform/kb": "workspace:*",
-    "@specform/render": "workspace:*",
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/kb": "workspace:*",
+    "@seamsterly/render": "workspace:*",
     "playwright": "^1.62.1"
   }
 }

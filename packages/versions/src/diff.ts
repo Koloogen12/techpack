@@ -1,5 +1,5 @@
-import { CONFIDENCE_LABEL_RU, type Confidence } from '@specform/core';
-import type { StyleSpec } from '@specform/stylespec';
+import { CONFIDENCE_LABEL_RU, type Confidence } from '@seamsterly/core';
+import type { StyleSpec } from '@seamsterly/stylespec';
 
 /**
  * Различие двух версий техпака.

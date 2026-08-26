@@ -11,15 +11,15 @@
  */
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, extname } from 'node:path';
-import { createLogger, isSpecFormError } from '@specform/core';
+import { createLogger, isSeamsterlyError } from '@seamsterly/core';
 import {
   extractColors,
   fileTileCache,
   generateTile,
   matchColors,
   separateColors,
-} from '@specform/pattern';
-import { ArtworkLibrary, type ArtworkAsset } from '@specform/library';
+} from '@seamsterly/pattern';
+import { ArtworkLibrary, type ArtworkAsset } from '@seamsterly/library';
 import { chromium } from 'playwright';
 
 const MIME: Record<string, string> = {
@@ -223,7 +223,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
   } else {
     console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);

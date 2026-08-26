@@ -1,4 +1,4 @@
-import { SpecFormError, type CostLedger, type Logger, silentLogger } from '@specform/core';
+import { SeamsterlyError, type CostLedger, type Logger, silentLogger } from '@seamsterly/core';
 
 /**
  * Клиент генерации изображений через CometAPI.
@@ -79,7 +79,7 @@ export async function generateImage(
 ): Promise<GeneratedImage> {
   const apiKey = options.apiKey ?? process.env.COMETAPI_KEY;
   if (!apiKey) {
-    throw new SpecFormError('CONFIG_MISSING', 'COMETAPI_KEY не задан', {
+    throw new SeamsterlyError('CONFIG_MISSING', 'COMETAPI_KEY не задан', {
       userMessage: 'Сервис визуализации недоступен.',
       userAction: 'Документ собран без рендера. Это на нашей стороне, лимит не списан.',
     });
@@ -120,7 +120,7 @@ export async function generateImage(
       signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     });
   } catch (cause) {
-    throw new SpecFormError('RENDER_FAILED', 'сервис визуализации недоступен', {
+    throw new SeamsterlyError('RENDER_FAILED', 'сервис визуализации недоступен', {
       userMessage: 'Не удалось построить визуализацию изделия.',
       userAction: 'Документ соберётся без неё. Повторите позже — лимит не списан.',
       cause,
@@ -132,7 +132,7 @@ export async function generateImage(
     // идентификаторы запросов и подробности чужого сервиса.
     const detail = (await response.text()).slice(0, 400);
     logger.warn('render: сервис ответил ошибкой', { status: response.status, model });
-    throw new SpecFormError('RENDER_FAILED', `сервис визуализации вернул ${response.status}`, {
+    throw new SeamsterlyError('RENDER_FAILED', `сервис визуализации вернул ${response.status}`, {
       userMessage: 'Не удалось построить визуализацию изделия.',
       userAction: 'Документ соберётся без неё. Повторите позже — лимит не списан.',
       details: { status: response.status, detail },
@@ -144,7 +144,7 @@ export async function generateImage(
   const ms = Math.round(performance.now() - startedAt);
 
   if (!image) {
-    throw new SpecFormError('RENDER_FAILED', 'в ответе сервиса нет изображения', {
+    throw new SeamsterlyError('RENDER_FAILED', 'в ответе сервиса нет изображения', {
       userMessage: 'Визуализация не получилась.',
       userAction: 'Документ соберётся без неё. Повторите бесплатно.',
       details: { model },

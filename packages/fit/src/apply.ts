@@ -1,6 +1,6 @@
-import { track, type Confidence } from '@specform/core';
-import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
-import { parseStyleSpec, type StyleSpec } from '@specform/stylespec';
+import { track, type Confidence } from '@seamsterly/core';
+import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
+import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
 import { effectiveValue, METHOD_LABEL_RU, METHOD_TRUST, type MeasuredSet } from './schema.js';
 
 /**

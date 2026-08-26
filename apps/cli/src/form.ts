@@ -10,9 +10,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from 'playwright';
-import { isSpecFormError } from '@specform/core';
-import { CATEGORIES, type Category } from '@specform/kb';
-import { renderMeasurementForm } from '@specform/fit';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { CATEGORIES, type Category } from '@seamsterly/kb';
+import { renderMeasurementForm } from '@seamsterly/fit';
 
 interface Cli {
   category: Category;
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
   } else {
     console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);

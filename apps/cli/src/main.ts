@@ -7,8 +7,8 @@
  * Тот же код исполняет concierge-заказы и производит артефакты для похода
  * по фабрикам. Веб-обёртка появится поверх него после стоп-крана.
  */
-import { createLogger, isSpecFormError } from '@specform/core';
-import { EXPORT_ROLES, type ExportRole } from '@specform/docgen';
+import { createLogger, isSeamsterlyError } from '@seamsterly/core';
+import { EXPORT_ROLES, type ExportRole } from '@seamsterly/docgen';
 import { generate } from './generate.js';
 
 interface Cli {
@@ -167,7 +167,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}\n  (${e.code})`);
     if (typeof e.details.issues === 'string') console.error(e.details.issues);
   } else {

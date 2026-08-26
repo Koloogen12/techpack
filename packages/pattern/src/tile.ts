@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isSpecFormError, type Logger, silentLogger } from '@specform/core';
+import { isSeamsterlyError, type Logger, silentLogger } from '@seamsterly/core';
 import {
   FileRenderCache,
   MemoryRenderCache,
@@ -7,7 +7,7 @@ import {
   generateImage,
   type RenderCache,
   type ReferenceImage,
-} from '@specform/render';
+} from '@seamsterly/render';
 import type { Browser } from 'playwright';
 import { buildTilePrompt, TILE_PROMPT_VERSION, type TilePromptOptions } from './prompt.js';
 import { checkSeam, type SeamReport } from './seam.js';
@@ -166,8 +166,10 @@ export async function generateTile(
       } catch (error) {
         return {
           ok: false,
-          reason: isSpecFormError(error) ? error.code : 'unknown',
-          userMessage: isSpecFormError(error) ? error.userMessage : 'Не удалось построить раппорт.',
+          reason: isSeamsterlyError(error) ? error.code : 'unknown',
+          userMessage: isSeamsterlyError(error)
+            ? error.userMessage
+            : 'Не удалось построить раппорт.',
         };
       }
     }

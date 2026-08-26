@@ -1,5 +1,5 @@
 {
-  "name": "@specform/versions",
+  "name": "@seamsterly/versions",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,10 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@specform/core": "workspace:*",
-    "@specform/stylespec": "workspace:*"
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/stylespec": "workspace:*"
   },
   "devDependencies": {
-    "@specform/assembly": "workspace:*"
+    "@seamsterly/assembly": "workspace:*"
   }
 }

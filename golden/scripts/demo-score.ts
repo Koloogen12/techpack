@@ -16,9 +16,9 @@
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildStyleSpec } from '@specform/assembly';
-import { VisionReportSchema } from '@specform/vision';
-import { parseAnswers, specInputFrom } from '@specform/cli';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import { VisionReportSchema } from '@seamsterly/vision';
+import { parseAnswers, specInputFrom } from '@seamsterly/cli';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
 

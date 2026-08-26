@@ -1,5 +1,5 @@
 {
-  "name": "@specform/flats",
+  "name": "@seamsterly/flats",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,11 +7,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@specform/core": "workspace:*",
-    "@specform/stylespec": "workspace:*",
-    "@specform/kb": "workspace:*"
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/stylespec": "workspace:*",
+    "@seamsterly/kb": "workspace:*"
   },
   "devDependencies": {
-    "@specform/assembly": "workspace:*"
+    "@seamsterly/assembly": "workspace:*"
   }
 }

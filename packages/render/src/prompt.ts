@@ -1,5 +1,5 @@
-import { kb as defaultKb, type Category, type KnowledgeBase } from '@specform/kb';
-import type { StyleSpec } from '@specform/stylespec';
+import { kb as defaultKb, type Category, type KnowledgeBase } from '@seamsterly/kb';
+import type { StyleSpec } from '@seamsterly/stylespec';
 
 /**
  * Промпт визуализации изделия.

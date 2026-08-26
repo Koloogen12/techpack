@@ -1,6 +1,6 @@
-import { isSpecFormError, type CostLedger, type Logger, silentLogger } from '@specform/core';
-import { kb as defaultKb, type KnowledgeBase } from '@specform/kb';
-import type { StyleSpec } from '@specform/stylespec';
+import { isSeamsterlyError, type CostLedger, type Logger, silentLogger } from '@seamsterly/core';
+import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
+import type { StyleSpec } from '@seamsterly/stylespec';
 import { defaultImageModel, generateImage, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 import { buildRenderPrompt, type RenderPromptOptions } from './prompt.js';
@@ -113,7 +113,7 @@ export async function visualize(
     return { ok: true, image: toVisualization(value, key, false) };
   } catch (error) {
     // Сознательно не пробрасываем: документ важнее картинки.
-    const userMessage = isSpecFormError(error)
+    const userMessage = isSeamsterlyError(error)
       ? error.userMessage
       : 'Не удалось построить визуализацию изделия.';
     logger.warn('render: визуализация не получилась, документ собирается без неё', {
@@ -121,7 +121,7 @@ export async function visualize(
     });
     return {
       ok: false,
-      reason: isSpecFormError(error) ? error.code : 'unknown',
+      reason: isSeamsterlyError(error) ? error.code : 'unknown',
       userMessage,
     };
   }

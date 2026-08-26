@@ -1,5 +1,5 @@
 {
-  "name": "@specform/vision",
+  "name": "@seamsterly/vision",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@specform/core": "workspace:*",
-    "@specform/kb": "workspace:*",
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/kb": "workspace:*",
     "zod": "^4.4.3"
   }
 }

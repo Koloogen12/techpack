@@ -1,5 +1,5 @@
-import { roundCm } from '@specform/core';
-import type { StyleSpec } from '@specform/stylespec';
+import { roundCm } from '@seamsterly/core';
+import type { StyleSpec } from '@seamsterly/stylespec';
 import { effectiveValue, type MeasuredSet } from './schema.js';
 
 /**

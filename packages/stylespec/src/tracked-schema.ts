@@ -1,4 +1,4 @@
-import { CONFIDENCE_LEVELS } from '@specform/core';
+import { CONFIDENCE_LEVELS } from '@seamsterly/core';
 import { z } from 'zod';
 
 export const ConfidenceSchema = z.enum(CONFIDENCE_LEVELS);

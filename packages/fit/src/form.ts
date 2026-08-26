@@ -3,7 +3,7 @@ import {
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
-} from '@specform/kb';
+} from '@seamsterly/kb';
 
 /**
  * Печатный бланк замеров.
@@ -116,7 +116,7 @@ export function renderMeasurementForm(
   .foot { margin-top: 4mm; font-size: 7.4pt; color: #5A5A56; line-height: 1.45; }
 </style></head><body>
 <div class="head">
-  <div class="kicker">Бланк замеров · SpecForm OS</div>
+  <div class="kicker">Бланк замеров · Seamsterly</div>
   <h1>${esc(title)}</h1>
 </div>
 

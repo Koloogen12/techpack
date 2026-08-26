@@ -2,8 +2,8 @@ import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@specform/assembly';
-import type { StyleSpec } from '@specform/stylespec';
+import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
+import type { StyleSpec } from '@seamsterly/stylespec';
 import {
   FileRenderCache,
   MemoryRenderCache,

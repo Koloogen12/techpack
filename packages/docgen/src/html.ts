@@ -1,5 +1,5 @@
-import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@specform/core';
-import { flatDefaults, renderFlatsFromSpec } from '@specform/flats';
+import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamsterly/core';
+import { flatDefaults, renderFlatsFromSpec } from '@seamsterly/flats';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -11,9 +11,9 @@ import {
   type MachineType,
   type NodeZone,
   type Specialty,
-} from '@specform/kb';
-import type { StyleSpec } from '@specform/stylespec';
-import type { SpecDiff } from '@specform/versions';
+} from '@seamsterly/kb';
+import type { StyleSpec } from '@seamsterly/stylespec';
+import type { SpecDiff } from '@seamsterly/versions';
 import { DOC_CSS } from './styles.js';
 
 /**

@@ -1,11 +1,11 @@
-import { assume, fromBase, fromPhoto, type Tracked } from '@specform/core';
+import { assume, fromBase, fromPhoto, type Tracked } from '@seamsterly/core';
 import {
   kb as defaultKb,
   type Category,
   type ConstructionNode,
   type KnowledgeBase,
   type TechOperation,
-} from '@specform/kb';
+} from '@seamsterly/kb';
 import type { PhotoConfidence } from './pom.js';
 
 /**

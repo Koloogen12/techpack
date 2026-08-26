@@ -8,7 +8,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
-import { CostLedger, createLogger, isSpecFormError } from '@specform/core';
+import { CostLedger, createLogger, isSeamsterlyError } from '@seamsterly/core';
 import {
   FileVisionCache,
   analyzePhotos,
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  ${e.userAction}\n  (${e.code}: ${e.message})`);
   } else {
     console.error(e);

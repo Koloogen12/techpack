@@ -10,9 +10,9 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { isSpecFormError } from '@specform/core';
-import { buildStyleSpec } from '@specform/assembly';
-import { renderRfqHtml, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@specform/docgen';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import { renderRfqHtml, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@seamsterly/docgen';
 import { chromium } from 'playwright';
 import { parseAnswers, specInputFrom } from './index.js';
 
@@ -101,7 +101,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
   } else {
     console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);

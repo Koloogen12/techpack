@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MEASURE_KINDS } from '@specform/core';
+import { MEASURE_KINDS } from '@seamsterly/core';
 import {
   CategorySchema,
   FabricKindSchema,

@@ -14,10 +14,10 @@
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { isSpecFormError } from '@specform/core';
-import { buildStyleSpec } from '@specform/assembly';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { buildStyleSpec } from '@seamsterly/assembly';
 import { specInputFrom } from './generate.js';
-import { VisionReportSchema, type VisionReport } from '@specform/vision';
+import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
 import {
   ACCEPTANCE,
   anchorSuspect,
@@ -29,7 +29,7 @@ import {
   METHOD_TRUST,
   type ComparisonResult,
   type MeasuredSet,
-} from '@specform/fit';
+} from '@seamsterly/fit';
 import { parseAnswers } from './answers.js';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
@@ -179,7 +179,7 @@ function main(): void {
 try {
   main();
 } catch (e) {
-  if (isSpecFormError(e)) {
+  if (isSeamsterlyError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
     if (typeof e.details.issues === 'string') console.error(e.details.issues);
   } else {

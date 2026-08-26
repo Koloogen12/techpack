@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSpecFormError } from '@specform/core';
+import { isSeamsterlyError } from '@seamsterly/core';
 import { KnowledgeBase, kb } from '../src/index.js';
 
 const base = kb();
@@ -52,8 +52,8 @@ describe('размерные сетки', () => {
       base.bodyMeasurements('women', 60);
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) {
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) {
         expect(e.userAction).toContain('42');
         expect(e.userAction).toContain('52');
       }

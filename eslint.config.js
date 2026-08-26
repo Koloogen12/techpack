@@ -7,7 +7,7 @@ export default tseslint.config(
       'node_modules/**',
       '**/dist/**',
       'coverage/**',
-      'design_handoff_specform/**',
+      'design_handoff_seamsterly/**',
       'market-research/**',
       '*.html',
     ],

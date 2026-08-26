@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSpecFormError } from '@specform/core';
+import { isSeamsterlyError } from '@seamsterly/core';
 import { parsePhotoArg, viewFromName } from '../src/generate.js';
 
 /**
@@ -36,8 +36,8 @@ describe('разбор аргумента --photos', () => {
       parsePhotoArg('сбоку:a.png');
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSpecFormError(e)).toBe(true);
-      if (isSpecFormError(e)) expect(e.userAction).toContain('front_flat');
+      expect(isSeamsterlyError(e)).toBe(true);
+      if (isSeamsterlyError(e)) expect(e.userAction).toContain('front_flat');
     }
   });
 

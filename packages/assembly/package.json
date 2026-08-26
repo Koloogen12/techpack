@@ -1,5 +1,5 @@
 {
-  "name": "@specform/assembly",
+  "name": "@seamsterly/assembly",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,9 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@specform/core": "workspace:*",
-    "@specform/kb": "workspace:*",
-    "@specform/stylespec": "workspace:*",
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/kb": "workspace:*",
+    "@seamsterly/stylespec": "workspace:*",
     "zod": "^4.4.3"
   }
 }

@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
-import { CostLedger, SpecFormError, defined, type Logger } from '@specform/core';
+import { CostLedger, SeamsterlyError, defined, type Logger } from '@seamsterly/core';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
   kb,
   type Category,
   type KnowledgeBase,
-} from '@specform/kb';
+} from '@seamsterly/kb';
 import {
   buildStyleSpec,
   photoRatiosFrom,
@@ -17,8 +17,8 @@ import {
   suggestViews,
   viewAdviceNotes,
   type StyleSpecInput,
-} from '@specform/assembly';
-import { specFingerprint, type ColorwaySwatch, type StyleSpec } from '@specform/stylespec';
+} from '@seamsterly/assembly';
+import { specFingerprint, type ColorwaySwatch, type StyleSpec } from '@seamsterly/stylespec';
 import {
   FileVisionCache,
   analyzePhotos,
@@ -26,8 +26,8 @@ import {
   type Photo,
   type PhotoFormat,
   type VisionReport,
-} from '@specform/vision';
-import { PHOTO_VIEWS, type PhotoView } from '@specform/kb';
+} from '@seamsterly/vision';
+import { PHOTO_VIEWS, type PhotoView } from '@seamsterly/kb';
 import { chromium, type Browser } from 'playwright';
 import {
   fitImage,
@@ -36,11 +36,11 @@ import {
   type DocImage,
   type DocVisuals,
   type ExportRole,
-} from '@specform/docgen';
-import { FileRenderCache, visualize } from '@specform/render';
-import { readSwatch } from '@specform/pattern';
-import { ArtworkLibrary } from '@specform/library';
-import { diffSpecs, VersionStore } from '@specform/versions';
+} from '@seamsterly/docgen';
+import { FileRenderCache, visualize } from '@seamsterly/render';
+import { readSwatch } from '@seamsterly/pattern';
+import { ArtworkLibrary } from '@seamsterly/library';
+import { diffSpecs, VersionStore } from '@seamsterly/versions';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
 /**
@@ -169,7 +169,7 @@ export function parsePhotoArg(arg: string): { path: string; view?: PhotoView } {
 
     // Опечатка в названии ракурса, проглоченная молча, означает разбор
     // спинки по кадру переда. Лучше остановиться и сказать.
-    throw new SpecFormError('PHOTO_UNUSABLE', `неизвестный ракурс: ${head}`, {
+    throw new SeamsterlyError('PHOTO_UNUSABLE', `неизвестный ракурс: ${head}`, {
       userMessage: `Не знаем ракурс «${head}».`,
       userAction: `Доступны: ${PHOTO_VIEWS.join(', ')} — или пишите путь без префикса`,
       details: { view: head },
@@ -183,7 +183,7 @@ export function parsePhotoArg(arg: string): { path: string; view?: PhotoView } {
 export function readPhoto(path: string, view?: PhotoView): Photo {
   const format = FORMATS[extname(path).toLowerCase()];
   if (!format) {
-    throw new SpecFormError('PHOTO_UNUSABLE', `неподдерживаемый формат файла: ${path}`, {
+    throw new SeamsterlyError('PHOTO_UNUSABLE', `неподдерживаемый формат файла: ${path}`, {
       userMessage: `Формат файла «${basename(path)}» мы не читаем.`,
       userAction: `Загрузите изображение в формате ${Object.keys(FORMATS).join(', ')}`,
       details: { path },
@@ -208,7 +208,7 @@ function readAnswers(path: string): Answers {
   try {
     raw = readFileSync(path, 'utf8');
   } catch (cause) {
-    throw new SpecFormError('SPEC_INVALID', `файл ответов не найден: ${path}`, {
+    throw new SeamsterlyError('SPEC_INVALID', `файл ответов не найден: ${path}`, {
       userMessage: `Не нашли файл анкеты «${basename(path)}».`,
       userAction: 'Проверьте путь к файлу и повторите',
       details: { path },
@@ -220,7 +220,7 @@ function readAnswers(path: string): Answers {
   try {
     parsed = JSON.parse(raw);
   } catch (cause) {
-    throw new SpecFormError('SPEC_INVALID', `файл ответов не является JSON: ${path}`, {
+    throw new SeamsterlyError('SPEC_INVALID', `файл ответов не является JSON: ${path}`, {
       userMessage: `Файл анкеты «${basename(path)}» повреждён: это не JSON.`,
       userAction: 'Проверьте файл в редакторе — скорее всего пропущена запятая или скобка',
       details: { path },
@@ -753,13 +753,13 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
  * отказываемся вместо того, чтобы выдать документ похуже (ux/00, слабость №18).
  * Отказ — продуктовое решение, а не ошибка: плохой техпак стоит фабрике партии.
  */
-function categoryGate(answers: Answers, report: VisionReport | null): SpecFormError | null {
+function categoryGate(answers: Answers, report: VisionReport | null): SeamsterlyError | null {
   if (!report) return null;
   if (report.category.value !== 'other') return null;
   // Низкая уверенность модели в «это другое» — повод довериться человеку.
   if (report.category.confidence === 'low') return null;
 
-  return new SpecFormError(
+  return new SeamsterlyError(
     'CATEGORY_UNSUPPORTED',
     `vision определил категорию как other: ${report.category.other_description}`,
     {

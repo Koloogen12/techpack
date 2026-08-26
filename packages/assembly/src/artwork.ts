@@ -1,11 +1,11 @@
-import { assume, fromBase, roundCm, userInput, type Tracked } from '@specform/core';
+import { assume, fromBase, roundCm, userInput, type Tracked } from '@seamsterly/core';
 import {
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
   type PrintTechnique,
-} from '@specform/kb';
-import type { Artwork, ArtworkCheck, ArtworkPlacement } from '@specform/stylespec';
+} from '@seamsterly/kb';
+import type { Artwork, ArtworkCheck, ArtworkPlacement } from '@seamsterly/stylespec';
 
 /**
  * Движок нанесения: где печатать, чем печатать и годится ли присланный файл.

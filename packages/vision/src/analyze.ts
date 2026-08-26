@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { SpecFormError, silentLogger, type CostLedger, type Logger } from '@specform/core';
-import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@specform/kb';
+import { SeamsterlyError, silentLogger, type CostLedger, type Logger } from '@seamsterly/core';
+import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamsterly/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
 import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt } from './prompt.js';
 import { VisionReportSchema, type VisionReport } from './report.js';
@@ -86,13 +86,13 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   } = options;
 
   if (photos.length === 0) {
-    throw new SpecFormError('PHOTO_UNUSABLE', 'вызов анализа без фотографий', {
+    throw new SeamsterlyError('PHOTO_UNUSABLE', 'вызов анализа без фотографий', {
       userMessage: 'Нужна хотя бы одна фотография изделия.',
       userAction: 'Загрузите фото или скриншот карточки товара',
     });
   }
   if (photos.length > MAX_PHOTOS) {
-    throw new SpecFormError(
+    throw new SeamsterlyError(
       'PHOTO_UNUSABLE',
       `фотографий ${photos.length}, максимум ${MAX_PHOTOS}`,
       {
@@ -169,7 +169,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   const ms = Math.round(performance.now() - startedAt);
 
   if (response.stop_reason === 'refusal') {
-    throw new SpecFormError('VISION_FAILED', 'модель отказалась разбирать снимки', {
+    throw new SeamsterlyError('VISION_FAILED', 'модель отказалась разбирать снимки', {
       userMessage: 'Не удалось разобрать эти фотографии.',
       userAction: 'Загрузите другие снимки изделия. Попытка бесплатная — лимит не списан.',
       details: { stop_reason: response.stop_reason },
@@ -180,11 +180,15 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   if (!parsed) {
     // Structured output не сошёлся со схемой. Молча продолжать нельзя:
     // документ построится на мусоре, и это заметят только на фабрике.
-    throw new SpecFormError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
-      userMessage: 'Разбор фотографий не завершился корректно.',
-      userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
-      details: { model, promptVersion: PROMPT_VERSION },
-    });
+    throw new SeamsterlyError(
+      'VISION_SCHEMA_MISMATCH',
+      'ответ модели не сошёлся со схемой отчёта',
+      {
+        userMessage: 'Разбор фотографий не завершился корректно.',
+        userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
+        details: { model, promptVersion: PROMPT_VERSION },
+      },
+    );
   }
 
   const report = VisionReportSchema.parse(parsed);
@@ -216,7 +220,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
 
 function createClient(): Anthropic {
   if (!process.env.ANTHROPIC_API_KEY) {
-    throw new SpecFormError('CONFIG_MISSING', 'ANTHROPIC_API_KEY не задан', {
+    throw new SeamsterlyError('CONFIG_MISSING', 'ANTHROPIC_API_KEY не задан', {
       userMessage: 'Сервис анализа фотографий недоступен.',
       userAction: 'Повторить позже. Это на нашей стороне, лимит не списан.',
     });

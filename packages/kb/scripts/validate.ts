@@ -7,7 +7,7 @@
  * а не норматив. Приоритет верификации — по частоте использования значения
  * (CTO-SPEC.md §5, риск «KB-значения с verified:false дают брак»).
  */
-import { isSpecFormError } from '@specform/core';
+import { isSeamsterlyError } from '@seamsterly/core';
 import { KnowledgeBase } from '../src/index.js';
 
 function main(): void {
@@ -15,7 +15,7 @@ function main(): void {
   try {
     base = KnowledgeBase.load();
   } catch (e) {
-    if (isSpecFormError(e)) {
+    if (isSeamsterlyError(e)) {
       console.error(`✗ ${e.message}`);
       if (typeof e.details.issues === 'string') console.error(e.details.issues);
     } else {

@@ -3,8 +3,8 @@
  * Запуск: pnpm flats:preview
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { buildStyleSpec } from '@specform/assembly';
-import type { Category } from '@specform/kb';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import type { Category } from '@seamsterly/kb';
 import { flatDefaults, renderFlatsFromSpec } from '../src/index.js';
 
 const CATEGORIES: Category[] = (process.env.FLATS_ONLY?.split(',') as Category[]) ?? [

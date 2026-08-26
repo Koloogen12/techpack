@@ -1,11 +1,11 @@
-import { assume, fromBase, userInput, type Tracked } from '@specform/core';
+import { assume, fromBase, userInput, type Tracked } from '@seamsterly/core';
 import {
   categoryWithGender,
   kb as defaultKb,
   type Category,
   type Gender,
   type KnowledgeBase,
-} from '@specform/kb';
+} from '@seamsterly/kb';
 
 /**
  * Движок маркировки.

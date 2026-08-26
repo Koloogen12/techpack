@@ -12,11 +12,11 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { isSpecFormError, CONFIDENCE_LABEL_RU } from '@specform/core';
-import { buildStyleSpec } from '@specform/assembly';
-import { applyFitting, parseMeasuredSet } from '@specform/fit';
-import { VisionReportSchema, type VisionReport } from '@specform/vision';
-import { diffSpecs, summarise, VersionStore } from '@specform/versions';
+import { isSeamsterlyError, CONFIDENCE_LABEL_RU } from '@seamsterly/core';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import { applyFitting, parseMeasuredSet } from '@seamsterly/fit';
+import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
+import { diffSpecs, summarise, VersionStore } from '@seamsterly/versions';
 import { parseAnswers } from './answers.js';
 import { specInputFrom } from './generate.js';
 
@@ -95,7 +95,7 @@ try {
       : '\nВерсия НЕ создана: содержание не изменилось.',
   );
 } catch (error) {
-  if (isSpecFormError(error)) {
+  if (isSeamsterlyError(error)) {
     console.error(`\n${error.userMessage}\n${error.userAction}\n`);
     process.exit(1);
   }

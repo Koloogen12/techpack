@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseStyleSpec, type StyleSpec } from '@specform/stylespec';
-import { diffSpecs } from '@specform/versions';
+import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
+import { diffSpecs } from '@seamsterly/versions';
 import {
   DOC_SECTIONS,
   EXPORT_ROLES,

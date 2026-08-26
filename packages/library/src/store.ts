@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SpecFormError } from '@specform/core';
+import { SeamsterlyError } from '@seamsterly/core';
 import { ArtworkAssetSchema, type ArtworkAsset } from './artwork.js';
 
 /**
@@ -41,7 +41,7 @@ export class ArtworkLibrary {
     const asset = this.readSafe(this.passport(id));
     if (!asset) {
       const available = this.list().map((a) => a.id);
-      throw new SpecFormError('SPEC_INVALID', `в библиотеке нет арта «${id}»`, {
+      throw new SeamsterlyError('SPEC_INVALID', `в библиотеке нет арта «${id}»`, {
         userMessage: `Не нашли рисунок «${id}» в библиотеке бренда.`,
         userAction: available.length
           ? `Доступны: ${available.join(', ')}`

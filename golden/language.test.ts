@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec } from '@specform/assembly';
-import { isSpecFormError } from '@specform/core';
-import { renderHtml } from '@specform/docgen';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import { isSeamsterlyError } from '@seamsterly/core';
+import { renderHtml } from '@seamsterly/docgen';
 import {
   CATEGORIES,
   CATEGORY_LABEL_RU,
@@ -10,7 +10,7 @@ import {
   MACHINE_TYPES,
   ZONE_LABEL_RU,
   NODE_ZONES,
-} from '@specform/kb';
+} from '@seamsterly/kb';
 import { SCENARIOS } from './scenarios.js';
 
 /**
@@ -117,8 +117,8 @@ describe('сообщения об ошибках не содержат внут�
       buildStyleSpec(input);
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSpecFormError(e), String(e)).toBe(true);
-      if (isSpecFormError(e)) {
+      expect(isSeamsterlyError(e), String(e)).toBe(true);
+      if (isSeamsterlyError(e)) {
         expect(leaked(e.userMessage), e.userMessage).toEqual([]);
         expect(leaked(e.userAction), e.userAction).toEqual([]);
       }

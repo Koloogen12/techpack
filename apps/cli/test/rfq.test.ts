@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseStyleSpec, type StyleSpec } from '@specform/stylespec';
-import { RFQ_TEXT_LIMIT, renderRfqHtml, rfqSizeLine, rfqText } from '@specform/docgen';
+import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
+import { RFQ_TEXT_LIMIT, renderRfqHtml, rfqSizeLine, rfqText } from '@seamsterly/docgen';
 import { emptyRfqLog, parseRfqLog, summariseRfq, RAT1_TAKE_RATE } from '../src/rfq-log.js';
 
 const load = (file: string): StyleSpec =>

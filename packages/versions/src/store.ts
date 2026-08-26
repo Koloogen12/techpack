@@ -8,8 +8,8 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { SpecFormError } from '@specform/core';
-import { parseStyleSpec, specFingerprint, type StyleSpec } from '@specform/stylespec';
+import { SeamsterlyError } from '@seamsterly/core';
+import { parseStyleSpec, specFingerprint, type StyleSpec } from '@seamsterly/stylespec';
 
 /**
  * Хранилище версий техпака.
@@ -41,7 +41,7 @@ export class VersionStore {
 
   private articleDir(article: string): string {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(article)) {
-      throw new SpecFormError('SPEC_INVALID', `недопустимый артикул: ${article}`, {
+      throw new SeamsterlyError('SPEC_INVALID', `недопустимый артикул: ${article}`, {
         userMessage: 'В артикуле есть символы, которых не может быть в имени файла.',
         userAction: 'Оставьте латиницу, цифры, дефис и точку',
       });
@@ -78,7 +78,7 @@ export class VersionStore {
       raw = JSON.parse(readFileSync(path, 'utf8'));
     } catch {
       const have = this.list(article).map((v) => `v${v.n}`);
-      throw new SpecFormError('SPEC_INVALID', `версия ${n} артикула ${article} не читается`, {
+      throw new SeamsterlyError('SPEC_INVALID', `версия ${n} артикула ${article} не читается`, {
         userMessage: `Версия ${n} не найдена.`,
         userAction: have.length
           ? `Доступны: ${have.join(', ')}`

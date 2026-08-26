@@ -1,5 +1,5 @@
 {
-  "name": "@specform/cli",
+  "name": "@seamsterly/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,18 +10,18 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@specform/assembly": "workspace:*",
-    "@specform/core": "workspace:*",
-    "@specform/docgen": "workspace:*",
-    "@specform/kb": "workspace:*",
-    "@specform/stylespec": "workspace:*",
-    "@specform/vision": "workspace:*",
+    "@seamsterly/assembly": "workspace:*",
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/docgen": "workspace:*",
+    "@seamsterly/kb": "workspace:*",
+    "@seamsterly/stylespec": "workspace:*",
+    "@seamsterly/vision": "workspace:*",
     "zod": "^4.4.3",
     "playwright": "^1.62.1",
-    "@specform/fit": "workspace:*",
-    "@specform/render": "workspace:*",
-    "@specform/pattern": "workspace:*",
-    "@specform/library": "workspace:*",
-    "@specform/versions": "workspace:*"
+    "@seamsterly/fit": "workspace:*",
+    "@seamsterly/render": "workspace:*",
+    "@seamsterly/pattern": "workspace:*",
+    "@seamsterly/library": "workspace:*",
+    "@seamsterly/versions": "workspace:*"
   }
 }
