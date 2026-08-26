@@ -13,6 +13,23 @@ export default tseslint.config(
     ],
   },
   js.configs.recommended,
+  {
+    // Сборщик вердиктов — обычный ESM на сервере, без сборки и без TypeScript.
+    // Глобалы у него нодовые, а не браузерные.
+    files: ['apps/site/server/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        Date: 'readonly',
+        Map: 'readonly',
+        JSON: 'readonly',
+        Number: 'readonly',
+      },
+    },
+  },
   ...tseslint.configs.recommended,
   {
     rules: {

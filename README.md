@@ -84,6 +84,7 @@ pnpm library                                       # каталог артов �
 pnpm fit:apply <бланк-замеров.json>                # примерка → новая версия
 pnpm versions [артикул] [номер]                    # история и что изменилось
 pnpm admin                                         # панель консьержа → out/admin.html
+pnpm site --versions versions --out out/site       # ревью-сайт для фабрик и брендов
 pnpm generate --answers <анкета> --lang en zh      # фабричные комплекты на трёх языках
 pnpm fit:form --category hoodie --lang zh          # бланк замеров на языке того, кто мерит
 

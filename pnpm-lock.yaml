@@ -78,6 +78,30 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
 
+  apps/site:
+    dependencies:
+      '@seamsterly/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@seamsterly/docgen':
+        specifier: workspace:*
+        version: link:../../packages/docgen
+      '@seamsterly/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@seamsterly/kb':
+        specifier: workspace:*
+        version: link:../../packages/kb
+      '@seamsterly/stylespec':
+        specifier: workspace:*
+        version: link:../../packages/stylespec
+      '@seamsterly/versions':
+        specifier: workspace:*
+        version: link:../../packages/versions
+      playwright:
+        specifier: ^1.62.1
+        version: 1.62.1
+
   golden:
     dependencies:
       '@seamsterly/assembly':

@@ -1,0 +1,15 @@
+{
+  "name": "@seamsterly/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@seamsterly/core": "workspace:*",
+    "@seamsterly/docgen": "workspace:*",
+    "@seamsterly/i18n": "workspace:*",
+    "@seamsterly/kb": "workspace:*",
+    "@seamsterly/stylespec": "workspace:*",
+    "@seamsterly/versions": "workspace:*",
+    "playwright": "^1.62.1"
+  }
+}
