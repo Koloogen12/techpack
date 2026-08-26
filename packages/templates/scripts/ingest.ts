@@ -169,7 +169,6 @@ function main(): void {
       }
 
       entries.push({
-        ...known.get(id),
         id,
         group,
         source_file: `${folder}/SVG/${file}`,
@@ -180,6 +179,10 @@ function main(): void {
         paths_front: result.front.paths,
         paths_back: result.back?.paths ?? 0,
         notes: result.notes,
+        // Перенесённые поля идут ПОСЛЕДНИМИ: порядок ключей в JSON — часть
+        // файла, и вставка разметки в начало давала бы двенадцать тысяч
+        // строк дифа при каждом повторном приёме.
+        ...known.get(id),
       });
     }
   }

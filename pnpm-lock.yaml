@@ -47,6 +47,9 @@ importers:
       '@seamsterly/fit':
         specifier: workspace:*
         version: link:../../packages/fit
+      '@seamsterly/flats':
+        specifier: workspace:*
+        version: link:../../packages/flats
       '@seamsterly/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -65,6 +68,9 @@ importers:
       '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../../packages/stylespec
+      '@seamsterly/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       '@seamsterly/versions':
         specifier: workspace:*
         version: link:../../packages/versions
@@ -339,6 +345,27 @@ importers:
       '@seamsterly/assembly':
         specifier: workspace:*
         version: link:../assembly
+
+  packages/templates:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.120.0
+        version: 0.120.0(zod@4.4.3)
+      '@seamsterly/core':
+        specifier: workspace:*
+        version: link:../core
+      '@seamsterly/kb':
+        specifier: workspace:*
+        version: link:../kb
+      '@seamsterly/stylespec':
+        specifier: workspace:*
+        version: link:../stylespec
+      '@seamsterly/vision':
+        specifier: workspace:*
+        version: link:../vision
+      zod:
+        specifier: ^4.1.12
+        version: 4.4.3
 
   packages/versions:
     dependencies:
