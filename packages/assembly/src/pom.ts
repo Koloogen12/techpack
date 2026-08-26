@@ -301,6 +301,7 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   // Ширина плеч ограничивается шириной изделия ДО составных точек по той же
   // причине, что и рукав: длина рукава от центра спинки складывается из них.
   clampShoulder(raw, notes);
+  clampCuff(raw, base, notes);
 
   // Наблюдение по длине рукава переносится на длину руки.
   //
@@ -483,6 +484,56 @@ function normalizeRatio(value: number | PhotoRatio | undefined): PhotoRatio | un
  * ширине по груди 66. Поточечная проверка правдоподобия пропускала — оба числа
  * по отдельности нормальны для оверсайза.
  */
+/**
+ * Манжета не бывает шириной с рукав.
+ *
+ * У изделия с манжетой рибана стягивает низ рукава примерно вдвое: в наборе
+ * реальных техпаков манжета 9 см при рукаве под проймой 24 — отношение 0.375.
+ * Модель разбора этого различия не видит: на снимке низ рукава с манжетой и
+ * без выглядят одинаково, и она называет ширину рукава внизу. Живой прогон
+ * дал 17.2 см при рукаве 23.8 — то есть манжету, которая ничего не стягивает.
+ *
+ * Проверяется ТОЛЬКО там, где манжета есть по табелю (H08): у изделия с
+ * подшитым низом рукава широкий низ — норма, а не дефект.
+ */
+function clampCuff(raw: Map<string, Tracked<number>>, base: KnowledgeBase, notes: string[]): void {
+  const cuff = raw.get('T13');
+  const bicep = raw.get('T12');
+  if (!cuff || !bicep || !raw.has('H08')) return;
+  if (cuff.confidence !== 'estimated_from_photo' && cuff.confidence !== 'measured_by_scale') return;
+
+  const convention = base
+    .flatProportions()
+    .find((p) => p.id === 'cuff_over_bicep' && p.scope === 'cuff_rib');
+  if (!convention) return;
+
+  const ratio = cuff.value / bicep.value;
+  if (ratio <= convention.max) return;
+
+  // К ВЕРХНЕЙ границе конвенции, а не к середине: истинного значения мы не
+  // знаем, и минимальное вмешательство честнее. Середина диапазона увела бы
+  // манжету ниже правдоподобного минимума на узком рукаве.
+  const allowed = roundCm(bicep.value * convention.max);
+  notes.push(
+    `Низ рукава по фото вышел ${roundCm(cuff.value)} см при ширине рукава ` +
+      `${roundCm(bicep.value)} см — манжета шире ${Math.round(convention.max * 100)}% рукава ` +
+      `не стягивает его вовсе. На снимке рукав с манжетой и без выглядят одинаково, ` +
+      `и по нему названа ширина рукава внизу, а не манжеты. Значение приведено к ` +
+      `${allowed} см — это верхняя граница типового отношения, дальше мы не гадаем. ` +
+      `Померьте манжету по образцу: это одна из самых частых правок.`,
+  );
+
+  raw.set(
+    'T13',
+    track(
+      allowed,
+      'default_from_base',
+      'engine:pom/cuff-vs-bicep',
+      `манжета приведена к типовому отношению к ширине рукава (${convention.min}–${convention.max}) — проверьте по образцу`,
+    ),
+  );
+}
+
 function clampShoulder(raw: Map<string, Tracked<number>>, notes: string[]): void {
   const shoulder = raw.get('T06');
   const chest = raw.get('T03');
