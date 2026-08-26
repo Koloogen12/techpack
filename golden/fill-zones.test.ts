@@ -8,7 +8,7 @@ import {
   measurementsFrom,
   renderFlatsFromSpec,
 } from '@seamsterly/flats';
-import { CATEGORIES } from '@seamsterly/kb';
+import { CATEGORIES, kb, type NodeZone } from '@seamsterly/kb';
 
 /**
  * ЗАЛИВКА ПО ЗОНАМ — снимок, а не намерение.
@@ -277,5 +277,40 @@ describe('узел обработки и линия на чертеже', () => 
     const report = checkFlatLines(spec, svgs);
     expect(report.missing.map((m) => `${m.node_id} → ${m.expected}`)).toEqual([]);
     expect(report.orphan).toEqual([]);
+  });
+
+  /**
+   * На библиотечном силуэте требование смягчается до зоны, но не
+   * отключается: контрольных точек у покупного шаблона нет, а зоны есть,
+   * и документ обязан оставаться непротиворечивым и на них.
+   */
+  it.each(CATEGORIES)('%s: каждому узлу — своя зона на библиотечном силуэте', (category) => {
+    const { spec } = buildStyleSpec(input(category));
+    const base = kb();
+    const zones = [
+      ...new Set(
+        (spec.construction?.nodes ?? [])
+          .filter((n) => base.node(n.node_id).flat_line !== null)
+          .map((n) => n.zone as NodeZone)
+          .filter((z) => z !== 'labels'),
+      ),
+    ];
+    // Рисуем ровно те зоны, которые запросили узлы, — так и работает
+    // конвейер: список зон приходит из раздела конструкции.
+    const svgs = zones.map(
+      (z) => `<svg><g data-zone="${z}"></g></svg>`,
+    );
+    const report = checkFlatLines(spec, svgs, { mode: 'zone' });
+    expect(report.missing.map((m) => `${m.node_id} → ${m.expected}`)).toEqual([]);
+    expect(report.orphan).toEqual([]);
+  });
+
+  it('зона без узла — такая же ошибка, как линия без узла', () => {
+    // Выноска на зону, за которой не стоит работы, обещает обработку,
+    // которой в спецификации нет.
+    const { spec } = buildStyleSpec(input('tshirt'));
+    const report = checkFlatLines(spec, ['<svg><g data-zone="hood"></g></svg>'], { mode: 'zone' });
+    expect(report.orphan).toContain('hood');
+    expect(report.ok).toBe(false);
   });
 });

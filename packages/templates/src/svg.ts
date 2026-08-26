@@ -353,6 +353,129 @@ export function readPaths(svg: string): RawPath[] {
   return out;
 }
 
+/**
+ * Точки вдоль пути.
+ *
+ * Габарит для профиля по высоте не годится: контур корпуса — один путь, и
+ * его габарит покрывает весь силуэт, отчего каждая полоса высоты выходит
+ * во всю ширину. Нужны точки САМОЙ кривой, поэтому кубики и квадратики
+ * считаются по формуле Безье в трёх долях, а не берутся по контрольным
+ * точкам — те лежат снаружи кривой и раздували бы силуэт.
+ */
+export function pathPoints(d: string): { x: number; y: number }[] {
+  const out: { x: number; y: number }[] = [];
+  const tokens: (string | number)[] = [];
+  for (const m of d.matchAll(TOKENS)) tokens.push(m[1] ? m[1] : Number(m[2]));
+
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  let command = '';
+  let i = 0;
+  const see = (px: number, py: number): void => {
+    if (Number.isFinite(px) && Number.isFinite(py)) out.push({ x: px, y: py });
+  };
+  /** Кубика в долях пути. Три доли достаточно: узлов в контуре и так много. */
+  const cubic = (
+    x0: number, y0: number, x1: number, y1: number,
+    x2: number, y2: number, x3: number, y3: number,
+  ): void => {
+    for (const t of [0.25, 0.5, 0.75]) {
+      const u = 1 - t;
+      see(
+        u * u * u * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3,
+        u * u * u * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3,
+      );
+    }
+  };
+
+  while (i < tokens.length) {
+    const token = tokens[i];
+    if (typeof token === 'string') {
+      command = token;
+      i++;
+      if (command.toLowerCase() === 'z') {
+        x = startX;
+        y = startY;
+      }
+      continue;
+    }
+    if (!command) break;
+
+    const lower = command.toLowerCase();
+    const relative = command === lower;
+    const need = ARITY[lower] ?? 0;
+    if (need === 0) {
+      i++;
+      continue;
+    }
+    const args = tokens.slice(i, i + need);
+    if (args.length < need || args.some((a) => typeof a !== 'number')) break;
+    const n = args as number[];
+    i += need;
+
+    switch (lower) {
+      case 'm':
+      case 'l':
+      case 't': {
+        x = relative ? x + n[0]! : n[0]!;
+        y = relative ? y + n[1]! : n[1]!;
+        see(x, y);
+        if (lower === 'm') {
+          startX = x;
+          startY = y;
+          command = relative ? 'l' : 'L';
+        }
+        break;
+      }
+      case 'h':
+        x = relative ? x + n[0]! : n[0]!;
+        see(x, y);
+        break;
+      case 'v':
+        y = relative ? y + n[0]! : n[0]!;
+        see(x, y);
+        break;
+      case 'c': {
+        const x1 = relative ? x + n[0]! : n[0]!;
+        const y1 = relative ? y + n[1]! : n[1]!;
+        const x2 = relative ? x + n[2]! : n[2]!;
+        const y2 = relative ? y + n[3]! : n[3]!;
+        const nx = relative ? x + n[4]! : n[4]!;
+        const ny = relative ? y + n[5]! : n[5]!;
+        cubic(x, y, x1, y1, x2, y2, nx, ny);
+        x = nx;
+        y = ny;
+        see(x, y);
+        break;
+      }
+      case 's':
+      case 'q': {
+        const cx = relative ? x + n[0]! : n[0]!;
+        const cy = relative ? y + n[1]! : n[1]!;
+        const nx = relative ? x + n[2]! : n[2]!;
+        const ny = relative ? y + n[3]! : n[3]!;
+        // Квадратика — та же кубика с двумя третями до контрольной точки.
+        cubic(x, y, x + (2 / 3) * (cx - x), y + (2 / 3) * (cy - y),
+              nx + (2 / 3) * (cx - nx), ny + (2 / 3) * (cy - ny), nx, ny);
+        x = nx;
+        y = ny;
+        see(x, y);
+        break;
+      }
+      case 'a':
+        x = relative ? x + n[5]! : n[5]!;
+        y = relative ? y + n[6]! : n[6]!;
+        see(x, y);
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
+}
+
 export function unionBox(boxes: readonly Box[]): Box | null {
   if (boxes.length === 0) return null;
   return boxes.reduce((a, b) => ({

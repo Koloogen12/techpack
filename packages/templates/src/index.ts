@@ -6,3 +6,4 @@ export * from './library.js';
 export * from './load.js';
 export * from './query.js';
 export * from './choose.js';
+export * from './zones.js';

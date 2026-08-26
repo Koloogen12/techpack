@@ -5,9 +5,11 @@ import { CostLedger, SeamsterlyError, defined, type Logger } from '@seamsterly/c
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
+  ZONE_LABEL_RU,
   kb,
   type Category,
   type KnowledgeBase,
+  type NodeZone,
 } from '@seamsterly/kb';
 import {
   buildStyleSpec,
@@ -54,7 +56,17 @@ import {
 import { messages } from '@seamsterly/i18n';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
-/** Кандидат в силуэт — то, что видит человек в микрошаге мастера. */
+/**
+ * Откуда берётся чертёж изделия.
+ *
+ * Значение по умолчанию — `auto`: библиотека, пока она уверена, и своё
+ * построение, когда нет. Явные значения нужны там, где выбор принят
+ * заранее: голден-набор проверяет наше построение и обязан получать
+ * именно его, а не тот силуэт, который сегодня выиграл подбор.
+ */
+export type DrawingSource = 'auto' | 'library' | 'parametric';
+
+/** Кандидат в силуэт — то, что видит человек при замене силуэта. */
 export interface TemplateCandidateView {
   id: string;
   /** Почему шаблон попал в список: читаемые причины из скоринга. */
@@ -130,12 +142,24 @@ export interface GenerateOptions {
    */
   onStage?: (stage: 'vision' | 'assembly' | 'render' | 'docgen', detail?: string) => void;
   /**
-   * Силуэт из библиотеки моделей вместо параметрического чертежа.
+   * Откуда берётся чертёж.
    *
-   * «ask» — подобрать и спросить, какой ближе; идентификатор — взять
-   * названный. Пусто — строим чертёж сами: он единственный, у которого
-   * правка замера перестраивает геометрию, а выноски указывают на
-   * размеченные точки.
+   * `library` — только из библиотеки силуэтов, `parametric` — только своё
+   * построение, `auto` (по умолчанию) — библиотека при уверенном подборе,
+   * иначе своё. Библиотека впереди потому, что покупной силуэт нарисован
+   * рукой человека и опознаётся технологом с первого взгляда; наше
+   * построение точнее по табелю, но узнаётся хуже.
+   *
+   * Возврат к параметрике происходит сам, без вопросов, в трёх случаях:
+   * подбор неуверенный, форма листа расходится с табелем больше чем на
+   * четверть, у силуэта нет вида спинки.
+   */
+  drawing?: DrawingSource;
+  /**
+   * Конкретный силуэт из библиотеки: идентификатор шаблона.
+   *
+   * Сильнее `drawing`: названный силуэт берётся, даже если автоподбор выбрал
+   * бы другой. «ask» — подобрать и спросить, какой ближе.
    */
   template?: string;
   /**
@@ -961,9 +985,14 @@ async function chooseLibraryFlat(
   report: VisionReport | undefined,
   notes: string[],
 ): Promise<DocVisuals['libraryFlats']> {
-  if (!options.template) return undefined;
+  const source: DrawingSource = options.drawing ?? 'auto';
+  if (source === 'parametric') return undefined;
   if (!templateLibraryExists()) {
-    notes.push('Библиотека силуэтов не собрана — чертёж построен параметрически.');
+    // Про отсутствие библиотеки говорим только тому, кто её просил: при
+    // `auto` параметрический чертёж — законный результат, а не отказ.
+    if (source === 'library' || options.template) {
+      notes.push('Библиотека силуэтов не собрана — чертёж построен параметрически.');
+    }
     return undefined;
   }
 
@@ -986,11 +1015,15 @@ async function chooseLibraryFlat(
       notes.push('Библиотека не предложила силуэта — чертёж построен параметрически.');
       return undefined;
     }
-    // Уверенный подбор берём молча только если спрашивать некому: иначе
-    // вопрос стоит одного клика, а ошибка — целого техпака.
     if (!options.askTemplate) {
-      id = choice.confident ? choice.candidates[0]!.entry.id : null;
-      if (!id) notes.push('Силуэт из библиотеки не выбран однозначно — чертёж построен параметрически.');
+      // При `library` порог уверенности снимается: выбор источника уже
+      // сделан человеком, и переспрашивать его подбором незачем.
+      id = source === 'library' || choice.confident ? choice.candidates[0]!.entry.id : null;
+      if (!id) {
+        notes.push(
+          'Силуэт из библиотеки не совпал по ключевым признакам — чертёж построен параметрически.',
+        );
+      }
     } else {
       id = await options.askTemplate(
         choice.candidates.map((c) => ({
@@ -1004,10 +1037,36 @@ async function chooseLibraryFlat(
   }
   if (!id) return undefined;
 
+  // Зоны берём из узлов конструкции: выноска стоит там, где есть работа.
+  // Узел без линии шва (вшить ярлык) геометрии на чертеже не имеет и зону
+  // не запрашивает.
+  const base = options.kb ?? kb();
+  const zones = [
+    ...new Set(
+      (spec.construction?.nodes ?? [])
+        .filter((n) => base.node(n.node_id).flat_line !== null)
+        .map((n) => n.zone as NodeZone)
+        .filter((z) => z !== 'labels'),
+    ),
+  ];
+
+  // Корпус к корпусу: ширина по груди — это и есть торс на уровне проймы,
+  // длина изделия — от высшей точки плеча до низа. На силуэте меряется то
+  // же самое, поэтому рукава и капюшон в сравнение не попадают ни с той,
+  // ни с другой стороны.
+  const point = (code: string): number | undefined =>
+    spec.measurements.points.find((p) => p.code === code)?.base.value;
+  const bodyWidthCm = point('T03') ?? point('T05') ?? 51;
+  const bodyLengthCm = point('T01') ?? 70;
+
   const rendered = renderChosenTemplate(id, {
     targetWidthCm,
     targetHeightCm,
+    bodyWidthCm,
+    bodyRatio: bodyWidthCm / bodyLengthCm,
     disclaimer: t.flats_library_disclaimer,
+    zones,
+    zoneLabel: (z) => ZONE_LABEL_RU[z],
   });
   if (!rendered) {
     notes.push(

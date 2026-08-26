@@ -10,7 +10,7 @@
 import { createLogger, isSeamsterlyError } from '@seamsterly/core';
 import { EXPORT_ROLES, type ExportRole } from '@seamsterly/docgen';
 import { LOCALES, type Locale } from '@seamsterly/i18n';
-import { generate } from './generate.js';
+import { generate, type DrawingSource } from './generate.js';
 
 interface Cli {
   answers: string;
@@ -24,9 +24,13 @@ interface Cli {
   tileDir?: string;
   versionsDir?: string;
   langs: Locale[];
-  /** Силуэт из библиотеки: «ask» — спросить, иначе идентификатор шаблона. */
+  /** Откуда берётся чертёж: auto, library или parametric. */
+  drawing: DrawingSource;
+  /** Конкретный силуэт: «ask» — спросить, иначе идентификатор шаблона. */
   template?: string;
 }
+
+const DRAWING_SOURCES: readonly DrawingSource[] = ['auto', 'library', 'parametric'];
 
 function parseArgv(argv: readonly string[]): Cli {
   const cli: Cli = {
@@ -38,6 +42,7 @@ function parseArgv(argv: readonly string[]): Cli {
     spec: false,
     quiet: false,
     render: false,
+    drawing: 'auto',
   };
   let mode: 'photos' | 'roles' | 'langs' | null = null;
 
@@ -86,9 +91,20 @@ function parseArgv(argv: readonly string[]): Cli {
       mode = null;
       continue;
     }
-    // Силуэт из библиотеки моделей вместо параметрического чертежа.
-    // Только по явной просьбе: библиотечный вид масштабируется, но не
-    // деформируется под замеры, и подменять им точный чертёж молча нельзя.
+    // Откуда брать чертёж. По умолчанию auto: библиотека, пока подбор
+    // уверен, и наше построение, когда нет.
+    //   --drawing library     всегда из библиотеки, если она что-то нашла
+    //   --drawing parametric  всегда своё построение
+    if (arg === '--drawing') {
+      const value = argv[++i] ?? '';
+      if (!DRAWING_SOURCES.includes(value as DrawingSource)) {
+        throw new Error(`неизвестный источник чертежа: ${value}. Доступны: ${DRAWING_SOURCES.join(', ')}`);
+      }
+      cli.drawing = value as DrawingSource;
+      mode = null;
+      continue;
+    }
+    // Конкретный силуэт из библиотеки. Сильнее --drawing.
     //   --template ask        показать кандидатов и спросить
     //   --template <id>       взять названный шаблон
     if (arg === '--template') {
@@ -142,6 +158,7 @@ async function main(): Promise<void> {
     ...(cli.tileDir ? { tileDir: cli.tileDir } : {}),
     ...(cli.versionsDir ? { versionsDir: cli.versionsDir } : {}),
     langs: cli.langs,
+    drawing: cli.drawing,
     ...(cli.template ? { template: cli.template, askTemplate } : {}),
     logger: createLogger({ level: cli.quiet ? 'error' : 'warn' }),
   });

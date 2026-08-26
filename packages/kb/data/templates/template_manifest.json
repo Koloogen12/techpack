@@ -9281,7 +9281,7 @@
         ],
         "confidence": "high"
       },
-      "promotion_score": 3
+      "promotion_score": 6
     },
     {
       "id": "hoodie_family-hoodies-mockup-front-and-back-43",
@@ -17613,7 +17613,8 @@
           "подгибка низа и рукавов"
         ],
         "confidence": "high"
-      }
+      },
+      "promotion_score": 71
     },
     {
       "id": "tshirt_family-t-shirt-mockup-front-and-back-101",

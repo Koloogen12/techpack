@@ -104,6 +104,53 @@ describe('сквозная генерация', () => {
     expect(b.fingerprint).toBe(a.fingerprint);
   }, 180_000);
 
+  it('по умолчанию берёт силуэт из библиотеки и кладёт его исходник рядом', async () => {
+    // Библиотека впереди потому, что покупной силуэт нарисован рукой
+    // человека и опознаётся технологом с первого взгляда.
+    const result = await generate({
+      answersPath: answersFile({}, 'auto.json'),
+      photoPaths: [],
+      outPath: join(tmp, 'auto.pdf'),
+      now: AT,
+    });
+    expect(result.template).not.toBeNull();
+    // Исходный вектор уходит бренду вместе с паком: без него фабрике
+    // пришлось бы обводить растр.
+    expect(result.template!.sources.length).toBeGreaterThan(0);
+    for (const path of result.template!.sources) {
+      expect(readFileSync(path, 'utf8').startsWith('<svg')).toBe(true);
+    }
+  }, 120_000);
+
+  it('parametric строит чертёж сам и библиотеку не трогает', async () => {
+    // Голден-набор проверяет наше построение и обязан получать именно его,
+    // а не тот силуэт, который сегодня выиграл подбор.
+    const result = await generate({
+      answersPath: answersFile({}, 'param.json'),
+      photoPaths: [],
+      outPath: join(tmp, 'param.pdf'),
+      drawing: 'parametric',
+      now: AT,
+    });
+    expect(result.template).toBeNull();
+  }, 120_000);
+
+  it('в категории без библиотечных силуэтов сам возвращается к параметрике', async () => {
+    // Отказ должен быть тихим и объяснённым, а не пустым листом.
+    const result = await generate({
+      answersPath: answersFile({ category: 'polo', article: 'POL-E2E-001', fit_intent: 'fitted' }, 'polo.json'),
+      photoPaths: [],
+      outPath: join(tmp, 'polo.pdf'),
+      drawing: 'auto',
+      now: AT,
+    });
+    if (result.template === null) {
+      expect(statSync(result.pdfPath).size).toBeGreaterThan(10_000);
+    } else {
+      expect(result.template.sources.length).toBeGreaterThan(0);
+    }
+  }, 120_000);
+
   it('время сборки укладывается в требование продукта', async () => {
     const started = Date.now();
     await generate({

@@ -9,6 +9,8 @@ import {
   type MatchQuery,
 } from '../src/match.js';
 import { MAX_PROPORTION_DRIFT, renderLibraryView } from '../src/library.js';
+import { landmarksOf, zonesOf } from '../src/zones.js';
+import type { NodeZone } from '@seamsterly/kb';
 import type { TemplateEntry, TemplateTraits } from '../src/manifest.js';
 
 const traits = (over: Partial<TemplateTraits> = {}): TemplateTraits => ({
@@ -225,63 +227,65 @@ describe('подбор силуэта', () => {
   });
 });
 
+
+/**
+ * Силуэт-макет в форме буквы Т: торс, два разведённых рукава, капюшон.
+ *
+ * Прямоугольник для этих проверок не годится: у него нет ни проймы, ни
+ * рукавов, а вся линейка построена на том, что торс отделяется от них по
+ * контуру. Числа выбраны круглыми: торс шириной 100 от плеча на 60 до
+ * низа на 280 — пропорция 100/220.
+ */
+const FLAT_HOOD =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">' +
+  '<path style="fill:none;stroke:#0E0E0E;stroke-width:2" d="M 130 0 L 170 0 L 170 60 ' +
+  'L 200 60 L 300 80 L 300 130 L 200 120 L 200 280 L 100 280 L 100 120 L 0 130 L 0 80 ' +
+  'L 100 60 L 130 60 Z"/></svg>';
+
+/** Тот же силуэт без капюшона: плечи сразу по верхнему краю. */
+const FLAT_PLAIN =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">' +
+  '<path style="fill:none;stroke:#0E0E0E;stroke-width:2" d="M 100 0 L 200 0 ' +
+  'L 300 20 L 300 70 L 200 60 L 200 280 L 100 280 L 100 60 L 0 70 L 0 20 Z"/></svg>';
+
 describe('силуэт в масштабе изделия', () => {
-  const template =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100">' +
-    '<path style="fill:none;stroke:#0E0E0E;stroke-width:2" d="M 0 0 L 120 0 L 120 100 L 0 100 Z"/></svg>';
-
-  it('вписывает силуэт в габарит нашего чертежа', () => {
-    const r = renderLibraryView(template, {
-      targetWidthCm: 120,
-      targetHeightCm: 100,
-      disclaimer: 'Иллюстративный силуэт',
-    });
-    // Форма листа совпала — расхождения нет, масштаб один к одному.
-    expect(r.proportionDrift).toBeCloseTo(0, 3);
-    expect(r.scale).toBeCloseTo(1, 5);
-  });
-
-  it('расхождение формы листа считает и не прячет', () => {
-    // Лист шаблона вдвое шире своей высоты против нашего почти квадратного:
-    // это не разница условности рисунка, это другое изделие.
-    const r = renderLibraryView(template, {
-      targetWidthCm: 100,
-      targetHeightCm: 140,
-      disclaimer: 'Иллюстративный силуэт',
-    });
-    expect(r.proportionDrift).toBeGreaterThan(MAX_PROPORTION_DRIFT);
-  });
-
-  it('масштабирует равномерно, вписывая в габарит', () => {
-    const r = renderLibraryView(template, {
-      targetWidthCm: 60,
-      targetHeightCm: 100,
+  const render = (over: Partial<Parameters<typeof renderLibraryView>[1]> = {}) =>
+    renderLibraryView(FLAT_PLAIN, {
+      targetWidthCm: 600,
+      targetHeightCm: 600,
+      bodyWidthCm: 50,
+      bodyRatio: 100 / 280,
       disclaimer: 'п',
+      ...over,
     });
-    // Ширина упирается первой: 60/120 против 100/100.
-    expect(r.scale).toBeCloseTo(0.5, 5);
+
+  it('масштаб задаёт ширина торса, а не габарит листа', () => {
+    // Габарит листа — это в первую очередь угол отведения рукава: по нему
+    // мерили бы манеру рисования, а не изделие.
+    expect(render().scale).toBeCloseTo(0.5, 3);
   });
 
-  it('несёт плашку и подпись вида', () => {
-    const r = renderLibraryView(template, {
-      targetWidthCm: 120,
-      targetHeightCm: 100,
-      disclaimer: 'Иллюстративный силуэт — размеры в табеле мер',
-    });
-    expect(r.svg).toContain('Иллюстративный силуэт — размеры в табеле мер');
-    // Подпись вида рисует документ своей типографикой — в картинке её нет.
-    expect(r.svg).not.toContain('Перед');
+  it('в отведённое место вписывается, даже если по торсу вышло бы шире', () => {
+    // Лучше нарисовать мельче, чем залезть на соседний вид.
+    expect(render({ targetWidthCm: 30 }).scale).toBeCloseTo(0.1, 3);
   });
 
-  it('толщину линии не переопределяет', () => {
-    // Она задана при приёме долей от размера рисунка и едет вместе с ним.
-    // Атрибут на группе всё равно проигрывает инлайн-стилю каждого пути.
-    const r = renderLibraryView(template, {
-      targetWidthCm: 60,
-      targetHeightCm: 100,
-      disclaimer: 'п',
-    });
-    expect(r.svg).not.toContain('<g transform="translate(0 0) scale(0.5) translate(0 0)" stroke-width');
+  it('совпадение пропорции корпуса даёт нулевое расхождение', () => {
+    const r = render();
+    expect(r.proportionMeasured).toBe(true);
+    expect(r.proportionDrift).toBeLessThan(0.1);
+  });
+
+  it('подмену изделия ловит: кроп вместо обычного', () => {
+    // Табель говорит вдвое длиннее, чем нарисовано, — это другое изделие.
+    expect(render({ bodyRatio: 100 / 560 }).proportionDrift).toBeGreaterThan(MAX_PROPORTION_DRIFT);
+  });
+
+  it('несёт плашку по ширине своей подписи', () => {
+    const width = (svg: string): number => Number(/<rect[^>]*width="([\d.]+)"/.exec(svg)![1]);
+    // Оговорка переводится, и на другом языке она другой длины.
+    expect(width(render({ disclaimer: 'Иллюстративный силуэт — выноска на зону' }).svg))
+      .toBeGreaterThan(width(render({ disclaimer: 'Коротко' }).svg));
   });
 });
 
@@ -301,5 +305,111 @@ describe('уверенность подбора', () => {
     const result = matchTemplates([wrong], query);
     expect(result.best!.fit_fraction).toBeLessThan(AUTO_FIT_FRACTION);
     expect(isConfident(result)).toBe(false);
+  });
+});
+
+describe('зоны изделия', () => {
+  it('находит линию плеча под капюшоном, а не по верхнему краю', () => {
+    const L = landmarksOf(FLAT_HOOD)!;
+    expect(L.shoulderY).toBeGreaterThan(40);
+    expect(L.shoulderY).toBeLessThan(90);
+    expect(L.aboveShoulders).toBe(true);
+  });
+
+  it('меряет торс, игнорируя раскинутые рукава', () => {
+    // Размах с рукавами — 300, торс — 100. Взяв размах, мы намеряли бы
+    // манеру рисования, а не изделие.
+    const L = landmarksOf(FLAT_HOOD)!;
+    expect(L.torsoMeasured).toBe(true);
+    expect(L.torsoWidth).toBeCloseTo(100, 0);
+  });
+
+  it('низ корпуса берёт по торсу, а не по краю габарита', () => {
+    const L = landmarksOf(FLAT_HOOD)!;
+    expect(L.bodyBottomY).toBeGreaterThan(250);
+    expect(L.bodyBottomY).toBeLessThanOrEqual(300);
+  });
+
+  it('капюшон рисует по разметке шаблона, а не по геометрии', () => {
+    // Над плечами бывает и воротник, и просто поле; принять их за капюшон
+    // значило бы поставить выноску на пустое место.
+    expect(zonesOf(FLAT_HOOD, { hood: true }).has('hood')).toBe(true);
+    expect(zonesOf(FLAT_HOOD, { hood: false }).has('hood')).toBe(false);
+    // А у силуэта без капюшона его нет и при включённой разметке.
+    expect(zonesOf(FLAT_PLAIN, { hood: true }).has('hood')).toBe(false);
+  });
+
+  it('горловину ставит под плечами, а не на макушке', () => {
+    const z = zonesOf(FLAT_HOOD, { hood: true });
+    const L = landmarksOf(FLAT_HOOD)!;
+    expect(z.get('neckline')!.y).toBeGreaterThan(L.shoulderY);
+    expect(z.get('hood')!.y).toBeLessThan(L.shoulderY);
+  });
+
+  it('ось ведёт по торсу, а не по середине листа', () => {
+    const z = zonesOf(FLAT_HOOD, { hood: true });
+    expect(z.get('hem')!.x).toBeCloseTo(150, 0);
+  });
+});
+
+describe('выноски на зоны', () => {
+  const render = (zones: NodeZone[]) =>
+    renderLibraryView(FLAT_PLAIN, {
+      targetWidthCm: 300,
+      targetHeightCm: 300,
+      bodyWidthCm: 100,
+      bodyRatio: 100 / 280,
+      disclaimer: 'Иллюстративный силуэт',
+      callouts: { zones, label: (z) => `зона:${z}`, hood: false },
+    });
+
+  it('помечает каждую зону, на которую встала выноска', () => {
+    // По этим пометкам проверяется связь «узел ↔ чертёж»: у библиотечного
+    // силуэта её держит зона, а не линия шва.
+    const r = render(['neckline', 'sleeves', 'hem']);
+    expect(r.zones.sort()).toEqual(['hem', 'neckline', 'sleeves']);
+    for (const z of ['neckline', 'sleeves', 'hem']) {
+      expect(r.svg).toContain(`data-zone="${z}"`);
+    }
+  });
+
+  it('зону, которой на силуэте нет, молча пропускает', () => {
+    // Выноска в пустоту хуже отсутствующей.
+    const r = render(['hood']);
+    expect(r.zones).toEqual([]);
+  });
+
+  it('под выноски отдаёт поля по бокам, без них — весь габарит', () => {
+    // Широкий силуэт упирается в ширину рамки, и поля под подписи забирают
+    // её у рисунка. Подписи поверх изделия читать нельзя.
+    const at = (callouts: boolean) =>
+      renderLibraryView(FLAT_PLAIN, {
+        targetWidthCm: 120,
+        targetHeightCm: 400,
+        bodyWidthCm: 900,
+        bodyRatio: 100 / 280,
+        disclaimer: 'п',
+        ...(callouts
+          ? { callouts: { zones: ['hem' as NodeZone], label: () => 'низ', hood: false } }
+          : {}),
+      });
+    expect(at(false).scale).toBeGreaterThan(at(true).scale);
+    expect(at(false).zones).toEqual([]);
+  });
+
+  it('подписи не наезжают друг на друга', () => {
+    // Шесть зон в двух полях — по три в каждом; между строками обязан
+    // остаться зазор, иначе подписи слипнутся в кашу.
+    const r = render(['hood', 'neckline', 'shoulders', 'sleeves', 'sides', 'hem']);
+    const ys = [...r.svg.matchAll(/<text x="([\d.]+)" y="([\d.]+)"/g)].map((m) => ({
+      x: Number(m[1]),
+      y: Number(m[2]),
+    }));
+    for (const side of [true, false]) {
+      const rows = ys.filter((p) => (p.x < 60) === side).map((p) => p.y).sort((a, b) => a - b);
+      for (let i = 1; i < rows.length; i++) {
+        expect(rows[i]! - rows[i - 1]!).toBeGreaterThan(1);
+      }
+    }
   });
 });
