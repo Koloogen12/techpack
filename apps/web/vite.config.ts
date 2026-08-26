@@ -1,12 +1,24 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 
+/**
+ * Сборка кабинета — двухшаговая:
+ *
+ *  1. vite собирает движок чертежа в один классический скрипт (engine.js):
+ *     кабинет — дословный порт прототипа хендоффа и исполняется его же
+ *     рантаймом без бандлера, движку остаётся лечь рядом простым файлом;
+ *  2. scripts/build-proto.mjs собирает dist/index.html из разметки прототипа
+ *     и логики proto/logic.js (см. `pnpm build`).
+ */
 export default defineConfig({
-  plugins: [react()],
-  // Приложение живёт под /app/ за nginx — все ссылки относительные базы.
-  base: '/app/',
-  server: {
-    proxy: { '/app/api': { target: 'http://127.0.0.1:8131', changeOrigin: false } },
+  build: {
+    lib: {
+      entry: 'src/engine.ts',
+      name: 'SeamsterlyEngine',
+      formats: ['iife'],
+      fileName: () => 'engine.js',
+    },
+    outDir: 'dist',
+    sourcemap: false,
+    emptyOutDir: true,
   },
-  build: { outDir: 'dist', sourcemap: false },
 });

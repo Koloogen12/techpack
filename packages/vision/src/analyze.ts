@@ -297,14 +297,26 @@ async function analyzeViaProxy(
     const end = text.lastIndexOf('}');
     if (start === -1 || end <= start) {
       lastError = 'в ответе нет JSON-объекта';
-      logger.warn('vision(proxy): ответ без JSON, повтор', { attempt });
+      // Голова ответа — метаданные сбоя, не содержимое клиентских фото:
+      // без неё сбой прокси неотличим от сбоя модели.
+      logger.warn('vision(proxy): ответ без JSON, повтор', {
+        attempt,
+        stop: response.stop_reason,
+        len: text.length,
+        head: text.slice(0, 160),
+      });
       continue;
     }
     try {
       return VisionReportSchema.parse(JSON.parse(text.slice(start, end + 1)));
     } catch (cause) {
       lastError = String(cause).slice(0, 400);
-      logger.warn('vision(proxy): не сошлось со схемой, повтор', { attempt });
+      logger.warn('vision(proxy): не сошлось со схемой, повтор', {
+        attempt,
+        stop: response.stop_reason,
+        len: text.length,
+        error: lastError.slice(0, 200),
+      });
     }
   }
 

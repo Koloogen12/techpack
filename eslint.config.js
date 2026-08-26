@@ -14,6 +14,47 @@ export default tseslint.config(
   },
   js.configs.recommended,
   {
+    // Сборочные скрипты кабинета — нодовые ESM без TypeScript.
+    files: ['apps/web/scripts/**/*.mjs'],
+    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+  },
+  {
+    // Логика кабинета — дословный порт прототипа хендоффа: исполняется его
+    // рантаймом (support.js) в браузере через new Function, без сборки.
+    // DCLogic приходит из рантайма, остальные глобалы браузерные.
+    files: ['apps/web/proto/**/*.js'],
+    languageOptions: {
+      globals: {
+        DCLogic: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        sessionStorage: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        Date: 'readonly',
+        JSON: 'readonly',
+        Math: 'readonly',
+        Number: 'readonly',
+        String: 'readonly',
+        Object: 'readonly',
+        Array: 'readonly',
+        Set: 'readonly',
+        Promise: 'readonly',
+        Error: 'readonly',
+        isFinite: 'readonly',
+        isNaN: 'readonly',
+        parseFloat: 'readonly',
+        encodeURIComponent: 'readonly',
+        clearTimeout: 'readonly',
+        setTimeout: 'readonly',
+        clearInterval: 'readonly',
+        setInterval: 'readonly',
+      },
+    },
+  },
+  {
     // Сборщик вердиктов — обычный ESM на сервере, без сборки и без TypeScript.
     // Глобалы у него нодовые, а не браузерные.
     files: ['apps/site/server/**/*.mjs'],

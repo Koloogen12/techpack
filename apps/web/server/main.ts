@@ -225,6 +225,42 @@ const server = createServer(async (req, res) => {
       return res.end(adminPage());
     }
 
+    // Статика кабинета: локальная разработка без nginx. В проде эти же файлы
+    // отдаёт nginx, сюда запросы не доходят.
+    if (
+      req.method === 'GET' &&
+      url.pathname.startsWith('/app') &&
+      !url.pathname.startsWith('/app/api') &&
+      !url.pathname.includes('..')
+    ) {
+      const root = process.env.WEB_DIST ?? 'dist';
+      const rel = url.pathname.replace(/^\/app\/?/, '') || 'index.html';
+      const file = join(root, rel);
+      if (existsSync(file)) {
+        const ext = file.split('.').pop() ?? '';
+        const types: Record<string, string> = {
+          html: 'text/html; charset=utf-8',
+          js: 'text/javascript; charset=utf-8',
+          css: 'text/css',
+          svg: 'image/svg+xml',
+          png: 'image/png',
+          jpg: 'image/jpeg',
+          jpeg: 'image/jpeg',
+          webp: 'image/webp',
+          woff2: 'font/woff2',
+        };
+        res.writeHead(200, { 'content-type': types[ext] ?? 'application/octet-stream' });
+        return res.end(readFileSync(file));
+      }
+      if (rel === 'index.html' || !rel.includes('.')) {
+        const idx = join(root, 'index.html');
+        if (existsSync(idx)) {
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          return res.end(readFileSync(idx));
+        }
+      }
+    }
+
     // Всё остальное — только по инвайту.
     if (!invite) {
       return json(res, 401, {
@@ -489,6 +525,22 @@ const server = createServer(async (req, res) => {
         writeFileSync(join(dir, 'deleted.flag'), '1');
         logEvent(invite.name, 'delete', { id });
         return json(res, 200, { ok: true });
+      }
+
+      // Фото джобы: референсы в галерее кабинета. Отдаётся только владельцу —
+      // проверка owner.txt уже прошла выше.
+      const photoMatch = rest.match(/^\/photo\/(\d{1,2})$/);
+      if (req.method === 'GET' && photoMatch) {
+        const list = JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[];
+        const name = list[Number(photoMatch[1]) - 1];
+        if (!name) return json(res, 404, { error: 'нет такого фото' });
+        const ext = name.split('.').pop() ?? 'jpg';
+        res.writeHead(200, {
+          'content-type':
+            ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg',
+          'cache-control': 'private, max-age=86400',
+        });
+        return res.end(readFileSync(join(dir, name)));
       }
 
       // HTML-предпросмотр документа: превью первой страницы в экспорте
