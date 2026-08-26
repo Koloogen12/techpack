@@ -36,7 +36,8 @@
     "fit:score": "tsx apps/cli/src/score.ts",
     "fit:demo": "tsx golden/scripts/demo-score.ts | xargs -I{} tsx apps/cli/src/score.ts {}",
     "fit:apply": "tsx apps/cli/src/apply-fitting.ts",
-    "versions": "tsx apps/cli/src/versions.ts"
+    "versions": "tsx apps/cli/src/versions.ts",
+    "admin": "tsx apps/cli/src/admin.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

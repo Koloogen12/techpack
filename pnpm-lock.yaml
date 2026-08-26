@@ -98,6 +98,9 @@ importers:
       '@seamsterly/kb':
         specifier: workspace:*
         version: link:../packages/kb
+      '@seamsterly/library':
+        specifier: workspace:*
+        version: link:../packages/library
       '@seamsterly/pattern':
         specifier: workspace:*
         version: link:../packages/pattern

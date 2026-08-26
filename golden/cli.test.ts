@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { isSeamsterlyError } from '@seamsterly/core';
-import { generate, parseAnswers } from '@seamsterly/cli';
+import { buildAdminReport, generate, parseAnswers } from '@seamsterly/cli';
+import { buildStyleSpec } from '@seamsterly/assembly';
+import { applyFitting, parseMeasuredSet } from '@seamsterly/fit';
+import { ArtworkLibrary } from '@seamsterly/library';
+import { VersionStore } from '@seamsterly/versions';
 import { parseStyleSpec } from '@seamsterly/stylespec';
 
 /**
@@ -267,4 +271,88 @@ describe('пустые по смыслу значения', () => {
       }),
     ).rejects.toThrow();
   }, 60_000);
+});
+
+describe('консьерж-панель', () => {
+  /**
+   * Правила «что требует внимания» — бизнес-логика, а не оформление.
+   * Обязательный реквизит без значения закрывает продажу в ЕАЭС, а провал
+   * проверки печати — это отказ печатника через день после отправки.
+   */
+  const panelDir = (): { store: VersionStore; library: ArtworkLibrary } => {
+    const dir = mkdtempSync(join(tmpdir(), 'seamsterly-admin-'));
+    return {
+      store: new VersionStore(dir),
+      library: new ArtworkLibrary(join(dir, 'artwork')),
+    };
+  };
+
+  it('пустая панель говорит, с чего начать, а не показывает пустоту', () => {
+    const { store, library } = panelDir();
+    const report = buildAdminReport(store, library, join(tmp, 'нет-такого.csv'));
+    expect(report.rows).toEqual([]);
+    expect(report.html).toContain('pnpm generate');
+  });
+
+  it('незаполненная маркировка ЗАКРЫВАЕТ выпуск, а неотшитое изделие — нет', () => {
+    // Разница не в тоне, а в последствиях: без реквизитов вещь нельзя
+    // продавать, а без отшива — можно, просто значения ещё не подтверждены.
+    const { store, library } = panelDir();
+    const { spec } = buildStyleSpec({
+      id: 'adm',
+      name: 'Худи',
+      article: 'ADM-01',
+      category: 'hoodie',
+      gender: 'women',
+      base_size_ru: 46,
+      base_height_cm: 170,
+      fit_intent: 'oversize',
+      fabric_kind: 'knit',
+      size_range: [44, 46, 48],
+      generated_at: new Date('2026-08-26T00:00:00.000Z'),
+    });
+    store.save('ADM-01', spec, 'первая сборка');
+
+    const report = buildAdminReport(store, library, join(tmp, 'нет.csv'));
+    const blocking = report.attention.filter((a) => a.blocking);
+    const soft = report.attention.filter((a) => !a.blocking);
+
+    expect(blocking.some((a) => a.what.includes('Маркировка'))).toBe(true);
+    expect(soft.some((a) => a.what.includes('ни разу не отшивали'))).toBe(true);
+    expect(report.rows[0]!.confirmed).toBe(0);
+  });
+
+  it('подтверждённая примеркой точка снимает предупреждение', () => {
+    const { store, library } = panelDir();
+    const base = buildStyleSpec({
+      id: 'adm2',
+      name: 'Худи',
+      article: 'ADM-02',
+      category: 'hoodie',
+      gender: 'women',
+      base_size_ru: 46,
+      base_height_cm: 170,
+      fit_intent: 'oversize',
+      fabric_kind: 'knit',
+      size_range: [44, 46, 48],
+      generated_at: new Date('2026-08-26T00:00:00.000Z'),
+    }).spec;
+    const applied = applyFitting(
+      base,
+      parseMeasuredSet({
+        id: 'ОТШИВ',
+        photo: 'p.jpg',
+        answers: 'a.json',
+        measured_by: 'кто-то',
+        measured_at: '2026-08-26',
+        method: 'flat_tape',
+        values: [{ code: 'T01', value_cm: 68 }],
+      }),
+    );
+    store.save('ADM-02', applied.spec, 'примерка');
+
+    const report = buildAdminReport(store, library, join(tmp, 'нет.csv'));
+    expect(report.rows[0]!.confirmed).toBeGreaterThan(0);
+    expect(report.attention.some((a) => a.what.includes('ни разу не отшивали'))).toBe(false);
+  });
 });

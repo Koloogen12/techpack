@@ -82,6 +82,7 @@ pnpm pattern --refs мотив1.png мотив2.png --brief "что нарисо
 pnpm library                                       # каталог артов бренда
 pnpm fit:apply <бланк-замеров.json>                # примерка → новая версия
 pnpm versions [артикул] [номер]                    # история и что изменилось
+pnpm admin                                         # панель консьержа → out/admin.html
 
 pnpm rfq --answers анкета.json --out out/rfq.pdf   # лист на просчёт + текст в мессенджер
 pnpm rfq:report --init rfq/responses.csv           # завести журнал ответов фабрик

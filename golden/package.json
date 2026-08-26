@@ -16,6 +16,7 @@
     "@seamsterly/fit": "workspace:*",
     "@seamsterly/render": "workspace:*",
     "@seamsterly/pattern": "workspace:*",
-    "@seamsterly/versions": "workspace:*"
+    "@seamsterly/versions": "workspace:*",
+    "@seamsterly/library": "workspace:*"
   }
 }
