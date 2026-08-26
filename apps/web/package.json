@@ -16,7 +16,8 @@
     "@seamsterly/fit": "workspace:*",
     "@seamsterly/kb": "workspace:*",
     "@seamsterly/docgen": "workspace:*",
-    "@seamsterly/i18n": "workspace:*"
+    "@seamsterly/i18n": "workspace:*",
+    "@seamsterly/templates": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

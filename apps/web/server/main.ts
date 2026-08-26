@@ -31,6 +31,14 @@ import { FREE_PER_MONTH, Limits } from './limits.js';
 import { Notifications } from './notify.js';
 import { Referrals, refCode } from './referrals.js';
 import { tgDocument, tgNotify, tgTrace, telegramReady } from './telegram.js';
+import { findTemplate } from '@seamsterly/templates';
+import {
+  candidatesFor,
+  readJobTemplate,
+  renderJobTemplate,
+  replaceJobTemplate,
+  writeJobTemplate,
+} from './templates.js';
 
 const PORT = Number(process.env.PORT ?? 8131);
 const DATA = process.env.DATA_DIR ?? 'data';
@@ -164,6 +172,14 @@ async function pump(): Promise<void> {
       onStage: (stage, detail) => setStage(id, stage, detail),
     });
     writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
+    // Чем нарисован чертёж — рядом со спекой. Вопрос «почему тут другой
+    // карман» задают чаще всего именно про силуэт, и ответ должен лежать
+    // в джобе, а не выводиться заново при каждом показе.
+    writeJobTemplate(dir, {
+      id: result.template?.id ?? null,
+      candidates: result.template?.candidates ?? [],
+      chosen_by_user: false,
+    });
     const s = statuses.get(id)!;
     s.notes = result.notes;
     s.cost_ms = Date.now() - started;
@@ -530,6 +546,22 @@ const server = createServer(async (req, res) => {
         error: 'нужна инвайт-ссылка',
         action: 'откройте адрес, который вам прислали, целиком',
       });
+    }
+
+    // Превью силуэта библиотеки. Отдаётся по идентификатору из манифеста, а
+    // не по пути: путь из запроса открыл бы дорогу к любому файлу на диске.
+    if (req.method === 'GET' && url.pathname === '/app/api/template-preview') {
+      const wanted = url.searchParams.get('id') ?? '';
+      const entry = findTemplate(wanted);
+      if (!entry?.preview || !existsSync(entry.preview)) {
+        return json(res, 404, { error: 'превью нет' });
+      }
+      res.writeHead(200, {
+        'content-type': 'image/png',
+        // Превью неизменно: оно сделано из исходника датасета один раз.
+        'cache-control': 'public, max-age=86400, immutable',
+      });
+      return res.end(readFileSync(entry.preview));
     }
 
     if (req.method === 'GET' && url.pathname === '/app/api/me') {
@@ -967,6 +999,59 @@ const server = createServer(async (req, res) => {
         return json(res, 200, { token });
       }
 
+      // Силуэт чертежа: чем нарисован и чем заменить.
+      //
+      // Подбор автоматический, но последнее слово за человеком: он видит
+      // изделие, а мы — только признаки, снятые с фотографии.
+      if (req.method === 'GET' && rest === '/template') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const current = readJobTemplate(dir);
+        // Кандидатов пересчитываем, если их не сохранили при генерации:
+        // старые джобы собирались до появления библиотеки.
+        const candidates = current.candidates.length ? current.candidates : candidatesFor(spec);
+        return json(res, 200, { ...current, candidates });
+      }
+
+      if (req.method === 'POST' && rest === '/template') {
+        const body = await readBody(req, 4 * 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const { template_id } = JSON.parse(body.toString('utf8')) as { template_id?: string };
+        if (!template_id) return json(res, 400, { error: 'не указан силуэт' });
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+
+        const next = replaceJobTemplate(dir, spec, template_id);
+        if (!next) {
+          return json(res, 422, {
+            error: 'этот силуэт не подходит под табель мер — пропорции корпуса расходятся',
+          });
+        }
+        // PDF устарел: следующая выгрузка пересоберётся уже с новым силуэтом.
+        writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        logEvent(invite.name, 'template_replaced', { id, template_id });
+        return json(res, 200, next);
+      }
+
+      // Готовый вид чертежа из библиотеки. Строится геометрией, без браузера,
+      // поэтому его не жалко пересобирать на каждый показ.
+      if (req.method === 'GET' && rest === '/flat') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const current = readJobTemplate(dir);
+        if (!current.id) return json(res, 404, { error: 'чертёж построен параметрически' });
+        const rendered = renderJobTemplate(spec, current.id);
+        if (!rendered) return json(res, 404, { error: 'силуэт не подошёл под табель мер' });
+        const view = url.searchParams.get('view') === 'back' ? 'back' : 'front';
+        const svg = view === 'back' ? rendered.back?.svg : rendered.front.svg;
+        if (!svg) return json(res, 404, { error: 'вида нет у этого силуэта' });
+        res.writeHead(200, {
+          'content-type': 'image/svg+xml; charset=utf-8',
+          'cache-control': 'no-store',
+        });
+        return res.end(svg);
+      }
+
       if (req.method === 'GET' && rest === '/pdf') {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
@@ -976,13 +1061,20 @@ const server = createServer(async (req, res) => {
         );
         const variant = `${role ?? 'full'}-${locale ?? 'ru'}`;
         const pdfPath = join(dir, variant === 'full-ru' ? 'pack.pdf' : `pack-${variant}.pdf`);
-        // Свежесть — по времени спеки: вариантов несколько, а правка замера
-        // обязана устаревить их все разом.
+        // Свежесть — по времени спеки И силуэта: вариантов несколько, а
+        // правка замера или замена силуэта обязаны устаревить их все разом.
         const { statSync } = await import('node:fs');
-        const specM = statSync(join(dir, 'spec.json')).mtimeMs;
-        if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < specM) {
+        const mtime = (name: string): number =>
+          existsSync(join(dir, name)) ? statSync(join(dir, name)).mtimeMs : 0;
+        const sourceM = Math.max(mtime('spec.json'), mtime('template.json'));
+        if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < sourceM) {
           const { renderPdf, roleProfile } = await import('@seamsterly/docgen');
           const profile = role ? roleProfile(role) : null;
+          // Силуэт библиотеки пересобирается здесь же: это чистая геометрия,
+          // браузер для неё не нужен, а без него лист чертежа вернулся бы к
+          // параметрическому виду — и выгрузка разошлась бы с экраном.
+          const chosen = readJobTemplate(dir);
+          const library = chosen.id ? renderJobTemplate(spec, chosen.id) : null;
           writeFileSync(
             pdfPath,
             await renderPdf(spec, {
@@ -990,6 +1082,17 @@ const server = createServer(async (req, res) => {
                 ? { sections: profile.sections, pro: profile.pro, roleLabel: profile.label_ru }
                 : { pro: true }),
               ...(locale ? { locale } : {}),
+              ...(library
+                ? {
+                    visuals: {
+                      libraryFlats: {
+                        front: library.front,
+                        ...(library.back ? { back: library.back } : {}),
+                        templateId: library.templateId,
+                      },
+                    },
+                  }
+                : {}),
             }),
           );
         }

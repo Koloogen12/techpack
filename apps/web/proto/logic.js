@@ -591,6 +591,9 @@ class Component extends DCLogic {
     genError: null,
     shareTok: null,
     modal: null,
+    // Силуэт чертежа: что подобрано и чем можно заменить. Тянется с сервера
+    // один раз на пак — подбор считается при генерации, а не на каждый показ.
+    silh: null,
     notifs: [],
     ref: null,
     quoteComment: '',
@@ -823,6 +826,42 @@ class Component extends DCLogic {
         .catch(() => {});
     tick();
     this._pl = setInterval(tick, 2500);
+  }
+
+  /**
+   * Чем нарисован чертёж этого пака.
+   *
+   * Тихо: если библиотеки нет или пак собран нашим построением, полоса
+   * замены просто не появится. Отсутствие силуэта — не ошибка.
+   */
+  loadSilhouette(id) {
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/template')
+      .then((t) => {
+        if (this.state.curId === id) this.setState({ silh: t });
+      })
+      .catch(() => {});
+  }
+
+  /**
+   * Замена силуэта по выбору человека.
+   *
+   * Подбор автоматический, но последнее слово за тем, кто держал изделие
+   * в руках. После замены чертёж и PDF пересобираются из нового силуэта.
+   */
+  pickSilhouette(templateId) {
+    const id = this.state.curId;
+    apiCall('/jobs/' + id + '/template', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ template_id: templateId }),
+    })
+      .then((t) => {
+        delete this._thumbs[id];
+        this.setState({ silh: t, modal: null, flatNonce: Date.now() });
+        this.showToast('Силуэт заменён — чертёж и PDF пересобраны');
+      })
+      .catch((e) => this.showToast('Не подошло: ' + e.message));
   }
 
   sendEdit(code, valueCm) {
@@ -1247,8 +1286,15 @@ class Component extends DCLogic {
 
   openDoc(section) {
     clearTimeout(this._dl);
-    this.setState({ screen: 'doc', section: section || 'cover', docLoading: true, toolMode: null });
+    this.setState({
+      screen: 'doc',
+      section: section || 'cover',
+      docLoading: true,
+      toolMode: null,
+      silh: null,
+    });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
+    this.loadSilhouette(this.state.curId);
   }
 
   mkTip(text) {
@@ -1888,8 +1934,28 @@ class Component extends DCLogic {
       .filter(([id]) => id !== 'callouts' && s.layers[id])
       .map(([id]) => L2E[id])
       .concat(['artwork']);
+    // Силуэт из библиотеки приходит с сервера готовым: он не строится по
+    // замерам, а масштабируется, и повторять эту геометрию в браузере
+    // значило бы завести второй источник правды о том же чертеже.
+    const silhId = s.silh && s.silh.id;
+    const libUrl =
+      silhId && s.view !== 'all' && s.view !== 'side'
+        ? 'url("/app/api/jobs/' +
+          s.curId +
+          '/flat?view=' +
+          s.view +
+          '&t=' +
+          encodeURIComponent(TOKEN || '') +
+          '&n=' +
+          (s.flatNonce || 0) +
+          '")'
+        : null;
     const liveShots = liveOn
-      ? (s.view === 'all' ? [this.flatAllUrl(engLayers)] : [this.flatUrl(s.view, engLayers)])
+      ? (libUrl
+          ? [libUrl]
+          : s.view === 'all'
+            ? [this.flatAllUrl(engLayers)]
+            : [this.flatUrl(s.view, engLayers)])
           .filter(Boolean)
           .map((u) => ({
             bg:
@@ -4193,11 +4259,19 @@ class Component extends DCLogic {
       onClaimName: (e) => this.set('claimName', e.target.value),
       onClaimContact: (e) => this.set('claimContact', e.target.value),
       onClaimNote: (e) => this.set('claimNote', e.target.value),
-      modalCancelOn: !!(s.modal && (s.modal.kind === 'referral' || s.modal.kind === 'claim')),
+      modalCancelOn: !!(
+        s.modal &&
+        (s.modal.kind === 'referral' || s.modal.kind === 'claim' || s.modal.kind === 'silhouette')
+      ),
       modalCta: s.modal
-        ? { claim: s.claimSent ? 'Закрыть' : 'Отправить заявку', referral: 'Готово' }[
-            s.modal.kind
-          ] || 'Понятно'
+        ? {
+            claim: s.claimSent ? 'Закрыть' : 'Отправить заявку',
+            referral: 'Готово',
+            // Замена происходит по клику на сам силуэт, а не по кнопке:
+            // кнопка «применить» потребовала бы второго решения там, где
+            // человек уже выбрал.
+            silhouette: 'Оставить как есть',
+          }[s.modal.kind] || 'Понятно'
         : '',
       modalCtaStyle:
         'flex:1;height:34px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;justify-content:center;font:600 11px/16px Sora,sans-serif;cursor:pointer',
@@ -4231,6 +4305,49 @@ class Component extends DCLogic {
         }
         this.set('modal', null);
       },
+      // Полоса замены силуэта под холстом чертежа. Появляется только когда
+      // чертёж действительно взят из библиотеки: у параметрического
+      // построения заменять нечего.
+      // Полоса показывается и когда чертёж построен нами: у пака, которому
+      // библиотека ничего не подобрала, выбор всё равно должен быть — иначе
+      // человек не узнает, что альтернатива вообще есть.
+      silhOn:
+        s.screen === 'doc' &&
+        s.section === 'flats' &&
+        !!(s.silh && (s.silh.id || (s.silh.candidates || []).length)),
+      silhNote: !s.silh
+        ? ''
+        : !s.silh.id
+          ? 'Чертёж построен по табелю мер · можно заменить силуэтом из библиотеки'
+          : (s.silh.chosen_by_user ? 'Силуэт выбран вами' : 'Силуэт подобран автоматически') +
+            ' · размеры берутся из табеля мер, а не с рисунка',
+      silhOpen: () =>
+        this.setState({
+          modal: {
+            kind: 'silhouette',
+            title: 'Какой силуэт ближе?',
+            text: 'Подбор автоматический — вы видели изделие, а мы только признаки с фотографии. Замена перерисует чертёж и пересоберёт PDF.',
+          },
+        }),
+      modalSilhOn: !!s.modal && s.modal.kind === 'silhouette',
+      silhCards: ((s.silh && s.silh.candidates) || []).map((c) => {
+        const active = s.silh && c.id === s.silh.id;
+        return {
+          title: active ? 'Сейчас на чертеже' : 'Подходит на ' + Math.round(c.fit_fraction * 100) + '%',
+          sub: (c.reasons || []).slice(0, 2).join(', '),
+          style:
+            'flex:1;min-width:0;border-radius:10px;padding:8px;cursor:pointer;border:1px solid ' +
+            (active ? '#0E0E0E' : '#E4E1DC') +
+            (active ? ';background:rgba(14,14,14,.04)' : ''),
+          imgStyle:
+            'display:block;height:86px;border-radius:7px;background:#fff url("/app/api/template-preview?id=' +
+            encodeURIComponent(c.id) +
+            '&t=' +
+            encodeURIComponent(TOKEN || '') +
+            '") 50% 50%/contain no-repeat',
+          go: () => (active ? this.set('modal', null) : this.pickSilhouette(c.id)),
+        };
+      }),
       closeModal: () => this.set('modal', null),
       // Клик внутри карточки не должен доходить до затемнения: иначе
       // «Отправить» открывал бы новое состояние и тут же его закрывал.

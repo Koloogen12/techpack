@@ -301,6 +301,17 @@ sub(
 <span style="flex:1;border-radius:10px;border:1px solid rgba(41,117,82,.22);background:rgba(228,247,239,.5);padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace;color:#2F7C5A">{{ refCredits }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#2F7C5A">генераций</span></span>
 </div>
 </sc-if>
+<sc-if value="{{ modalSilhOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:9px;margin-top:13px">
+<sc-for list="{{ silhCards }}" as="c" hint-placeholder-count="3">
+<span onClick="{{ c.go }}" style="{{ c.style }}">
+<span style="{{ c.imgStyle }}"></span>
+<span style="display:block;font:600 10px/14px Sora,sans-serif;margin-top:7px">{{ c.title }}</span>
+<span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67;margin-top:1px">{{ c.sub }}</span>
+</span>
+</sc-for>
+</div>
+</sc-if>
 <sc-if value="{{ modalFormOn }}" hint-placeholder-val="{{ false }}">
 <div style="display:flex;flex-direction:column;gap:8px;margin-top:13px">
 <input value="{{ claimName }}" onChange="{{ onClaimName }}" placeholder="Как вас зовут" style="width:100%;padding:10px 11px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11.5px/16px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
@@ -319,6 +330,24 @@ sub(
 </sc-if>
 
 <sc-if value="{{ tipOn }}" hint-placeholder-val="{{ false }}">`,
+  1,
+);
+
+// Замена силуэта на экране чертежа. В прототипе её не было: там чертёж
+// всегда строился нашим движком, а библиотеки покупных силуэтов ещё не
+// существовало. Полоса собрана из той же конструкции, что и соседняя
+// подсказка под холстом: та же рамка, тот же кегль, кнопка 27px.
+sub(
+  'чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.</span>\n</div>',
+  `чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.</span>
+</div>
+<sc-if value="{{ silhOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-top:1px solid #E4E1DC;padding:10px 13px;display:flex;align-items:center;gap:9px">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B6B67" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"></path><path d="m3 14 9 5 9-5"></path></svg>
+<span style="flex:1;min-width:0;font:400 10.5px/16px Sora,sans-serif;color:#6B6B67">{{ silhNote }}</span>
+<span onClick="{{ silhOpen }}" style="flex:none;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:#FAF9F7">Заменить</span>
+</div>
+</sc-if>`,
   1,
 );
 

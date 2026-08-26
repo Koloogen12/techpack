@@ -11,6 +11,7 @@ import { createLogger, isSeamsterlyError } from '@seamsterly/core';
 import { EXPORT_ROLES, type ExportRole } from '@seamsterly/docgen';
 import { LOCALES, type Locale } from '@seamsterly/i18n';
 import { generate, type DrawingSource } from './generate.js';
+import type { CandidateView } from '@seamsterly/templates';
 
 interface Cli {
   answers: string;
@@ -230,9 +231,7 @@ main().catch((e: unknown) => {
  * оставляет параметрический чертёж — тот, что строится по табелю и несёт
  * выноски. Отказ здесь не ошибка, а осознанный выбор точности.
  */
-async function askTemplate(
-  candidates: readonly { id: string; reasons: readonly string[]; score: number; preview: string | null }[],
-): Promise<string | null> {
+async function askTemplate(candidates: readonly CandidateView[]): Promise<string | null> {
   console.log('\nСилуэты из библиотеки, подходящие под изделие:');
   candidates.forEach((c, i) => {
     console.log(`  ${i + 1}. ${c.id}  (${c.score})`);

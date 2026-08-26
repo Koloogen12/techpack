@@ -39,6 +39,40 @@ export interface TemplateChoice {
   confident: boolean;
 }
 
+/** Кандидат в силуэт в том виде, в каком его показывают человеку. */
+export interface CandidateView {
+  id: string;
+  /** Почему шаблон попал в список: читаемые причины из скоринга. */
+  reasons: string[];
+  score: number;
+  /** Доля совпавших признаков, от нуля до единицы. */
+  fit_fraction: number;
+  /** Путь к превью — по нему кабинет показывает картинку. */
+  preview: string | null;
+}
+
+/**
+ * Кандидаты, которые действительно можно поставить на чертёж.
+ *
+ * Предложить силуэт и отказать при клике — хуже, чем не предлагать: человек
+ * решает, что сломано, и больше не жмёт. Поэтому список фильтруется теми же
+ * правилами, которыми потом происходит замена: отрисовкой под этот табель.
+ */
+export function candidateViews(
+  choice: TemplateChoice,
+  options?: RenderChoiceOptions,
+): CandidateView[] {
+  return choice.candidates
+    .filter((c) => !options || renderChosenTemplate(c.entry.id, options) !== null)
+    .map((c) => ({
+      id: c.entry.id,
+      reasons: c.reasons,
+      score: c.score,
+      fit_fraction: c.fit_fraction,
+      preview: c.entry.preview,
+    }));
+}
+
 /** Подбор без отрисовки: нужен мастеру, чтобы показать варианты. */
 export function proposeTemplates(spec: StyleSpec, options: ChooseOptions = {}): TemplateChoice {
   const query = queryFromSpec(spec, {
