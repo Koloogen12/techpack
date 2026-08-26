@@ -5,3 +5,4 @@ export * from './mirror.js';
 export * from './colors.js';
 export * from './colorbook.js';
 export * from './separate.js';
+export * from './swatch.js';

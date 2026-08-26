@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
 import { buildStyleSpec, type StyleSpecInput } from '@specform/assembly';
-import { checkSeam, extractColors, separateColors } from '@specform/pattern';
+import { checkSeam, extractColors, readSwatch, separateColors } from '@specform/pattern';
 
 /**
  * ПРИМЕРЫ-ЛОВУШКИ.
@@ -206,4 +206,46 @@ describe('ловушка: длинный рукав — не стиль, а ан
     expect(v('T06') + 2 * v('T10')).toBeLessThanOrEqual(170 * 1.1 + 0.05);
     expect(notes.some((n) => n.includes('длиннее руки'))).toBe(true);
   });
+});
+
+describe('ловушка: фактура переплетения — не складка', () => {
+  /**
+   * ИНТУИЦИЯ: на снимке ровного выкраса пиксели расходятся на 6 ΔE —
+   * значит образец снят неровно, и его надо забраковать.
+   * ИЗМЕРЕНИЕ: образец ровный.
+   * ПОЧЕМУ ПРАВО ИЗМЕРЕНИЕ: 6 ΔE даёт САМО ПОЛОТНО. У трикотажа блик
+   * на петле и тень между петлями — это фактура, а не дефект съёмки.
+   * Различие между фактурой и складкой не в амплитуде, а в МАСШТАБЕ:
+   * фактура меняется от петли к петле, складка — на четверть кадра.
+   * Поэтому кадр сначала усредняется в крупные области: внутри области
+   * фактура исчезает сама, а складка остаётся, потому что больше области.
+   *
+   * Цена ошибки: первая версия метрики брала краски тем же цветоделением,
+   * что и рисунок, и браковала ровный выкрас. Соблазн был поднять порог —
+   * то есть починить правильную метрику под неверный пример. Порог остался
+   * прежним, изменился масштаб измерения.
+   */
+  it('ровный выкрас с фактурой принимается', async () => {
+    const lines: string[] = [];
+    for (let y = 0; y < 400; y += 4) {
+      lines.push(`<rect y="${y}" width="400" height="2" fill="#3A4460"/>`);
+    }
+    const r = await readSwatch(
+      svg(`<rect width="400" height="400" fill="#222C46"/>${lines.join('')}`, 400),
+      browser,
+    );
+    expect(r.uniform).toBe(true);
+  }, 60_000);
+
+  it('складка через кадр — настоящий дефект съёмки', async () => {
+    const r = await readSwatch(
+      svg(
+        `<rect width="400" height="400" fill="#2A3550"/>` +
+          `<rect x="230" width="170" height="400" fill="#141B2C"/>`,
+        400,
+      ),
+      browser,
+    );
+    expect(r.uniform).toBe(false);
+  }, 60_000);
 });

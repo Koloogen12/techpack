@@ -90,6 +90,38 @@ const cases: { file: string; input: StyleSpecInput }[] = [
       fabric_kind: 'knit',
       size_range: [44, 46, 48, 50],
       quantity: 100,
+      // Два колорвея с разным происхождением цвета — так выглядит вся шкала
+      // достоверности по цвету в одном документе: один снят с образца полотна
+      // и несёт координаты Lab, второй вписан брендом вместе с его же
+      // фирменным номером.
+      colorways: [
+        {
+          id: 'navy',
+          name_ru: 'Тёмно-синий',
+          hex_approx: '#2A3550',
+          swatch: {
+            file_name: 'swatch-navy.jpg',
+            key: 'c'.repeat(64),
+            hex: '#2A3550',
+            lab: { l: 22.8, a: 5.1, b: -16.4 },
+            spread_delta_e: 2.1,
+            uniform: true,
+            verdict_ru:
+              'Снимок однороден: цвет занимает 91% кадра, расхождение остальных 2.1 ΔE — ' +
+              'по нашему же правилу цветоделения это один цвет. Взят #2A3550.',
+          },
+          book_code: null,
+          book_source: null,
+        },
+        {
+          id: 'sand',
+          name_ru: 'Песочный',
+          hex_approx: '#D8C7A6',
+          swatch: null,
+          book_code: '7501 C',
+          book_source: 'brand',
+        },
+      ],
       patterns: [
         {
           tile: {

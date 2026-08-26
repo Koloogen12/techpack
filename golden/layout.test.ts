@@ -360,6 +360,33 @@ describe('страницы с картинками тоже вмещаются',
     const hoodie = SCENARIOS.find((s) => s.input.category === 'hoodie')!;
     const { spec } = buildStyleSpec({
       ...hoodie.input,
+      colorways: [
+        {
+          id: 'navy',
+          name_ru: 'Тёмно-синий',
+          swatch: {
+            file_name: 'navy.png',
+            key: 'c'.repeat(64),
+            hex: '#2A3550',
+            lab: { l: 22.4, a: 4, b: -17.8 },
+            spread_delta_e: 13.7,
+            // Неровный образец берётся намеренно: у карточки появляется
+            // длинное предупреждение, и лист обязан его вместить.
+            uniform: false,
+            verdict_ru:
+              'Кадр снят неровно: 60 областей из 144 расходятся с основным цветом, ' +
+              'наибольшее расхождение 13.7 ΔE. На таком масштабе это складка, тень ' +
+              'или край второго предмета, а не фактура полотна. Взят #2A3550 ' +
+              'по медианной области, но снимок лучше переснять: разложите образец ' +
+              'ровно и во весь кадр, при равномерном рассеянном свете, без вспышки ' +
+              'и без падающей тени.',
+          },
+          book_code: '19-4023 TCX',
+          book_source: 'brand',
+        },
+        { id: 'sand', name_ru: 'Песочный', hex_approx: '#D8C7A6' },
+        { id: 'olive', name_ru: 'Оливковый', hex_approx: '#6B6B3A' },
+      ],
       patterns: [
         {
           tile: {
@@ -382,5 +409,6 @@ describe('страницы с картинками тоже вмещаются',
       report.overflows.map((o) => `лист ${o.index + 1} (${o.section}): +${o.overflowPx}px`),
     ).toEqual([]);
     expect(report.sections).toContain('artwork');
+    expect(report.sections).toContain('colorways');
   }, 60_000);
 });

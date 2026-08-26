@@ -1,5 +1,5 @@
 {
-  "spec_version": "0.6.0",
+  "spec_version": "0.7.0",
   "style": {
     "id": "example-hoodie-pattern",
     "name": "Худи с раппортом",
@@ -1531,8 +1531,32 @@
   "bom": {
     "colorways": [
       {
-        "id": "main",
-        "name_ru": "Основной"
+        "id": "navy",
+        "name_ru": "Тёмно-синий",
+        "hex_approx": "#2A3550",
+        "swatch": {
+          "file_name": "swatch-navy.jpg",
+          "key": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "hex": "#2A3550",
+          "lab": {
+            "l": 22.8,
+            "a": 5.1,
+            "b": -16.4
+          },
+          "spread_delta_e": 2.1,
+          "uniform": true,
+          "verdict_ru": "Снимок однороден: цвет занимает 91% кадра, расхождение остальных 2.1 ΔE — по нашему же правилу цветоделения это один цвет. Взят #2A3550."
+        },
+        "book_code": null,
+        "book_source": null
+      },
+      {
+        "id": "sand",
+        "name_ru": "Песочный",
+        "hex_approx": "#D8C7A6",
+        "swatch": null,
+        "book_code": "7501 C",
+        "book_source": "brand"
       }
     ],
     "lines": [
@@ -1887,30 +1911,58 @@
     ],
     "sku_matrix": [
       {
-        "sku": "HOO-PAT-003-MAIN-44",
-        "colorway_id": "main",
-        "colorway_ru": "Основной",
+        "sku": "HOO-PAT-003-NAVY-44",
+        "colorway_id": "navy",
+        "colorway_ru": "Тёмно-синий",
         "size_ru": 44,
         "gtin": null
       },
       {
-        "sku": "HOO-PAT-003-MAIN-46",
-        "colorway_id": "main",
-        "colorway_ru": "Основной",
+        "sku": "HOO-PAT-003-NAVY-46",
+        "colorway_id": "navy",
+        "colorway_ru": "Тёмно-синий",
         "size_ru": 46,
         "gtin": null
       },
       {
-        "sku": "HOO-PAT-003-MAIN-48",
-        "colorway_id": "main",
-        "colorway_ru": "Основной",
+        "sku": "HOO-PAT-003-NAVY-48",
+        "colorway_id": "navy",
+        "colorway_ru": "Тёмно-синий",
         "size_ru": 48,
         "gtin": null
       },
       {
-        "sku": "HOO-PAT-003-MAIN-50",
-        "colorway_id": "main",
-        "colorway_ru": "Основной",
+        "sku": "HOO-PAT-003-NAVY-50",
+        "colorway_id": "navy",
+        "colorway_ru": "Тёмно-синий",
+        "size_ru": 50,
+        "gtin": null
+      },
+      {
+        "sku": "HOO-PAT-003-SAND-44",
+        "colorway_id": "sand",
+        "colorway_ru": "Песочный",
+        "size_ru": 44,
+        "gtin": null
+      },
+      {
+        "sku": "HOO-PAT-003-SAND-46",
+        "colorway_id": "sand",
+        "colorway_ru": "Песочный",
+        "size_ru": 46,
+        "gtin": null
+      },
+      {
+        "sku": "HOO-PAT-003-SAND-48",
+        "colorway_id": "sand",
+        "colorway_ru": "Песочный",
+        "size_ru": 48,
+        "gtin": null
+      },
+      {
+        "sku": "HOO-PAT-003-SAND-50",
+        "colorway_id": "sand",
+        "colorway_ru": "Песочный",
         "size_ru": 50,
         "gtin": null
       }

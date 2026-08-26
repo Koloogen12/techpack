@@ -300,6 +300,44 @@ ul.dash li::before { content: '— '; color: var(--secondary); }
 .preview.single .frame img { height: 100%; width: auto; max-width: 100%; }
 
 /*
+ * --- Колорвеи: карточка на цвет. ---
+ *
+ * Образец полотна показан КАК ЕСТЬ, без обработки: это снимок того, что
+ * бренд держал в руках, и подкрашивать его значило бы подменить
+ * единственный вещественный вход по цвету.
+ */
+.cw-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; flex: 1; min-height: 0; }
+.cw { border: 0.5pt solid var(--hairline); padding: 4mm; display: flex; flex-direction: column; min-height: 0; }
+.cw-top { display: flex; gap: 3mm; align-items: center; margin-bottom: 3mm; }
+.cw-swatch {
+  width: 14mm; height: 14mm;
+  border: 0.5pt solid var(--hairline);
+  overflow: hidden;
+  flex: none;
+}
+.cw-swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Цвет не задан — клетка, а не серый квадрат: серый читался бы как цвет. */
+.cw-empty {
+  background-image: linear-gradient(45deg, var(--hairline) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--hairline) 25%, transparent 25%);
+  background-size: 3mm 3mm;
+}
+.cw .frame, .cw-flat {
+  flex: 1;
+  min-height: 0;
+  border: 0.5pt solid var(--hairline);
+  background: var(--canvas);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  padding: 2mm;
+}
+.cw .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.cw-flat svg { width: 100%; height: auto; max-height: 100%; }
+.cw table.plain { margin-top: 2.5mm; font-size: 7.6pt; }
+.cw table.plain td { padding: 1mm 0; border-bottom: none; }
+.cw table.plain td.k { width: 26mm; padding-top: 1mm; }
+
+/*
  * --- Раскладка раппорта на чертеже. ---
  *
  * Те же правила, что у холста чертежа: колонки задаются пропорцией flex,

@@ -464,6 +464,10 @@ export function buildSidePaths(
       ribs,
       hood,
       parts: [sleeve],
+      // Сбоку контур капюшона идёт от горловины спинки до горловины переда,
+      // и его неявное замыкание — это и есть линия втачивания. Дорисовывать
+      // нечего.
+      fill: [outline, ...(hood.length ? [hood[0]!] : []), sleeve],
       pocket,
       center: '',
       hidden,

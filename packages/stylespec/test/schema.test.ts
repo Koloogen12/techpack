@@ -107,6 +107,35 @@ describe('миграции', () => {
     }
   });
 
+  it('0.6.0 → 0.7.0: у колорвея появляются образец и номер цвета', () => {
+    // Реальный снапшот, а не выдуманный: берём текущий пример и снимаем
+    // с него всё, чего в 0.6.0 быть не могло.
+    const current = load('hoodie-allover-pattern.json') as {
+      bom: { colorways: Record<string, unknown>[] };
+    };
+    const old = {
+      ...current,
+      spec_version: '0.6.0',
+      bom: {
+        ...current.bom,
+        colorways: current.bom.colorways.map((c) => ({
+          id: c.id,
+          name_ru: c.name_ru,
+          ...(c.hex_approx ? { hex_approx: c.hex_approx } : {}),
+        })),
+      },
+    };
+
+    const { spec } = migrateToCurrent(old);
+    expect(spec.spec_version).toBe(SPEC_VERSION);
+    // Восстановить их неоткуда: образец — файл, которого в старом паке нет,
+    // а номер знает только бренд. Пусто честнее выдуманного.
+    for (const c of spec.bom!.colorways) {
+      expect(c.swatch).toBeNull();
+      expect(c.book_code).toBeNull();
+    }
+  });
+
   it('снапшот без версии не открывается', () => {
     expect(() => migrateToCurrent({ style: {} })).toThrow();
   });

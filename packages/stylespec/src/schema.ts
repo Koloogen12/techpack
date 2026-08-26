@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.6.0';
+export const SPEC_VERSION = '0.7.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -163,12 +163,53 @@ export const ConstructionSchema = z
     }
   });
 
+/**
+ * Образец полотна, с которого снят цвет колорвея.
+ *
+ * Самый точный вход по цвету, который у нас бывает: написанный руками hex
+ * говорит о ЗАМЫСЛЕ, снимок образца — о том, что бренд держал в руках.
+ *
+ * И при этом НЕ ЦВЕТОПРОБА. Снимок под неизвестным светом не позволяет
+ * отличить цвет ткани от цвета лампы — по одному кадру это неразрешимо.
+ * Поэтому здесь лежит референс, точный цвет фиксируется номером и Lab
+ * и подтверждается лабдипом.
+ */
+export const ColorwaySwatchSchema = z.object({
+  file_name: z.string().min(1),
+  /** Отпечаток файла. Входит в ключ кэша визуализации колорвея. */
+  key: z.string().regex(/^[0-9a-f]{64}$/),
+  hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  /**
+   * Координаты Lab — язык колориста.
+   *
+   * Именно они уходят в спецификацию: по Lab красильщик подбирает рецепт,
+   * а по hex не подбирает никто. Hex здесь для человека и экрана.
+   */
+  lab: z.object({ l: z.number(), a: z.number(), b: z.number() }),
+  /** Разброс значимых цветов кадра, ΔE. Складка и тень видны отсюда. */
+  spread_delta_e: z.number().nonnegative(),
+  uniform: z.boolean(),
+  verdict_ru: z.string().min(1),
+});
+
 /** Колорвей изделия. Отдельная сущность: спецификация и SKU строятся на каждый цвет. */
 export const ColorwaySchema = z.object({
   id: z.string().min(1),
   name_ru: z.string().min(1),
   /** Ориентировочный цвет с фото. Точный оттенок сверяется по выкрасу. */
   hex_approx: z.string().optional(),
+  /** Образец полотна, если бренд его прислал. */
+  swatch: ColorwaySwatchSchema.nullable().optional(),
+  /**
+   * Фирменный номер цвета, вписанный БРЕНДОМ.
+   *
+   * Каталоги цветов — лицензированные данные, и таблицу «номер → цвет»
+   * мы не поставляем. Но номер, который бренд знает и вписал сам, — его
+   * собственные данные, и показывать их в его же документе мы вправе.
+   * Отвечает за такой номер бренд; мы за него не отвечаем и не проверяем.
+   */
+  book_code: z.string().min(1).nullable().optional(),
+  book_source: z.literal('brand').nullable().optional(),
 });
 
 export const BomLineSchema = z.object({
@@ -549,4 +590,5 @@ export type TechStep = z.infer<typeof TechStepSchema>;
 export type Bom = z.infer<typeof BomSchema>;
 export type BomLine = z.infer<typeof BomLineSchema>;
 export type Colorway = z.infer<typeof ColorwaySchema>;
+export type ColorwaySwatch = z.infer<typeof ColorwaySwatchSchema>;
 export type Labels = z.infer<typeof LabelsSchema>;

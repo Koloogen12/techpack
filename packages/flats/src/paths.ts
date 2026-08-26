@@ -25,6 +25,10 @@ const KAPPA = 0.5523;
 const neckArc = (a: number, b: number): string =>
   `${M({ x: 0, y: b })} ${C({ x: a * KAPPA, y: b }, { x: a, y: b * KAPPA }, { x: a, y: 0 })}`;
 
+/** Тот же эллипс без начального M — чтобы продолжить им уже открытый путь. */
+const neckArcTail = (a: number, b: number): string =>
+  C({ x: a * KAPPA, y: b }, { x: a, y: b * KAPPA }, { x: a, y: 0 });
+
 /** Точка на том же эллипсе при параметре t от центра (0) к плечу (1). */
 const onNeck = (t: number, a: number, b: number): Point => ({
   x: a * Math.sin((t * Math.PI) / 2),
@@ -52,6 +56,16 @@ export interface FlatPaths {
   parts: string[];
   /** Карман-кенгуру. Пусто, если кармана нет. */
   pocket: string[];
+  /**
+   * Замкнутые области под заливку — цветом колорвея или раппортом.
+   *
+   * Отдельно от контуров, потому что контур и область — не одно и то же.
+   * Контур капюшона на переде идёт от горловины до макушки и обрывается:
+   * как ЛИНИЯ он верен, а как ОБЛАСТЬ замыкается по хорде и оставляет
+   * белый клин над горловиной. Так и было, пока заливка шла по контурам:
+   * у худи в раппорте зияла незакрашенная дыра.
+   */
+  fill: string[];
   /** Линия центра переда или спинки — тонкая, вспомогательная. */
   center: string;
   /**
@@ -274,8 +288,26 @@ export function buildPaths(
 
   const center = `${M(g.neckCenter)} L 0 ${f(g.hem.y)}`;
 
+  // Область капюшона: контур, доведённый по центру до горловины и замкнутый
+  // ПО ЛИНИИ ГОРЛОВИНЫ, а не по хорде. Хорда оставляла у выреза белый клин:
+  // горловина выгнута наружу, и прямая её не догоняет.
+  const hoodFill = hood.length
+    ? [`${hood[0]!} L 0 ${f(neckDrop)} ${neckArcTail(g.hps.x, neckDrop)} Z`]
+    : [];
+
   return {
     geometry: g,
-    paths: { outline, seams, stitches, ribs, hood, parts: [], pocket, center, hidden: [] },
+    paths: {
+      outline,
+      seams,
+      stitches,
+      ribs,
+      hood,
+      parts: [],
+      fill: [outline, ...hoodFill],
+      pocket,
+      center,
+      hidden: [],
+    },
   };
 }

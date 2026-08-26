@@ -39,6 +39,7 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
       'flats',
       'measurements',
       'bom',
+      'colorways',
       'construction',
       'artwork',
       'pattern_preview',
@@ -85,7 +86,9 @@ export const ROLE_PROFILES: Record<ExportRole, RoleProfile> = {
   supply: {
     label_ru: 'снабжению',
     purpose_ru: 'материалы, расход и маркировка для закупки',
-    sections: ['cover', 'preview', 'bom', 'labels'],
+    // Снабжение закупает полотно, а значит заказывает крашение: Lab и номер
+    // цвета нужны именно ему, и лист колорвеев для него не картинка.
+    sections: ['cover', 'preview', 'bom', 'colorways', 'labels'],
     pro: false,
   },
 };

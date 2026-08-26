@@ -40,6 +40,7 @@ export const DOC_SECTIONS = [
   'flats',
   'measurements',
   'bom',
+  'colorways',
   'construction',
   'artwork',
   'pattern_preview',
@@ -82,6 +83,20 @@ export interface DocVisuals {
    * кэш по отпечатку, вне цеховых выгрузок.
    */
   patternRender?: DocImage;
+  /**
+   * Образцы полотна, присланные брендом, — по идентификатору колорвея.
+   *
+   * Показываются как есть, без обработки: это снимок того, что бренд держал
+   * в руках, и подкрашивать его значило бы подменить единственный
+   * вещественный вход по цвету.
+   */
+  swatches?: Readonly<Record<string, DocImage>>;
+  /**
+   * Фотореалистичное изделие в цвете колорвея — по идентификатору.
+   * Те же правила, что у страницы внешнего вида: не для замеров, кэш,
+   * вне цеховых выгрузок.
+   */
+  colorwayRenders?: Readonly<Record<string, DocImage>>;
 }
 
 export interface HtmlOptions {
@@ -186,6 +201,10 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   }
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
+  if (include('colorways')) {
+    const bodies = colorwayPages(spec, options.visuals);
+    if (bodies.length) add('colorways', 'Колорвеи', bodies);
+  }
   add('construction', 'Конструкция', constructionPages(spec, pro));
   if (spec.artwork) add('artwork', 'Нанесение', artworkPages(spec, spec.artwork, options.visuals));
   // Фотореалистичное превью раппорта — ОТДЕЛЬНЫЙ раздел, а не третий лист
@@ -439,6 +458,12 @@ function countBySource(spec: StyleSpec): Record<Confidence, number> {
  */
 function safeDataUri(uri: string): string | null {
   return /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i.test(uri) ? uri : null;
+}
+
+/** Картинка из data-URI. Небезопасный источник не рисуется вовсе. */
+function imgTag(image: DocImage): string {
+  const src = safeDataUri(image.dataUri);
+  return src ? `<img src="${src}" alt="">` : '';
 }
 
 function frame(image: DocImage, caption: string): string {
@@ -725,6 +750,107 @@ function patternPreviewBody(spec: StyleSpec, visuals?: DocVisuals): string | nul
     `нанесения</b>: там шаг раппорта отложен в сантиметрах, и по ней сверяют масштаб ` +
     `мотива. Здесь масштаб приблизительный, а раскладка на готовом изделии зависит ` +
     `от раскроя.</div>`
+  );
+}
+
+// ---------------------------------------------------------------- колорвеи
+
+/**
+ * Страница колорвеев.
+ *
+ * Отвечает на вопрос, которого в документе не было: как вещь выглядит
+ * В ЭТОМ цвете. До сих пор цвет жил одной строчкой в спецификации, и бренд
+ * узнавал ответ на образце — то есть через две недели и за деньги.
+ *
+ * Главное правило страницы напечатано на ней самой: это ВИЗУАЛЬНЫЙ РЕФЕРЕНС,
+ * а не цветопроба. Экран, печать документа и свет при съёмке образца сдвигают
+ * оттенок, и по одному кадру отличить цвет ткани от цвета лампы нельзя —
+ * это свойство оптики, а не качество разбора. Точный цвет задан координатами
+ * Lab и подтверждается лабдипом.
+ */
+function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
+  const colorways = spec.bom?.colorways ?? [];
+  // Единственный безымянный цвет по умолчанию — это не колорвей, а его
+  // отсутствие. Лист ради него был бы листом ни о чём.
+  if (colorways.length === 0) return [];
+  if (colorways.length === 1 && !colorways[0]!.swatch && !colorways[0]!.hex_approx) return [];
+
+  const flatOf = (hex: string): string =>
+    renderFlatsFromSpec(spec, {
+      layers: ['color', 'outline', 'seams'],
+      colorFill: hex,
+    }).front.svg;
+
+  const cards = colorways.map((c) => {
+    const sw = c.swatch;
+    const hex = sw?.hex ?? c.hex_approx ?? null;
+    const photo = visuals?.swatches?.[c.id];
+    const render = visuals?.colorwayRenders?.[c.id];
+
+    const origin = sw
+      ? `снят с образца <b>${esc(sw.file_name)}</b>`
+      : c.hex_approx
+        ? 'указан вами'
+        : 'не задан';
+
+    const rows: string[] = [`<tr><td class="k">Происхождение</td><td>${origin}</td></tr>`];
+    if (hex) {
+      rows.push(
+        `<tr><td class="k">Экранный цвет</td><td class="mono">${esc(hex.toUpperCase())}</td></tr>`,
+      );
+    }
+    if (sw) {
+      // Lab — язык колориста: по нему подбирают рецепт крашения.
+      // По hex не подбирает никто, он для экрана.
+      rows.push(
+        `<tr><td class="k">Lab</td><td class="mono">L ${num(sw.lab.l)} · a ${num(sw.lab.a)} · ` +
+          `b ${num(sw.lab.b)}</td></tr>`,
+      );
+    }
+    if (c.book_code) {
+      rows.push(
+        `<tr><td class="k">Номер цвета</td><td class="mono">${esc(c.book_code)}</td>` + `</tr>`,
+      );
+    }
+
+    const visual = render
+      ? `<div class="frame">${imgTag(render)}</div>`
+      : `<div class="cw-flat">${hex ? flatOf(hex) : tbc('чертёж в цвете — задайте цвет колорвея')}</div>`;
+
+    return (
+      `<div class="cw" data-colorway="${esc(c.id)}">` +
+      `<div class="cw-top">` +
+      (photo
+        ? `<div class="cw-swatch">${imgTag(photo)}</div>`
+        : hex
+          ? `<div class="cw-swatch" style="background:${esc(hex)}"></div>`
+          : `<div class="cw-swatch cw-empty"></div>`) +
+      `<div><div class="ml">${esc(c.id)}</div><h3 style="margin:1mm 0 0">${esc(c.name_ru)}</h3>` +
+      (c.book_code ? `<div class="ml" style="margin-top:1mm">номер бренда</div>` : '') +
+      `</div></div>` +
+      visual +
+      `<table class="plain"><tbody>${rows.join('')}</tbody></table>` +
+      (sw && !sw.uniform
+        ? `<div class="note warn" style="margin-top:2mm">${esc(sw.verdict_ru)}</div>`
+        : '') +
+      `</div>`
+    );
+  });
+
+  const footnote =
+    `<div class="note" style="margin-top:3mm"><b>Это визуальный референс, а не ` +
+    `цветопроба.</b> Экран, печать документа и свет при съёмке образца сдвигают оттенок; ` +
+    `по одному кадру отличить цвет ткани от цвета лампы нельзя — это свойство оптики, ` +
+    `а не качества разбора. Точный цвет задан координатами Lab в спецификации ` +
+    `и подтверждается <b>лабдипом</b> — выкрасом фабрики на этом самом полотне. ` +
+    `<span class="flag">не для приёмки цвета</span></div>`;
+
+  // Колонок ровно столько, сколько карточек на листе: две карточки в сетке
+  // на три оставляли бы пустую треть, и лист читался бы как недоделанный.
+  return chunk(cards, 3).map(
+    (group) =>
+      `<div class="cw-row" style="grid-template-columns:repeat(${group.length},1fr)">` +
+      `${group.join('')}</div>${footnote}`,
   );
 }
 

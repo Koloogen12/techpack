@@ -32,6 +32,7 @@ export const FLAT_LAYERS = [
   'callouts',
   'artwork',
   'pattern',
+  'color',
 ] as const;
 export type FlatLayer = (typeof FLAT_LAYERS)[number];
 
@@ -80,6 +81,18 @@ export interface RenderOptions {
    * а заливка живёт на странице нанесения с пометкой «не для замеров».
    */
   patternFill?: { dataUri: string; repeatCm: number };
+  /**
+   * Заливка изделия цветом колорвея.
+   *
+   * В отличие от фотореалистичной визуализации — детерминированная и точная:
+   * это ровно тот hex, что стоит в спецификации, без участия модели и без
+   * платы за генерацию. Драпировки она не покажет, зато не соврёт в цвете
+   * и не потребует интернета.
+   *
+   * Слой по умолчанию ВЫКЛЮЧЕН: технический чертёж остаётся чёрно-белым,
+   * а цвет живёт на странице колорвеев.
+   */
+  colorFill?: string;
   paths?: PathOptions;
   /** Поле вокруг чертежа, см. */
   margin?: number;
@@ -203,18 +216,25 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
         `</pattern></defs>`
       : '';
 
+  // Цвет идёт под раппортом и под линиями: он фон, а не рисунок.
+  const colorFill = layer(
+    'color',
+    options.colorFill
+      ? half(
+          paths.fill
+            .map((d) => `<path d="${d}" fill="${options.colorFill}" stroke="none"/>`)
+            .join(''),
+        )
+      : '',
+  );
+
   const patternFill = layer(
     'pattern',
     // Капюшон обязан быть ВНУТРИ half(), как и контур: иначе он заливается
     // только с одной стороны — правая половина рисуется, левая берётся
     // зеркалом, и всё, что осталось снаружи, зеркала не получает.
     options.patternFill
-      ? half(
-          `<path d="${paths.outline}" fill="url(#tile)" stroke="none"/>` +
-            [...paths.hood, ...paths.parts]
-              .map((d) => `<path d="${d}" fill="url(#tile)" stroke="none"/>`)
-              .join(''),
-        )
+      ? half(paths.fill.map((d) => `<path d="${d}" fill="url(#tile)" stroke="none"/>`).join(''))
       : '',
   );
 
@@ -294,6 +314,7 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     `data-view="${options.view}" color="#0E0E0E">` +
     `<title>${title}</title>` +
     patternDefs +
+    colorFill +
     patternFill +
     outline +
     seams +

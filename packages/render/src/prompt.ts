@@ -56,6 +56,15 @@ export interface RenderPromptOptions {
    * оно делается.
    */
   patternRepeatCm?: number | undefined;
+  /**
+   * К запросу приложен образец полотна этого колорвея.
+   *
+   * Меняет формулировку цвета: вместо названия и приблизительного hex модель
+   * получает указание брать цвет С КАРТИНКИ. Название цвета русское и для
+   * модели значит немного, а hex — это цвет на экране, а не цвет ткани.
+   * Образец точнее обоих.
+   */
+  swatchReference?: boolean | undefined;
 }
 
 /**
@@ -79,9 +88,14 @@ export function buildRenderPrompt(
 
   const colorway =
     spec.bom?.colorways.find((c) => c.id === options.colorwayId) ?? spec.bom?.colorways[0];
-  const colour = colorway
-    ? `${colorway.name_ru}${colorway.hex_approx ? ` (approximately ${colorway.hex_approx})` : ''}`
-    : 'a neutral mid-tone colour';
+  const swatchHex = colorway?.swatch?.hex ?? colorway?.hex_approx;
+  const colour =
+    colorway && options.swatchReference && swatchHex
+      ? `exactly the colour of the attached fabric swatch reference image ` +
+        `(approximately ${swatchHex})`
+      : colorway
+        ? `${colorway.name_ru}${colorway.hex_approx ? ` (approximately ${colorway.hex_approx})` : ''}`
+        : 'a neutral mid-tone colour';
 
   const details = (spec.construction?.nodes ?? [])
     .map((n) => NODE_ENGLISH[n.node_id])

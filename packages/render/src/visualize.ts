@@ -72,6 +72,8 @@ export async function visualize(
 
   const promptOptions: RenderPromptOptions = {};
   if (options.colorwayId !== undefined) promptOptions.colorwayId = options.colorwayId;
+  if (options.swatchReference !== undefined)
+    promptOptions.swatchReference = options.swatchReference;
 
   // Шаг раппорта берётся из самой спеки: он там уже есть, и передавать его
   // отдельно значило бы разрешить превью разойтись с паспортом печати.

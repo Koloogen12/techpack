@@ -18,7 +18,7 @@ import {
   viewAdviceNotes,
   type StyleSpecInput,
 } from '@specform/assembly';
-import { specFingerprint, type StyleSpec } from '@specform/stylespec';
+import { specFingerprint, type ColorwaySwatch, type StyleSpec } from '@specform/stylespec';
 import {
   FileVisionCache,
   analyzePhotos,
@@ -38,6 +38,7 @@ import {
   type ExportRole,
 } from '@specform/docgen';
 import { FileRenderCache, visualize } from '@specform/render';
+import { readSwatch } from '@specform/pattern';
 import { ArtworkLibrary } from '@specform/library';
 import { answersFingerprint, parseAnswers, type Answers } from './answers.js';
 
@@ -81,6 +82,8 @@ export interface GenerateOptions {
    * рисунок живёт там, а не рядом с конкретным паком.
    */
   tileDir?: string;
+  /** Где лежат образцы полотна. По умолчанию рядом с артами бренда. */
+  swatchDir?: string;
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -252,6 +255,67 @@ function readTile(spec: StyleSpec, dir: string): Uint8Array | null {
   }
 }
 
+/**
+ * Паспорта образцов полотна по колорвеям.
+ *
+ * Читаются ДО сборки спеки: цвет колорвея — часть спеки, а не украшение
+ * документа, и по нему строится ключ кэша визуализации. Отдельный браузер
+ * поднимается только когда образцы вообще есть.
+ *
+ * Отсутствующий или нечитаемый файл образца НЕ ломает пак: колорвей остаётся
+ * с тем цветом, который бренд вписал руками. Документ важнее картинки —
+ * то же правило, что у визуализации.
+ */
+async function readSwatches(
+  answers: Answers,
+  dir: string,
+): Promise<{
+  swatches: Map<string, ColorwaySwatch>;
+  bytes: Map<string, { bytes: Uint8Array; mediaType: string }>;
+  notes: string[];
+}> {
+  const swatches = new Map<string, ColorwaySwatch>();
+  const bytes = new Map<string, { bytes: Uint8Array; mediaType: string }>();
+  const notes: string[] = [];
+  const wanted = (answers.colorways ?? []).filter((c) => c.swatch);
+  if (!wanted.length) return { swatches, bytes, notes };
+
+  const browser = await chromium.launch();
+  try {
+    for (const c of wanted) {
+      const path = join(dir, c.swatch!);
+      let file: Buffer;
+      try {
+        file = readFileSync(path);
+      } catch {
+        notes.push(
+          `Образец полотна «${c.swatch}» для цвета «${c.name_ru}» не найден в ${dir}. ` +
+            `Цвет остался таким, каким вы его вписали.`,
+        );
+        continue;
+      }
+      const mime = /\.jpe?g$/i.test(path) ? 'image/jpeg' : 'image/png';
+      const reading = await readSwatch(`data:${mime};base64,${file.toString('base64')}`, browser);
+      bytes.set(c.id, { bytes: file, mediaType: mime });
+      swatches.set(c.id, {
+        file_name: c.swatch!,
+        key: createHash('sha256').update(file).digest('hex'),
+        hex: reading.hex,
+        lab: { l: reading.lab[0], a: reading.lab[1], b: reading.lab[2] },
+        spread_delta_e: reading.spread_delta_e,
+        uniform: reading.uniform,
+        verdict_ru: reading.verdict_ru,
+      });
+      if (!reading.uniform) {
+        notes.push(`Образец «${c.name_ru}»: ${reading.verdict_ru}`);
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+  return { swatches, bytes, notes };
+}
+
 async function buildVisuals(
   browser: Browser,
   visual: Awaited<ReturnType<typeof visualize>>,
@@ -259,6 +323,8 @@ async function buildVisuals(
   spec?: StyleSpec,
   tileBytes?: Uint8Array | null,
   patternVisual?: Awaited<ReturnType<typeof visualize>>,
+  swatchBytes?: ReadonlyMap<string, { bytes: Uint8Array; mediaType: string }>,
+  colorwayVisuals?: ReadonlyMap<string, Awaited<ReturnType<typeof visualize>>>,
 ): Promise<DocVisuals> {
   const photos: DocImage[] = [];
   for (const path of photoPaths.slice(0, 3)) {
@@ -276,13 +342,42 @@ async function buildVisuals(
         }
       : undefined;
 
+  // Образцы полотна показываются КАК ЕСТЬ, только уменьшенные под лист:
+  // это снимок того, что бренд держал в руках, и подкрашивать его значило бы
+  // подменить единственный вещественный вход по цвету.
+  const swatches: Record<string, DocImage> = {};
+  for (const [id, file] of swatchBytes ?? []) {
+    const raw = `data:${file.mediaType};base64,${Buffer.from(file.bytes).toString('base64')}`;
+    swatches[id] = { dataUri: await fitImage(browser, raw) };
+  }
+
+  const colorwayRenders: Record<string, DocImage> = {};
+  // Первый колорвей уже нарисован основной визуализацией: промпт по умолчанию
+  // берёт именно его. Платить за ту же картинку второй раз не за что.
+  const first = spec?.bom?.colorways[0];
+  if (first && visual.ok) colorwayRenders[first.id] = { dataUri: visual.image.dataUri };
+  for (const [id, result] of colorwayVisuals ?? []) {
+    if (result.ok) colorwayRenders[id] = { dataUri: result.image.dataUri };
+  }
+
   return {
     ...(visual.ok ? { render: { dataUri: visual.image.dataUri } } : {}),
     ...(photos.length ? { photos } : {}),
     ...(patternTile ? { patternTile } : {}),
     ...(patternVisual?.ok ? { patternRender: { dataUri: patternVisual.image.dataUri } } : {}),
+    ...(Object.keys(swatches).length ? { swatches } : {}),
+    ...(Object.keys(colorwayRenders).length ? { colorwayRenders } : {}),
   };
 }
+
+/**
+ * Сколько колорвеев показывать фотореалистично.
+ *
+ * Каждый — отдельная платная генерация, и десять цветов капсулы превратили бы
+ * сборку пака в десять ожиданий по полминуты. Ограничение НАЗЫВАЕТСЯ вслух
+ * в примечаниях: молчаливая отсечка читается как «показано всё».
+ */
+const COLORWAY_RENDER_LIMIT = 3;
 
 /**
  * Вход сборщика StyleSpec из анкеты и отчёта разбора.
@@ -343,12 +438,17 @@ function fileFingerprint(path: string): string {
 export function specInputFrom(
   answers: Answers,
   report: VisionReport | null,
-  options: { now: Date; visionCacheKey?: string; library?: ArtworkLibrary } = { now: new Date() },
+  options: {
+    now: Date;
+    visionCacheKey?: string;
+    library?: ArtworkLibrary;
+    swatches?: ReadonlyMap<string, ColorwaySwatch>;
+  } = { now: new Date() },
 ): StyleSpecInput {
   // `patterns` из анкеты в спред НЕ идут: там они описаны ссылкой на
   // библиотеку либо неполным паспортом, а движку нужен полный. Разрешаются
   // ниже отдельным шагом.
-  const { patterns: _patterns, ...rest } = answers;
+  const { patterns: _patterns, colorways: _colorways, ...rest } = answers;
 
   return {
     ...defined(rest),
@@ -361,13 +461,29 @@ export function specInputFrom(
     ...(report?.fabric.knit_class && report.fabric.knit_class !== 'unknown'
       ? { fabric_class: report.fabric.knit_class, fabric_confidence: report.fabric.confidence }
       : {}),
-    ...(report?.colorways.length && !answers.colorways
+    // Колорвеи: из анкеты, если бренд их назвал, иначе с фотографий.
+    // Паспорт образца подмешивается сюда же — цвет колорвея часть спеки,
+    // а не украшение документа.
+    ...(answers.colorways?.length
       ? {
-          colorways: report.colorways.map((c, i) =>
-            defined({ id: `c${i + 1}`, name_ru: c.name_ru, hex_approx: c.hex_approx }),
+          colorways: answers.colorways.map((c) =>
+            defined({
+              id: c.id,
+              name_ru: c.name_ru,
+              hex_approx: c.hex_approx,
+              swatch: options.swatches?.get(c.id) ?? null,
+              book_code: c.book_code ?? null,
+              book_source: c.book_code ? ('brand' as const) : null,
+            }),
           ),
         }
-      : {}),
+      : report?.colorways.length
+        ? {
+            colorways: report.colorways.map((c, i) =>
+              defined({ id: `c${i + 1}`, name_ru: c.name_ru, hex_approx: c.hex_approx }),
+            ),
+          }
+        : {}),
     // Раппорты разрешаются здесь же: и пайплайн, и скрипты голден-набора
     // должны видеть одинаковую спеку, а не каждый свою.
     ...(answers.patterns?.length
@@ -409,16 +525,22 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const gate = categoryGate(answers, report);
   if (gate) throw gate;
 
+  // Образцы полотна читаются до сборки: цвет колорвея — часть спеки.
+  const swatchResult = await readSwatches(answers, options.swatchDir ?? 'brand-library/swatches');
+
   // --- 2. Сборка StyleSpec (детерминированная) --------------------------------
   const assemblyStart = performance.now();
   const { spec, notes } = buildStyleSpec(
     specInputFrom(answers, report, {
       now: options.now ?? new Date(),
       ...(cacheKey ? { visionCacheKey: cacheKey } : {}),
+      swatches: swatchResult.swatches,
     }),
     base,
   );
   ledger.recordFree('assembly', Math.round(performance.now() - assemblyStart));
+
+  notes.push(...swatchResult.notes);
 
   if (report) {
     notes.push(...reconcile(answers, report, base));
@@ -464,9 +586,31 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // на схеме нанесения и фотореалистичному превью. Читается один раз.
   const tileBytes = readTile(spec, options.tileDir ?? 'brand-library/artwork');
 
-  const [browser, visual, patternVisual] = await Promise.all([
+  // Опорное изображение по колорвею: образец полотна, если бренд его прислал.
+  // Цвет с картинки точнее и названия, и hex — hex это цвет на экране,
+  // а не цвет ткани.
+  const swatchRef = (
+    id: string | undefined,
+  ): { references: [{ bytes: Uint8Array; mediaType: string }]; swatchReference: true } | object => {
+    const file = id ? swatchResult.bytes.get(id) : undefined;
+    return file ? { references: [file], swatchReference: true as const } : {};
+  };
+
+  const colorways = spec.bom?.colorways ?? [];
+  // Первый колорвей рисует основная визуализация — промпт по умолчанию берёт
+  // именно его. Остальные идут отдельными вызовами, и их число ограничено.
+  const extraColorways = colorways.slice(1, COLORWAY_RENDER_LIMIT);
+  if (colorways.length > COLORWAY_RENDER_LIMIT) {
+    notes.push(
+      `Колорвеев ${colorways.length}, фотореалистично показаны первые ` +
+        `${COLORWAY_RENDER_LIMIT}: каждая визуализация — отдельная генерация. ` +
+        `Чертёж в цвете на листе колорвеев построен для всех.`,
+    );
+  }
+
+  const [browser, visual, patternVisual, ...extraVisuals] = await Promise.all([
     chromium.launch(),
-    visualize(spec, visualOptions),
+    visualize(spec, { ...visualOptions, ...swatchRef(colorways[0]?.id) }),
     // Вторая картинка — то же изделие, но в раппорте. Отдельный вызов,
     // а не вариант первого: у них разные ключи кэша и разная судьба
     // в ролевых выгрузках.
@@ -480,7 +624,12 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
           reason: 'no_tile',
           userMessage: 'Раппорта в документе нет.',
         }),
+    ...extraColorways.map((c) =>
+      visualize(spec, { ...visualOptions, colorwayId: c.id, ...swatchRef(c.id) }),
+    ),
   ]);
+
+  const colorwayVisuals = new Map(extraColorways.map((c, i) => [c.id, extraVisuals[i]!]));
 
   const rolePaths: { role: ExportRole; path: string }[] = [];
 
@@ -497,6 +646,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       spec,
       tileBytes,
       patternVisual,
+      swatchResult.bytes,
+      colorwayVisuals,
     );
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
 

@@ -81,6 +81,34 @@ export const MIGRATIONS: readonly Migration[] = [
       };
     },
   },
+  {
+    from: '0.6.0',
+    to: '0.7.0',
+    describe:
+      'у колорвея появились образец полотна и фирменный номер цвета от бренда; ' +
+      'у снапшотов 0.6.0 их не было, и восстановить их неоткуда — образец это ' +
+      'файл, которого в старом паке нет, а номер знает только бренд',
+    migrate: (snapshot) => {
+      const bom = snapshot.bom as { colorways?: Record<string, unknown>[] } | undefined;
+      return {
+        ...snapshot,
+        ...(bom?.colorways
+          ? {
+              bom: {
+                ...bom,
+                colorways: bom.colorways.map((c) => ({
+                  ...c,
+                  swatch: null,
+                  book_code: null,
+                  book_source: null,
+                })),
+              },
+            }
+          : {}),
+        spec_version: '0.7.0',
+      };
+    },
+  },
 ];
 
 function versionOf(snapshot: unknown): string {
