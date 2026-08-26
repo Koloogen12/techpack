@@ -8,8 +8,9 @@
  * а тест не может запускать команду.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { ArtworkLibrary } from '@seamsterly/library';
-import { VersionStore, type VersionEntry } from '@seamsterly/versions';
+import type { ArtworkLibrary } from '@seamsterly/library';
+import type { VersionStore } from '@seamsterly/versions';
+import { type VersionEntry } from '@seamsterly/versions';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import { CATEGORY_LABEL_RU } from '@seamsterly/kb';
 import { parseRfqLog, summariseRfq } from './rfq-log.js';
