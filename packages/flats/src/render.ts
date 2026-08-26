@@ -58,6 +58,10 @@ export interface RenderOptions {
    * чистой проекцией спеки.
    */
   depthCm?: Centimeters;
+  /**
+   * Ниже этого угла рукав не отводится, градусы. Из справочника условностей.
+   */
+  minSleeveAngleDeg?: number;
   /** Какие слои показывать. По умолчанию все, кроме выносок. */
   layers?: readonly FlatLayer[];
   callouts?: readonly Callout[];
@@ -81,6 +85,15 @@ export interface RenderOptions {
    * а заливка живёт на странице нанесения с пометкой «не для замеров».
    */
   patternFill?: { dataUri: string; repeatCm: number };
+  /**
+   * Цвет-компаньон для рибан.
+   *
+   * Пояс, манжеты и бейка кроятся из ДРУГОГО полотна — в спецификации это
+   * отдельная позиция, кашкорсе. При печати полотна до раскроя оно
+   * не печатается, и заливать его рисунком значит обещать фабрике то,
+   * чего она не сделает.
+   */
+  ribFill?: string;
   /**
    * Заливка изделия цветом колорвея.
    *
@@ -112,6 +125,9 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     spec.measurements.points.find((p) => p.code === code)?.base.value;
 
   const detail = {
+    // Бейка горловины — деталь, а не обязательный замер: у худи её нет,
+    // горловину закрывает капюшон.
+    neckRibHeight: optional('T17'),
     cuffRibHeight: optional('H08'),
     waistRibHeight: optional('H07'),
     hoodHeight: optional('H01'),
@@ -134,7 +150,6 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     neckWidth: value('T14', 18),
     frontNeckDrop: value('T15', 8),
     backNeckDrop: value('T16', 2.5),
-    neckRibHeight: value('T17', 2),
     shoulderSlope: value('T18', 4),
     // Ключи с undefined не добавляются: их отсутствие — значимая информация.
     ...Object.fromEntries(Object.entries(detail).filter(([, v]) => v !== undefined)),
@@ -205,15 +220,47 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
     `<path d="${d}" fill="none" stroke="currentColor" stroke-width="${width}"` +
     ` stroke-linecap="round" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
 
-  // Заливка идёт ПОД линиями: иначе она перекрыла бы швы и строчки,
-  // ради которых чертёж и существует.
+  // Идентификаторы уникальны на вид: три чертежа живут на одном листе HTML,
+  // а ссылки url(#…) резолвятся по всему документу. С общим именем спинка
+  // и бок брали бы определения переда — и обрезались бы по чужому контуру.
+  const uid = `${options.view}`;
+
+  // --- Заливка по ДЕТАЛЯМ КРОЯ, а не по силуэту ------------------------------
+  // Рисунок ложится только на печатаемые детали, и на каждой он повёрнут
+  // по её долевой. Клип по силуэту нужен потому, что детали намеренно
+  // нарисованы с запасом: пояс шире изделия у низа, и без клипа он вылез бы
+  // за контур.
+  const shell = paths.panels.filter((p) => p.material === 'shell');
+  const ribs = paths.panels.filter((p) => p.material === 'rib');
+  const angles = [...new Set(shell.map((p) => Math.round(p.grain_deg * 100) / 100))];
+  const tileId = (deg: number, mirrored: boolean): string =>
+    `tile-${uid}-${angles.indexOf(Math.round(deg * 100) / 100)}${mirrored ? 'm' : ''}`;
+
   const patternDefs =
     options.patternFill && layers.includes('pattern')
-      ? `<defs><pattern id="tile" patternUnits="userSpaceOnUse" ` +
-        `width="${options.patternFill.repeatCm}" height="${options.patternFill.repeatCm}">` +
-        `<image href="${options.patternFill.dataUri}" x="0" y="0" ` +
-        `width="${options.patternFill.repeatCm}" height="${options.patternFill.repeatCm}"/>` +
-        `</pattern></defs>`
+      ? `<defs>` +
+        angles
+          .flatMap((deg) =>
+            [false, true].map((mirrored) => {
+              // Зеркальная половина рисуется через scale(-1,1); без обратного
+              // преобразования мотив на ней тоже зеркалился бы. Полотно
+              // печатается один раз и не бывает зеркальным — а несимметричный
+              // мотив на левой половине выдал бы это с головой.
+              const t = mirrored ? `scale(-1,1) rotate(${-deg})` : `rotate(${deg})`;
+              return (
+                `<pattern id="${tileId(deg, mirrored)}" patternUnits="userSpaceOnUse" ` +
+                `patternTransform="${t}" ` +
+                `width="${options.patternFill!.repeatCm}" height="${options.patternFill!.repeatCm}">` +
+                `<image href="${options.patternFill!.dataUri}" x="0" y="0" ` +
+                `width="${options.patternFill!.repeatCm}" height="${options.patternFill!.repeatCm}"/>` +
+                `</pattern>`
+              );
+            }),
+          )
+          .join('') +
+        `<clipPath id="clip-${uid}">` +
+        paths.fill.map((d) => `<path d="${d}"/>`).join('') +
+        `</clipPath></defs>`
       : '';
 
   // Цвет идёт под раппортом и под линиями: он фон, а не рисунок.
@@ -228,30 +275,44 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
       : '',
   );
 
+  const RIB_NEUTRAL = '#DCD6CC';
+  const panelFill = (mirrored: boolean): string =>
+    shell
+      .map((p) => `<path d="${p.d}" fill="url(#${tileId(p.grain_deg, mirrored)})" stroke="none"/>`)
+      .join('') +
+    ribs
+      .map(
+        (p) =>
+          `<path d="${p.d}" fill="${options.ribFill ?? RIB_NEUTRAL}" stroke="none" ` +
+          `data-panel="${p.id}"/>`,
+      )
+      .join('');
+
+  const clipped = (content: string, mirrored: boolean): string =>
+    `<g${mirrored ? ' transform="scale(-1,1)"' : ''} clip-path="url(#clip-${uid})">${content}</g>`;
+
   const patternFill = layer(
     'pattern',
-    // Капюшон обязан быть ВНУТРИ half(), как и контур: иначе он заливается
-    // только с одной стороны — правая половина рисуется, левая берётся
-    // зеркалом, и всё, что осталось снаружи, зеркала не получает.
     options.patternFill
-      ? half(paths.fill.map((d) => `<path d="${d}" fill="url(#tile)" stroke="none"/>`).join(''))
+      ? clipped(panelFill(false), false) + (isSide ? '' : clipped(panelFill(true), true))
       : '',
   );
 
   const outline = layer(
     'outline',
     half(
-      path(paths.outline, STROKE.outline) +
-        [...paths.hood, ...paths.parts].map((d) => path(d, STROKE.outline)).join(''),
+      `<g data-line="outline">${path(paths.outline, STROKE.outline)}</g>` +
+        paths.hood.map((h) => `<g data-line="${h.id}">${path(h.d, STROKE.outline)}</g>`).join('') +
+        paths.parts.map((d) => path(d, STROKE.outline)).join(''),
     ),
   );
 
   const seams = layer(
     'seams',
     half(
-      paths.seams.map((d) => path(d, STROKE.seam)).join('') +
+      paths.seams.map((s) => `<g data-line="${s.id}">${path(s.d, STROKE.seam)}</g>`).join('') +
         // Карман настрочной: его край — видимый шов, а не отстрочка.
-        paths.pocket.map((d) => path(d, STROKE.seam)).join('') +
+        paths.pocket.map((p) => `<g data-line="${p.id}">${path(p.d, STROKE.seam)}</g>`).join('') +
         paths.ribs.map((d) => path(d, STROKE.hidden)).join('') +
         // Точками — то, что закрыто другой деталью (knowledge-base/02 §3).
         paths.hidden.map((d) => path(d, STROKE.seam, '0.35 0.55')).join(''),
@@ -260,7 +321,11 @@ export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderR
 
   const stitches = layer(
     'stitches',
-    half(paths.stitches.map((d) => path(d, STROKE.stitch, '0.7 0.5')).join('')),
+    half(
+      paths.stitches
+        .map((st) => `<g data-line="${st.id}">${path(st.d, STROKE.stitch, '0.7 0.5')}</g>`)
+        .join(''),
+    ),
   );
 
   const callouts = layer(
@@ -377,6 +442,9 @@ export function renderFlatsFromSpec(
 
   const paths: PathOptions = {
     ...DEFAULT_PATH_OPTIONS,
+    ...(options.minSleeveAngleDeg === undefined
+      ? {}
+      : { minSleeveAngleDeg: options.minSleeveAngleDeg }),
     ...(hem
       ? { hemAllowance: hem.seam_allowance_cm.value, hemStitchRows: rows(hem.stitch_code) }
       : {}),

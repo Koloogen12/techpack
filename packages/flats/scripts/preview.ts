@@ -4,8 +4,8 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { buildStyleSpec } from '@specform/assembly';
-import { kb, type Category } from '@specform/kb';
-import { depthForSpec, needsSideView, renderFlatsFromSpec } from '../src/index.js';
+import type { Category } from '@specform/kb';
+import { flatDefaults, renderFlatsFromSpec } from '../src/index.js';
 
 const CATEGORIES: Category[] = (process.env.FLATS_ONLY?.split(',') as Category[]) ?? [
   'tshirt',
@@ -34,12 +34,9 @@ const blocks = CATEGORIES.map((category) => {
     size_range: [42, 44, 46, 48, 50, 52],
     generated_at: new Date('2026-08-25T00:00:00.000Z'),
   });
-  // Бок получают только изделия, у которых есть что показать сбоку.
-  // Глубина не выводится из табеля мер — она приходит из сетки и прибавки.
-  const body = kb().bodyMeasurements(spec.base.gender, spec.base.base_size_ru);
-  const side = needsSideView(spec)
-    ? { depthCm: depthForSpec(spec, body.chest, kb().bodyRatio(spec.base.gender).width_to_depth) }
-    : {};
+  // Величины, которых нет в табеле мер, собираются одним вызовом:
+  // глубина для бока и минимальный угол отведения рукава.
+  const side = flatDefaults(spec);
   const flats = renderFlatsFromSpec(spec, side);
   // Колонки пропорциональны ширинам видов в сантиметрах: все виды в одном масштабе.
   const view = (r: { svg: string; viewBox: { width: number } }, cap: string): string =>

@@ -4,6 +4,7 @@ import {
   buildPaths,
   buildSideGeometry,
   buildSidePaths,
+  DEFAULT_PATH_OPTIONS,
   garmentDepth,
   measuredBicep,
   renderFlat,
@@ -159,6 +160,7 @@ describe('конвенции линий', () => {
         hemStitchRows: n,
         sleeveHemAllowance: 2,
         sleeveStitchRows: n,
+        minSleeveAngleDeg: 0,
       }).paths.stitches.length;
     expect(rows(3)).toBeGreaterThan(rows(2));
   });
@@ -304,7 +306,8 @@ const HOODIE: FlatMeasurements = {
   neckWidth: 21.6,
   frontNeckDrop: 8,
   backNeckDrop: 2.8,
-  neckRibHeight: 2,
+  // Бейки нет намеренно: у худи горловину закрывает капюшон, и в шаблоне
+  // точек T17 отсутствует.
   shoulderSlope: 4.1,
   cuffRibHeight: 6,
   waistRibHeight: 6,
@@ -439,5 +442,85 @@ describe('боковой вид', () => {
     expect(buildSideGeometry(HOODIE, loose).bounds.right).toBeGreaterThan(
       buildSideGeometry(HOODIE, tight).bounds.right,
     );
+  });
+});
+
+// ------------------------------------------------- отведение рукава и бейка
+
+describe('отведение рукава', () => {
+  /**
+   * Точная укладка задана парой замеров однозначно: ширина рукава под проймой
+   * относится к хорде проймы как синус угла между ними. Для трикотажа это
+   * даёт почти горизонтальный рукав — верно физически и негодно как чертёж.
+   */
+  it('без условности рукав ложится почти горизонтально', () => {
+    const g = buildGeometry(HOODIE, 'front', 0);
+    expect((g.sleeveAngle * 180) / Math.PI).toBeLessThan(22);
+    expect(g.sleeveAngle).toBe(g.solvedSleeveAngle);
+  });
+
+  it('условность отводит рукав вниз и сохраняет точный угол отдельно', () => {
+    const g = buildGeometry(HOODIE, 'front', 32);
+    expect((g.sleeveAngle * 180) / Math.PI).toBeCloseTo(32, 5);
+    // Точный угол не теряется: документ обязан сказать, что отличается.
+    expect(g.solvedSleeveAngle).toBeLessThan(g.sleeveAngle);
+  });
+
+  it('условность — это МИНИМУМ, а не замена', () => {
+    // Узкий рукав при глубокой пройме сам даёт крутой угол. Подменять его
+    // условностью значило бы потерять точность там, где она достижима.
+    const narrow: FlatMeasurements = { ...HOODIE, bicep: 12 };
+    const g = buildGeometry(narrow, 'front', 32);
+    expect(g.sleeveAngle).toBe(g.solvedSleeveAngle);
+    expect((g.sleeveAngle * 180) / Math.PI).toBeGreaterThan(32);
+  });
+
+  it('отведение сужает лист', () => {
+    const flat = buildGeometry(HOODIE, 'front', 0);
+    const drawn = buildGeometry(HOODIE, 'front', 32);
+    expect(drawn.sleeveTopEnd.x).toBeLessThan(flat.sleeveTopEnd.x);
+  });
+});
+
+describe('деталь, которой у изделия нет, не рисуется', () => {
+  it('у худи нет бейки горловины', () => {
+    // Раньше здесь стоял фолбэк в 2 см, и чертёж показывал фабрике деталь,
+    // которой в табеле мер нет вовсе.
+    const { paths } = buildPaths(HOODIE, 'front');
+    expect(paths.seams.some((s) => s.id === 'neck_band')).toBe(false);
+    expect(paths.panels.some((p) => p.id === 'neckband')).toBe(false);
+  });
+
+  it('у изделия с поясом-риб нет отстрочки низа', () => {
+    // Низ не подшит, он закрыт рибаной: отстрочка обещала бы операцию,
+    // которой в спецификации не будет.
+    const { paths } = buildPaths(HOODIE, 'front');
+    expect(paths.stitches.some((s) => s.id === 'hem_stitch')).toBe(false);
+  });
+
+  it('у футболки бейка есть', () => {
+    const { paths } = buildPaths(M, 'front');
+    expect(paths.seams.some((s) => s.id === 'neck_band')).toBe(true);
+    expect(paths.panels.some((p) => p.id === 'neckband' && p.material === 'rib')).toBe(true);
+  });
+});
+
+describe('детали кроя', () => {
+  it('рукав повёрнут по своей долевой, корпус — нет', () => {
+    const { paths } = buildPaths(HOODIE, 'front', {
+      ...DEFAULT_PATH_OPTIONS,
+      minSleeveAngleDeg: 32,
+    });
+    const body = paths.panels.find((p) => p.id === 'body')!;
+    const sleeve = paths.panels.find((p) => p.id === 'sleeve')!;
+    expect(body.grain_deg).toBe(0);
+    // Долевая рукава идёт вдоль его длины: 32° к горизонтали = −58° к вертикали.
+    expect(sleeve.grain_deg).toBeCloseTo(-58, 5);
+  });
+
+  it('рибаны помечены отдельным материалом — они не печатаются', () => {
+    const { paths } = buildPaths(HOODIE, 'front');
+    const ribs = paths.panels.filter((p) => p.material === 'rib').map((p) => p.id);
+    expect(ribs.sort()).toEqual(['cuff', 'waistband']);
   });
 });

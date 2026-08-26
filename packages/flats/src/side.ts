@@ -1,6 +1,12 @@
 import type { Centimeters } from '@specform/core';
 import { buildGeometry, type FlatMeasurements, type Point } from './geometry.js';
-import { DEFAULT_PATH_OPTIONS, type FlatPaths, type PathOptions } from './paths.js';
+import {
+  DEFAULT_PATH_OPTIONS,
+  type FlatPanel,
+  type FlatPaths,
+  type PathOptions,
+  type SeamLine,
+} from './paths.js';
 import { C, f, L, M } from './svg.js';
 
 /**
@@ -211,7 +217,7 @@ export function buildSidePaths(
   options: PathOptions = DEFAULT_PATH_OPTIONS,
 ): { geometry: SideGeometry; paths: FlatPaths } {
   const s = buildSideGeometry(m, depth);
-  const g = buildGeometry(m, 'front');
+  const g = buildGeometry(m, 'front', options.minSleeveAngleDeg);
   const yChest = s.chestFront.y;
   const yWaist = g.waist.y;
   const yHem = s.hemFront.y;
@@ -302,16 +308,17 @@ export function buildSidePaths(
   // Вынос вперёд — проекция шва, а не замер, и он намеренно мал: пройма
   // почти плоская, потому что её обхват набирается высотой, а не шириной.
   const bow = rArm * 0.5;
-  const seams: string[] = [
-    `${M({ x: 0, y: yTop })} ` +
-      C(
-        { x: bow * 1.15, y: yTop + (yChest - yTop) * 0.3 },
-        { x: bow, y: yChest - (yChest - yTop) * 0.28 },
-        {
-          x: 0,
-          y: yChest,
-        },
-      ),
+  const seams: SeamLine[] = [
+    {
+      id: 'armhole',
+      d:
+        `${M({ x: 0, y: yTop })} ` +
+        C(
+          { x: bow * 1.15, y: yTop + (yChest - yTop) * 0.3 },
+          { x: bow, y: yChest - (yChest - yTop) * 0.28 },
+          { x: 0, y: yChest },
+        ),
+    },
   ];
 
   // --- Боковой шов: то, ради чего вид существует -------------------------------
@@ -324,17 +331,20 @@ export function buildSidePaths(
     hidden.push(`${M({ x: 0, y: yChest })} L 0 ${f(sleeveBottom)}`);
   }
   if (sleeveBottom < yHem) {
-    seams.push(`${M({ x: 0, y: Math.max(yChest, sleeveBottom) })} L 0 ${f(yHem)}`);
+    seams.push({
+      id: 'side_seam',
+      d: `${M({ x: 0, y: Math.max(yChest, sleeveBottom) })} L 0 ${f(yHem)}`,
+    });
   }
 
   // --- Отделочные детали --------------------------------------------------------
-  const stitches: string[] = [];
+  const stitches: SeamLine[] = [];
   const ribs: string[] = [];
   const hemHalf = (depth / 2) * (m.hemFlat / m.chestFlat);
 
   if (m.waistRibHeight !== undefined) {
     const y = yHem - m.waistRibHeight;
-    seams.push(`${M({ x: -hemHalf, y })} L ${f(hemHalf)} ${f(y)}`);
+    seams.push({ id: 'waistband', d: `${M({ x: -hemHalf, y })} L ${f(hemHalf)} ${f(y)}` });
     const step = Math.max(hemHalf / 7, 0.8);
     for (let x = -hemHalf + step; x < hemHalf; x += step) {
       ribs.push(`${M({ x, y })} L ${f(x)} ${f(yHem)}`);
@@ -342,13 +352,16 @@ export function buildSidePaths(
   } else {
     for (let i = 0; i < options.hemStitchRows; i++) {
       const y = yHem - options.hemAllowance + i * 0.35;
-      stitches.push(`${M({ x: -hemHalf + 0.2, y })} L ${f(hemHalf - 0.2)} ${f(y)}`);
+      stitches.push({
+        id: 'hem_stitch',
+        d: `${M({ x: -hemHalf + 0.2, y })} L ${f(hemHalf - 0.2)} ${f(y)}`,
+      });
     }
   }
 
   if (m.cuffRibHeight !== undefined) {
     const y = s.sleeveEnd.y - m.cuffRibHeight;
-    seams.push(`${M({ x: cuffX - rCuff, y })} L ${f(cuffX + rCuff)} ${f(y)}`);
+    seams.push({ id: 'cuff', d: `${M({ x: cuffX - rCuff, y })} L ${f(cuffX + rCuff)} ${f(y)}` });
     const step = Math.max((rCuff * 2) / 5, 0.6);
     for (let x = cuffX - rCuff + step; x < cuffX + rCuff; x += step) {
       ribs.push(`${M({ x, y })} L ${f(x)} ${f(s.sleeveEnd.y)}`);
@@ -356,7 +369,10 @@ export function buildSidePaths(
   } else {
     for (let i = 0; i < options.sleeveStitchRows; i++) {
       const y = s.sleeveEnd.y - options.sleeveHemAllowance + i * 0.35;
-      stitches.push(`${M({ x: cuffX - rCuff, y })} L ${f(cuffX + rCuff)} ${f(y)}`);
+      stitches.push({
+        id: 'sleeve_hem_stitch',
+        d: `${M({ x: cuffX - rCuff, y })} L ${f(cuffX + rCuff)} ${f(y)}`,
+      });
     }
   }
 
@@ -364,7 +380,7 @@ export function buildSidePaths(
   // На переде капюшон разложен вверх — условность, которая по построению
   // прячет его форму. Сбоку он весь из замеров: высота H01 от шва втачивания,
   // глубина H02 в самом широком месте, лицевой край H03.
-  const hood: string[] = [];
+  const hood: SeamLine[] = [];
   if (s.hoodTop && m.hoodWidth !== undefined && m.hoodHeight !== undefined) {
     const hw = m.hoodWidth;
     const hh = m.hoodHeight;
@@ -373,8 +389,10 @@ export function buildSidePaths(
     // Профиль капюшона: затылочная часть полная и круглая, макушка смещена
     // назад, лицевой край падает круто вниз. Симметричный купол читался бы
     // шапкой, а не капюшоном.
-    hood.push(
-      `${M(s.backNeck)} ` +
+    hood.push({
+      id: 'hood_outline',
+      d:
+        `${M(s.backNeck)} ` +
         C(
           { x: -hw * 0.55, y: -hh * 0.22 },
           { x: -hw * 0.52, y: -hh * 0.62 },
@@ -400,12 +418,14 @@ export function buildSidePaths(
           { x: s.frontNeck.x + hw * 0.04, y: s.frontNeck.y - hh * 0.03 },
           s.frontNeck,
         ),
-    );
+    });
 
     // Кулиска идёт вдоль лицевого края, отступя внутрь на свою ширину.
     const inset = Math.min((m.hoodOpening ?? hh) * 0.08, hw * 0.14);
-    hood.push(
-      `${M({ x: top.x + hw * 0.08, y: -hh + inset })} ` +
+    hood.push({
+      id: 'hood_casing',
+      d:
+        `${M({ x: top.x + hw * 0.08, y: -hh + inset })} ` +
         C(
           { x: hw * 0.2, y: -hh * 0.95 },
           { x: hw * 0.44 - inset, y: -hh * 0.75 },
@@ -423,24 +443,27 @@ export function buildSidePaths(
             y: s.frontNeck.y - inset * 0.7,
           },
         ),
-    );
+    });
     // Люверс кулиски у основания лицевого края.
-    hood.push(
-      `${M({ x: hw * 0.44, y: -hh * 0.12 })} m -0.45 0 a 0.45 0.45 0 1 0 0.9 0 a 0.45 0.45 0 1 0 -0.9 0`,
-    );
+    hood.push({
+      id: 'hood_eyelet',
+      d: `${M({ x: hw * 0.44, y: -hh * 0.12 })} m -0.45 0 a 0.45 0.45 0 1 0 0.9 0 a 0.45 0.45 0 1 0 -0.9 0`,
+    });
   }
 
   // --- Карман-кенгуру: сбоку виден профилем, а не прямоугольником ----------------
   // Ради этого профиля бок и нужен изделию с настрочным карманом: на переде
   // карман выглядит плоским прямоугольником, хотя он лежит ПОВЕРХ полотна
   // и на готовом изделии отстоит от него.
-  const pocket: string[] = [];
+  const pocket: SeamLine[] = [];
   if (m.pocketWidth !== undefined && m.pocketHeight !== undefined) {
     const bottom = yHem - (m.waistRibHeight ?? 2) - 1.5;
     const top = bottom - m.pocketHeight;
     const at = (y: number): number => frontHalfAt(m, depth, y, yWaist, yHem);
-    pocket.push(
-      `${M({ x: at(top), y: top })} ` +
+    pocket.push({
+      id: 'pocket',
+      d:
+        `${M({ x: at(top), y: top })} ` +
         // Вход для руки: верхний край отходит от изделия — туда и заходит рука.
         C(
           { x: at(top) + POCKET_PROUD * 0.9, y: top + m.pocketHeight * 0.1 },
@@ -452,7 +475,7 @@ export function buildSidePaths(
         ) +
         ` L ${f(at(bottom) + POCKET_PROUD)} ${f(bottom)}` +
         ` L ${f(at(bottom))} ${f(bottom)}`,
-    );
+    });
   }
 
   return {
@@ -467,10 +490,55 @@ export function buildSidePaths(
       // Сбоку контур капюшона идёт от горловины спинки до горловины переда,
       // и его неявное замыкание — это и есть линия втачивания. Дорисовывать
       // нечего.
-      fill: [outline, ...(hood.length ? [hood[0]!] : []), sleeve],
+      fill: [outline, ...(hood.length ? [hood[0]!.d] : []), sleeve],
+      panels: sidePanels(m, outline, hood, sleeve, s, yHem, hemHalf, cuffX, rCuff),
       pocket,
       center: '',
       hidden,
     },
   };
+}
+
+/**
+ * Детали кроя бокового вида.
+ *
+ * Тот же принцип, что на переде: пояс и манжета кроятся из другого полотна
+ * и рисунком не заливаются. Долевая рукава сбоку идёт вертикально — рукав
+ * висит вдоль тела, — поэтому поворота у него здесь нет.
+ */
+function sidePanels(
+  m: FlatMeasurements,
+  outline: string,
+  hood: SeamLine[],
+  sleeve: string,
+  s: SideGeometry,
+  yHem: number,
+  hemHalf: number,
+  cuffX: number,
+  rCuff: number,
+): FlatPanel[] {
+  const panels: FlatPanel[] = [
+    { id: 'body', d: outline, material: 'shell', grain_deg: 0 },
+    { id: 'sleeve', d: sleeve, material: 'shell', grain_deg: 0 },
+  ];
+  if (hood.length) panels.push({ id: 'hood', d: hood[0]!.d, material: 'shell', grain_deg: 0 });
+  if (m.waistRibHeight !== undefined) {
+    const y = yHem - m.waistRibHeight;
+    panels.push({
+      id: 'waistband',
+      material: 'rib',
+      grain_deg: 0,
+      d: `${M({ x: -hemHalf, y })} ${L({ x: hemHalf, y })} ${L({ x: hemHalf, y: yHem })} ${L({ x: -hemHalf, y: yHem })} Z`,
+    });
+  }
+  if (m.cuffRibHeight !== undefined) {
+    const y = s.sleeveEnd.y - m.cuffRibHeight;
+    panels.push({
+      id: 'cuff',
+      material: 'rib',
+      grain_deg: 0,
+      d: `${M({ x: cuffX - rCuff, y })} ${L({ x: cuffX + rCuff, y })} ${L({ x: cuffX + rCuff, y: s.sleeveEnd.y })} ${L({ x: cuffX - rCuff, y: s.sleeveEnd.y })} Z`,
+    });
+  }
+  return panels;
 }

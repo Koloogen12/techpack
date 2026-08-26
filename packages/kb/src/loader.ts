@@ -52,6 +52,7 @@ import {
   PrintTechniquesFileSchema,
   PrintZonesFileSchema,
   BodyCrossSectionFileSchema,
+  FlatConventionsFileSchema,
   type PrintTechnique,
   type PrintTechniqueEntry,
   type PrintTechniquesFile,
@@ -59,6 +60,8 @@ import {
   type PrintZonesFile,
   type BodyCrossSectionFile,
   type BodyRatio,
+  type FlatConventionsFile,
+  type SleeveAngle,
   ScaleReferencesFileSchema,
   type ScaleReference,
   type ScaleReferenceId,
@@ -145,6 +148,7 @@ export class KnowledgeBase {
     private readonly printTech: PrintTechniquesFile,
     private readonly printZonesFile: PrintZonesFile,
     private readonly crossSection: BodyCrossSectionFile,
+    private readonly flatConventions: FlatConventionsFile,
   ) {}
 
   static load(): KnowledgeBase {
@@ -181,6 +185,7 @@ export class KnowledgeBase {
       loadFile('print_techniques.json', PrintTechniquesFileSchema),
       loadFile('print_zones.json', PrintZonesFileSchema),
       loadFile('body_cross_section.json', BodyCrossSectionFileSchema),
+      loadFile('flat_conventions.json', FlatConventionsFileSchema),
     );
   }
 
@@ -236,6 +241,19 @@ export class KnowledgeBase {
    * стоит сноска о происхождении величины, и она обязана брать текст отсюда,
    * а не повторять его своими словами.
    */
+  /**
+   * Минимальный угол отведения рукава на чертеже.
+   *
+   * Короткий или длинный определяется ЗАМЕРОМ T10, а не названием категории:
+   * лонгслив с укороченным рукавом обязан рисоваться как короткий.
+   */
+  sleeveAngle(sleeveLengthCm: number): SleeveAngle {
+    const kind = sleeveLengthCm >= this.flatConventions.long_sleeve_from_cm ? 'long' : 'short';
+    const found = this.flatConventions.sleeve_angles.find((a) => a.kind === kind);
+    if (!found) throw new Error(`нет условности отведения рукава: ${kind}`);
+    return found;
+  }
+
   bodyRatio(gender: Gender): BodyRatio {
     const found = this.crossSection.ratios.find((r) => r.gender === gender);
     if (!found) throw new Error(`нет отношения сечения торса для: ${gender}`);

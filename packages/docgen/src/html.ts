@@ -1,5 +1,5 @@
 import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@specform/core';
-import { depthForSpec, needsSideView, renderFlatsFromSpec } from '@specform/flats';
+import { flatDefaults, renderFlatsFromSpec } from '@specform/flats';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -11,7 +11,6 @@ import {
   type MachineType,
   type NodeZone,
   type Specialty,
-  kb,
 } from '@specform/kb';
 import type { StyleSpec } from '@specform/stylespec';
 import { DOC_CSS } from './styles.js';
@@ -196,8 +195,9 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     if (preview) add('preview', 'Внешний вид', [preview]);
   }
   if (include('flats')) {
-    const side = needsSideView(spec) ? { depthCm: sideDepth(spec) } : {};
-    add('flats', 'Технический чертёж', [flatsBody(spec, renderFlatsFromSpec(spec, side))]);
+    add('flats', 'Технический чертёж', [
+      flatsBody(spec, renderFlatsFromSpec(spec, flatDefaults(spec))),
+    ]);
   }
   add('measurements', 'Табель мер', measurementsPages(spec, pro));
   add('bom', 'Спецификация материалов', bomPages(spec));
@@ -690,11 +690,14 @@ function artworkPages(
 
   const tile = visuals?.patternTile;
   const allover = artwork.placements.find((a) => a.kind === 'allover');
+  // Название полотна рибаны берётся из спецификации, а не пишется словом:
+  // если бренд заменит кашкорсе, лист обязан сказать об этом сам.
+  const ribName = spec.bom?.lines.find((l) => l.role === 'rib')?.name_ru ?? 'отдельное полотно';
   if (tile && allover && safeDataUri(tile.dataUri)) {
     const flats = renderFlatsFromSpec(spec, {
+      ...flatDefaults(spec),
       layers: ['pattern', 'outline', 'seams', 'stitches'],
       patternFill: { dataUri: tile.dataUri, repeatCm: tile.repeatCm },
-      ...(needsSideView(spec) ? { depthCm: sideDepth(spec) } : {}),
     });
     pages.push(
       `<h2>Как раппорт ляжет на изделие</h2>` +
@@ -707,6 +710,11 @@ function artworkPages(
         `чертёж построен в сантиметрах, поэтому ${num(allover.size_cm.width.value)} см ` +
         `на изделии дают ${num(allover.size_cm.width.value)} см на рисунке — видно, ` +
         `каким мотив выйдет в жизни. ` +
+        `<b>Рибаны не печатаются</b> и показаны нейтральным тоном: пояс, манжеты ` +
+        `и бейка кроятся из отдельного полотна (${esc(ribName)}), и при печати ` +
+        `полотна до раскроя рисунок на них не попадает — цвет-компаньон задаёт бренд. ` +
+        `<b>Мотив на рукаве повёрнут по долевой детали</b>: рукав кроится вдоль своей ` +
+        `длины, и на готовой вещи рисунок пойдёт вдоль рукава, а не вертикально. ` +
         `<span class="flag">не для замеров</span> Раскладка мотивов на готовом изделии ` +
         `зависит от раскроя и совпадёт не в точности: рисунок непрерывен по полотну, ` +
         `а не по контуру детали.</div>`,
@@ -777,6 +785,7 @@ function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
 
   const flatOf = (hex: string): string =>
     renderFlatsFromSpec(spec, {
+      ...flatDefaults(spec),
       layers: ['color', 'outline', 'seams'],
       colorFill: hex,
     }).front.svg;
@@ -864,13 +873,7 @@ function colorwayPages(spec: StyleSpec, visuals?: DocVisuals): string[] {
  * и прибавки. Поэтому она и берётся отдельным шагом, на виду, а не прячется
  * внутрь чертежа.
  */
-function sideDepth(spec: StyleSpec): number {
-  const gender = spec.base.gender;
-  const body = kb().bodyMeasurements(gender, spec.base.base_size_ru);
-  return depthForSpec(spec, body.chest, kb().bodyRatio(gender).width_to_depth);
-}
-
-type Rendered = { svg: string; viewBox: { width: number } };
+type Rendered = { svg: string; viewBox: { width: number }; geometry: unknown };
 
 /**
  * Один масштаб на все виды.
@@ -884,6 +887,31 @@ function viewFigure(r: Rendered, caption: string): string {
   return (
     `<figure style="flex:${Math.round(r.viewBox.width * 100) / 100}">` +
     `${r.svg}<figcaption class="ml">${caption}</figcaption></figure>`
+  );
+}
+
+/**
+ * Оговорка об отведении рукава.
+ *
+ * Точная укладка изделия задана парой замеров однозначно, и для трикотажа
+ * она даёт почти горизонтальный рукав: лист выходит вдвое шире своей высоты.
+ * Отраслевой рисунок отводит рукав вниз, и ткань у проймы при этом
+ * подбирается — ширина рукава НА ЧЕРТЕЖЕ выходит меньше замера.
+ *
+ * Об этом сказано на листе. Умолчать значило бы дать технологу право снять
+ * ширину рукава с картинки.
+ */
+function sleeveNote(flats: { front: Rendered }): string {
+  const g = flats.front.geometry as { sleeveAngle?: number; solvedSleeveAngle?: number };
+  if (g.sleeveAngle === undefined || g.solvedSleeveAngle === undefined) return '';
+  const drawn = Math.round((g.sleeveAngle * 180) / Math.PI);
+  const solved = Math.round((g.solvedSleeveAngle * 180) / Math.PI);
+  if (drawn - solved < 2) return '';
+  return (
+    ` Рукав отведён вниз на <b>${drawn}°</b>, как принято на техническом рисунке; ` +
+    `в строго разложенном виде он ложится под ${solved}° и делает лист вдвое шире ` +
+    `своей высоты. В отведённом положении ткань у проймы подбирается, поэтому ` +
+    `ширина рукава на чертеже меньше замера — сам замер T12 в табеле мер.`
   );
 }
 
@@ -906,6 +934,7 @@ function flatsBody(
     `<div class="note" style="margin-top:3mm">Чертёж построен из таблицы замеров: правка ` +
     `значения перестраивает геометрию. Число пунктирных линий равно числу параллельных ` +
     `строчек — по нему определяется тип машины.` +
+    sleeveNote(flats) +
     (flats.side
       ? ` <b>Перед и спинка — изделие разложенное, бок — изделие с объёмом.</b> ` +
         `Иначе не бывает: у разложенного изделия глубины нет, она в замерах отсутствует ` +

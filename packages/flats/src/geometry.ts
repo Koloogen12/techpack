@@ -54,8 +54,15 @@ export interface FlatMeasurements {
   frontNeckDrop: Centimeters;
   /** T16 глубина горловины спинки. */
   backNeckDrop: Centimeters;
-  /** T17 высота бейки горловины. */
-  neckRibHeight: Centimeters;
+  /**
+   * T17 высота бейки горловины. Пусто — горловина закрыта капюшоном
+   * и бейки у изделия нет.
+   *
+   * Раньше здесь стоял фолбэк в 2 см, и худи получало на чертеже бейку,
+   * которой в его табеле мер нет вовсе: рисунок показывал фабрике изделие,
+   * которого не существует.
+   */
+  neckRibHeight?: Centimeters;
   /** T18 наклон плеча — вертикаль от линии высших точек до плечевой точки. */
   shoulderSlope: Centimeters;
 
@@ -92,8 +99,17 @@ export interface FlatGeometry {
   sleeveTopEnd: Point;
   /** Нижний конец рукава — конец нижнего среза. */
   sleeveBottomEnd: Point;
-  /** Угол рукава к горизонтали, радианы. Выведен из ширины рукава под проймой. */
+  /**
+   * Угол рукава к горизонтали, радианы. Тот, под которым рукав НАРИСОВАН.
+   */
   sleeveAngle: number;
+  /**
+   * Угол точной укладки — тот, что следует из замеров.
+   *
+   * Отличается от нарисованного там, где точная укладка нечитаема. Хранится
+   * отдельно, чтобы документ мог сказать об отличии, а не умолчать о нём.
+   */
+  solvedSleeveAngle: number;
   /** Верхняя точка капюшона по центру. Пусто, если капюшона нет. */
   hoodTop?: Point;
   /** Внешняя точка капюшона в самом широком месте. */
@@ -123,7 +139,11 @@ const WAIST_AT = 0.6;
  *     с шириной рукава под проймой. Поэтому правка этой ширины реально
  *     поворачивает рукав на чертеже.
  */
-export function buildGeometry(m: FlatMeasurements, view: 'front' | 'back'): FlatGeometry {
+export function buildGeometry(
+  m: FlatMeasurements,
+  view: 'front' | 'back',
+  minSleeveAngleDeg = 0,
+): FlatGeometry {
   const neckHalf = m.neckWidth / 2;
   const shoulderHalf = m.shoulderWidth / 2;
   // Боковой шов стоит на половине ширины разложенного изделия — центр переда
@@ -147,7 +167,19 @@ export function buildGeometry(m: FlatMeasurements, view: 'front' | 'back'): Flat
   const hem: Point = { x: hemHalf, y: m.bodyLength };
   const hemCenter: Point = { x: 0, y: m.bodyLength };
 
-  const sleeveAngle = solveSleeveAngle(shoulderPoint, underarm, m.bicep);
+  // Угол отведения рукава: точная укладка, но не положе отраслевой условности.
+  //
+  // Точная укладка задана парой замеров однозначно — ширина рукава под проймой
+  // относится к хорде проймы как синус угла между ними. При T12/T09 = 0.89
+  // (наши трикотажные категории все) рукав ложится под 19°, и это ВЕРНО
+  // физически: оверсайз-худи с раскинутыми рукавами действительно шире полутора
+  // метров. Как чертёж это негодно — лист выходит вдвое шире своей высоты.
+  //
+  // Отраслевой рисунок отводит рукав вниз. Ткань у проймы при этом подбирается,
+  // и ширина рукава НА ЧЕРТЕЖЕ выходит меньше замера. Замер от этого не
+  // меняется: он в табеле мер, и на листе сказано, что размеры берутся оттуда.
+  const solvedAngle = solveSleeveAngle(shoulderPoint, underarm, m.bicep);
+  const sleeveAngle = Math.max(solvedAngle, (minSleeveAngleDeg * Math.PI) / 180);
   const dir = { x: Math.cos(sleeveAngle), y: Math.sin(sleeveAngle) };
   const perp = { x: -Math.sin(sleeveAngle), y: Math.cos(sleeveAngle) };
 
@@ -168,7 +200,11 @@ export function buildGeometry(m: FlatMeasurements, view: 'front' | 'back'): Flat
   if (m.hoodHeight !== undefined && m.hoodWidth !== undefined) {
     // Капюшон не может быть уже горловины, к которой пришит: если замер
     // говорит иначе, чертёж всё равно обязан остаться читаемым.
-    const half = Math.max(m.hoodWidth / 2, neckHalf * 1.55);
+    //
+    // Запас именно МИНИМАЛЬНЫЙ. Прежний коэффициент 1.55 срабатывал не как
+    // защита от невозможного замера, а всегда: он перебивал реальную H02
+    // и рисовал капюшон на четверть шире, чем сказано в табеле мер.
+    const half = Math.max(m.hoodWidth / 2, neckHalf * 1.15);
     hoodTop = { x: 0, y: -m.hoodHeight };
     hoodSide = { x: half, y: -m.hoodHeight * 0.55 };
   }
@@ -188,6 +224,7 @@ export function buildGeometry(m: FlatMeasurements, view: 'front' | 'back'): Flat
     sleeveTopEnd,
     sleeveBottomEnd,
     sleeveAngle,
+    solvedSleeveAngle: solvedAngle,
     ...(hoodTop ? { hoodTop } : {}),
     ...(hoodSide ? { hoodSide } : {}),
     bounds: { width, top, bottom },

@@ -160,6 +160,16 @@ export const ConstructionNodeSchema = z
      * Виден ли узел на фото изделия.
      * false → значение в документе получает статус «предположение».
      */
+    /**
+     * Какой линией узел представлен на техническом рисунке.
+     *
+     * `outline` означает силуэт: плечевой и боковой швы — это край детали,
+     * отдельной линии внутри чертежа у них нет и быть не должно.
+     * `null` означает, что линии нет намеренно, и тогда обязано быть сказано
+     * почему: узел, молча пропавший с рисунка, неотличим от забытого.
+     */
+    flat_line: z.string().min(1).nullable(),
+    flat_line_note_ru: z.string().min(1).nullable(),
     visible_on_photo: z.boolean(),
     /**
      * Ключ признака из карты видимости, подтверждающий этот узел.
@@ -178,6 +188,17 @@ export const ConstructionNodeSchema = z
   .and(VerifiabilitySchema)
   .superRefine(verifiabilityRefinement)
   .superRefine((n, ctx) => {
+    // Узел без линии на чертеже обязан объяснять, почему её нет.
+    // Молча пропавший с рисунка узел неотличим от забытого.
+    if (n.flat_line === null && n.flat_line_note_ru === null) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          `узел ${n.id} не имеет линии на чертеже и не объясняет почему — ` +
+          `технолог читает чертёж швами, и пропуск обязан быть намеренным`,
+        path: ['flat_line_note_ru'],
+      });
+    }
     if (n.requires_special_equipment && n.alternative_node_id === null) {
       ctx.addIssue({
         code: 'custom',

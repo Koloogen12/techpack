@@ -9,3 +9,4 @@ export * from './views.js';
 export * from './scale.js';
 export * from './print.js';
 export * from './body.js';
+export * from './flat.js';

@@ -145,3 +145,16 @@ pnpm generate --answers golden/answers/tshirt-women-46.json \
 ## Definition of Done
 
 Код + тест + прогон голден-набора + обновлённый ADR или док + строка в [CHANGELOG.md](CHANGELOG.md).
+
+## Бинарные файлы
+
+Картинки, шрифты и PDF идут через **Git LFS** — правила в `.gitattributes`.
+Один раз на машину:
+
+```bash
+brew install git-lfs && git lfs install
+```
+
+Без этого коммит бинарника упадёт с ошибкой внешнего фильтра. Уже
+закоммиченные файлы остаются обычными блобами: перенос истории в LFS —
+отдельное решение, оно переписывает историю.

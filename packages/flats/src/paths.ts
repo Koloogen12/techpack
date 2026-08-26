@@ -29,23 +29,73 @@ const neckArc = (a: number, b: number): string =>
 const neckArcTail = (a: number, b: number): string =>
   C({ x: a * KAPPA, y: b }, { x: a, y: b * KAPPA }, { x: a, y: 0 });
 
+/**
+ * Он же в обратную сторону: от плеча к центру.
+ * Обращение кубической кривой — перестановка её опорных точек.
+ */
+const neckArcTailBack = (a: number, b: number): string =>
+  C({ x: a, y: b * KAPPA }, { x: a * KAPPA, y: b }, { x: 0, y: b });
+
 /** Точка на том же эллипсе при параметре t от центра (0) к плечу (1). */
 const onNeck = (t: number, a: number, b: number): Point => ({
   x: a * Math.sin((t * Math.PI) / 2),
   y: b * Math.cos((t * Math.PI) / 2),
 });
 
+/**
+ * Конструктивный шов на чертеже.
+ *
+ * У линии есть ИМЯ, и это не украшение разметки: узел обработки в разделе
+ * конструкции обязан иметь на чертеже видимую линию, иначе документ
+ * противоречит сам себе — технолог читает чертёж швами и первым делом
+ * спросит, где шов проймы. Связь проверяется в обе стороны тестом.
+ */
+export interface SeamLine {
+  id: string;
+  d: string;
+}
+
+/**
+ * Деталь кроя на чертеже.
+ *
+ * Чертёж — не один силуэт, а набор деталей, и заливке это принципиально.
+ * Пояс и манжеты кроятся из ДРУГОГО полотна: в спецификации это отдельная
+ * позиция, кашкорсе, и при печати полотна до раскроя она не печатается.
+ * Заливая рисунком весь силуэт, превью обещало печатный пояс — фабрика
+ * прислала бы однотонный, и правым остался бы документ, а не клиент.
+ *
+ * Второе, ради чего нужны детали, — ДОЛЕВАЯ. Рукав скроен вдоль своей длины,
+ * и на чертеже он повёрнут; значит и рисунок на нём повёрнут вместе с ним.
+ * Глобально вертикальная заливка показывала бы направление, которого
+ * на готовой вещи не будет.
+ */
+export interface FlatPanel {
+  id: string;
+  /** Замкнутый контур детали. */
+  d: string;
+  /**
+   * Роль материала из спецификации. `shell` печатается, `rib` — нет:
+   * это отдельное полотно, и оно идёт цветом-компаньоном.
+   */
+  material: 'shell' | 'rib';
+  /**
+   * Поворот долевой детали относительно вертикали, градусы по часовой.
+   * Ноль — деталь кроится строго по долевой, как перед и спинка.
+   */
+  grain_deg: number;
+}
+
 export interface FlatPaths {
   /** Силуэт правой половины. Левая — зеркалом, поэтому симметрия точная. */
   outline: string;
-  /** Конструктивные швы: пройма, шов втачивания бейки, плечевой шов. */
-  seams: string[];
+  /** Конструктивные швы: пройма, шов втачивания бейки, притачивание рибан. */
+  seams: SeamLine[];
   /** Отделочные строчки. Каждая линия — одна реальная строчка. */
-  stitches: string[];
+  stitches: SeamLine[];
   /** Рубчик отделочных деталей — условное обозначение рибаны. */
   ribs: string[];
-  /** Капюшон: контур и линия лицевого края. Пусто, если капюшона нет. */
-  hood: string[];
+  /** Капюшон: контур, лицевой край, люверс. Пусто, если капюшона нет. */
+  hood: SeamLine[];
   /**
    * Отдельные детали, рисуемые контуром поверх корпуса.
    *
@@ -55,7 +105,7 @@ export interface FlatPaths {
    */
   parts: string[];
   /** Карман-кенгуру. Пусто, если кармана нет. */
-  pocket: string[];
+  pocket: SeamLine[];
   /**
    * Замкнутые области под заливку — цветом колорвея или раппортом.
    *
@@ -66,6 +116,8 @@ export interface FlatPaths {
    * у худи в раппорте зияла незакрашенная дыра.
    */
   fill: string[];
+  /** Детали кроя. Заливка идёт по ним, а не по силуэту. */
+  panels: FlatPanel[];
   /** Линия центра переда или спинки — тонкая, вспомогательная. */
   center: string;
   /**
@@ -86,6 +138,14 @@ export interface PathOptions {
   /** Глубина подгибки низа рукава, см. */
   sleeveHemAllowance: number;
   sleeveStitchRows: number;
+  /**
+   * Ниже этого угла рукав на чертеже не отводится, градусы.
+   *
+   * Приходит снаружи, из справочника условностей: чертёж остаётся чистой
+   * проекцией спеки и в справочники не ходит. Ноль означает «рисовать точную
+   * укладку» — так строятся тесты геометрии.
+   */
+  minSleeveAngleDeg: number;
 }
 
 export const DEFAULT_PATH_OPTIONS: PathOptions = {
@@ -93,6 +153,7 @@ export const DEFAULT_PATH_OPTIONS: PathOptions = {
   hemStitchRows: 2,
   sleeveHemAllowance: 2,
   sleeveStitchRows: 2,
+  minSleeveAngleDeg: 0,
 };
 
 export function buildPaths(
@@ -100,7 +161,7 @@ export function buildPaths(
   view: 'front' | 'back',
   options: PathOptions = DEFAULT_PATH_OPTIONS,
 ): { geometry: FlatGeometry; paths: FlatPaths } {
-  const g = buildGeometry(m, view);
+  const g = buildGeometry(m, view, options.minSleeveAngleDeg);
   const neckDrop = view === 'front' ? m.frontNeckDrop : m.backNeckDrop;
 
   // --- Пройма ------------------------------------------------------------------
@@ -164,29 +225,47 @@ export function buildPaths(
   ].join(' ');
 
   // --- Конструктивные швы ------------------------------------------------------
-  // Шов втачивания бейки — тот же эллипс с полуосями, увеличенными на высоту бейки.
-  const bandA = g.hps.x + m.neckRibHeight * 0.55;
-  const bandB = neckDrop + m.neckRibHeight;
+  // Пройма идёт первой и помечена: по этой линии технолог читает узел
+  // втачивания рукава, и связь «узел ↔ линия на чертеже» проверяется тестом.
+  const seams: SeamLine[] = [{ id: 'armhole', d: `${M(g.shoulderPoint)} ${armhole}` }];
 
-  const seams = [`${M(g.shoulderPoint)} ${armhole}`, neckArc(bandA, bandB)];
+  // Шов втачивания бейки — тот же эллипс с полуосями, увеличенными на высоту
+  // бейки. Бейки может не быть вовсе: у худи горловина закрыта капюшоном,
+  // и раньше сюда подставлялись типовые 2 см — чертёж показывал фабрике
+  // деталь, которой в табеле мер нет.
+  const bandA = m.neckRibHeight === undefined ? 0 : g.hps.x + m.neckRibHeight * 0.55;
+  const bandB = m.neckRibHeight === undefined ? 0 : neckDrop + m.neckRibHeight;
+  if (m.neckRibHeight !== undefined) {
+    seams.push({ id: 'neck_band', d: neckArc(bandA, bandB) });
+  }
+  // У изделия с капюшоном бейки нет, и линия горловины — это шов втачивания
+  // капюшона. Он обязан быть НАЗВАН: узел «втачивание капюшона» есть
+  // в конструкции, и технолог ищет его на чертеже.
+  if (m.hoodHeight !== undefined) {
+    seams.push({ id: 'hood_set_in', d: neckArc(g.hps.x, neckDrop) });
+  }
 
   // --- Отстрочки: столько линий, сколько реальных строчек ----------------------
-  const stitches: string[] = [];
+  const stitches: SeamLine[] = [];
 
-  for (let i = 0; i < options.hemStitchRows; i++) {
+  // Подгибка низа рисуется только там, где низ ПОДШИТ. У изделия с поясом-риб
+  // подгибки нет вовсе, и отстрочка на чертеже обещала бы операцию, которой
+  // в спецификации не будет.
+  for (let i = 0; m.waistRibHeight === undefined && i < options.hemStitchRows; i++) {
     const offset = options.hemAllowance - i * 0.35;
-    stitches.push(
-      `${M({ x: 0, y: g.hem.y - offset })} L ${f(g.hem.x - 0.2)} ${f(g.hem.y - offset)}`,
-    );
+    stitches.push({
+      id: 'hem_stitch',
+      d: `${M({ x: 0, y: g.hem.y - offset })} L ${f(g.hem.x - 0.2)} ${f(g.hem.y - offset)}`,
+    });
   }
 
   const perp = { x: -Math.sin(g.sleeveAngle), y: Math.cos(g.sleeveAngle) };
   const dir = { x: Math.cos(g.sleeveAngle), y: Math.sin(g.sleeveAngle) };
-  for (let i = 0; i < options.sleeveStitchRows; i++) {
+  for (let i = 0; m.cuffRibHeight === undefined && i < options.sleeveStitchRows; i++) {
     const back = options.sleeveHemAllowance - i * 0.35;
     const a = { x: g.sleeveTopEnd.x - dir.x * back, y: g.sleeveTopEnd.y - dir.y * back };
     const b = { x: a.x + perp.x * m.sleeveOpening, y: a.y + perp.y * m.sleeveOpening };
-    stitches.push(`${M(a)} ${L(b)}`);
+    stitches.push({ id: 'sleeve_hem_stitch', d: `${M(a)} ${L(b)}` });
   }
 
   // --- Рубчик бейки: частые тонкие линии поперёк детали ------------------------
@@ -194,10 +273,12 @@ export function buildPaths(
   // технолог узнаёт бейку с одного взгляда, без подписи. Обе точки берутся
   // при одном параметре на двух эллипсах, поэтому штрихи ложатся ровно.
   const ribs: string[] = [];
-  const RIB_COUNT = 9;
-  for (let i = 1; i < RIB_COUNT; i++) {
-    const t = i / RIB_COUNT;
-    ribs.push(`${M(onNeck(t, g.hps.x, neckDrop))} ${L(onNeck(t, bandA, bandB))}`);
+  if (m.neckRibHeight !== undefined) {
+    const RIB_COUNT = 9;
+    for (let i = 1; i < RIB_COUNT; i++) {
+      const t = i / RIB_COUNT;
+      ribs.push(`${M(onNeck(t, g.hps.x, neckDrop))} ${L(onNeck(t, bandA, bandB))}`);
+    }
   }
 
   // --- Отделочные детали: манжета и пояс ---------------------------------------
@@ -205,7 +286,7 @@ export function buildPaths(
   // так технолог отличает рибану от подгибки без подписи.
   if (m.waistRibHeight !== undefined) {
     const y = g.hem.y - m.waistRibHeight;
-    seams.push(`${M({ x: 0, y })} L ${f(g.hem.x)} ${f(y)}`);
+    seams.push({ id: 'waistband', d: `${M({ x: 0, y })} L ${f(g.hem.x)} ${f(y)}` });
     const step = Math.max(g.hem.x / 14, 0.8);
     for (let x = step; x < g.hem.x; x += step) {
       ribs.push(`${M({ x, y })} L ${f(x)} ${f(g.hem.y)}`);
@@ -216,7 +297,7 @@ export function buildPaths(
     const back = m.cuffRibHeight;
     const a = { x: g.sleeveTopEnd.x - dir.x * back, y: g.sleeveTopEnd.y - dir.y * back };
     const b = { x: a.x + perp.x * m.sleeveOpening, y: a.y + perp.y * m.sleeveOpening };
-    seams.push(`${M(a)} ${L(b)}`);
+    seams.push({ id: 'cuff', d: `${M(a)} ${L(b)}` });
     const steps = 7;
     for (let i = 1; i < steps; i++) {
       const t = i / steps;
@@ -229,41 +310,55 @@ export function buildPaths(
   // --- Капюшон ------------------------------------------------------------------
   // На техническом чертеже капюшон показывают разложенным ВВЕРХ, за плечами:
   // иначе он закрывает горловину и спинку, и их не проверить.
-  const hood: string[] = [];
+  const hood: SeamLine[] = [];
   if (g.hoodTop && g.hoodSide && m.hoodOpening !== undefined) {
     const h = -g.hoodTop.y;
     const side = g.hoodSide.x;
 
     // Внешний контур: от шва втачивания расширяется у основания,
     // держит ширину в средней части и скругляется к макушке.
+    // Профиль капюшона, разложенного вверх: расширяется от горловины,
+    // держит ширину в средней части и скругляется к макушке. Прежние
+    // контрольные точки выводили его на полную ширину сразу и держали
+    // до самого верха — получалась коробка, а не капюшон.
     const arc = (w: number, top: number, from: Point): string =>
       `${M(from)} ` +
-      C({ x: w * 1.04, y: -top * 0.3 }, { x: w, y: -top * 0.74 }, { x: w * 0.7, y: -top * 0.95 }) +
+      C(
+        { x: w * 0.98, y: -top * 0.22 },
+        { x: w, y: -top * 0.55 },
+        { x: w * 0.93, y: -top * 0.78 },
+      ) +
       ' ' +
-      C({ x: w * 0.4, y: -top * 1.02 }, { x: w * 0.17, y: -top }, { x: 0, y: -top });
+      C({ x: w * 0.82, y: -top * 0.95 }, { x: w * 0.45, y: -top }, { x: 0, y: -top });
 
-    hood.push(arc(side, h, { x: g.hps.x, y: 0 }));
+    hood.push({ id: 'hood_outline', d: arc(side, h, { x: g.hps.x, y: 0 }) });
 
     // Лицевой край капюшона: тот же контур, отступя внутрь на ширину кулиски.
     const inset = Math.min(m.hoodOpening * 0.1, side * 0.35);
-    hood.push(arc(side - inset, h - inset, { x: g.hps.x * 0.92, y: -inset * 0.5 }));
+    hood.push({
+      id: 'hood_casing',
+      d: arc(side - inset, h - inset, { x: g.hps.x * 0.92, y: -inset * 0.5 }),
+    });
 
     // Кулиска со шнуром: люверс и свисающий конец у основания лицевого края.
     // Только на переде — сзади шнур не виден.
     if (view === 'front') {
       const eyeletY = -h * 0.08;
       const eyeletX = (side - inset) * 0.55;
-      hood.push(
-        `${M({ x: eyeletX, y: eyeletY })} m -0.45 0 a 0.45 0.45 0 1 0 0.9 0 a 0.45 0.45 0 1 0 -0.9 0`,
-      );
-      hood.push(
-        `${M({ x: eyeletX, y: eyeletY })} ` +
+      hood.push({
+        id: 'hood_eyelet',
+        d: `${M({ x: eyeletX, y: eyeletY })} m -0.45 0 a 0.45 0.45 0 1 0 0.9 0 a 0.45 0.45 0 1 0 -0.9 0`,
+      });
+      hood.push({
+        id: 'hood_drawcord',
+        d:
+          `${M({ x: eyeletX, y: eyeletY })} ` +
           C(
             { x: eyeletX + 0.6, y: eyeletY + h * 0.14 },
             { x: eyeletX - 0.4, y: eyeletY + h * 0.24 },
             { x: eyeletX + 0.3, y: eyeletY + h * 0.34 },
           ),
-      );
+      });
     }
   }
 
@@ -271,7 +366,7 @@ export function buildPaths(
   // Классическая форма: верхний край от центра, диагональный вход для руки,
   // внешний край вниз и нижний край обратно к центру. Рисуется половина,
   // вторая получается зеркалом.
-  const pocket: string[] = [];
+  const pocket: SeamLine[] = [];
   if (view === 'front' && m.pocketWidth !== undefined && m.pocketHeight !== undefined) {
     const bottom = g.hem.y - (m.waistRibHeight ?? 2) - 1.5;
     const top = bottom - m.pocketHeight;
@@ -279,11 +374,13 @@ export function buildPaths(
     const openingInner = halfWidth * 0.52;
     const openingDrop = m.pocketHeight * 0.42;
 
-    pocket.push(
-      `${M({ x: 0, y: top })} L ${f(openingInner)} ${f(top)} ` +
+    pocket.push({
+      id: 'pocket',
+      d:
+        `${M({ x: 0, y: top })} L ${f(openingInner)} ${f(top)} ` +
         `L ${f(halfWidth)} ${f(top + openingDrop)} ` +
         `L ${f(halfWidth)} ${f(bottom)} L 0 ${f(bottom)}`,
-    );
+    });
   }
 
   const center = `${M(g.neckCenter)} L 0 ${f(g.hem.y)}`;
@@ -292,8 +389,71 @@ export function buildPaths(
   // ПО ЛИНИИ ГОРЛОВИНЫ, а не по хорде. Хорда оставляла у выреза белый клин:
   // горловина выгнута наружу, и прямая её не догоняет.
   const hoodFill = hood.length
-    ? [`${hood[0]!} L 0 ${f(neckDrop)} ${neckArcTail(g.hps.x, neckDrop)} Z`]
+    ? [`${hood[0]!.d} L 0 ${f(neckDrop)} ${neckArcTail(g.hps.x, neckDrop)} Z`]
     : [];
+
+  // --- Детали кроя ---------------------------------------------------------
+  // Рукав — отдельная деталь: он ограничен проймой, а не силуэтом. Обратный
+  // ход по пройме получается перестановкой опорных точек кубической кривой.
+  const armholeBack = C(
+    { x: g.underarm.x - armDy * 0.08, y: g.underarm.y - armDy * 0.22 },
+    { x: g.shoulderPoint.x - armDy * 0.1, y: g.shoulderPoint.y + armDy * 0.38 },
+    g.shoulderPoint,
+  );
+  const sleevePanel = `${M(g.shoulderPoint)} ${sleeveTop} ${sleeveEnd} ${sleeveUnder} ${armholeBack} Z`;
+
+  // Долевая рукава идёт вдоль его длины. Поворот мотива от вертикали:
+  // rotate(a) переводит (0,1) в (−sin a, cos a); приравняв это направлению
+  // рукава (cos θ, sin θ), получаем a = θ − 90°.
+  const sleeveGrainDeg = (g.sleeveAngle * 180) / Math.PI - 90;
+
+  const panels: FlatPanel[] = [
+    { id: 'body', d: outline, material: 'shell', grain_deg: 0 },
+    { id: 'sleeve', d: sleevePanel, material: 'shell', grain_deg: sleeveGrainDeg },
+  ];
+  if (hoodFill.length) {
+    panels.push({ id: 'hood', d: hoodFill[0]!, material: 'shell', grain_deg: 0 });
+  }
+  if (pocket.length) {
+    panels.push({ id: 'pocket', d: `${pocket[0]!.d} Z`, material: 'shell', grain_deg: 0 });
+  }
+  if (m.waistRibHeight !== undefined) {
+    const y = g.hem.y - m.waistRibHeight;
+    panels.push({
+      id: 'waistband',
+      material: 'rib',
+      grain_deg: 0,
+      d: `${M({ x: 0, y })} L ${f(g.waist.x)} ${f(y)} L ${f(g.waist.x)} ${f(g.hem.y)} L 0 ${f(g.hem.y)} Z`,
+    });
+  }
+  if (m.cuffRibHeight !== undefined) {
+    const dirC = { x: Math.cos(g.sleeveAngle), y: Math.sin(g.sleeveAngle) };
+    const perpC = { x: -Math.sin(g.sleeveAngle), y: Math.cos(g.sleeveAngle) };
+    const a = {
+      x: g.sleeveTopEnd.x - dirC.x * m.cuffRibHeight,
+      y: g.sleeveTopEnd.y - dirC.y * m.cuffRibHeight,
+    };
+    const b = { x: a.x + perpC.x * m.sleeveOpening, y: a.y + perpC.y * m.sleeveOpening };
+    panels.push({
+      id: 'cuff',
+      material: 'rib',
+      grain_deg: 0,
+      d: `${M(a)} ${L(g.sleeveTopEnd)} ${L(g.sleeveBottomEnd)} ${L(b)} Z`,
+    });
+  }
+  if (m.neckRibHeight !== undefined) {
+    // Кольцо бейки: наружная дуга от центра к плечу, короткий отрезок вдоль
+    // плеча, внутренняя дуга обратно к центру. Обе дуги — один и тот же
+    // эллипс с разными полуосями, поэтому кольцо выходит ровным.
+    panels.push({
+      id: 'neckband',
+      material: 'rib',
+      grain_deg: 0,
+      d:
+        `${neckArc(bandA, bandB)} L ${f(g.hps.x)} 0 ` +
+        `${neckArcTailBack(g.hps.x, neckDrop)} L 0 ${f(bandB)} Z`,
+    });
+  }
 
   return {
     geometry: g,
@@ -305,6 +465,7 @@ export function buildPaths(
       hood,
       parts: [],
       fill: [outline, ...hoodFill],
+      panels,
       pocket,
       center,
       hidden: [],

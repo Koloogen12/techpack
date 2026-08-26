@@ -8,10 +8,10 @@
   },
   "dependencies": {
     "@specform/core": "workspace:*",
-    "@specform/stylespec": "workspace:*"
+    "@specform/stylespec": "workspace:*",
+    "@specform/kb": "workspace:*"
   },
   "devDependencies": {
-    "@specform/assembly": "workspace:*",
-    "@specform/kb": "workspace:*"
+    "@specform/assembly": "workspace:*"
   }
 }
