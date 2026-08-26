@@ -53,7 +53,6 @@ export interface RenderChoiceOptions {
   targetWidthCm: number;
   targetHeightCm: number;
   disclaimer: string;
-  viewLabels: { front: string; back: string };
 }
 
 export interface RenderedTemplate {
@@ -84,7 +83,6 @@ export function renderChosenTemplate(
   const front = renderLibraryView(frontSvg, {
     targetWidthCm: options.targetWidthCm,
     targetHeightCm: options.targetHeightCm,
-    viewLabel: options.viewLabels.front,
     disclaimer: options.disclaimer,
   });
   if (front.proportionDrift > MAX_PROPORTION_DRIFT) return null;
@@ -94,7 +92,6 @@ export function renderChosenTemplate(
     ? renderLibraryView(backSvg, {
         targetWidthCm: options.targetWidthCm,
         targetHeightCm: options.targetHeightCm,
-        viewLabel: options.viewLabels.back,
         disclaimer: options.disclaimer,
       })
     : null;

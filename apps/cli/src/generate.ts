@@ -1008,7 +1008,6 @@ async function chooseLibraryFlat(
     targetWidthCm,
     targetHeightCm,
     disclaimer: t.flats_library_disclaimer,
-    viewLabels: { front: t.view_front, back: t.view_back },
   });
   if (!rendered) {
     notes.push(

@@ -75,7 +75,7 @@ export const ZH: Messages = {
   view_side: '侧面',
   flats_label: '款式图 · 各视图同一比例,尺寸以尺寸表为准',
   flats_library_disclaimer: '示意轮廓 — 尺寸以尺寸表为准',
-  flats_library_note: '此轮廓取自款式库,按胸宽缩放至成衣规格。图中细节比例仅供示意:尺寸唯一以尺寸表为准。该视图特意不标注尺寸线。',
+  flats_library_note: '此轮廓取自款式库,按尺寸表推算的图幅缩放。图中细节比例仅供示意:尺寸唯一以尺寸表为准。该视图特意不标注尺寸线。',
 
   form_kicker: '测量表 · Seamsterly',
   form_who: '测量人',

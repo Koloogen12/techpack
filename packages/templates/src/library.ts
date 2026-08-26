@@ -24,8 +24,6 @@ export interface LibraryRenderOptions {
    */
   targetWidthCm: number;
   targetHeightCm: number;
-  /** Подпись вида: «Перед», «Спинка». */
-  viewLabel: string;
   /** Текст плашки на языке комплекта. */
   disclaimer: string;
 }
@@ -55,7 +53,6 @@ export interface LibraryRenderResult {
 
 const PLATE_FILL = '#F4F2EE';
 const PLATE_TEXT = '#5A554D';
-const LABEL_TEXT = '#0E0E0E';
 
 function parseViewBox(svg: string): Box | null {
   const m = /viewBox="([-\d.\s]+)"/.exec(svg);
@@ -96,14 +93,13 @@ export function renderLibraryView(
   const drawnWidth = unitsWide * scale;
   const drawnHeight = unitsTall * scale;
 
-  const labelSpace = options.targetHeightCm * 0.09;
-  const plateHeight = options.targetHeightCm * 0.1;
+  // Подпись вида рисует ВЫЗЫВАЮЩАЯ СТОРОНА: у документа она своя, в своей
+  // типографике, и вторая внутри картинки только налезала бы на шапку листа.
+  const plateHeight = options.targetHeightCm * 0.085;
   const frameWidth = options.targetWidthCm;
-  const frameHeight = labelSpace + drawnHeight + plateHeight * 1.6;
+  const frameHeight = drawnHeight + plateHeight * 1.7;
   const offsetX = (frameWidth - drawnWidth) / 2;
-
-  const fontLabel = options.targetHeightCm * 0.05;
-  const fontPlate = options.targetHeightCm * 0.038;
+  const fontPlate = options.targetHeightCm * 0.032;
 
   const body = innerOf(templateSvg);
   // Толщина линии живёт в единицах шаблона; при переносе в сантиметры её
@@ -113,18 +109,15 @@ export function renderLibraryView(
 
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r(frameWidth)} ${r(frameHeight)}" role="img">`,
-    `<text x="${r(frameWidth / 2)}" y="${r(labelSpace * 0.7)}" text-anchor="middle" ` +
-      `font-family="Inter, Arial, sans-serif" font-size="${r(fontLabel)}" fill="${LABEL_TEXT}">` +
-      `${escapeXml(options.viewLabel)}</text>`,
-    `<g transform="translate(${r(offsetX)} ${r(labelSpace)}) scale(${r6(scale)}) ` +
+    `<g transform="translate(${r(offsetX)} 0) scale(${r6(scale)}) ` +
       `translate(${r6(-box.minX)} ${r6(-box.minY)})" ` +
       `stroke-width="${r6(strokeScale)}">`,
     body,
     '</g>',
-    `<rect x="${r(frameWidth * 0.12)}" y="${r(labelSpace + drawnHeight + plateHeight * 0.35)}" ` +
-      `width="${r(frameWidth * 0.76)}" height="${r(plateHeight)}" rx="${r(plateHeight * 0.25)}" ` +
+    `<rect x="${r(frameWidth * 0.16)}" y="${r(drawnHeight + plateHeight * 0.45)}" ` +
+      `width="${r(frameWidth * 0.68)}" height="${r(plateHeight)}" rx="${r(plateHeight * 0.28)}" ` +
       `fill="${PLATE_FILL}"/>`,
-    `<text x="${r(frameWidth / 2)}" y="${r(labelSpace + drawnHeight + plateHeight * 1.05)}" ` +
+    `<text x="${r(frameWidth / 2)}" y="${r(drawnHeight + plateHeight * 1.18)}" ` +
       `text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${r(fontPlate)}" ` +
       `fill="${PLATE_TEXT}">${escapeXml(options.disclaimer)}</text>`,
     '</svg>',

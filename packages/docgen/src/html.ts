@@ -1540,7 +1540,8 @@ function libraryFlatsBody(library: NonNullable<DocVisuals['libraryFlats']>, t: M
     `<div class="note" style="margin-top:3mm">${esc(t.flats_library_note)}</div>` +
     // Идентификатор шаблона — не украшение: по нему бренд получает исходник
     // силуэта в выгрузке, а мы понимаем, какой шаблон выбирают чаще прочих.
-    `<div class="note" style="margin-top:1mm;opacity:.7">${esc(library.templateId)}</div>`
+    `<div class="note" style="margin-top:1mm;opacity:.65">Силуэт библиотеки: ` +
+    `${esc(library.templateId)} · исходный вектор приложен к комплекту</div>`
   );
 }
 

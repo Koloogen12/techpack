@@ -202,7 +202,6 @@ describe('силуэт в масштабе изделия', () => {
     const r = renderLibraryView(template, {
       targetWidthCm: 120,
       targetHeightCm: 100,
-      viewLabel: 'Перед',
       disclaimer: 'Иллюстративный силуэт',
     });
     // Форма листа совпала — расхождения нет, масштаб один к одному.
@@ -216,7 +215,6 @@ describe('силуэт в масштабе изделия', () => {
     const r = renderLibraryView(template, {
       targetWidthCm: 100,
       targetHeightCm: 140,
-      viewLabel: 'Перед',
       disclaimer: 'Иллюстративный силуэт',
     });
     expect(r.proportionDrift).toBeGreaterThan(MAX_PROPORTION_DRIFT);
@@ -226,7 +224,6 @@ describe('силуэт в масштабе изделия', () => {
     const r = renderLibraryView(template, {
       targetWidthCm: 60,
       targetHeightCm: 100,
-      viewLabel: 'Перед',
       disclaimer: 'п',
     });
     // Ширина упирается первой: 60/120 против 100/100.
@@ -237,11 +234,11 @@ describe('силуэт в масштабе изделия', () => {
     const r = renderLibraryView(template, {
       targetWidthCm: 120,
       targetHeightCm: 100,
-      viewLabel: 'Перед',
       disclaimer: 'Иллюстративный силуэт — размеры в табеле мер',
     });
     expect(r.svg).toContain('Иллюстративный силуэт — размеры в табеле мер');
-    expect(r.svg).toContain('Перед');
+    // Подпись вида рисует документ своей типографикой — в картинке её нет.
+    expect(r.svg).not.toContain('Перед');
   });
 
   it('толщину линии возвращает в единицы шаблона', () => {
@@ -249,7 +246,6 @@ describe('силуэт в масштабе изделия', () => {
     const r = renderLibraryView(template, {
       targetWidthCm: 60,
       targetHeightCm: 100,
-      viewLabel: 'Перед',
       disclaimer: 'п',
     });
     expect(r.svg).toContain('stroke-width="2"');
