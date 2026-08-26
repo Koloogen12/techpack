@@ -32,11 +32,24 @@ export interface NormalizeOptions {
    * её толщины срезается краем вида.
    */
   margin?: number;
-  /** Толщина линии в единицах итогового viewBox. */
-  strokeWidth?: number;
+  /**
+   * Толщина опорной линии — ДОЛЯ от размера рисунка, а не абсолют.
+   *
+   * Файлы приходят с разным масштабом: один силуэт занимает восемьсот
+   * единиц холста, другой полторы тысячи. Фиксированная толщина сделала бы
+   * первый жирным, а второй волосяным — и это было бы видно на соседних
+   * листах одного документа.
+   *
+   * Значение подобрано по плотнейшей детали: рибана рисуется линиями через
+   * четыре-пять единиц, и линия толще этого зазора превращает пояс в
+   * залитый прямоугольник. На листе пака шириной девять сантиметров такая
+   * линия даёт примерно десятую долю миллиметра — предел печати, и
+   * жирнее её делать нельзя без потери рибаны.
+   */
+  strokeRatio?: number;
 }
 
-const DEFAULTS = { margin: 0.02, strokeWidth: 2 } as const;
+const DEFAULTS = { margin: 0.02, strokeRatio: 0.0012 } as const;
 
 /**
  * Разделение листа на перед и спинку.
@@ -185,7 +198,12 @@ function clusterPaths(paths: readonly RawPath[], total: Box): RawPath[][] {
  * нашей опорной. Пунктир строчки сохраняется по той же причине — по числу
  * и виду параллельных линий технолог определяет тип машины.
  */
-export function lineArt(style: string, strokeWidth: number, sourceReference = 0): string {
+export function lineArt(
+  style: string,
+  strokeWidth: number,
+  sourceReference = 0,
+  thinnestSide = Infinity,
+): string {
   const parts = new Map<string, string>();
   for (const decl of style.split(';')) {
     const i = decl.indexOf(':');
@@ -195,10 +213,17 @@ export function lineArt(style: string, strokeWidth: number, sourceReference = 0)
 
   const hadStroke = parts.has('stroke') && parts.get('stroke') !== 'none';
   const fill = parts.get('fill');
-  // Путь без обводки, но с заливкой — это плашка: молния, рибана, тень.
-  // Она несёт форму, поэтому превращается в контур той же линией.
-  const keep = hadStroke || (fill !== undefined && fill !== 'none');
-  if (!keep) return '';
+  const filled = fill !== undefined && fill !== 'none';
+  if (!hadStroke && !filled) return '';
+
+  // Фигура тоньше собственного контура контуром не рисуется.
+  //
+  // Молния в датасете — девяносто шесть зубцов шириной полторы единицы при
+  // нашей линии в две: обведённый зубец шире зубца, и вся молния сливалась
+  // в чёрную полосу. Такая мелочь — не форма, а метка, и рисуется заливкой.
+  // Заливка тут не цвет изделия (его мы не знаем), а сама деталь: зубец
+  // молнии, люверс, закрепка.
+  if (!hadStroke && thinnestSide < strokeWidth) return `fill:#0E0E0E;stroke:none`;
 
   const own = Number(parts.get('stroke-width') ?? 'NaN');
   const factor = sourceReference > 0 && Number.isFinite(own) && own > 0 ? own / sourceReference : 1;
@@ -260,6 +285,7 @@ function viewOf(
   paths: readonly RawPath[],
   options: Required<NormalizeOptions>,
   reference: number,
+  strokeWidth: number,
 ): NormalizedView | null {
   const box = unionBox(paths.map((p) => p.box));
   if (!box) return null;
@@ -272,7 +298,8 @@ function viewOf(
 
   const body = paths
     .map((p) => {
-      const style = lineArt(p.style, options.strokeWidth, reference);
+      const thinnest = Math.min(boxWidth(p.box), boxHeight(p.box));
+      const style = lineArt(p.style, strokeWidth, reference, thinnest);
       return style ? `<path style="${style}" d="${p.d}"/>` : '';
     })
     .filter(Boolean)
@@ -307,9 +334,13 @@ export function normalizeTemplate(svg: string, options: NormalizeOptions = {}): 
   // спинка нарисованы одной рукой, и разная опора сделала бы их линии
   // разной толщины на соседних листах документа.
   const reference = referenceStrokeWidth(paths);
-  const frontView = viewOf(front, opts, reference);
+  // Толщина одна на оба вида: они стоят рядом на листе документа, и разная
+  // линия читалась бы как разная важность.
+  const sheet = unionBox(paths.map((p) => p.box))!;
+  const strokeWidth = Math.max(boxWidth(sheet), boxHeight(sheet)) * opts.strokeRatio;
+  const frontView = viewOf(front, opts, reference, strokeWidth);
   if (!frontView) throw new Error('передний вид пуст после нормализации');
-  const backView = back.length ? viewOf(back, opts, reference) : null;
+  const backView = back.length ? viewOf(back, opts, reference, strokeWidth) : null;
 
   return { front: frontView, back: backView, notes };
 }

@@ -101,17 +101,15 @@ export function renderLibraryView(
   const offsetX = (frameWidth - drawnWidth) / 2;
   const fontPlate = options.targetHeightCm * 0.032;
 
+  // Толщину линии здесь не трогаем: она задана при приёме шаблона долей от
+  // размера рисунка и масштабируется вместе с ним. Задавать её на группе
+  // бессмысленно — инлайн-стиль каждого пути всё равно сильнее.
   const body = innerOf(templateSvg);
-  // Толщина линии живёт в единицах шаблона; при переносе в сантиметры её
-  // надо вернуть обратно, иначе крупный силуэт придёт с волосяным контуром,
-  // а мелкий — с жирным.
-  const strokeScale = 1 / scale;
 
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r(frameWidth)} ${r(frameHeight)}" role="img">`,
     `<g transform="translate(${r(offsetX)} 0) scale(${r6(scale)}) ` +
-      `translate(${r6(-box.minX)} ${r6(-box.minY)})" ` +
-      `stroke-width="${r6(strokeScale)}">`,
+      `translate(${r6(-box.minX)} ${r6(-box.minY)})">`,
     body,
     '</g>',
     `<rect x="${r(frameWidth * 0.16)}" y="${r(drawnHeight + plateHeight * 0.45)}" ` +

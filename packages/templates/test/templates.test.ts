@@ -144,6 +144,38 @@ describe('line-art', () => {
   it('путь без заливки и без обводки выбрасывает', () => {
     expect(lineArt('fill:none', 2)).toBe('');
   });
+
+  it('фигуру тоньше линии рисует заливкой, а не контуром', () => {
+    // Зубец молнии шириной полторы единицы при линии в две: обведённый
+    // зубец шире зубца, и девяносто шесть таких сливались в чёрную полосу.
+    const style = lineArt('fill:#333333', 2, 0.6, 1.38);
+    expect(style).toContain('fill:#0E0E0E');
+    expect(style).toContain('stroke:none');
+  });
+
+  it('крупную заливку по-прежнему обводит', () => {
+    const style = lineArt('fill:#333333', 2, 0.6, 40);
+    expect(style).toContain('fill:none');
+  });
+
+  it('сохраняет иерархию толщин относительно опорной линии', () => {
+    // Отделочная строчка вдвое тоньше контура — это не оформление:
+    // по числу и виду параллельных линий определяют тип машины.
+    const outline = lineArt('fill:none;stroke:#000;stroke-width:0.6124', 2, 0.6124);
+    const stitch = lineArt('fill:none;stroke:#000;stroke-width:0.3062', 2, 0.6124);
+    expect(outline).toContain('stroke-width:2');
+    expect(stitch).toContain('stroke-width:1');
+  });
+
+  it('пунктир растягивает во столько же раз, во сколько потолстела линия', () => {
+    // Штрих короче собственной толщины сливается в сплошную линию.
+    const style = lineArt(
+      'fill:none;stroke:#000;stroke-width:0.3062;stroke-dasharray:0.9187',
+      2,
+      0.6124,
+    );
+    expect(style).toContain('stroke-dasharray:3');
+  });
 });
 
 describe('подбор силуэта', () => {
@@ -241,14 +273,15 @@ describe('силуэт в масштабе изделия', () => {
     expect(r.svg).not.toContain('Перед');
   });
 
-  it('толщину линии возвращает в единицы шаблона', () => {
-    // Без этого крупный силуэт пришёл бы волосяным контуром, а мелкий жирным.
+  it('толщину линии не переопределяет', () => {
+    // Она задана при приёме долей от размера рисунка и едет вместе с ним.
+    // Атрибут на группе всё равно проигрывает инлайн-стилю каждого пути.
     const r = renderLibraryView(template, {
       targetWidthCm: 60,
       targetHeightCm: 100,
       disclaimer: 'п',
     });
-    expect(r.svg).toContain('stroke-width="2"');
+    expect(r.svg).not.toContain('<g transform="translate(0 0) scale(0.5) translate(0 0)" stroke-width');
   });
 });
 
