@@ -869,14 +869,19 @@ function gradingPages(spec: StyleSpec, pro: boolean): string[] {
     `<table><thead><tr><th>Код</th><th>Точка</th><th class="num">На размер, см</th>` +
     `<th>Правило</th><th>Происхождение</th></tr></thead><tbody>${part.join('')}</tbody></table>`;
 
-  const tail =
-    (flat.length
-      ? `<h3>Не градуируются</h3><div class="note">` +
-        `${flat.map((f) => `<b>${esc(f.code)}</b> ${esc(f.name_ru)}`).join(' · ')}. ` +
-        `Величина одинакова во всех размерах: высота рибаны и наклон плеча ` +
-        `не зависят от размера, и градуировать их значило бы придумать зависимость.</div>`
-      : '') +
-    `<h3>Приёмка: правила, которых поточечный допуск не выражает</h3>` +
+  const notGraded = flat.length
+    ? `<h3>Не градуируются</h3><div class="note">` +
+      `${flat.map((f) => `<b>${esc(f.code)}</b> ${esc(f.name_ru)}`).join(' · ')}. ` +
+      `Величина одинакова во всех размерах: высота рибаны и наклон плеча ` +
+      `не зависят от размера, и градуировать их значило бы придумать зависимость.</div>`
+    : '';
+
+  // Правила приёмки — самостоятельный смысловой блок и занимают свой лист.
+  // Прижать их к хвосту таблицы значило бы напечатать нормы ГОСТ в подвале.
+  const acceptance =
+    `<h2>Приёмка: правила, которых поточечный допуск не выражает</h2>` +
+    `<div class="note" style="margin-bottom:3mm">Табель мер задаёт допуск на каждую ` +
+    `точку. Этого мало: часть брака поточечная проверка пропускает по устройству.</div>` +
     `<ul class="dash">` +
     base
       .qcRules()
@@ -901,10 +906,14 @@ function gradingPages(spec: StyleSpec, pro: boolean): string[] {
     `брак на покупателя.</div>`;
 
   const parts = chunk(rows, ROWS_PER_PAGE.grading);
-  if (!parts.length) return [head + tail];
-  return parts.map(
-    (part, i) => (i === 0 ? head : '') + table(part) + (i === parts.length - 1 ? tail : ''),
-  );
+  if (!parts.length) return [head + notGraded, acceptance];
+
+  return [
+    ...parts.map(
+      (part, i) => (i === 0 ? head : '') + table(part) + (i === parts.length - 1 ? notGraded : ''),
+    ),
+    acceptance,
+  ];
 }
 
 // ---------------------------------------------------------------- изменения
