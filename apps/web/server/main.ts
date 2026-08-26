@@ -194,6 +194,29 @@ const server = createServer(async (req, res) => {
   try {
     if (url.pathname === '/app/api/health') return json(res, 200, { ok: true });
 
+    // --- Админка созвонов: события по валидаторам + заметки о звонке --------
+    // По токену, не по инвайту: это внутренняя страница Данила.
+    if (url.pathname === '/app/api/admin' && ADMIN && url.searchParams.get('k') === ADMIN) {
+      if (req.method === 'POST') {
+        const body = await readBody(req, 16 * 1024);
+        if (body) {
+          const form = new URLSearchParams(body.toString('utf8'));
+          appendFileSync(
+            join(DATA, 'call-notes.jsonl'),
+            JSON.stringify({
+              at: new Date().toISOString(),
+              who: (form.get('who') ?? '').slice(0, 200),
+              note: (form.get('note') ?? '').slice(0, 4000),
+            }) + '\n',
+          );
+        }
+        res.writeHead(303, { location: `/app/api/admin?k=${ADMIN}` });
+        return res.end();
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      return res.end(adminPage());
+    }
+
     // Всё остальное — только по инвайту.
     if (!invite) {
       return json(res, 401, {
@@ -348,6 +371,87 @@ const server = createServer(async (req, res) => {
     return json(res, 500, { error: 'внутренняя ошибка', detail: String(error).slice(0, 200) });
   }
 });
+
+/**
+ * Страница созвонов. Отвечает на вопрос «кто где застрял» по телеметрии
+ * и хранит заметки. Никаких действий отсюда запустить нельзя — только
+ * прочитать и записать слова.
+ */
+function adminPage(): string {
+  const events = existsSync(join(DATA, 'events.jsonl'))
+    ? readFileSync(join(DATA, 'events.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => JSON.parse(l) as { at: string; who: string; type: string; payload: unknown })
+    : [];
+  const notes = existsSync(join(DATA, 'call-notes.jsonl'))
+    ? readFileSync(join(DATA, 'call-notes.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => JSON.parse(l) as { at: string; who: string; note: string })
+    : [];
+
+  const byWho = new Map<string, typeof events>();
+  for (const e of events) {
+    if (!byWho.has(e.who)) byWho.set(e.who, []);
+    byWho.get(e.who)!.push(e);
+  }
+
+  const esc = (x: string): string =>
+    x.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const people = [...byWho.entries()]
+    .map(([who, list]) => {
+      const last = list[list.length - 1]!;
+      const rows = list
+        .slice(-30)
+        .map(
+          (e) =>
+            `<tr><td class="mono">${esc(e.at.slice(11, 19))}</td><td>${esc(e.type)}</td>` +
+            `<td class="mono">${esc(JSON.stringify(e.payload ?? '').slice(0, 90))}</td></tr>`,
+        )
+        .join('');
+      return (
+        `<details ${Date.now() - Date.parse(last.at) < 3600_000 ? 'open' : ''}>` +
+        `<summary><b>${esc(who)}</b> · событий: ${list.length} · последнее: ${esc(last.type)} в ${esc(last.at.slice(11, 19))}</summary>` +
+        `<table>${rows}</table></details>`
+      );
+    })
+    .join('');
+
+  const noteRows = notes
+    .slice(-20)
+    .reverse()
+    .map(
+      (n) =>
+        `<div class="note"><b>${esc(n.who)}</b> · ${esc(n.at.slice(0, 16))}<br>${esc(n.note)}</div>`,
+    )
+    .join('');
+
+  return (
+    `<!doctype html><html lang="ru"><head><meta charset="utf-8">` +
+    `<meta name="robots" content="noindex,nofollow"><title>Seamsterly · созвоны</title>` +
+    `<style>body{margin:0;padding:32px;background:#FBFAF8;color:#161616;font:14px/1.5 Sora,Arial,sans-serif;max-width:920px}` +
+    `h1{font-size:22px}h2{font-size:16px;margin-top:32px}` +
+    `.mono{font-family:"JetBrains Mono",monospace;font-size:11px}` +
+    `table{border-collapse:collapse;margin:8px 0}td{padding:4px 10px;border-bottom:1px solid #E3E1DC;font-size:12px}` +
+    `details{background:#fff;border:1px solid #E3E1DC;padding:10px 14px;margin-bottom:8px}` +
+    `summary{cursor:pointer}` +
+    `.note{background:#fff;border:1px solid #E3E1DC;padding:10px 14px;margin-bottom:8px;font-size:13px}` +
+    `textarea,input{font:inherit;width:100%;padding:8px;border:1px solid #E3E1DC;margin:4px 0}` +
+    `button{font:inherit;padding:9px 18px;background:#161616;color:#fff;border:0;cursor:pointer}</style>` +
+    `</head><body><h1>Созвоны</h1>` +
+    `<h2>Кто что делал</h2>${people || '<div>Событий пока нет.</div>'}` +
+    `<h2>Заметка о звонке</h2>` +
+    `<form method="post"><input name="who" placeholder="с кем говорили">` +
+    `<textarea name="note" rows="4" placeholder="что сказали, что пообещали, что чинить"></textarea>` +
+    `<button>Сохранить</button></form>` +
+    `<h2>Прошлые заметки</h2>${noteRows || '<div>Пока пусто.</div>'}` +
+    `</body></html>`
+  );
+}
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`demo server on 127.0.0.1:${PORT} · data: ${DATA} · invites: ${invites().length}`);
