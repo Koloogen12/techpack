@@ -1,7 +1,7 @@
 import { isSeamsterlyError, type CostLedger, type Logger, silentLogger } from '@seamsterly/core';
 import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
 import type { StyleSpec } from '@seamsterly/stylespec';
-import { defaultImageModel, generateImage, type ReferenceImage } from './client.js';
+import { defaultImageModels, generateImage, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 import { buildRenderPrompt, type RenderPromptOptions } from './prompt.js';
 
@@ -68,7 +68,12 @@ export async function visualize(
 ): Promise<VisualizeResult> {
   const logger = options.logger ?? silentLogger;
   const cache = options.cache ?? sharedCache;
-  const model = options.model ?? defaultImageModel();
+  // Ключ кэша считается по ГОЛОВЕ цепочки, а не по сработавшей модели.
+  // Иначе успех запасной модели лёг бы под чужой ключ, следующая сборка
+  // промахнулась бы мимо кэша и заплатила бы за ту же картинку снова.
+  // Какой моделью она в итоге получена — записано в спутнике кэша.
+  const chain = options.model ? [options.model] : defaultImageModels();
+  const model = chain[0]!;
 
   const promptOptions: RenderPromptOptions = {};
   if (options.colorwayId !== undefined) promptOptions.colorwayId = options.colorwayId;
@@ -102,7 +107,7 @@ export async function visualize(
   }
 
   try {
-    const generateOptions: Parameters<typeof generateImage>[1] = { model, logger };
+    const generateOptions: Parameters<typeof generateImage>[1] = { models: chain, logger };
     if (options.references?.length) generateOptions.references = options.references;
     if (options.apiKey !== undefined) generateOptions.apiKey = options.apiKey;
     if (options.ledger !== undefined) generateOptions.ledger = options.ledger;

@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     category,
     answersFingerprint: `cli|${category}`,
     model,
-    cache: new FileVisionCache(process.env.SPECFORM_CACHE_DIR ?? '.cache/vision'),
+    cache: new FileVisionCache(process.env.SEAMSTERLY_CACHE_DIR ?? '.cache/vision'),
     ledger,
     logger: createLogger({ level: 'warn' }),
   });

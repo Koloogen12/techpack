@@ -62,7 +62,7 @@ export interface AnalyzeResult {
 export const MAX_PHOTOS = 6;
 
 export function defaultModel(): string {
-  return process.env.SPECFORM_VISION_MODEL ?? 'claude-opus-5';
+  return process.env.SEAMSTERLY_VISION_MODEL ?? 'claude-opus-5';
 }
 
 /**

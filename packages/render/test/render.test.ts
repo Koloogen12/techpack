@@ -10,6 +10,8 @@ import {
   buildRenderPrompt,
   renderKey,
   visualize,
+  defaultImageModels,
+  generateImage,
 } from '../src/index.js';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
@@ -202,7 +204,9 @@ describe('визуализация не ломает документ', () => {
     vi.stubEnv('COMETAPI_KEY', 'test-key');
     const spy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response('нет мест', { status: 503 }));
+      // Свежий Response на каждый вызов: тело читается один раз, а цепочка
+      // моделей делает несколько попыток.
+      .mockImplementation(async () => new Response('нет мест', { status: 503 }));
 
     const result = await visualize(TSHIRT, { cache: new MemoryRenderCache() });
     expect(result.ok).toBe(false);
@@ -242,5 +246,87 @@ describe('визуализация не ломает документ', () => {
     if (second.ok) expect(second.image.cached).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
+  });
+});
+
+describe('цепочка моделей', () => {
+  /**
+   * Знание не наше: снято с боевого бэкенда виджета примерки, который ходит
+   * в тот же CometAPI. Там генератор РЕГУЛЯРНО блокирует по safety
+   * совершенно безобидную розничную одежду, и через OpenAI-совместимый
+   * проход это выглядит не как ошибка, а как ответ 200 без картинки.
+   */
+  const ok = (data: string): Response =>
+    new Response(
+      JSON.stringify({
+        choices: [{ message: { content: `![](data:image/png;base64,${data})` } }],
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  const noImage = (): Response =>
+    new Response(JSON.stringify({ choices: [{ message: { content: 'не могу помочь' } }] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+
+  const PNG =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+  it('ответ без картинки — не отказ, а повод сменить модель', async () => {
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(noImage())
+      .mockResolvedValueOnce(ok(PNG));
+
+    const image = await generateImage('промпт', {
+      apiKey: 'k',
+      models: ['первая', 'вторая'],
+    });
+    expect(image.model).toBe('вторая');
+    expect(image.attempt).toBe(1);
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
+  });
+
+  it('ошибка ключа НЕ повторяется другой моделью', async () => {
+    // Смена модели её не исправит, а трижды повторённый безнадёжный вызов
+    // втрое удлинит ожидание.
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('нет доступа', { status: 401 }));
+
+    await expect(
+      generateImage('промпт', { apiKey: 'k', models: ['первая', 'вторая', 'третья'] }),
+    ).rejects.toThrow();
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
+  it('перегрузка сервиса повторяется', async () => {
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('too many', { status: 429 }))
+      .mockResolvedValueOnce(ok(PNG));
+
+    const image = await generateImage('промпт', { apiKey: 'k', models: ['a', 'b'] });
+    expect(image.model).toBe('b');
+    spy.mockRestore();
+  });
+
+  it('явно названная модель отменяет цепочку', async () => {
+    // Просили конкретную — значит хотят именно её, и подмена была бы
+    // сюрпризом. Цепочка нужна там, где модель не выбирали.
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(noImage());
+    await expect(generateImage('промпт', { apiKey: 'k', model: 'одна' })).rejects.toThrow();
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
+  it('заданная основная модель встаёт в ГОЛОВУ цепочки, а не отменяет её', () => {
+    process.env.SEAMSTERLY_IMAGE_MODEL = 'своя';
+    const chain = defaultImageModels();
+    delete process.env.SEAMSTERLY_IMAGE_MODEL;
+    expect(chain[0]).toBe('своя');
+    expect(chain.length).toBeGreaterThan(1);
   });
 });
