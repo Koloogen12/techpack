@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { SeamsterlyError, silentLogger, type CostLedger, type Logger } from '@seamsterly/core';
 import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamsterly/kb';
@@ -129,6 +130,19 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   const client = options.client ?? createClient();
   const startedAt = performance.now();
 
+  // Прокси-режим: через CometAPI родной structured output не доезжает —
+  // прокси перегоняет запрос в чат-формат, и модель отвечает прозой.
+  // Схема уходит в промпт, ответ разбирается и проверяется тем же zod:
+  // мусор не пройдёт, он упадёт здесь, а не на фабрике.
+  if (process.env.SEAMSTERLY_VISION_BASE_URL) {
+    const report = await analyzeViaProxy(client, model, photos, category, base, logger);
+    const proxyMs = Math.round(performance.now() - startedAt);
+    cache.set(key, report);
+    ledger?.record({ stage: 'vision', model, inputTokens: 0, outputTokens: 0, ms: proxyMs });
+    logger.info('vision: разбор завершён (прокси-режим)', { key, model, ms: proxyMs });
+    return { report, cacheKey: key, fromCache: false };
+  }
+
   const response = await client.messages.parse({
     model,
     max_tokens: 16_000,
@@ -216,6 +230,89 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
 
   cache.set(key, report);
   return { report, cacheKey: key, fromCache: false };
+}
+
+/**
+ * Разбор через прокси без нативного structured output.
+ *
+ * Два прохода максимум: если первый ответ не сошёлся со схемой, модель
+ * получает СВОЮ ошибку валидации и исправляется. Больше двух не делаем:
+ * третья попытка статистически не лучше второй, а платит за неё клиент.
+ */
+async function analyzeViaProxy(
+  client: Anthropic,
+  model: string,
+  photos: readonly Photo[],
+  category: Category,
+  base: KnowledgeBase,
+  logger: Logger,
+): Promise<VisionReport> {
+  const schema = JSON.stringify(z.toJSONSchema(VisionReportSchema));
+  const instruction =
+    `Ответь ЕДИНСТВЕННЫМ JSON-объектом, строго по этой JSON-схеме, ` +
+    `без пояснений до или после и без markdown-ограждений:\n${schema}`;
+
+  let lastError = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await client.messages.create({
+      model,
+      max_tokens: 16_000,
+      system: buildSystemPrompt(base, category),
+      messages: [
+        {
+          role: 'user',
+          content: [
+            ...photos.map((photo) => ({
+              type: 'image' as const,
+              source: {
+                type: 'base64' as const,
+                media_type: MEDIA_TYPES[photo.format],
+                data: Buffer.from(photo.bytes).toString('base64'),
+              },
+            })),
+            {
+              type: 'text' as const,
+              text:
+                buildUserPrompt(
+                  photos.map((p, i) => ({ index: i + 1, view: p.view })),
+                  base,
+                ) +
+                `\n\n${instruction}` +
+                (lastError
+                  ? `\n\nПрошлый ответ не прошёл проверку: ${lastError}. Исправь и ответь только JSON.`
+                  : ''),
+            },
+          ],
+        },
+      ],
+    });
+
+    const text = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    // Модель через прокси любит обернуть JSON в ограждение или добавить
+    // фразу — берём от первой скобки до последней.
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end <= start) {
+      lastError = 'в ответе нет JSON-объекта';
+      logger.warn('vision(proxy): ответ без JSON, повтор', { attempt });
+      continue;
+    }
+    try {
+      return VisionReportSchema.parse(JSON.parse(text.slice(start, end + 1)));
+    } catch (cause) {
+      lastError = String(cause).slice(0, 400);
+      logger.warn('vision(proxy): не сошлось со схемой, повтор', { attempt });
+    }
+  }
+
+  throw new SeamsterlyError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
+    userMessage: 'Разбор фотографий не завершился корректно.',
+    userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
+    details: { model, promptVersion: PROMPT_VERSION, proxy: true },
+  });
 }
 
 function createClient(): Anthropic {
