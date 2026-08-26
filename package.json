@@ -38,7 +38,8 @@
     "fit:apply": "tsx apps/cli/src/apply-fitting.ts",
     "versions": "tsx apps/cli/src/versions.ts",
     "admin": "tsx apps/cli/src/admin.ts",
-    "site": "tsx apps/site/src/build.ts"
+    "site": "tsx apps/site/src/build.ts",
+    "demo:server": "tsx --env-file-if-exists=.env apps/web/server/main.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

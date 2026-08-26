@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { applyFitting, parseMeasuredSet, type MeasuredSet } from '../src/index.js';
+import { applyFitting, editMeasurement, parseMeasuredSet, type MeasuredSet } from '../src/index.js';
 
 const INPUT: StyleSpecInput = {
   id: 'fit-apply',
@@ -111,5 +111,45 @@ describe('правдоподобие: сообщаем, а не ограничи
     );
     expect(valueOf(r.spec, 'T10')).toBe(75);
     expect(r.notes.some((n) => n.includes('длиннее руки'))).toBe(true);
+  });
+});
+
+describe('ручная правка замера', () => {
+  it('правка меняет значение, статус и сдвигает градацию', () => {
+    const r = editMeasurement(spec, 'T01', 70);
+    expect(r.rejected).toBeNull();
+    const p = r.spec.measurements.points.find((x) => x.code === 'T01')!;
+    expect(p.base.value).toBe(70);
+    expect(p.base.confidence).toBe('user_input');
+    const before = spec.measurements.points.find((x) => x.code === 'T01')!;
+    expect(p.graded[0]!.value.value - before.graded[0]!.value.value).toBeCloseTo(
+      70 - before.base.value,
+      5,
+    );
+  });
+
+  it('составная точка пересчитывается следом', () => {
+    const r = editMeasurement(spec, 'T01', 70);
+    const t02 = r.spec.measurements.points.find((x) => x.code === 'T02')!;
+    const t16 = r.spec.measurements.points.find((x) => x.code === 'T16')!;
+    expect(t02.base.value).toBeCloseTo(70 - t16.base.value, 1);
+    expect(r.changed.map((c) => c.code)).toContain('T02');
+  });
+
+  it('составную точку напрямую править нельзя, и отказ объясняет форму правки', () => {
+    const r = editMeasurement(spec, 'T02', 60);
+    expect(r.rejected).toContain('T01');
+    expect(r.spec).toBe(spec);
+  });
+
+  it('бессмысленное значение отклоняется', () => {
+    expect(editMeasurement(spec, 'T01', -5).rejected).toBeTruthy();
+    expect(editMeasurement(spec, 'T01', 400).rejected).toBeTruthy();
+  });
+
+  it('счётчик предположений пересчитывается', () => {
+    const r = editMeasurement(spec, 'T01', 70);
+    expect(() => r.spec).not.toThrow();
+    expect(r.spec.meta.assumptions_count).toBeLessThanOrEqual(spec.meta.assumptions_count);
   });
 });

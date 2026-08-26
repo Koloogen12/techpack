@@ -1,0 +1,230 @@
+/*
+ * Дизайн-токены — design_handoff_seamsterly/README.md, решение CEO D1.
+ * Значения не выдумываются и не округляются: нестандартные величины
+ * в хендоффе намеренные.
+ */
+:root {
+  --bg: #f4f2ef;
+  --ink: #0e0e0e;
+  --paper: #ffffff;
+  --data-red: #c0392b;
+  --confirm-green: #2f7c5a;
+  --lib-grey: #b0ada6;
+  --secondary: #6b6b67;
+  --tertiary: #5a5a56;
+  --hairline: #e4e1dc;
+  --hairline-row: #efede9;
+  --hover-bg: #faf9f7;
+  --shadow-doc: 0 20px 48px rgba(14, 14, 14, 0.1), 0 4px 14px rgba(14, 14, 14, 0.06);
+  --shadow-menu: 0 18px 44px rgba(0, 0, 0, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Sora, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  /* Точечная миллиметровка канваса — из хендоффа, значения точные. */
+  background-image: radial-gradient(rgba(14, 14, 14, 0.075) 1px, transparent 1.2px);
+  background-size: 26px 26px;
+  background-position: 13px 13px;
+}
+
+.kicker {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--secondary);
+}
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.data-value {
+  font-family: Inter, sans-serif;
+  font-weight: 300;
+  color: var(--data-red);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+.btn {
+  background: var(--ink);
+  color: var(--paper);
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 26px;
+  font-weight: 600;
+  font-size: 14.5px;
+  transition: opacity 160ms ease;
+}
+.btn:hover {
+  opacity: 0.88;
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.btn.white {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+}
+.btn.white:hover {
+  background: var(--hover-bg);
+  opacity: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  border-radius: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  transition: all 160ms ease;
+  user-select: none;
+}
+.chip:hover {
+  border-color: var(--ink);
+}
+.chip.on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.card {
+  background: var(--paper);
+  border-radius: 14px;
+  box-shadow: var(--shadow-doc);
+}
+.panel {
+  background: var(--paper);
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.dot.user,
+.dot.fit_confirmed,
+.dot.user_input {
+  background: var(--confirm-green);
+}
+.dot.photo,
+.dot.estimated_from_photo,
+.dot.measured_by_scale {
+  background: var(--ink);
+}
+.dot.lib,
+.dot.default_from_base {
+  background: var(--lib-grey);
+}
+.dot.guess,
+.dot.assumption {
+  background: var(--data-red);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.16);
+}
+
+@keyframes sfup {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sfpulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 14, 14, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(14, 14, 14, 0);
+  }
+}
+@keyframes sffloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-7px) rotate(var(--tilt, 0deg));
+  }
+}
+@keyframes sfshimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.sfup {
+  animation: sfup 200ms ease;
+}
+
+input[type='text'],
+input[type='number'],
+textarea,
+select {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  background: var(--paper);
+  outline: none;
+  color: var(--ink);
+  transition: border-color 160ms ease;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--ink);
+}
+input.edited {
+  border-color: var(--confirm-green);
+}
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  box-shadow: var(--shadow-menu);
+  animation: sfup 180ms ease;
+  z-index: 90;
+}
+.toast .dot {
+  background: var(--confirm-green);
+}

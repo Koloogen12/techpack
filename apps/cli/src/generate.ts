@@ -102,6 +102,13 @@ export interface GenerateOptions {
    * не прочтут.
    */
   langs?: readonly Locale[];
+  /**
+   * Сообщение о смене стадии. Нужно веб-очереди: человек на созвоне ждёт
+   * десятки секунд, и «идёт генерация» без деталей читается как зависание.
+   * Стадии настоящие, а не декоративные — то же деление, что в отчёте
+   * себестоимости.
+   */
+  onStage?: (stage: 'vision' | 'assembly' | 'render' | 'docgen', detail?: string) => void;
   model?: string;
   logger?: Logger;
   kb?: KnowledgeBase;
@@ -527,6 +534,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const shots = options.photoPaths.map(parsePhotoArg);
 
   if (shots.length > 0) {
+    options.onStage?.('vision', `снимков: ${shots.length}`);
     const result = await analyzePhotos({
       photos: shots.map((s) => readPhoto(s.path, s.view)),
       category: answers.category,
@@ -549,6 +557,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const swatchResult = await readSwatches(answers, options.swatchDir ?? 'brand-library/swatches');
 
   // --- 2. Сборка StyleSpec (детерминированная) --------------------------------
+  options.onStage?.('assembly');
   const assemblyStart = performance.now();
   const { spec, notes } = buildStyleSpec(
     specInputFrom(answers, report, {
@@ -628,6 +637,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     );
   }
 
+  options.onStage?.('render');
   const [browser, visual, patternVisual, ...extraVisuals] = await Promise.all([
     chromium.launch(),
     visualize(spec, { ...visualOptions, ...swatchRef(colorways[0]?.id) }),
@@ -687,6 +697,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // ожидание стороннего сервиса записывается в docgen, суммарное время
   // стадий превышает время прогона, и отчёт по себестоимости врёт вдвое.
   const renderStart = performance.now();
+  options.onStage?.('docgen');
 
   try {
     const visuals = await buildVisuals(
