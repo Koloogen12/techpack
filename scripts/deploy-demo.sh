@@ -9,7 +9,7 @@ HOST=root@135.106.146.200
 echo "→ код"
 rsync -az --delete \
   --exclude=node_modules --exclude=.git --exclude=.env --exclude=out \
-  --exclude=.cache --exclude=apps/web/dist --exclude=versions --exclude=market-research \
+  --exclude=.cache --exclude=/apps/web/dist --exclude=/versions --exclude=/market-research --exclude=/out \
   ./ $HOST:/opt/seamsterly/app/
 
 echo "→ зависимости и фронт"
