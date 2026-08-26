@@ -19,15 +19,19 @@ import { garmentDepth } from './side.js';
 export function flatDefaults(
   spec: StyleSpec,
   base: KnowledgeBase = defaultKb(),
-): Pick<RenderOptions, 'depthCm' | 'minSleeveAngleDeg'> {
+): Pick<RenderOptions, 'depthCm' | 'minSleeveAngleDeg' | 'hoodDrawFactor'> {
   const m = measurementsFrom(spec);
-  const angle = base.sleeveAngle(m.sleeveLength);
+  const angle = base.sleeveAngle(m.sleeveLength, spec.base.fit_intent);
+  const hoodDrawFactor = base.hoodDrawFactor();
 
-  if (!needsSideView(spec)) return { minSleeveAngleDeg: angle.min_angle_deg };
+  if (!needsSideView(spec)) {
+    return { minSleeveAngleDeg: angle.min_angle_deg, hoodDrawFactor };
+  }
 
   const body = base.bodyMeasurements(spec.base.gender, spec.base.base_size_ru);
   return {
     minSleeveAngleDeg: angle.min_angle_deg,
+    hoodDrawFactor,
     depthCm: garmentDepth(m.chestFlat, {
       bodyChest: body.chest,
       widthToDepth: base.bodyRatio(spec.base.gender).width_to_depth,

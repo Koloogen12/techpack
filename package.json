@@ -39,7 +39,8 @@
     "versions": "tsx apps/cli/src/versions.ts",
     "admin": "tsx apps/cli/src/admin.ts",
     "site": "tsx apps/site/src/build.ts",
-    "demo:server": "tsx --env-file-if-exists=.env apps/web/server/main.ts"
+    "demo:server": "tsx --env-file-if-exists=.env apps/web/server/main.ts",
+    "flats:grid": "tsx packages/flats/scripts/reference-grid.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

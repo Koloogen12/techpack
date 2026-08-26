@@ -11,6 +11,7 @@
   "default_nodes": [
     "zip_set_in",
     "zip_placket_topstitch",
+    "hood_center_seam",
     "hood_set_in",
     "hood_drawcord_casing",
     "hood_eyelets",
@@ -87,6 +88,16 @@
     },
     {
       "step": 6,
+      "operation_ru": "Стачать две части капюшона по центру",
+      "operation_en": "Join the two hood panels along the centre",
+      "operation_zh": "缝合两片帽片后中",
+      "node_id": "hood_center_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
       "operation_ru": "Стачать капюшон и втачать его в горловину",
       "operation_en": "Assemble hood and set into neckline",
       "operation_zh": "缝合帽子并绱至领口",
@@ -96,7 +107,7 @@
       "time_sec": null
     },
     {
-      "step": 7,
+      "step": 8,
       "operation_ru": "Обработать лицевой край капюшона кулиской",
       "operation_en": "Finish hood face edge with drawcord casing",
       "operation_zh": "帽口做穿绳通道",
@@ -106,7 +117,7 @@
       "time_sec": null
     },
     {
-      "step": 8,
+      "step": 9,
       "operation_ru": "Установить люверсы в кулиску",
       "operation_en": "Set eyelets into the casing",
       "operation_zh": "通道上安装气眼",
@@ -116,7 +127,7 @@
       "time_sec": null
     },
     {
-      "step": 9,
+      "step": 10,
       "operation_ru": "Втачать рукава в проймы",
       "operation_en": "Set sleeves into armholes",
       "operation_zh": "绱袖（装入袖窿）",
@@ -126,7 +137,7 @@
       "time_sec": null
     },
     {
-      "step": 10,
+      "step": 11,
       "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
       "operation_en": "Close side and underarm seam in one operation",
       "operation_zh": "一次缝合摆缝与袖底缝",
@@ -136,7 +147,7 @@
       "time_sec": null
     },
     {
-      "step": 11,
+      "step": 12,
       "operation_ru": "Стачать манжеты в кольцо и притачать к низу рукавов",
       "operation_en": "Close cuffs into loops and attach to sleeve openings",
       "operation_zh": "袖口罗纹接圈并绱至袖口",
@@ -146,7 +157,7 @@
       "time_sec": null
     },
     {
-      "step": 12,
+      "step": 13,
       "operation_ru": "Притачать пояс-рибану к низу изделия",
       "operation_en": "Attach the waistband rib to the garment bottom",
       "operation_zh": "下摆绱罗纹",
@@ -156,7 +167,7 @@
       "time_sec": null
     },
     {
-      "step": 13,
+      "step": 14,
       "operation_ru": "Вдеть шнур, закрепить наконечники",
       "operation_en": "Insert drawcord, fit cord tips",
       "operation_zh": "穿绳并装绳头",
@@ -166,7 +177,7 @@
       "time_sec": null
     },
     {
-      "step": 14,
+      "step": 15,
       "operation_ru": "Притачать составник в боковой шов",
       "operation_en": "Attach content label into side seam",
       "operation_zh": "侧缝夹缝成分标",
@@ -176,7 +187,7 @@
       "time_sec": null
     },
     {
-      "step": 15,
+      "step": 16,
       "operation_ru": "Чистка изделия, контроль качества",
       "operation_en": "Trim threads, quality control",
       "operation_zh": "剪线清理、质检",
@@ -186,7 +197,7 @@
       "time_sec": null
     },
     {
-      "step": 16,
+      "step": 17,
       "operation_ru": "Влажно-тепловая обработка, упаковка",
       "operation_en": "Final press, packing",
       "operation_zh": "整烫、包装",

@@ -21,6 +21,7 @@ import {
   type Gender,
   type KnowledgeBase,
   type PomPoint,
+  type PomTemplateFile,
   type ScaleReferenceId,
   type ScaleSide,
   type ToleranceProfileId,
@@ -301,6 +302,15 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   // причине, что и рукав: длина рукава от центра спинки складывается из них.
   clampShoulder(raw, notes);
 
+  // Наблюдение по длине рукава переносится на длину руки.
+  //
+  // Модель видит именно РУКАВ — от плечевого шва до края манжеты; длину руки
+  // от центра спинки на фото не видно вовсе. Но в табеле первична рука: она
+  // антропометрична и не зависит от того, где бренд поставил плечевой шов.
+  // Без этого переноса наблюдение с фото пропадало бы молча: T10 составная,
+  // и её собственная пропорция никуда не применяется.
+  adoptSleeveObservation(raw, input, template, notes);
+
   // Анатомический предел проверяется ДО составных точек: длина рукава от
   // центра спинки складывается из ширины плеч и длины рукава, и подрезать
   // её после сложения значило бы получить сумму, не равную слагаемым.
@@ -515,22 +525,92 @@ function clampShoulder(raw: Map<string, Tracked<number>>, notes: string[]): void
  */
 const MAX_REACH_TO_HEIGHT = 1.1;
 
+/**
+ * Перенос наблюдения «длина рукава» на длину руки от центра спинки.
+ *
+ * Обратное преобразование того же тождества: рука = рукав + половина плеч.
+ * Статус наследуется от наблюдения — оно остаётся оценкой по фото, просто
+ * записанной в ту точку, которая в этом табеле первична.
+ */
+function adoptSleeveObservation(
+  raw: Map<string, Tracked<number>>,
+  input: PomInput,
+  template: PomTemplateFile,
+  notes: string[],
+): void {
+  const armPoint = template.points.find((p) => p.code === 'T11');
+  const sleevePoint = template.points.find((p) => p.code === 'T10');
+  if (!armPoint || !sleevePoint) return;
+  if (armPoint.derivation !== 'ratio_to_anchor' || sleevePoint.derivation !== 'composed') return;
+
+  const observed = normalizeRatio(input.photo_ratios?.['T10']);
+  const ratio = observed?.ratio;
+  if (ratio === undefined || ratio <= 0) return;
+
+  const shoulder = raw.get('T06');
+  const arm = raw.get('T11');
+  if (!shoulder || !arm) return;
+
+  // Пропорция T10 объявлена к тому же якорю, что и остальные точки шаблона:
+  // берём её так же, как взял бы движок, будь точка независимой.
+  const anchor = raw.get(template.points.find((p) => p.derivation === 'anchor')!.code);
+  if (!anchor) return;
+  const sleeveObserved =
+    sleevePoint.anchor_basis === 'height' ? input.base_height_cm * ratio : anchor.value * ratio;
+  const armFromPhoto = sleeveObserved + shoulder.value / 2;
+
+  // Оговорка модели едет вместе со значением: пользователь видит её на той
+  // же строке, а не узнаёт из общего списка заметок.
+  const doubt =
+    observed?.confidence === 'low'
+      ? `уверенность по фото низкая${observed.reason ? ` (${observed.reason})` : ''} — подтвердить по образцу`
+      : observed?.confidence === 'medium'
+        ? `уверенность по фото средняя${observed.reason ? ` (${observed.reason})` : ''}`
+        : '';
+
+  raw.set(
+    'T11',
+    track(
+      armFromPhoto,
+      observed?.confidence === 'low' ? 'default_from_base' : 'estimated_from_photo',
+      'engine:pom/arm-from-sleeve',
+      `выведено из оценки длины рукава по фото: рука = рукав + половина ширины плеч${
+        doubt ? `; ${doubt}` : ''
+      }`,
+    ),
+  );
+  if (observed?.confidence === 'low' && observed.reason) {
+    notes.push(
+      `Длина рукава по фото оценена с низкой уверенностью (${observed.reason}) — ` +
+        `длина руки и рукав в таблице помечены как типовые значения.`,
+    );
+  }
+}
+
 function clampReach(raw: Map<string, Tracked<number>>, input: PomInput, notes: string[]): void {
   const shoulder = raw.get('T06');
-  const sleeve = raw.get('T10');
-  if (!shoulder || !sleeve) return;
+  // Размах меряется по РУКЕ, а не по рукаву: рукав от плечевой точки — это
+  // разность (длина руки от центра спинки минус половина плеч), и сумма
+  // «плечи + два рукава» тождественно равна удвоенной длине руки. Проверять
+  // и подрезать надо именно её: подрежь мы производную величину, следующий
+  // же пересчёт составных точек вернул бы её обратно, и клэмп молча
+  // перестал бы работать — ровно это и случилось, когда T10 стала составной.
+  const arm = raw.get('T11');
+  if (!shoulder || !arm) return;
 
+  const shoulderCm = roundCm(shoulder.value);
   // Сравниваем ОКРУГЛЁННЫЕ значения — те самые, что попадут в документ.
   // Иначе округление на выходе способно добавить последнюю десятую и вывести
   // сумму за предел уже после проверки; на переборе входов такой случай нашёлся.
-  const shoulderCm = roundCm(shoulder.value);
-  const sleeveCm = roundCm(sleeve.value);
+  const armCm = roundCm(arm.value);
   const limit = input.base_height_cm * MAX_REACH_TO_HEIGHT;
-  const reach = shoulderCm + 2 * sleeveCm;
+  const reach = 2 * armCm;
   if (reach <= limit) return;
 
   // Вниз до десятой: клэмп не имеет права округлять в сторону нарушения.
-  const allowed = Math.floor(((limit - shoulderCm) / 2) * 10) / 10;
+  const allowedArm = Math.floor((limit / 2) * 10) / 10;
+  const sleeveCm = roundCm(armCm - shoulderCm / 2);
+  const allowed = roundCm(allowedArm - shoulderCm / 2);
   if (allowed <= 0) {
     // Плечи сами по себе шире анатомического предела — рукав тут ни при чём,
     // и подрезать его до нуля значило бы спрятать настоящую проблему.
@@ -551,12 +631,12 @@ function clampReach(raw: Map<string, Tracked<number>>, input: PomInput, notes: s
   );
 
   raw.set(
-    'T10',
+    'T11',
     track(
-      allowed,
+      allowedArm,
       // Значение больше не «то, что на фото», а наша граница — статус падает.
       'default_from_base',
-      'engine:pom/anatomy#T10',
+      'engine:pom/anatomy#T11',
       `ограничено анатомическим пределом размаха (плечи + 2 × рукав ≤ рост × ${MAX_REACH_TO_HEIGHT}) — проверьте по образцу`,
     ),
   );

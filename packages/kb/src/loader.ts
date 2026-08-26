@@ -79,6 +79,7 @@ import {
   type ToleranceClassesFile,
   type VisibilityMapFile,
   CATEGORIES,
+  type FlatFitClass,
 } from './schemas/index.js';
 
 const DATA_DIR = new URL('../data/', import.meta.url).pathname;
@@ -249,11 +250,22 @@ export class KnowledgeBase {
    * Короткий или длинный определяется ЗАМЕРОМ T10, а не названием категории:
    * лонгслив с укороченным рукавом обязан рисоваться как короткий.
    */
-  sleeveAngle(sleeveLengthCm: number): SleeveAngle {
+  sleeveAngle(sleeveLengthCm: number, fit: FitIntent): SleeveAngle {
     const kind = sleeveLengthCm >= this.flatConventions.long_sleeve_from_cm ? 'long' : 'short';
-    const found = this.flatConventions.sleeve_angles.find((a) => a.kind === kind);
-    if (!found) throw new Error(`нет условности отведения рукава: ${kind}`);
+    // Посадка решает больше, чем длина: у oversize рукав висит вдоль корпуса,
+    // у регулярной отведён вдвое сильнее. Свободная посадка идёт по регулярной
+    // конвенции — расширение прибавки ещё не делает силуэт boxy.
+    const fitClass: FlatFitClass = fit === 'oversize' ? 'oversize' : 'regular';
+    const found = this.flatConventions.sleeve_angles.find(
+      (a) => a.kind === kind && a.fit_class === fitClass,
+    );
+    if (!found) throw new Error(`нет условности отведения рукава: ${kind}/${fitClass}`);
     return found;
+  }
+
+  /** Доля замера H01, на которую капюшон поднимается на чертеже. */
+  hoodDrawFactor(): number {
+    return this.flatConventions.hood_draw_factor;
   }
 
   /**

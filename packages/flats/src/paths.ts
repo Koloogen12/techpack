@@ -167,6 +167,20 @@ export function buildPaths(
   // --- Пройма ------------------------------------------------------------------
   // Форма настоящей проймы: от плечевой точки идёт вниз с прогибом внутрь,
   // затем выходит наружу к нижней точке. Прямая линия читалась бы как реглан.
+  // --- Плечевой скат: дуга, а не прямая ---------------------------------------
+  // На всех пяти референсах плечо спущенное и переходит в рукав ПЛАВНО.
+  // Прямая с изломом в плечевой точке — первый признак машинного рисунка:
+  // так плечо не выглядит ни на одном настоящем техпаке.
+  const shoulderCtrl = {
+    x: g.hps.x + (g.shoulderPoint.x - g.hps.x) * 0.82,
+    y: g.shoulderPoint.y - m.shoulderSlope * 0.22,
+  };
+  const shoulderLine = C(
+    { x: g.hps.x + (g.shoulderPoint.x - g.hps.x) * 0.45, y: g.hps.y + m.shoulderSlope * 0.18 },
+    shoulderCtrl,
+    g.shoulderPoint,
+  );
+
   const armDy = g.underarm.y - g.shoulderPoint.y;
   const armhole = C(
     { x: g.shoulderPoint.x - armDy * 0.1, y: g.shoulderPoint.y + armDy * 0.38 },
@@ -177,20 +191,39 @@ export function buildPaths(
   // --- Рукав ------------------------------------------------------------------
   // Верхний сгиб слегка выгнут ВВЕРХ: прямая читается трапецией, а прогиб
   // внутрь — вмятиной. Обе контрольные точки идут вдоль сгиба и лишь приподняты.
-  const rise = m.sleeveLength * 0.05;
-  const capA = lerp(g.shoulderPoint, g.sleeveTopEnd, 0.35);
-  const capB = lerp(g.shoulderPoint, g.sleeveTopEnd, 0.78);
+  // Внешняя линия рукава — ВЫПУКЛАЯ кривая, а не прямая. На референсах она
+  // отходит от плечевой точки, полнеет в верхней трети и подбирается к
+  // манжете. Выпуклость наружу: прямая читается трапецией, прогиб внутрь —
+  // вмятиной, а настоящий рукав имеет объём в окате и садится книзу.
+  const rise = m.sleeveLength * 0.06;
+  // Нормаль к оси рукава — в неё выносятся контрольные точки, поэтому
+  // выпуклость сохраняется при любом угле отведения.
+  const nrm = { x: -Math.sin(g.sleeveAngle), y: Math.cos(g.sleeveAngle) };
+  const capB = lerp(g.shoulderPoint, g.sleeveTopEnd, 0.75);
+  // Первая контрольная точка — ЗЕРКАЛО последней контрольной точки плеча
+  // относительно плечевой: так касательная в стыке общая, и плечо перетекает
+  // в рукав без излома. На техпаках место стыка на глаз не находится —
+  // именно этим спущенное плечо отличается от угла.
+  const joinCtrl = {
+    x: 2 * g.shoulderPoint.x - shoulderCtrl.x,
+    y: 2 * g.shoulderPoint.y - shoulderCtrl.y,
+  };
   const sleeveTop = C(
-    { x: capA.x, y: capA.y - rise },
-    { x: capB.x, y: capB.y - rise * 0.45 },
+    joinCtrl,
+    { x: capB.x - nrm.x * rise * 0.55, y: capB.y - nrm.y * rise * 0.55 },
     g.sleeveTopEnd,
   );
   const sleeveEnd = L(g.sleeveBottomEnd);
-  // Нижний срез рукава почти прямой, с лёгким провисом к пройме.
-  const underMid = lerp(g.sleeveBottomEnd, g.underarm, 0.55);
+  // Внутренний срез рукава: от манжеты к пройме он РАСШИРЯЕТСЯ, повторяя
+  // сужение внешней линии. Манжета по замерам вдвое уже рукава под проймой
+  // (референс №3: 9 см при 24), и рисунок обязан показать это сужение.
+  const underMid = lerp(g.sleeveBottomEnd, g.underarm, 0.5);
   const sleeveUnder = C(
-    lerp(g.sleeveBottomEnd, g.underarm, 0.25),
-    { x: underMid.x, y: underMid.y + m.sleeveOpening * 0.06 },
+    lerp(g.sleeveBottomEnd, g.underarm, 0.22),
+    {
+      x: underMid.x + nrm.x * m.sleeveOpening * 0.1,
+      y: underMid.y + nrm.y * m.sleeveOpening * 0.1,
+    },
     g.underarm,
   );
 
@@ -215,7 +248,7 @@ export function buildPaths(
   const outline = [
     // Горловина — четверть эллипса от центра переда к высшей точке плеча.
     neckArc(g.hps.x, neckDrop),
-    L(g.shoulderPoint),
+    shoulderLine,
     // У безрукавки контур идёт СРАЗУ ПО ПРОЙМЕ: рукава нет, и нарисованный
     // рукав обещал бы фабрике деталь кроя, которой в раскладке не будет.
     ...(m.sleeveless ? [armhole] : [sleeveTop, sleeveEnd, sleeveUnder]),
@@ -328,17 +361,28 @@ export function buildPaths(
     // держит ширину в средней части и скругляется к макушке. Прежние
     // контрольные точки выводили его на полную ширину сразу и держали
     // до самого верха — получалась коробка, а не капюшон.
+    // Профиль капюшона: от шва втачивания он расширяется ПОСТЕПЕННО, набирает
+    // ширину к середине высоты и скругляется к макушке. Прежние контрольные
+    // точки выводили его на полную ширину сразу от горловины — получался гриб
+    // на ножке, а на реальных техпаках это плавная арка.
     const arc = (w: number, top: number, from: Point): string =>
       `${M(from)} ` +
       C(
-        { x: w * 0.98, y: -top * 0.22 },
-        { x: w, y: -top * 0.55 },
-        { x: w * 0.93, y: -top * 0.78 },
+        { x: from.x + (w - from.x) * 0.42, y: -top * 0.14 },
+        { x: w * 0.94, y: -top * 0.4 },
+        { x: w, y: -top * 0.62 },
       ) +
       ' ' +
-      C({ x: w * 0.82, y: -top * 0.95 }, { x: w * 0.45, y: -top }, { x: 0, y: -top });
+      C({ x: w * 0.98, y: -top * 0.84 }, { x: w * 0.78, y: -top }, { x: 0, y: -top });
 
     hood.push({ id: 'hood_outline', d: arc(side, h, { x: g.hps.x, y: 0 }) });
+
+    // Капюшон шьётся из двух половин, и шов между ними виден со спины —
+    // на всех пяти референсах он подписан отдельной выноской. На переде
+    // его нет: там капюшон повёрнут к зрителю лицевым краем.
+    if (view === 'back') {
+      hood.push({ id: 'hood_center_seam', d: `${M({ x: 0, y: 0 })} L 0 ${f(-h)}` });
+    }
 
     // Лицевой край капюшона: тот же контур, отступя внутрь на ширину кулиски.
     const inset = Math.min(m.hoodOpening * 0.1, side * 0.35);

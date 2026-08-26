@@ -93,6 +93,24 @@ export function applyFitting(
   }
 
   // --- Простые точки: замер становится значением -----------------------------
+  // Замер рукава с рулетки переносится на длину руки.
+  //
+  // Рукав от плечевой точки — составная величина: рука минус половина плеч.
+  // Но померить рулеткой человек может именно рукав, а руку от центра спинки
+  // на разложенном изделии не меряет никто. Поэтому его замер не отбрасывается
+  // как «составной», а переводится в ту точку, из которой рукав считается:
+  // тождество то же, просто прочитанное в обратную сторону.
+  const valueOfPoint = (code: string): number | undefined =>
+    spec.measurements.points.find((x) => x.code === code)?.base.value;
+
+  const sleeveMeasured = measuredBy.get('T10');
+  if (sleeveMeasured !== undefined && byCode.get('T10')?.derivation === 'composed') {
+    const shoulder = measuredBy.get('T06') ?? valueOfPoint('T06');
+    if (shoulder !== undefined && !measuredBy.has('T11')) {
+      measuredBy.set('T11', Math.round((sleeveMeasured + shoulder / 2) * 10) / 10);
+    }
+  }
+
   const points = spec.measurements.points.map((p) => {
     const entry = byCode.get(p.code);
     const value = measuredBy.get(p.code);

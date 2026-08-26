@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { CATEGORIES, kb, type Category, type ProportionScope } from '@seamsterly/kb';
+import {
+  CATEGORIES,
+  kb,
+  type Category,
+  type FitIntent,
+  type ProportionScope,
+} from '@seamsterly/kb';
 import { buildGeometry, flatDefaults, measurementsFrom } from '../src/index.js';
 import type { FlatGeometry, FlatMeasurements } from '../src/geometry.js';
 
@@ -60,7 +66,7 @@ interface Sample {
  * а геометрия — то, что нарисовано. Ширина рукава под проймой на чертеже
  * меньше замера, и увидеть это можно только здесь.
  */
-function samples(m: FlatMeasurements, g: FlatGeometry): Sample[] {
+function samples(m: FlatMeasurements, g: FlatGeometry, fit: FitIntent): Sample[] {
   const sleeveLength = Math.hypot(
     g.sleeveTopEnd.x - g.shoulderPoint.x,
     g.sleeveTopEnd.y - g.shoulderPoint.y,
@@ -75,7 +81,7 @@ function samples(m: FlatMeasurements, g: FlatGeometry): Sample[] {
   // у самого чертежа. Спрашивать справочник, а не сравнивать с числом здесь:
   // граница обязана быть одна на генератор и на его проверку.
   const sleeveScope: ProportionScope =
-    base.sleeveAngle(m.sleeveLength).kind === 'long' ? 'long_sleeve' : 'short_sleeve';
+    base.sleeveAngle(m.sleeveLength, fit).kind === 'long' ? 'long_sleeve' : 'short_sleeve';
   // Низ рукава с манжетой и подшитый — разные величины: манжета стягивает
   // рукав вдвое, и мерить их одной меркой значит гарантированно ошибиться.
   const openingScope: ProportionScope = m.cuffRibHeight === undefined ? sleeveScope : 'cuff_rib';
@@ -109,6 +115,43 @@ function samples(m: FlatMeasurements, g: FlatGeometry): Sample[] {
     // Пропорции формы. Ширина листа берётся по габариту построенной геометрии —
     // по тем самым крайним точкам, между которыми лист и растягивается.
     at('body_length_over_chest', 'all', 'T01 к T03', g.hem.y / chestDrawn),
+    // Низ трикотажного изделия собран рибаной и шире груди не бывает.
+    at('hem_over_chest', 'all', 'T05 к T03', (2 * g.hem.x) / chestDrawn),
+    // --- конвенции формы из набора реальных техпаков --------------------
+    ...(m.hoodHeight !== undefined && g.hoodSide
+      ? [
+          at(
+            'hood_height_over_view',
+            'hood',
+            'высота капюшона к высоте вида',
+            // Высота НАРИСОВАННОГО капюшона, а не замера H01: на чертеже он
+            // показан лежащим за спиной и виден не целиком.
+            -g.hoodTop!.y / (-g.hoodTop!.y + g.hem.y),
+          ),
+          // Основание капюшона — там, где он втачан: ширина горловины.
+          // Ширина самого капюшона берётся в его широкой части, поэтому
+          // сравнивать надо именно основание, а не габарит детали.
+          at(
+            'hood_base_over_neck',
+            'hood',
+            'основание капюшона к ширине горловины',
+            (2 * g.hps.x) / m.neckWidth,
+          ),
+        ]
+      : []),
+    ...(m.waistRibHeight !== undefined
+      ? [
+          at(
+            'rib_over_body_length',
+            'waist_rib',
+            'высота пояса к длине изделия',
+            m.waistRibHeight / m.bodyLength,
+          ),
+        ]
+      : []),
+    ...(m.cuffRibHeight !== undefined
+      ? [at('cuff_over_bicep', 'cuff_rib', 'T13 к T12', m.sleeveOpening / m.bicep)]
+      : []),
     ...(sleeved
       ? [
           at('drawing_aspect', sleeveScope, 'размах к длине', (2 * g.bounds.width) / g.hem.y),
@@ -129,8 +172,14 @@ function samples(m: FlatMeasurements, g: FlatGeometry): Sample[] {
 const CASES = CATEGORIES.flatMap((category) =>
   FITS.map((fit) => {
     const s = spec(category, fit);
-    const m = measurementsFrom(s);
-    const g = buildGeometry(m, 'front', flatDefaults(s, base).minSleeveAngleDeg);
+    const d = flatDefaults(s, base);
+    // Условности рисунка подмешиваются так же, как это делает renderFlat:
+    // бенчмарк обязан мерить ТО ЖЕ, что уходит в документ, а не голые замеры.
+    const m: FlatMeasurements = {
+      ...measurementsFrom(s),
+      ...(d.hoodDrawFactor === undefined ? {} : { hoodDrawFactor: d.hoodDrawFactor }),
+    };
+    const g = buildGeometry(m, 'front', d.minSleeveAngleDeg);
     return { category, fit, m, g, name: `${category} · ${fit}` };
   }),
 );
@@ -138,10 +187,15 @@ const CASES = CATEGORIES.flatMap((category) =>
 const round = (n: number): string => (Math.round(n * 1000) / 1000).toString();
 
 describe('бенчмарк пропорций технического чертежа', () => {
-  describe.each(CASES)('$name', ({ m, g }) => {
-    const taken = samples(m, g);
+  describe.each(CASES)('$name', ({ m, g, fit }) => {
+    const taken = samples(m, g, fit);
+    // Посадка изделия в терминах конвенций: свободная идёт по регулярной —
+    // расширенная прибавка ещё не делает силуэт boxy.
+    const fitClass = fit === 'oversize' ? 'oversize' : 'regular';
 
     for (const p of base.flatProportions()) {
+      // Диапазон, объявленный для другой посадки, к этому изделию не относится.
+      if (p.fit_class !== undefined && p.fit_class !== fitClass) continue;
       const mine = taken.filter((s) => s.id === p.id && s.scope === p.scope);
       // Пропорция не про это изделие: рукав другой длины, манжеты нет.
       if (mine.length === 0) continue;
@@ -154,8 +208,11 @@ describe('бенчмарк пропорций технического черт�
           const message =
             `${p.label_ru} — ${s.detail}: ${round(s.value)}, ` +
             `конвенция ${p.min}–${p.max} (${p.source})`;
-          expect(s.value, message).toBeGreaterThanOrEqual(p.min);
-          expect(s.value, message).toBeLessThanOrEqual(p.max);
+          // Допуск на округление: движок ставит угол РОВНО по конвенции,
+          // и 29.999999999999996 — это те же 30°, а не нарушение диапазона.
+          const eps = 1e-6;
+          expect(s.value, message).toBeGreaterThanOrEqual(p.min - eps);
+          expect(s.value, message).toBeLessThanOrEqual(p.max + eps);
         }
       });
     }
@@ -165,12 +222,20 @@ describe('бенчмарк пропорций технического черт�
     // Диапазон, под который не подошло ни одно изделие ядра, — мёртвые данные:
     // он выглядит проверкой и ничего не проверяет.
     const covered = new Set(
-      CASES.flatMap(({ m, g }) => samples(m, g).map((s) => `${s.id}|${s.scope}`)),
+      CASES.flatMap(({ m, g, fit }) =>
+        samples(m, g, fit).map(
+          (s) => `${s.id}|${s.scope}|${fit === 'oversize' ? 'oversize' : 'regular'}`,
+        ),
+      ),
     );
     const dead = base
       .flatProportions()
-      .filter((p) => !covered.has(`${p.id}|${p.scope}`))
-      .map((p) => `${p.id}|${p.scope}`);
+      .filter((p) =>
+        p.fit_class === undefined
+          ? !['oversize', 'regular'].some((f) => covered.has(`${p.id}|${p.scope}|${f}`))
+          : !covered.has(`${p.id}|${p.scope}|${p.fit_class}`),
+      )
+      .map((p) => `${p.id}|${p.scope}${p.fit_class ? `|${p.fit_class}` : ''}`);
     expect(dead).toEqual([]);
   });
 
@@ -187,7 +252,19 @@ describe('бенчмарк пропорций технического черт�
 describe('условность отведения рукава остаётся минимумом', () => {
   it('длинный рукав опускается вдоль корпуса круче короткого', () => {
     // Граница проходит по замеру T10, а не по названию категории.
-    expect(base.sleeveAngle(58).min_angle_deg).toBeGreaterThan(base.sleeveAngle(20).min_angle_deg);
+    expect(base.sleeveAngle(58, 'oversize').min_angle_deg).toBeGreaterThan(
+      base.sleeveAngle(20, 'oversize').min_angle_deg,
+    );
+  });
+
+  it('угол — функция посадки: у oversize рукав ближе к корпусу', () => {
+    // Пять реальных техпаков худи: oversize и boxy дают 58–66°, регулярная
+    // посадка — 30–45°. Усреднить их одним числом нельзя: средний угол
+    // неверен для обеих, и именно это делал прежний справочник.
+    const over = base.sleeveAngle(58, 'oversize');
+    const regular = base.sleeveAngle(58, 'semi_fitted');
+    expect(over.min_angle_deg).toBeGreaterThan(regular.max_angle_deg);
+    expect(over.verified && regular.verified).toBe(true);
   });
 
   it('точный угол укладки сохраняется рядом с нарисованным', () => {

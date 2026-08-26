@@ -1088,6 +1088,38 @@
       "plain_zh": "用面料条包缝袖窿，本款无袖。",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её описание того же узла — первоисточник."
+    },
+    {
+      "id": "hood_center_seam",
+      "zone": "hood",
+      "label_ru": "Стачивание частей капюшона",
+      "plain_ru": "Капюшон шьётся из двух половин, шов идёт по центру и виден со спины",
+      "seam_code": "1.01.01",
+      "stitch_code": "514",
+      "spi": 12,
+      "machine": "overlock_4",
+      "specialty": "S",
+      "seam_allowance_cm": {
+        "min": 0.7,
+        "max": 1.0,
+        "default": 1.0
+      },
+      "visible_on_photo": true,
+      "requires_special_equipment": false,
+      "alternative_node_id": null,
+      "applies_to": ["hoodie", "zip_hoodie"],
+      "verified": false,
+      "source": "kb/benchmarks/hoodie-flats/ — на всех пяти референсах шов подписан отдельной выноской",
+      "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
+      "photo_key": "neckline_type",
+      "flat_line": "hood_center_seam",
+      "flat_line_note_ru": null,
+      "label_en": "Hood centre seam",
+      "plain_en": "The hood is made of two panels; the seam runs down the centre and is visible from the back.",
+      "label_zh": "帽片拼缝",
+      "plain_zh": "帽子由两片组成，拼缝位于后中，从背面可见。",
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её описание того же узла — первоисточник."
     }
   ]
 }

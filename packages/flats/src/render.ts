@@ -63,6 +63,11 @@ export interface RenderOptions {
    */
   minSleeveAngleDeg?: number;
   /**
+   * Доля замера H01, на которую капюшон поднимается на чертеже.
+   * Условность рисунка из того же справочника.
+   */
+  hoodDrawFactor?: number;
+  /**
    * Подпись вида внутри SVG — заголовок и текст для чтения с экрана.
    *
    * Приходит снаружи, потому что чертёж живёт внутри документа, а документ
@@ -200,7 +205,9 @@ export interface ArtworkZone {
   view: 'front' | 'back';
 }
 
-export function renderFlat(m: FlatMeasurements, options: RenderOptions): RenderResult {
+export function renderFlat(m0: FlatMeasurements, options: RenderOptions): RenderResult {
+  const m: FlatMeasurements =
+    options.hoodDrawFactor === undefined ? m0 : { ...m0, hoodDrawFactor: options.hoodDrawFactor };
   const layers = options.layers ?? ['outline', 'seams', 'stitches', 'hardware', 'artwork'];
   const margin = options.margin ?? 4;
   const isSide = options.view === 'side';

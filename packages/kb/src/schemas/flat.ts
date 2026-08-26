@@ -13,9 +13,23 @@ export const SLEEVE_KINDS = ['short', 'long'] as const;
 export const SleeveKindSchema = z.enum(SLEEVE_KINDS);
 export type SleeveKind = z.infer<typeof SleeveKindSchema>;
 
+/**
+ * Класс посадки для условностей чертежа.
+ *
+ * Угол отведения рукава — функция ПОСАДКИ, а не только длины рукава:
+ * у oversize и boxy рукав висит вдоль корпуса под 58–66°, у регулярной
+ * посадки он отведён заметно сильнее, 30–45°. Смешивать эти диапазоны
+ * нельзя — усреднённый угол неверен для обоих.
+ */
+export const FLAT_FIT_CLASSES = ['regular', 'oversize'] as const;
+export const FlatFitClassSchema = z.enum(FLAT_FIT_CLASSES);
+export type FlatFitClass = z.infer<typeof FlatFitClassSchema>;
+
 export const SleeveAngleSchema = z
   .object({
     kind: SleeveKindSchema,
+    /** Посадка, для которой верна условность. */
+    fit_class: FlatFitClassSchema,
     /**
      * Ниже этого угла рукав на чертеже не опускается.
      *
@@ -29,6 +43,14 @@ export const SleeveAngleSchema = z
      * то, что делает отрасль.
      */
     min_angle_deg: z.number().min(5).max(80),
+    /**
+     * Верхняя граница диапазона конвенции.
+     *
+     * Нужна не движку, а проверке: реальные техпаки дают рукав в вилке,
+     * и «не ниже» без «не выше» пропустило бы рукав, прижатый к корпусу
+     * вплотную. Тест-бенчмарк сверяет нарисованный угол с обеими границами.
+     */
+    max_angle_deg: z.number().min(5).max(85),
     note_ru: z.string().min(1),
   })
   .and(VerifiabilitySchema)
@@ -47,7 +69,16 @@ export type SleeveAngle = z.infer<typeof SleeveAngleSchema>;
  * `cuff_rib` отделён от `long_sleeve` потому, что низ рукава с манжетой
  * и подшитый низ — разные величины: манжета стягивает рукав вдвое.
  */
-export const PROPORTION_SCOPES = ['all', 'short_sleeve', 'long_sleeve', 'cuff_rib'] as const;
+export const PROPORTION_SCOPES = [
+  'all',
+  'short_sleeve',
+  'long_sleeve',
+  'cuff_rib',
+  /** Пропорции капюшона: применимы только там, где он есть. */
+  'hood',
+  /** Пропорции пояса-рибаны: у изделия с подшитым низом их нет. */
+  'waist_rib',
+] as const;
 export const ProportionScopeSchema = z.enum(PROPORTION_SCOPES);
 export type ProportionScope = z.infer<typeof ProportionScopeSchema>;
 
@@ -66,6 +97,14 @@ export const FlatProportionSchema = z
     id: z.string().min(1),
     label_ru: z.string().min(1),
     scope: ProportionScopeSchema,
+    /**
+     * Посадка, для которой верен диапазон. Пусто — верен для любой.
+     *
+     * Появилось вместе с набором реальных техпаков: у oversize и у регулярной
+     * посадки рукав отведён по-разному, и один диапазон на обе давал бы
+     * проверку, которую проходит и то и другое, то есть не проверку.
+     */
+    fit_class: FlatFitClassSchema.optional(),
     min: z.number(),
     max: z.number(),
     /** Как величина снимается с чертежа. Без этого диапазон нечем проверить. */
@@ -86,6 +125,9 @@ export const FlatConventionsFileSchema = RefBookMetaSchema.extend({
   /** Длина рукава, с которой он считается длинным, см. */
   long_sleeve_from_cm: z.number().positive(),
   long_sleeve_note_ru: z.string().min(1),
+  /** Доля замера H01, на которую капюшон поднимается на чертеже. */
+  hood_draw_factor: z.number().positive().max(1),
+  hood_draw_note_ru: z.string().min(1),
   /** Эталонные диапазоны пропорций. Проверяются тестом-бенчмарком. */
   proportions: z.array(FlatProportionSchema).min(1),
 });

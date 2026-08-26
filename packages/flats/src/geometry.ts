@@ -77,6 +77,13 @@ export interface FlatMeasurements {
   hoodWidth?: Centimeters;
   /** H03 лицевой край капюшона. */
   hoodOpening?: Centimeters;
+  /**
+   * Доля замера H01, на которую капюшон поднимается НА ЧЕРТЕЖЕ.
+   *
+   * Условность рисунка, а не замер: приходит из справочника конвенций.
+   * Пусто — капюшон рисуется в натуральную величину.
+   */
+  hoodDrawFactor?: number;
   /** H04 ширина кармана кенгуру по верхнему краю. */
   pocketWidth?: Centimeters;
   /** H05 высота кармана кенгуру. */
@@ -225,8 +232,13 @@ export function buildGeometry(
     // защита от невозможного замера, а всегда: он перебивал реальную H02
     // и рисовал капюшон на четверть шире, чем сказано в табеле мер.
     const half = Math.max(m.hoodWidth / 2, neckHalf * 1.15);
-    hoodTop = { x: 0, y: -m.hoodHeight };
-    hoodSide = { x: half, y: -m.hoodHeight * 0.55 };
+    // Капюшон на чертеже показан лежащим за спиной и виден не целиком:
+    // нарисованный в натуральную величину, он забирает треть листа, и
+    // чертёж изделия превращается в портрет капюшона. Доля приходит
+    // аргументом из справочника — чертёж сам в справочники не ходит.
+    const drawn = m.hoodHeight * (m.hoodDrawFactor ?? 1);
+    hoodTop = { x: 0, y: -drawn };
+    hoodSide = { x: half, y: -drawn * 0.55 };
   }
 
   const width = Math.max(chestHalf, hemHalf, sleeveTopEnd.x, sleeveBottomEnd.x, hoodSide?.x ?? 0);
