@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec } from '@seamsterly/assembly';
+import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
 import { isSeamsterlyError } from '@seamsterly/core';
-import { renderHtml } from '@seamsterly/docgen';
+import { renderHtml, renderRfqHtml, rfqText } from '@seamsterly/docgen';
 import {
   CATEGORIES,
+  type Category,
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
   MACHINE_LABEL_RU,
@@ -192,5 +193,61 @@ describe('библиотечный чертёж говорит на языке �
     for (const locale of LOCALES.filter((l) => l !== 'ru')) {
       expect(messages(locale).flats_library_disclaimer).not.toBe(ru);
     }
+  });
+});
+
+/**
+ * Утечки русского в чужой комплект — по РЕНДЕРУ, а не по словарю.
+ *
+ * Словарные тесты ловят забытый ключ. Они не ловят русское слово, попавшее
+ * в документ иначе: подписью внутри SVG, значением из справочника, вольным
+ * текстом поля. Именно так «ПЕРЕД» доехало до китайского листа на просчёт —
+ * оно жило не в разметке, а в графике.
+ */
+describe('в чужом комплекте нет наших слов', () => {
+  /** Текст, который человек видит: без стилей, скриптов и разметки. */
+  const visible = (html: string): string =>
+    html
+      // Содержимое ярлыка печатается по-русски по ТР ТС 017/2011 — это
+      // требование закона, и документ об этом говорит прямо.
+      .replace(/<td data-ru-content>[\s\S]*?<\/td>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      .replace(/<[^>]+>/g, ' ');
+
+  const input = (category: Category): StyleSpecInput => ({
+    id: 'lang',
+    name: 'Lang',
+    article: 'LANG-001',
+    category,
+    gender: 'women',
+    base_size_ru: 46,
+    base_height_cm: 170,
+    fit_intent: 'semi_fitted',
+    fabric_kind: 'knit',
+    size_range: [44, 46, 48],
+    machine_park: 'base_shop',
+    generated_at: new Date('2026-08-27T00:00:00.000Z'),
+  });
+
+  const foreign = LOCALES.filter((l) => l !== 'ru');
+  const cases = CATEGORIES.flatMap((c) => foreign.map((l) => [c, l] as const));
+
+  it.each(cases)('%s/%s: в техпаке', (category, locale) => {
+    const { spec } = buildStyleSpec(input(category));
+    const words = visible(renderHtml(spec, { pro: true, locale })).match(/[А-Яа-яЁё]{4,}/g) ?? [];
+    expect([...new Set(words)]).toEqual([]);
+  });
+
+  it.each(cases)('%s/%s: на листе на просчёт', (category, locale) => {
+    const { spec } = buildStyleSpec(input(category));
+    const words = visible(renderRfqHtml(spec, { locale })).match(/[А-Яа-яЁё]{4,}/g) ?? [];
+    expect([...new Set(words)]).toEqual([]);
+  });
+
+  it.each(cases)('%s/%s: в тексте для мессенджера', (category, locale) => {
+    const { spec } = buildStyleSpec(input(category));
+    expect(rfqText(spec, { locale })).not.toMatch(/[А-Яа-яЁё]{4,}/);
   });
 });

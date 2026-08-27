@@ -244,7 +244,16 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
         : l?.composition.value) ?? '';
   // Вид переда: из библиотеки, если пак собран из неё, иначе строим сами.
   // Оба документа обязаны показывать одно и то же изделие.
-  const sketch = options.flat?.svg ?? renderFlatsFromSpec(spec).front.svg;
+  //
+  // Подпись вида ВШИТА В САМ SVG, и по умолчанию она русская: на китайском
+  // листе внутри картинки стояло «ПЕРЕД». Передаём подписи на языке листа —
+  // это единственное место, где русское слово пролезало сквозь всю
+  // локализацию, потому что жило не в разметке, а в графике.
+  const sketch =
+    options.flat?.svg ??
+    renderFlatsFromSpec(spec, {
+      viewLabels: { front: t.view_front, back: t.view_back, side: t.view_side },
+    }).front.svg;
   const contact = options.contact;
   const highlights = rfqHighlights(spec, locale);
 
