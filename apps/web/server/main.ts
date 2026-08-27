@@ -1090,6 +1090,24 @@ const server = createServer(async (req, res) => {
 
       // Лист на просчёт — тот же файл, что ушёл фабрике. Бренд обязан видеть,
       // что именно отправлено от его имени.
+      // Табель мер таблицей. Фабрика считает по нему расход и сверяет ОТК —
+      // всё это делают в Excel, а не в PDF: из PDF цифры перебивают руками,
+      // и там появляются опечатки, которые выглядят как брак пошива.
+      if (req.method === 'GET' && rest === '/pom.csv') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const csvLocale = (['en', 'zh'] as const).find((l) => l === url.searchParams.get('locale'));
+        const { pomCsv } = await import('@seamsterly/docgen');
+        logEvent(invite.name, 'pom_csv', { id, ...(csvLocale ? { locale: csvLocale } : {}) });
+        res.writeHead(200, {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition':
+            `attachment; filename="${spec.style.article}-pom` +
+            `${csvLocale ? `-${csvLocale}` : ''}.csv"`,
+        });
+        return res.end(pomCsv(spec, csvLocale ?? 'ru'));
+      }
+
       if (req.method === 'GET' && rest === '/rfq') {
         // Язык листа: тот же выбор, что у техпака. Фабрике отправляют один
         // файл, и чужой язык в нём только мешает.

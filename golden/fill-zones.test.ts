@@ -312,3 +312,39 @@ describe('узел обработки и линия на чертеже', () => 
     expect(report.ok).toBe(false);
   });
 });
+
+/**
+ * Перехлёст размеров по мелким точкам — свойство размерной системы, а не
+ * дефект: шаг градации там десятые доли, а рулетка читается с точностью до
+ * половины сантиметра, и допуск ниже погрешности измерения бессмыслен.
+ *
+ * Обязательно не отсутствие перехлёста, а РАЗГОВОР о нём. Молчащий
+ * документ отдаёт ОТК изделие, законно проходящее приёмку сразу в двух
+ * размерах, и не предупреждает, по каким точкам сортировать ряд.
+ */
+describe('перехлёст размеров назван вслух', () => {
+  it.each(CATEGORIES)('%s: где допуск шире половины шага, документ это говорит', (category) => {
+    const { spec, notes } = buildStyleSpec(input(category));
+    const overlapping = spec.measurements.points.filter((p) => {
+      if (p.graded.length < 2) return false;
+      const step = Math.abs(p.graded[1]!.value.value - p.graded[0]!.value.value);
+      return step > 0 && p.tolerance.value > step / 2 + 0.001;
+    });
+    if (overlapping.length === 0) return;
+    expect(notes.some((n) => /различ|двух размерах/i.test(n)), category).toBe(true);
+  });
+
+  it('градация не убывает ни в одной точке', () => {
+    // Соседний размер меньше предыдущего — это раскрой не того размера,
+    // и заметят его на складе, а не в документе.
+    for (const category of CATEGORIES) {
+      const { spec } = buildStyleSpec(input(category));
+      for (const p of spec.measurements.points) {
+        const values = p.graded.map((g) => g.value.value);
+        for (let i = 1; i < values.length; i++) {
+          expect(values[i], `${category}/${p.code}`).toBeGreaterThanOrEqual(values[i - 1]! - 0.001);
+        }
+      }
+    }
+  });
+});

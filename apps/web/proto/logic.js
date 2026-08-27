@@ -76,6 +76,9 @@ const track = (type, payload) => {
 };
 
 const PDF_URL = (id) => '/app/api/jobs/' + id + '/pdf?t=' + encodeURIComponent(TOKEN || '');
+/** Табель мер таблицей: по нему считают расход и сверяет ОТК. */
+const POM_CSV_URL = (id) =>
+  '/app/api/jobs/' + id + '/pom.csv?t=' + encodeURIComponent(TOKEN || '');
 /** Лист на просчёт — та же страница, что ушла фабрике. */
 const RFQ_URL = (id) => '/app/api/jobs/' + id + '/rfq?t=' + encodeURIComponent(TOKEN || '');
 const PHOTO_URL = (id, n) =>
@@ -2733,11 +2736,46 @@ class Component extends DCLogic {
             : '3 вида · клик по номеру откроет узел'
           : 'вид: ' + { front: 'перед', side: 'бок', back: 'спинка' }[s.view],
       pager: secIdx + 1 + ' / ' + SECTIONS.length,
+      // У каждого пункта меню своё действие. Раньше все четыре вели в раздел
+      // «Экспорт», где карточки нашлись для PDF и SVG, но не для таблицы
+      // замеров: пункт был обещанием без исполнения.
       exports: [
-        { tag: 'PDF', name: 'PDF полный', sub: '9 страниц, готов к отправке' },
-        { tag: 'ROLE', name: 'PDF по ролям', sub: 'технолог, закройщик, ОТК' },
-        { tag: 'SVG', name: 'SVG послойный', sub: 'контур, швы, фурнитура' },
-        { tag: 'XLS', name: 'Замеры таблицей', sub: 'POM + градация' },
+        {
+          tag: 'PDF',
+          name: 'PDF полный',
+          sub: 'все листы, готов к отправке',
+          go: () => {
+            if (!TOKEN || !s.curId || !doc) return this.set('exportOpen', false);
+            location.href = PDF_URL(s.curId);
+            track('pdf_click', { id: s.curId });
+            this.setState({ exportOpen: false });
+            this.showToast('Собираем «PDF полный» — скачается автоматически');
+          },
+        },
+        {
+          tag: 'ROLE',
+          name: 'PDF по ролям',
+          sub: 'технолог, закройщик, ОТК',
+          go: () => this.setState({ exportOpen: false, screen: 'doc', section: 'export' }),
+        },
+        {
+          tag: 'SVG',
+          name: 'SVG послойный',
+          sub: 'контур, швы, фурнитура',
+          go: () => this.setState({ exportOpen: false, screen: 'doc', section: 'export' }),
+        },
+        {
+          tag: 'XLS',
+          name: 'Замеры таблицей',
+          sub: 'POM + градация, открывается в Excel',
+          go: () => {
+            if (!TOKEN || !s.curId || !doc) return this.set('exportOpen', false);
+            location.href = POM_CSV_URL(s.curId);
+            track('pom_csv', { id: s.curId });
+            this.setState({ exportOpen: false });
+            this.showToast('Табель мер таблицей — скачается автоматически');
+          },
+        },
       ],
       shots: (
         s.wshots || [
