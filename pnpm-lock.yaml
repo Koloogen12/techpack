@@ -195,6 +195,9 @@ importers:
       '@seamsterly/stylespec':
         specifier: workspace:*
         version: link:../packages/stylespec
+      '@seamsterly/templates':
+        specifier: workspace:*
+        version: link:../packages/templates
       '@seamsterly/versions':
         specifier: workspace:*
         version: link:../packages/versions
