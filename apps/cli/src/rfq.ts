@@ -12,8 +12,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { isSeamsterlyError } from '@seamsterly/core';
 import { buildStyleSpec } from '@seamsterly/assembly';
-import { renderRfqHtml, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@seamsterly/docgen';
-import { chromium } from 'playwright';
+import { renderRfqPdf, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@seamsterly/docgen';
 import { parseAnswers, specInputFrom } from './index.js';
 
 interface Cli {
@@ -61,19 +60,10 @@ async function main(): Promise<void> {
     },
   };
 
-  const html = renderRfqHtml(spec, options);
   const text = rfqText(spec, options);
 
   mkdirSync(dirname(cli.out), { recursive: true });
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    writeFileSync(cli.out, await page.pdf({ format: 'A4', printBackground: true }));
-    await page.close();
-  } finally {
-    await browser.close();
-  }
+  writeFileSync(cli.out, await renderRfqPdf(spec, options));
 
   // Текст кладём рядом файлом: его копируют и вставляют в мессенджер,
   // а не переписывают с экрана.

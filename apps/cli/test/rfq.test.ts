@@ -35,11 +35,17 @@ describe('текст на просчёт', () => {
 
   it('влезает при абсурдно длинном контакте — режет по границе слова', () => {
     const text = rfqText(SPEC, {
-      contact: { name: 'Очень Длинное Имя '.repeat(30) },
+      contact: { name: 'Очень Длинное Имя '.repeat(30), phone: '+7 900 000-00-00' },
     });
     expect(text.length).toBeLessThanOrEqual(RFQ_TEXT_LIMIT);
     // Обрубок посреди слова читается как сбой отправителя.
     expect(text.endsWith('…')).toBe(true);
+  });
+
+  it('имя без телефона и почты контактом не считается', () => {
+    // «Связь: Данил» выглядит заполненной строкой и остаётся тупиком:
+    // фабрика не пишет имени, она пишет на номер или адрес.
+    expect(rfqText(SPEC, { contact: { name: 'Данил' } })).not.toContain('Связь');
   });
 
   it('контакт отпадает последним — без него сообщение бессмысленно', () => {
@@ -56,6 +62,15 @@ describe('текст на просчёт', () => {
     // Прислать двадцать страниц в ответ на «сколько стоит» значит получить
     // молчание.
     expect(rfqText(SPEC, { contact: CONTACT })).toContain('по запросу');
+  });
+
+  it('со ссылкой на пак зовёт открыть его, а не просить', () => {
+    // Запрос — это лишний шаг и лишний день, а текст от ссылки не толстеет.
+    const link = 'https://seamster.pro/p/abc123';
+    const text = rfqText(SPEC, { contact: CONTACT, packLink: link });
+    expect(text).toContain(link);
+    expect(text).not.toContain('по запросу');
+    expect(text.length).toBeLessThanOrEqual(RFQ_TEXT_LIMIT);
   });
 });
 
@@ -77,6 +92,20 @@ describe('размерный ряд', () => {
 describe('лист на просчёт', () => {
   it('без контакта говорит, что фабрике некуда ответить', () => {
     expect(renderRfqHtml(SPEC)).toContain('некуда ответить');
+  });
+
+  it('имя без канала связи всё равно помечает предупреждением', () => {
+    // Строка «ИП Кочнев · Данил» выглядит заполненной и остаётся тупиком:
+    // ответить фабрика может на номер или адрес, но не на имя.
+    const html = renderRfqHtml(SPEC, { contact: { company: 'ИП Кочнев', name: 'Данил' } });
+    expect(html).toContain('Данил');
+    expect(html).toContain('некуда ответить');
+  });
+
+  it('с телефоном предупреждения нет', () => {
+    const html = renderRfqHtml(SPEC, { contact: { name: 'Данил', phone: '+7 900 000-00-00' } });
+    expect(html).toContain('+7 900 000-00-00');
+    expect(html).not.toContain('некуда ответить');
   });
 
   it('несёт эскиз, а не только таблицу', () => {
@@ -148,5 +177,24 @@ describe('журнал ответов', () => {
 
   it('пустой журнал разбирается в ноль записей без жалоб', () => {
     expect(parseRfqLog(emptyRfqLog())).toEqual({ responses: [], problems: [] });
+  });
+});
+
+describe('лист и пак показывают одно изделие', () => {
+  it('берёт силуэт пака, когда он задан', () => {
+    // Иначе лист рисовал бы параметрический вид, а пак — библиотечный, и
+    // фабрика первой спросит: «а это точно та же вещь?»
+    const html = renderRfqHtml(SPEC, { flat: { svg: '<svg id="из-библиотеки"></svg>' } });
+    expect(html).toContain('из-библиотеки');
+  });
+
+  it('без силуэта строит вид сам', () => {
+    expect(renderRfqHtml(SPEC)).toContain('<svg');
+  });
+
+  it('со ссылкой на пак печатает её вместо «пришлём по запросу»', () => {
+    const html = renderRfqHtml(SPEC, { packLink: 'https://seamster.pro/p/abc123' });
+    expect(html).toContain('seamster.pro/p/abc123');
+    expect(html).not.toContain('Пришлём по запросу');
   });
 });

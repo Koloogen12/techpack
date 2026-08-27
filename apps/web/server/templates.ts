@@ -79,12 +79,17 @@ export function renderJobTemplate(
   spec: StyleSpec,
   templateId: string,
   locale: Locale = 'ru',
+  mode: 'pack' | 'sketch' = 'pack',
 ): ReturnType<typeof renderChosenTemplate> {
-  return renderChosenTemplate(templateId, renderOptions(spec, locale));
+  return renderChosenTemplate(templateId, renderOptions(spec, locale, mode));
 }
 
 /** Настройки отрисовки силуэта под конкретный табель мер. */
-function renderOptions(spec: StyleSpec, locale: Locale = 'ru'): Parameters<typeof renderChosenTemplate>[1] {
+function renderOptions(
+  spec: StyleSpec,
+  locale: Locale = 'ru',
+  mode: 'pack' | 'sketch' = 'pack',
+): Parameters<typeof renderChosenTemplate>[1] {
   const master = renderFlatsFromSpec(spec, flatDefaults(spec));
   const at = (code: string): number | undefined =>
     spec.measurements.points.find((p) => p.code === code)?.base.value;
@@ -95,8 +100,10 @@ function renderOptions(spec: StyleSpec, locale: Locale = 'ru'): Parameters<typeo
     targetHeightCm: master.front.viewBox.height,
     bodyWidthCm,
     bodyRatio: bodyWidthCm / bodyLengthCm,
-    disclaimer: messages(locale).flats_library_disclaimer,
-    zones: zonesOfSpec(spec),
+    // Эскиз — без выносок и без плашки: на листе просчёта силуэт величиной
+    // со спичечный коробок, и оговорка в нём превращается в серую полоску.
+    disclaimer: mode === 'sketch' ? '' : messages(locale).flats_library_disclaimer,
+    zones: mode === 'sketch' ? [] : zonesOfSpec(spec),
     zoneLabel: (z) => ZONE_LABEL[locale][z],
   };
 }

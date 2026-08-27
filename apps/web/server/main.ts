@@ -31,6 +31,7 @@ import { FREE_PER_MONTH, Limits } from './limits.js';
 import { Notifications } from './notify.js';
 import { Referrals, refCode } from './referrals.js';
 import { tgDocument, tgNotify, tgTrace, telegramReady } from './telegram.js';
+import { buildRfq } from './rfq.js';
 import { findTemplate } from '@seamsterly/templates';
 import {
   candidatesFor,
@@ -806,44 +807,66 @@ const server = createServer(async (req, res) => {
               500,
             )
           : '';
-        const pdfPath = join(dir, 'pack.pdf');
-        const { statSync } = await import('node:fs');
-        const specM = statSync(join(dir, 'spec.json')).mtimeMs;
-        if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < specM) {
-          const { renderPdf } = await import('@seamsterly/docgen');
-          writeFileSync(pdfPath, await renderPdf(spec, { pro: true }));
+        // Ссылка на полный пак вместо вложения на двадцать страниц.
+        // Просчитывают по листу, а пак открывают, когда берутся за заказ.
+        const sharePath = join(dir, 'share.txt');
+        let shareToken: string;
+        if (existsSync(sharePath)) shareToken = readFileSync(sharePath, 'utf8').trim();
+        else {
+          shareToken = randomBytes(8).toString('hex');
+          writeFileSync(sharePath, shareToken);
         }
+        const packLink = `${PUBLIC_ORIGIN}/p/${shareToken}`;
+
+        const rfq = await buildRfq(
+          dir,
+          spec,
+          { name: invite.name, org: invite.org },
+          { dataDir: DATA, token: invite.token, packLink },
+        );
+
         const points = spec.measurements.points.length;
         const assumptions = spec.meta.assumptions_count ?? 0;
         await tgDocument(
-          pdfPath,
-          `${spec.style.article}.pdf`,
+          rfq.path,
+          `${spec.style.article}-просчёт.pdf`,
           [
             '<b>📩 Запрос на просчёт</b>',
             `Бренд: ${invite.name} · ${invite.org}`,
             `Изделие: ${spec.style.name} · ${spec.style.article}`,
-            `Категория: ${spec.style.category} · база RU ${spec.base.base_size_ru}`,
-            `Размерный ряд: ${spec.base.size_range.join(', ')}`,
             `Замеров: ${points} · предположений: ${assumptions}`,
-            comment ? `Комментарий: ${comment}` : '',
-            'Ответить бренду: заметка в админке или напрямую.',
+            comment ? `Комментарий бренда: ${comment}` : '',
+            rfq.gaps.length ? `⚠️ ${rfq.gaps.join('; ')}` : '',
+            `Полный техпак: ${packLink}`,
+            '',
+            '<b>Текст для фабрики — скопировать и отправить:</b>',
+            `<code>${rfq.text}</code>`,
           ]
-            .filter(Boolean)
+            .filter((line) => line !== '')
             .join('\n'),
         );
+
         writeFileSync(
           join(dir, 'quote.json'),
-          JSON.stringify({ at: new Date().toISOString(), by: invite.name, comment }, null, 2),
+          JSON.stringify(
+            { at: new Date().toISOString(), by: invite.name, comment, gaps: rfq.gaps },
+            null,
+            2,
+          ),
         );
         notes.push(invite.token, {
           title: `«${spec.style.name}» отправлен на просчёт`,
-          sub: 'Вернёмся с ценами от фабрик в течение 24 часов',
-          tone: 'ok',
+          // О пробелах говорим бренду сразу, а не после молчания фабрик:
+          // лист ушёл, но без обратного адреса ответить на него нельзя.
+          sub: rfq.gaps.length
+            ? `Лист ушёл, но ${rfq.gaps[0]}`
+            : 'Вернёмся с ценами от фабрик в течение 24 часов',
+          tone: rfq.gaps.length ? 'alert' : 'ok',
           job: id,
           section: 'export',
         });
         logEvent(invite.name, 'quote_sent', { id, article: spec.style.article });
-        return json(res, 200, { ok: true });
+        return json(res, 200, { ok: true, gaps: rfq.gaps });
       }
 
       if (req.method === 'GET' && rest === '/status') {
@@ -1050,6 +1073,38 @@ const server = createServer(async (req, res) => {
           'cache-control': 'no-store',
         });
         return res.end(svg);
+      }
+
+      // Лист на просчёт — тот же файл, что ушёл фабрике. Бренд обязан видеть,
+      // что именно отправлено от его имени.
+      if (req.method === 'GET' && rest === '/rfq') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const path = join(dir, 'rfq.pdf');
+        const { statSync } = await import('node:fs');
+        const fresh =
+          existsSync(path) &&
+          statSync(path).mtimeMs >= statSync(join(dir, 'spec.json')).mtimeMs &&
+          (!existsSync(join(dir, 'template.json')) ||
+            statSync(path).mtimeMs >= statSync(join(dir, 'template.json')).mtimeMs);
+        if (!fresh) {
+          const sharePath = join(dir, 'share.txt');
+          const link = existsSync(sharePath)
+            ? `${PUBLIC_ORIGIN}/p/${readFileSync(sharePath, 'utf8').trim()}`
+            : undefined;
+          await buildRfq(
+            dir,
+            spec,
+            { name: invite.name, org: invite.org },
+            { dataDir: DATA, token: invite.token, packLink: link },
+          );
+        }
+        logEvent(invite.name, 'rfq', { id });
+        res.writeHead(200, {
+          'content-type': 'application/pdf',
+          'content-disposition': `attachment; filename="${spec.style.article}-rfq.pdf"`,
+        });
+        return res.end(readFileSync(path));
       }
 
       if (req.method === 'GET' && rest === '/pdf') {

@@ -76,6 +76,8 @@ const track = (type, payload) => {
 };
 
 const PDF_URL = (id) => '/app/api/jobs/' + id + '/pdf?t=' + encodeURIComponent(TOKEN || '');
+/** Лист на просчёт — та же страница, что ушла фабрике. */
+const RFQ_URL = (id) => '/app/api/jobs/' + id + '/rfq?t=' + encodeURIComponent(TOKEN || '');
 const PHOTO_URL = (id, n) =>
   '/app/api/jobs/' + id + '/photo/' + n + '?t=' + encodeURIComponent(TOKEN || '');
 
@@ -3694,12 +3696,19 @@ class Component extends DCLogic {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ comment: s.quoteComment }),
           })
-            .then(() => {
+            .then((p) => {
               this.setState({
                 calcOpen: false,
                 onCalc: true,
                 quoteComment: '',
-                modal: { kind: 'quote-sent', title: 'Отправлено на просчёт' },
+                modal: {
+                  kind: 'quote-sent',
+                  title: 'Отправлено на просчёт',
+                  // Пробелы листа показываем сразу: он ушёл, но без обратного
+                  // адреса ответить на него нельзя, и узнать об этом лучше
+                  // сейчас, чем после недели молчания.
+                  gaps: (p && p.gaps) || [],
+                },
               });
               this.pollNotifs();
               this.refreshJobs();
@@ -4220,7 +4229,12 @@ class Component extends DCLogic {
         ? s.modal.text ||
           {
             'quote-sent':
-              'Техпак ушёл нашим партнёрским фабрикам. Соберём предложения по цене и срокам и вернёмся к вам в течение 24 часов — ответ придёт на ваш контакт и в уведомления кабинета.',
+              (s.modal && s.modal.gaps && s.modal.gaps.length
+                ? 'Лист ушёл, но ' + s.modal.gaps.join('; ') + '. '
+                : '') +
+              'Фабрикам ушёл лист на просчёт — одна страница с полотном, тиражом, ' +
+              'размерным рядом и ссылкой на полный техпак. Двадцать страниц в ответ на ' +
+              '«сколько будет стоить» обычно остаются без ответа. Вернёмся с ценами в течение 24 часов.',
             referral:
               'Отправьте ссылку тому, кто шьёт свою одежду. Когда друг подключится, вам начислится дополнительная генерация — она не сгорает в конце месяца.',
             claim:
@@ -4267,6 +4281,7 @@ class Component extends DCLogic {
         ? {
             claim: s.claimSent ? 'Закрыть' : 'Отправить заявку',
             referral: 'Готово',
+            'quote-sent': 'Посмотреть, что ушло',
             // Замена происходит по клику на сам силуэт, а не по кнопке:
             // кнопка «применить» потребовала бы второго решения там, где
             // человек уже выбрал.
@@ -4277,6 +4292,12 @@ class Component extends DCLogic {
         'flex:1;height:34px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;justify-content:center;font:600 11px/16px Sora,sans-serif;cursor:pointer',
       modalGo: () => {
         const kind = s.modal && s.modal.kind;
+        // Лист, ушедший от имени бренда, бренд обязан увидеть: отправлять
+        // документ и не показывать его — это просить доверия даром.
+        if (kind === 'quote-sent') {
+          window.open(RFQ_URL(s.curId), '_blank', 'noopener');
+          return this.set('modal', null);
+        }
         if (kind === 'claim' && !s.claimSent) {
           if (!s.claimName.trim() || !s.claimContact.trim())
             return this.showToast('Заполните имя и контакт — иначе не сможем ответить');

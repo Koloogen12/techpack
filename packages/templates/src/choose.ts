@@ -1,7 +1,12 @@
 import type { NodeZone } from '@seamsterly/kb';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import type { VisionReport } from '@seamsterly/vision';
-import { MAX_PROPORTION_DRIFT, renderLibraryView, type LibraryRenderResult } from './library.js';
+import {
+  MAX_PROPORTION_DRIFT,
+  renderLibraryView,
+  type LibraryRenderOptions,
+  type LibraryRenderResult,
+} from './library.js';
 import type { SilhouetteDetails } from './zones.js';
 import { catalogedEntries, findTemplate, readTemplateSvg } from './load.js';
 import { isConfident, matchTemplates, type MatchCandidate, type MatchResult } from './match.js';
@@ -157,13 +162,21 @@ export function renderChosenTemplate(
   const shown = (view: 'front' | 'back'): NodeZone[] =>
     options.zones.filter((z) => !HIDDEN[view].includes(z));
 
+  // Пустой список зон означает эскиз без выносок: так силуэт идёт на лист
+  // просчёта. Передавать пустые выноски всё равно нельзя — под них
+  // отводятся поля, и рисунок ужимается ради пустого места.
+  const callouts = (view: 'front' | 'back'): LibraryRenderOptions['callouts'] => {
+    const zones = shown(view);
+    return zones.length ? { zones, label: options.zoneLabel, details } : undefined;
+  };
+
   const front = renderLibraryView(frontSvg, {
     targetWidthCm: options.targetWidthCm,
     targetHeightCm: options.targetHeightCm,
     bodyWidthCm: options.bodyWidthCm,
     bodyRatio: options.bodyRatio,
     disclaimer: options.disclaimer,
-    callouts: { zones: shown('front'), label: options.zoneLabel, details },
+    ...(callouts('front') ? { callouts: callouts('front')! } : {}),
   });
   // Отказ только по ИЗМЕРЕННОМУ расхождению: если торс не отделился от
   // рукавов, мерить было нечем, и отсутствие улики уликой не считается.
@@ -177,7 +190,7 @@ export function renderChosenTemplate(
         bodyWidthCm: options.bodyWidthCm,
         bodyRatio: options.bodyRatio,
         disclaimer: options.disclaimer,
-        callouts: { zones: shown('back'), label: options.zoneLabel, details },
+        ...(callouts('back') ? { callouts: callouts('back')! } : {}),
       })
     : null;
 

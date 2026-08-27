@@ -3,6 +3,7 @@ import { SeamsterlyError } from '@seamsterly/core';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import { renderHtml, type DocVisuals, type HtmlOptions } from './html.js';
 import { roleProfile, type ExportRole } from './roles.js';
+import { renderRfqHtml, type RfqOptions } from './rfq.js';
 
 /**
  * HTML → PDF.
@@ -53,6 +54,48 @@ export async function renderPdf(spec: StyleSpec, options: PdfOptions = {}): Prom
     });
   } finally {
     if (own) await browser.close();
+  }
+}
+
+/**
+ * Лист на просчёт в PDF.
+ *
+ * A4 ПОРТРЕТ, в отличие от техпака: лист читают с экрана телефона и печатают
+ * на обычном принтере, а альбомная страница на телефоне разворачивается
+ * вполовину. Печать живёт здесь, а не у вызывающих: браузер — забота
+ * docgen, и трём местам заводить свой не за чем.
+ */
+export async function renderRfqPdf(
+  spec: StyleSpec,
+  options: RfqOptions = {},
+  browser?: Browser,
+): Promise<Buffer> {
+  const own = browser === undefined;
+  let shared: Browser;
+  try {
+    shared = browser ?? (await chromium.launch());
+  } catch (cause) {
+    throw new SeamsterlyError('RENDER_FAILED', 'не удалось запустить браузер для печати листа', {
+      userMessage: 'Не удалось собрать лист на просчёт.',
+      userAction: 'Повторить бесплатно. Если повторяется — напишите нам, это на нашей стороне.',
+      cause,
+    });
+  }
+
+  try {
+    const page = await shared.newPage();
+    await page.setContent(renderRfqHtml(spec, options), { waitUntil: 'domcontentloaded' });
+    const pdf = await page.pdf({ format: 'A4', printBackground: true });
+    await page.close();
+    return pdf;
+  } catch (cause) {
+    throw new SeamsterlyError('RENDER_FAILED', 'ошибка печати листа на просчёт', {
+      userMessage: 'Не удалось собрать лист на просчёт.',
+      userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
+      cause,
+    });
+  } finally {
+    if (own) await shared.close();
   }
 }
 

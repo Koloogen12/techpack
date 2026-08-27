@@ -37,6 +37,21 @@ export interface RfqOptions {
   sizeRatio?: Readonly<Record<string, number>> | undefined;
   /** Срок, к которому нужен ответ. Пусто — не указываем. */
   replyBy?: string | undefined;
+  /**
+   * Готовый вид переда, если чертёж в паке взят из библиотеки силуэтов.
+   *
+   * Без этого лист на просчёт рисовал бы параметрический вид, а пак —
+   * библиотечный, и два документа об одном изделии выглядели бы по-разному.
+   * Фабрика замечает такое первой: «а это точно та же вещь?»
+   */
+  flat?: { svg: string } | undefined;
+  /**
+   * Ссылка на полный техпак.
+   *
+   * Заменяет «пришлём по запросу» на «вот он»: запрос — это лишний шаг и
+   * лишний день, а лист на просчёт от ссылки не толстеет.
+   */
+  packLink?: string | undefined;
 }
 
 const esc = (s: string): string =>
@@ -117,13 +132,20 @@ export function rfqText(spec: StyleSpec, options: RfqOptions = {}): string {
     qty ? `Тираж: ${qty} шт.` : 'Тираж уточняется.',
     `Размеры: ${rfqSizeLine(spec, options.sizeRatio)}.`,
     ...rfqHighlights(spec).map((h) => `${h[0]!.toUpperCase()}${h.slice(1)}.`),
-    'Техпак с замерами, узлами и допусками готов — пришлю по запросу.',
-    contact?.name || contact?.phone || contact?.email
+    options.packLink
+      ? `Техпак с замерами, узлами и допусками: ${options.packLink}`
+      : 'Техпак с замерами, узлами и допусками готов — пришлю по запросу.',
+    // Имя без телефона и почты каналом связи не является: «Связь: Данил» в
+    // мессенджере выглядит заполненной строкой и остаётся тупиком. Лучше
+    // строки не будет вовсе — тогда пробел виден и его чинят.
+    contact?.phone || contact?.email
       ? `Связь: ${[contact.name, contact.phone, contact.email].filter(Boolean).join(', ')}.`
       : '',
   ].filter(Boolean);
 
-  // Контакт отпадает последним: сообщение без него бессмысленно.
+  // Контакт отпадает последним: сообщение без него бессмысленно. Если
+  // контакта нет вовсе, последним блоком оказывается ссылка на техпак —
+  // она тоже обязана уцелеть при обрезке.
   const contactBlock = blocks.at(-1)!;
   const body = blocks.slice(0, -1);
 
@@ -148,7 +170,9 @@ export function rfqText(spec: StyleSpec, options: RfqOptions = {}): string {
 export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string {
   const shell = spec.bom?.lines.find((l) => l.role === 'shell');
   const rib = spec.bom?.lines.find((l) => l.role === 'rib');
-  const flats = renderFlatsFromSpec(spec);
+  // Вид переда: из библиотеки, если пак собран из неё, иначе строим сами.
+  // Оба документа обязаны показывать одно и то же изделие.
+  const sketch = options.flat?.svg ?? renderFlatsFromSpec(spec).front.svg;
   const contact = options.contact;
   const highlights = rfqHighlights(spec);
 
@@ -216,7 +240,7 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
     ${rows.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${v}</td></tr>`).join('')}
   </tbody></table>
   <figure class="sketch" style="margin:0">
-    ${flats.front.svg}
+    ${sketch}
     <figcaption>Перед · чертёж из техпака</figcaption>
   </figure>
 </div>
@@ -242,14 +266,17 @@ ${
 <div class="note" style="margin-top:5mm">
   Технический пакет готов: табель мер с допусками по ГОСТ 23193-78, узлы обработки
   с кодами швов и типом оборудования, технологическая последовательность,
-  спецификация материалов и маркировка. Пришлём по запросу — просчитывать
-  по этому листу, а не по нему.
+  спецификация материалов и маркировка. ${
+    options.packLink
+      ? `Открыть целиком: <b>${esc(options.packLink)}</b>. Просчитывать по этому листу, а не по нему.`
+      : 'Пришлём по запросу — просчитывать по этому листу, а не по нему.'
+  }
 </div>
 
 <div class="contact">
   <div class="kicker">Кому отвечать</div>
   ${
-    contact?.name || contact?.phone || contact?.email
+    contact?.company || contact?.name
       ? `<div style="margin-top:1.5mm">${[
           contact.company,
           contact.name,
@@ -259,8 +286,17 @@ ${
           .filter(Boolean)
           .map((x) => esc(String(x)))
           .join(' · ')}</div>`
-      : `<div class="warn" style="margin-top:1.5mm">Контакт не указан — фабрике некуда ответить.
-         Заполните профиль бренда перед отправкой.</div>`
+      : ''
+  }
+  ${
+    // Имя и компания говорят, ОТ КОГО лист. Ответить на них нельзя: канал
+    // ответа — это номер или адрес. Строка с одним именем выглядит
+    // заполненной и остаётся тупиком, поэтому предупреждение стоит рядом
+    // с ней, а не вместо неё.
+    contact?.phone || contact?.email
+      ? ''
+      : `<div class="warn" style="margin-top:1.5mm">Телефон и почта не указаны — фабрике
+         некуда ответить. Заполните профиль бренда перед отправкой.</div>`
   }
 </div>
 

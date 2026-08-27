@@ -39,7 +39,13 @@ export interface LibraryRenderOptions {
    * обычного, удлинённое вместо стандартного.
    */
   bodyRatio: number;
-  /** Текст плашки на языке комплекта. */
+  /**
+   * Текст плашки на языке комплекта.
+   *
+   * Пусто — плашки нет вовсе. Так силуэт идёт на лист просчёта: там он
+   * величиной со спичечный коробок, оговорка в нём превращается в
+   * нечитаемую полоску, а сам лист и без неё говорит, что размеры в паке.
+   */
   disclaimer: string;
   /**
    * Выноски на зоны изделия.
@@ -162,7 +168,8 @@ export function renderLibraryView(
   const drawnWidth = unitsWide * scale;
   const drawnHeight = unitsTall * scale;
 
-  const plateHeight = options.targetHeightCm * 0.085;
+  const plate = options.disclaimer.length > 0;
+  const plateHeight = plate ? options.targetHeightCm * 0.085 : 0;
   const frameWidth = options.targetWidthCm;
   const frameHeight = drawnHeight + plateHeight * 1.7;
   const offsetX = (frameWidth - drawnWidth) / 2;
@@ -201,12 +208,14 @@ export function renderLibraryView(
     body,
     '</g>',
     leaders,
-    `<rect x="${r((frameWidth - plateWidth) / 2)}" y="${r(drawnHeight + plateHeight * 0.45)}" ` +
-      `width="${r(plateWidth)}" height="${r(plateHeight)}" rx="${r(plateHeight * 0.28)}" ` +
-      `fill="${PLATE_FILL}"/>`,
-    `<text x="${r(frameWidth / 2)}" y="${r(drawnHeight + plateHeight * 1.18)}" ` +
-      `text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${r(fontPlate)}" ` +
-      `fill="${PLATE_TEXT}">${escapeXml(options.disclaimer)}</text>`,
+    plate
+      ? `<rect x="${r((frameWidth - plateWidth) / 2)}" y="${r(drawnHeight + plateHeight * 0.45)}" ` +
+        `width="${r(plateWidth)}" height="${r(plateHeight)}" rx="${r(plateHeight * 0.28)}" ` +
+        `fill="${PLATE_FILL}"/>` +
+        `<text x="${r(frameWidth / 2)}" y="${r(drawnHeight + plateHeight * 1.18)}" ` +
+        `text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="${r(fontPlate)}" ` +
+        `fill="${PLATE_TEXT}">${escapeXml(options.disclaimer)}</text>`
+      : '',
     '</svg>',
   ].join('');
 
