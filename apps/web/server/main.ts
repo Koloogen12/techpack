@@ -413,12 +413,40 @@ const server = createServer(async (req, res) => {
       const spec = id ? specOf(id) : null;
       if (!spec) return json(res, 404, { error: 'нет такого документа' });
       const { renderHtml } = await import('@seamsterly/docgen');
-      logEvent('фабрика', 'share_open', { id });
+      // Язык ссылки. Ради этого она и задумана: документ открывает фабрика,
+      // и русский текст на её экране означает переписку вместо чтения.
+      const shareLocale = (['en', 'zh'] as const).find((l) => l === url.searchParams.get('locale'));
+      // Силуэт из библиотеки — тот же, что в PDF: страница по ссылке и
+      // выгрузка не должны показывать разные изделия.
+      const shareTemplate = id ? readJobTemplate(jobDir(id)) : { id: null };
+      const shareLibrary = shareTemplate.id
+        ? renderJobTemplate(spec, shareTemplate.id, shareLocale ?? 'ru')
+        : null;
+      logEvent('фабрика', 'share_open', { id, ...(shareLocale ? { locale: shareLocale } : {}) });
       res.writeHead(200, {
         'content-type': 'text/html; charset=utf-8',
         'x-robots-tag': 'noindex, nofollow',
       });
-      return res.end(renderHtml(spec, { pro: true }));
+      return res.end(
+        renderHtml(spec, {
+          pro: true,
+          ...(shareLocale ? { locale: shareLocale } : {}),
+          ...(shareLibrary
+            ? {
+                visuals: {
+                  libraryFlats: {
+                    [shareLocale ?? 'ru']: {
+                      front: shareLibrary.front,
+                      ...(shareLibrary.back ? { back: shareLibrary.back } : {}),
+                      templateId: shareLibrary.templateId,
+                      missing: shareLibrary.missing,
+                    },
+                  },
+                },
+              }
+            : {}),
+        }),
+      );
     }
 
     // Вопрос от фабрики по строке документа. Раньше он оставался внутри
