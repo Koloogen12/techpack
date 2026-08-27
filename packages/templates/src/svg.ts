@@ -378,8 +378,14 @@ export function pathPoints(d: string): { x: number; y: number }[] {
   };
   /** Кубика в долях пути. Три доли достаточно: узлов в контуре и так много. */
   const cubic = (
-    x0: number, y0: number, x1: number, y1: number,
-    x2: number, y2: number, x3: number, y3: number,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    x3: number,
+    y3: number,
   ): void => {
     for (const t of [0.25, 0.5, 0.75]) {
       const u = 1 - t;
@@ -457,8 +463,16 @@ export function pathPoints(d: string): { x: number; y: number }[] {
         const nx = relative ? x + n[2]! : n[2]!;
         const ny = relative ? y + n[3]! : n[3]!;
         // Квадратика — та же кубика с двумя третями до контрольной точки.
-        cubic(x, y, x + (2 / 3) * (cx - x), y + (2 / 3) * (cy - y),
-              nx + (2 / 3) * (cx - nx), ny + (2 / 3) * (cy - ny), nx, ny);
+        cubic(
+          x,
+          y,
+          x + (2 / 3) * (cx - x),
+          y + (2 / 3) * (cy - y),
+          nx + (2 / 3) * (cx - nx),
+          ny + (2 / 3) * (cy - ny),
+          nx,
+          ny,
+        );
         x = nx;
         y = ny;
         see(x, y);

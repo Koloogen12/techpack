@@ -8,9 +8,9 @@
  * в порядке ИЗМЕРЕНИЯ, а не в порядке кодов: вещь берут в руки один раз.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { reportCliError } from './report-error.js';
 import { dirname } from 'node:path';
 import { chromium } from 'playwright';
-import { isSeamsterlyError } from '@seamsterly/core';
 import { CATEGORIES, type Category } from '@seamsterly/kb';
 import { renderMeasurementForm } from '@seamsterly/fit';
 import { LOCALES, type Locale } from '@seamsterly/i18n';
@@ -105,10 +105,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSeamsterlyError(e)) {
-    console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
-  } else {
-    console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);
-  }
+  reportCliError(e);
   process.exit(1);
 });

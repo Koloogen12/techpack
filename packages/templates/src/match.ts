@@ -231,7 +231,8 @@ export function matchTemplates(
     .sort((a, b) => b.score - a.score || a.entry.id.localeCompare(b.entry.id));
 
   const best = scored[0] ?? null;
-  const margin = scored.length > 1 ? Math.round((scored[0]!.score - scored[1]!.score) * 100) / 100 : 0;
+  const margin =
+    scored.length > 1 ? Math.round((scored[0]!.score - scored[1]!.score) * 100) / 100 : 0;
   return { best, candidates: scored.slice(0, top), margin };
 }
 

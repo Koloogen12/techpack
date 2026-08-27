@@ -129,8 +129,7 @@ describe('сплит видов', () => {
 
   it('мелкую деталь рядом с изделием за второй вид не принимает', () => {
     // Бирка или увеличенный узел втрое мельче изделия — это не вид.
-    const svg =
-      `<svg viewBox="0 0 2000 1200">${garment(100, 100, 400)}${garment(1500, 100, 60)}</svg>`;
+    const svg = `<svg viewBox="0 0 2000 1200">${garment(100, 100, 400)}${garment(1500, 100, 60)}</svg>`;
     expect(splitViews(readPaths(svg)).back).toHaveLength(0);
   });
 });
@@ -193,7 +192,10 @@ describe('подбор силуэта', () => {
 
   it('точное совпадение ставит выше родственной категории', () => {
     const exact = scoreTemplate(entry('a'), query)!;
-    const kin = scoreTemplate(entry('b', { traits: traits({ category: 'sweatshirt', hood: false }) }), query)!;
+    const kin = scoreTemplate(
+      entry('b', { traits: traits({ category: 'sweatshirt', hood: false }) }),
+      query,
+    )!;
     expect(exact.score).toBeGreaterThan(kin.score);
   });
 
@@ -226,7 +228,6 @@ describe('подбор силуэта', () => {
     expect(result.candidates.map((c) => c.entry.id)).not.toContain('alien');
   });
 });
-
 
 /**
  * Силуэт-макет в форме буквы Т: торс, два разведённых рукава, капюшон.
@@ -287,8 +288,9 @@ describe('силуэт в масштабе изделия', () => {
   it('несёт плашку по ширине своей подписи', () => {
     const width = (svg: string): number => Number(/<rect[^>]*width="([\d.]+)"/.exec(svg)![1]);
     // Оговорка переводится, и на другом языке она другой длины.
-    expect(width(render({ disclaimer: 'Иллюстративный силуэт — выноска на зону' }).svg))
-      .toBeGreaterThan(width(render({ disclaimer: 'Коротко' }).svg));
+    expect(
+      width(render({ disclaimer: 'Иллюстративный силуэт — выноска на зону' }).svg),
+    ).toBeGreaterThan(width(render({ disclaimer: 'Коротко' }).svg));
   });
 });
 
@@ -409,7 +411,10 @@ describe('выноски на зоны', () => {
       y: Number(m[2]),
     }));
     for (const side of [true, false]) {
-      const rows = ys.filter((p) => (p.x < 60) === side).map((p) => p.y).sort((a, b) => a - b);
+      const rows = ys
+        .filter((p) => p.x < 60 === side)
+        .map((p) => p.y)
+        .sort((a, b) => a - b);
       for (let i = 1; i < rows.length; i++) {
         expect(rows[i]! - rows[i - 1]!).toBeGreaterThan(1);
       }
@@ -481,7 +486,13 @@ describe('штраф за отсутствующую деталь', () => {
     // совпадения» — не величина, а бессмыслица.
     const bad = scoreTemplate(
       entry('bad', {
-        traits: traits({ hood: false, pocket: 'none', sleeve: 'none', ribbed: false, fit: 'fitted' }),
+        traits: traits({
+          hood: false,
+          pocket: 'none',
+          sleeve: 'none',
+          ribbed: false,
+          fit: 'fitted',
+        }),
       }),
       query,
     );

@@ -13,8 +13,8 @@
  * документ в сантиметрах.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { reportCliError } from './report-error.js';
 import { dirname, join, resolve } from 'node:path';
-import { isSeamsterlyError } from '@seamsterly/core';
 import { buildStyleSpec } from '@seamsterly/assembly';
 import { specInputFrom } from './generate.js';
 import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
@@ -179,11 +179,6 @@ function main(): void {
 try {
   main();
 } catch (e) {
-  if (isSeamsterlyError(e)) {
-    console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
-    if (typeof e.details.issues === 'string') console.error(e.details.issues);
-  } else {
-    console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);
-  }
+  reportCliError(e);
   process.exit(1);
 }

@@ -75,7 +75,8 @@ export const ZH: Messages = {
   view_side: '侧面',
   flats_label: '款式图 · 各视图同一比例,尺寸以尺寸表为准',
   flats_library_disclaimer: '示意轮廓 — 引线指向部位,而非测量点',
-  flats_library_note: '此轮廓取自款式库,按尺寸表推算的图幅缩放。图中细节比例仅供示意:尺寸唯一以尺寸表为准。引线指向服装部位,而非测量点——款式库轮廓没有控制点,不可据此量取尺寸。',
+  flats_library_note:
+    '此轮廓取自款式库,按尺寸表推算的图幅缩放。图中细节比例仅供示意:尺寸唯一以尺寸表为准。引线指向服装部位,而非测量点——款式库轮廓没有控制点,不可据此量取尺寸。',
   flats_library_missing: '示意轮廓上未画出的部位',
   flats_library_source: '款式库轮廓 · 原始矢量文件随本技术包提供',
   to_be_confirmed: '待确认',
@@ -131,7 +132,8 @@ export const ZH: Messages = {
   rfq_ask_moq: '可接单的最小起订量',
   rfq_ask_lead_time: '样品确认到出货的交期',
   rfq_ask_outsourced: '以上工序中哪些不在本厂完成、需外发',
-  rfq_pack_note: '完整工艺单已备好：带公差的尺寸表、带线迹代号与机型的车缝要求、工序流程、物料清单与唛头标注。',
+  rfq_pack_note:
+    '完整工艺单已备好：带公差的尺寸表、带线迹代号与机型的车缝要求、工序流程、物料清单与唛头标注。',
   rfq_pack_on_request: '如需可另行发送 — 请按本单报价,而非按工艺单。',
   rfq_pack_open: (link) => `完整查看：${link}。请按本单报价,而非按工艺单。`,
   rfq_contact_title: '回复对接人',

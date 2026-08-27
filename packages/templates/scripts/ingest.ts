@@ -69,11 +69,9 @@ function slug(name: string): string {
 
 function makePreview(src: string, dest: string): boolean {
   try {
-    execFileSync(
-      'sips',
-      ['-Z', String(PREVIEW_PX), '-s', 'format', 'png', src, '--out', dest],
-      { stdio: 'ignore' },
-    );
+    execFileSync('sips', ['-Z', String(PREVIEW_PX), '-s', 'format', 'png', src, '--out', dest], {
+      stdio: 'ignore',
+    });
     return existsSync(dest);
   } catch {
     return false;

@@ -274,9 +274,7 @@ function calloutLayer(
   const centre = geom.offsetX + geom.drawnWidth / 2;
   const capacity = Math.ceil(placed.length / 2);
   const sides = { left: [] as typeof placed, right: [] as typeof placed };
-  for (const p of [...placed].sort(
-    (a, b) => Math.abs(b.x - centre) - Math.abs(a.x - centre),
-  )) {
+  for (const p of [...placed].sort((a, b) => Math.abs(b.x - centre) - Math.abs(a.x - centre))) {
     const want = p.x < centre ? 'left' : 'right';
     const other = want === 'left' ? 'right' : 'left';
     sides[sides[want].length < capacity ? want : other].push(p);
@@ -347,5 +345,8 @@ const r = (n: number): string => (Math.round(n * 100) / 100).toString();
 const r6 = (n: number): string => (Math.round(n * 1e6) / 1e6).toString();
 
 function escapeXml(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  return s.replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!,
+  );
 }

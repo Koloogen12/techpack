@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
 import { RFQ_TEXT_LIMIT, renderRfqHtml, rfqSizeLine, rfqText } from '@seamsterly/docgen';
-import { emptyRfqLog, parseRfqLog, summariseRfq, RAT1_TAKE_RATE } from '../src/rfq-log.js';
+import {
+  emptyRfqLog,
+  parseRfqLog,
+  summariseRfq,
+  RAT1_TAKE_RATE,
+  pluralRu,
+} from '../src/rfq-log.js';
 
 const load = (file: string): StyleSpec =>
   parseStyleSpec(
@@ -232,5 +238,22 @@ describe('лист на языке фабрики', () => {
 
   it('русский остаётся языком по умолчанию', () => {
     expect(rfqText(SPEC, { contact: CONTACT })).toContain('Просчёт');
+  });
+});
+
+describe('склонение в отчёте', () => {
+  it('согласует существительное с числом', () => {
+    expect(pluralRu(1, 'фабрика', 'фабрики', 'фабрик')).toBe('фабрика');
+    expect(pluralRu(3, 'фабрика', 'фабрики', 'фабрик')).toBe('фабрики');
+    expect(pluralRu(11, 'фабрика', 'фабрики', 'фабрик')).toBe('фабрик');
+    expect(pluralRu(21, 'фабрика', 'фабрики', 'фабрик')).toBe('фабрика');
+    expect(pluralRu(0, 'фабрика', 'фабрики', 'фабрик')).toBe('фабрик');
+  });
+
+  it('согласует и глагол', () => {
+    // «1 фабрика не ответили» — мелочь, по которой отчёт читается как
+    // сгенерированный, а не написанный.
+    expect(pluralRu(1, 'не ответила', 'не ответили', 'не ответили')).toBe('не ответила');
+    expect(pluralRu(2, 'не ответила', 'не ответили', 'не ответили')).toBe('не ответили');
   });
 });

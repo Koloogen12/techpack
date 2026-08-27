@@ -1093,9 +1093,7 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && rest === '/rfq') {
         // Язык листа: тот же выбор, что у техпака. Фабрике отправляют один
         // файл, и чужой язык в нём только мешает.
-        const rfqLocale = (['en', 'zh'] as const).find(
-          (l) => l === url.searchParams.get('locale'),
-        );
+        const rfqLocale = (['en', 'zh'] as const).find((l) => l === url.searchParams.get('locale'));
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
         const path = join(dir, rfqLocale ? `rfq-${rfqLocale}.pdf` : 'rfq.pdf');
@@ -1164,9 +1162,7 @@ const server = createServer(async (req, res) => {
               ...(locale ? { locale } : {}),
               // Набор видов строится на язык выгрузки: плашка вшита в SVG,
               // и русская оговорка в китайском комплекте бесполезна.
-              ...(library
-                ? { visuals: { libraryFlats: { [locale ?? 'ru']: library } } }
-                : {}),
+              ...(library ? { visuals: { libraryFlats: { [locale ?? 'ru']: library } } } : {}),
             }),
           );
         }

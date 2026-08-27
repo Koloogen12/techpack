@@ -11,8 +11,9 @@
  * ни одно значение в жизни.
  */
 import { existsSync, readFileSync } from 'node:fs';
+import { reportCliError } from './report-error.js';
 import { join } from 'node:path';
-import { isSeamsterlyError, CONFIDENCE_LABEL_RU } from '@seamsterly/core';
+import { CONFIDENCE_LABEL_RU } from '@seamsterly/core';
 import { buildStyleSpec } from '@seamsterly/assembly';
 import { applyFitting, parseMeasuredSet } from '@seamsterly/fit';
 import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
@@ -95,9 +96,8 @@ try {
       : '\nВерсия НЕ создана: содержание не изменилось.',
   );
 } catch (error) {
-  if (isSeamsterlyError(error)) {
-    console.error(`\n${error.userMessage}\n${error.userAction}\n`);
-    process.exit(1);
-  }
-  throw error;
+  // Сообщение человеку и код возврата — всё. Стек поверх объяснения
+  // читается как «мы не знаем, что случилось», хотя мы знаем.
+  reportCliError(error);
+  process.exit(1);
 }

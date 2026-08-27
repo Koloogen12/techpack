@@ -381,7 +381,11 @@ function pageShell(
       `RU ${spec.base.base_size_ru}` +
         (options.locale === 'zh'
           ? (() => {
-              const hao = kb().sizeLabelFor(spec.base.gender as Gender, spec.base.base_size_ru, 'cn');
+              const hao = kb().sizeLabelFor(
+                spec.base.gender as Gender,
+                spec.base.base_size_ru,
+                'cn',
+              );
               return hao ? ` · ${esc(hao)}` : '';
             })()
           : '') +
@@ -1183,9 +1187,7 @@ function gradingPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale
   // 执行标准 и принимает партию по AQL. Отсылка «нормы по-русски» на её
   // листе — это пустое место там, где ОТК ищет первое, что читает.
   const market = locale === 'ru' ? null : base.marketFor(locale);
-  const standard = market
-    ? base.productStandardFor(market, spec.style.category as Category)
-    : null;
+  const standard = market ? base.productStandardFor(market, spec.style.category as Category) : null;
   // В чужом комплекте от пробела остаётся только флаг: объяснение написано
   // по-русски и адресовано нам, а не фабрике. Русский абзац в китайском
   // паке — это строка, которую там никто не прочтёт.

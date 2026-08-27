@@ -8,7 +8,7 @@
 
  * Каталог версий по умолчанию `versions/`, меняется флагом --versions.
  */
-import { isSeamsterlyError } from '@seamsterly/core';
+import { reportCliError } from './report-error.js';
 import { diffSpecs, summarise, VersionStore } from '@seamsterly/versions';
 import { CONFIDENCE_LABEL_RU } from '@seamsterly/core';
 
@@ -76,9 +76,8 @@ try {
   for (const id of diff.nodes.removed) console.log(`  − узел ${id}`);
   console.log();
 } catch (error) {
-  if (isSeamsterlyError(error)) {
-    console.error(`\n${error.userMessage}\n${error.userAction}\n`);
-    process.exit(1);
-  }
-  throw error;
+  // Сообщение человеку и код возврата — всё. Стек поверх объяснения
+  // читается как «мы не знаем, что случилось», хотя мы знаем.
+  reportCliError(error);
+  process.exit(1);
 }

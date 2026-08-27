@@ -9,8 +9,8 @@
  * пересказ. Пересказ разошёлся бы на первой же правке замера.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { reportCliError } from './report-error.js';
 import { dirname } from 'node:path';
-import { isSeamsterlyError } from '@seamsterly/core';
 import { buildStyleSpec } from '@seamsterly/assembly';
 import { renderRfqPdf, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@seamsterly/docgen';
 import { LOCALES, type Locale } from '@seamsterly/i18n';
@@ -114,10 +114,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSeamsterlyError(e)) {
-    console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
-  } else {
-    console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);
-  }
+  reportCliError(e);
   process.exit(1);
 });

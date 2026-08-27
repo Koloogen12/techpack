@@ -15,8 +15,8 @@
  * фабрике, — это не удобство, а способ однажды отправить не то.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { reportCliError } from './report-error.js';
 import { dirname } from 'node:path';
-import { isSeamsterlyError } from '@seamsterly/core';
 import { ArtworkLibrary } from '@seamsterly/library';
 import { VersionStore } from '@seamsterly/versions';
 import { buildAdminReport } from './admin-report.js';
@@ -44,9 +44,8 @@ try {
   );
   console.log();
 } catch (error) {
-  if (isSeamsterlyError(error)) {
-    console.error(`\n${error.userMessage}\n${error.userAction}\n`);
-    process.exit(1);
-  }
-  throw error;
+  // Сообщение человеку и код возврата — всё. Стек поверх объяснения
+  // читается как «мы не знаем, что случилось», хотя мы знаем.
+  reportCliError(error);
+  process.exit(1);
 }

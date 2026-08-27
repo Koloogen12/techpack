@@ -297,9 +297,7 @@ describe('узел обработки и линия на чертеже', () => 
     ];
     // Рисуем ровно те зоны, которые запросили узлы, — так и работает
     // конвейер: список зон приходит из раздела конструкции.
-    const svgs = zones.map(
-      (z) => `<svg><g data-zone="${z}"></g></svg>`,
-    );
+    const svgs = zones.map((z) => `<svg><g data-zone="${z}"></g></svg>`);
     const report = checkFlatLines(spec, svgs, { mode: 'zone' });
     expect(report.missing.map((m) => `${m.node_id} → ${m.expected}`)).toEqual([]);
     expect(report.orphan).toEqual([]);

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "StyleSpec 0.6.0",
+  "title": "StyleSpec 0.9.0",
   "type": "object",
   "properties": {
     "spec_version": {
@@ -24,7 +24,15 @@
         },
         "category": {
           "type": "string",
-          "enum": ["tshirt", "longsleeve", "sweatshirt", "hoodie"]
+          "enum": [
+            "tshirt",
+            "longsleeve",
+            "sweatshirt",
+            "hoodie",
+            "zip_hoodie",
+            "polo",
+            "tank_top"
+          ]
         },
         "brand": {
           "type": "string"
@@ -36,7 +44,12 @@
           "type": "string"
         }
       },
-      "required": ["id", "name", "article", "category"],
+      "required": [
+        "id",
+        "name",
+        "article",
+        "category"
+      ],
       "additionalProperties": false
     },
     "base": {
@@ -44,7 +57,10 @@
       "properties": {
         "gender": {
           "type": "string",
-          "enum": ["women", "men"]
+          "enum": [
+            "women",
+            "men"
+          ]
         },
         "base_size_ru": {
           "type": "integer",
@@ -57,11 +73,19 @@
         },
         "fit_intent": {
           "type": "string",
-          "enum": ["fitted", "semi_fitted", "loose", "oversize"]
+          "enum": [
+            "fitted",
+            "semi_fitted",
+            "loose",
+            "oversize"
+          ]
         },
         "fabric_kind": {
           "type": "string",
-          "enum": ["knit", "woven"]
+          "enum": [
+            "knit",
+            "woven"
+          ]
         },
         "size_range": {
           "minItems": 1,
@@ -116,9 +140,29 @@
                 "type": "string",
                 "minLength": 1
               },
+              "name_zh": {
+                "type": "string",
+                "minLength": 1
+              },
+              "how_to_measure_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "how_to_measure_zh": {
+                "type": "string",
+                "minLength": 1
+              },
+              "translation_verified": {
+                "type": "boolean"
+              },
               "measure_kind": {
                 "type": "string",
-                "enum": ["half", "circumference", "length", "angle"]
+                "enum": [
+                  "half",
+                  "circumference",
+                  "length",
+                  "angle"
+                ]
               },
               "base": {
                 "type": "object",
@@ -145,7 +189,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "tolerance": {
@@ -174,7 +222,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "graded": {
@@ -212,11 +264,18 @@
                           "type": "string"
                         }
                       },
-                      "required": ["value", "confidence", "source"],
+                      "required": [
+                        "value",
+                        "confidence",
+                        "source"
+                      ],
                       "additionalProperties": false
                     }
                   },
-                  "required": ["ru", "value"],
+                  "required": [
+                    "ru",
+                    "value"
+                  ],
                   "additionalProperties": false
                 }
               },
@@ -243,7 +302,11 @@
           }
         }
       },
-      "required": ["template_id", "template_version", "points"],
+      "required": [
+        "template_id",
+        "template_version",
+        "points"
+      ],
       "additionalProperties": false
     },
     "construction": {
@@ -268,6 +331,22 @@
                 "minLength": 1
               },
               "label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_zh": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plain_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plain_zh": {
                 "type": "string",
                 "minLength": 1
               },
@@ -322,7 +401,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "finished_cm": {
@@ -353,7 +436,11 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -386,7 +473,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "visible_on_photo": {
@@ -413,7 +504,11 @@
                         "minLength": 1
                       }
                     },
-                    "required": ["node_id", "label_ru", "machine"],
+                    "required": [
+                      "node_id",
+                      "label_ru",
+                      "machine"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -457,6 +552,14 @@
                 "type": "string",
                 "minLength": 1
               },
+              "operation_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "operation_zh": {
+                "type": "string",
+                "minLength": 1
+              },
               "node_id": {
                 "anyOf": [
                   {
@@ -487,12 +590,23 @@
                 ]
               }
             },
-            "required": ["step", "operation_ru", "node_id", "specialty", "machine", "time_sec"],
+            "required": [
+              "step",
+              "operation_ru",
+              "node_id",
+              "specialty",
+              "machine",
+              "time_sec"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["machine_park_profile", "nodes", "sequence"],
+      "required": [
+        "machine_park_profile",
+        "nodes",
+        "sequence"
+      ],
       "additionalProperties": false
     },
     "bom": {
@@ -514,9 +628,99 @@
               },
               "hex_approx": {
                 "type": "string"
+              },
+              "swatch": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "file_name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "hex": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "lab": {
+                        "type": "object",
+                        "properties": {
+                          "l": {
+                            "type": "number"
+                          },
+                          "a": {
+                            "type": "number"
+                          },
+                          "b": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "l",
+                          "a",
+                          "b"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "spread_delta_e": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "uniform": {
+                        "type": "boolean"
+                      },
+                      "verdict_ru": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "file_name",
+                      "key",
+                      "hex",
+                      "lab",
+                      "spread_delta_e",
+                      "uniform",
+                      "verdict_ru"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "book_code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "book_source": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "brand"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
-            "required": ["id", "name_ru"],
+            "required": [
+              "id",
+              "name_ru"
+            ],
             "additionalProperties": false
           }
         },
@@ -532,7 +736,15 @@
               },
               "role": {
                 "type": "string",
-                "enum": ["shell", "rib", "interlining", "thread", "label", "packaging"]
+                "enum": [
+                  "shell",
+                  "rib",
+                  "interlining",
+                  "thread",
+                  "hardware",
+                  "label",
+                  "packaging"
+                ]
               },
               "material_id": {
                 "type": "string",
@@ -543,6 +755,18 @@
                 "minLength": 1
               },
               "name_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name_zh": {
+                "type": "string",
+                "minLength": 1
+              },
+              "composition_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "composition_zh": {
                 "type": "string",
                 "minLength": 1
               },
@@ -572,7 +796,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "gsm": {
@@ -603,7 +831,11 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -643,7 +875,11 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -653,7 +889,11 @@
               },
               "consumption_unit": {
                 "type": "string",
-                "enum": ["м", "шт", "компл"]
+                "enum": [
+                  "м",
+                  "шт",
+                  "компл"
+                ]
               },
               "supplier_article": {
                 "type": "null"
@@ -704,7 +944,11 @@
               "type": "string"
             }
           },
-          "required": ["value", "confidence", "source"],
+          "required": [
+            "value",
+            "confidence",
+            "source"
+          ],
           "additionalProperties": false
         },
         "batch_qty": {
@@ -760,9 +1004,21 @@
               "label_ru": {
                 "type": "string",
                 "minLength": 1
+              },
+              "label_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_zh": {
+                "type": "string",
+                "minLength": 1
               }
             },
-            "required": ["group", "id", "label_ru"],
+            "required": [
+              "group",
+              "id",
+              "label_ru"
+            ],
             "additionalProperties": false
           }
         },
@@ -776,6 +1032,14 @@
                 "minLength": 1
               },
               "label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label_zh": {
                 "type": "string",
                 "minLength": 1
               },
@@ -807,7 +1071,11 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -830,7 +1098,13 @@
                 ]
               }
             },
-            "required": ["id", "label_ru", "value", "required", "action_ru"],
+            "required": [
+              "id",
+              "label_ru",
+              "value",
+              "required",
+              "action_ru"
+            ],
             "additionalProperties": false
           }
         },
@@ -861,12 +1135,22 @@
                 "type": "null"
               }
             },
-            "required": ["sku", "colorway_id", "colorway_ru", "size_ru", "gtin"],
+            "required": [
+              "sku",
+              "colorway_id",
+              "colorway_ru",
+              "size_ru",
+              "gtin"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["care_symbols", "requisites", "sku_matrix"],
+      "required": [
+        "care_symbols",
+        "requisites",
+        "sku_matrix"
+      ],
       "additionalProperties": false
     },
     "artwork": {
@@ -884,7 +1168,10 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["placement", "allover"]
+                "enum": [
+                  "placement",
+                  "allover"
+                ]
               },
               "zone": {
                 "type": "string",
@@ -894,12 +1181,27 @@
                 "type": "string",
                 "minLength": 1
               },
+              "zone_label_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "zone_label_zh": {
+                "type": "string",
+                "minLength": 1
+              },
               "technique": {
                 "type": "object",
                 "properties": {
                   "value": {
                     "type": "string",
-                    "enum": ["screen", "dtf", "dtg", "sublimation", "embroidery", "pigment_roll"]
+                    "enum": [
+                      "screen",
+                      "dtf",
+                      "dtg",
+                      "sublimation",
+                      "embroidery",
+                      "pigment_roll"
+                    ]
                   },
                   "confidence": {
                     "type": "string",
@@ -920,10 +1222,22 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "technique_label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "technique_label_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "technique_label_zh": {
                 "type": "string",
                 "minLength": 1
               },
@@ -953,10 +1267,22 @@
                     "type": "string"
                   }
                 },
-                "required": ["value", "confidence", "source"],
+                "required": [
+                  "value",
+                  "confidence",
+                  "source"
+                ],
                 "additionalProperties": false
               },
               "anchor_label_ru": {
+                "type": "string",
+                "minLength": 1
+              },
+              "anchor_label_en": {
+                "type": "string",
+                "minLength": 1
+              },
+              "anchor_label_zh": {
                 "type": "string",
                 "minLength": 1
               },
@@ -989,7 +1315,11 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   },
                   "height": {
@@ -1018,11 +1348,18 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   }
                 },
-                "required": ["width", "height"],
+                "required": [
+                  "width",
+                  "height"
+                ],
                 "additionalProperties": false
               },
               "colors": {
@@ -1030,7 +1367,10 @@
                 "properties": {
                   "model": {
                     "type": "string",
-                    "enum": ["spot", "full"]
+                    "enum": [
+                      "spot",
+                      "full"
+                    ]
                   },
                   "count": {
                     "anyOf": [
@@ -1061,7 +1401,11 @@
                             "type": "string"
                           }
                         },
-                        "required": ["value", "confidence", "source"],
+                        "required": [
+                          "value",
+                          "confidence",
+                          "source"
+                        ],
                         "additionalProperties": false
                       },
                       {
@@ -1077,7 +1421,11 @@
                     }
                   }
                 },
-                "required": ["model", "count", "codes"],
+                "required": [
+                  "model",
+                  "count",
+                  "codes"
+                ],
                 "additionalProperties": false
               },
               "file_name": {
@@ -1106,14 +1454,23 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["ok", "warn", "fail"]
+                      "enum": [
+                        "ok",
+                        "warn",
+                        "fail"
+                      ]
                     },
                     "detail_ru": {
                       "type": "string",
                       "minLength": 1
                     }
                   },
-                  "required": ["id", "label_ru", "status", "detail_ru"],
+                  "required": [
+                    "id",
+                    "label_ru",
+                    "status",
+                    "detail_ru"
+                  ],
                   "additionalProperties": false
                 }
               },
@@ -1145,7 +1502,10 @@
                         "maximum": 9007199254740991
                       }
                     },
-                    "required": ["width", "height"],
+                    "required": [
+                      "width",
+                      "height"
+                    ],
                     "additionalProperties": false
                   },
                   "tile_key": {
@@ -1167,7 +1527,10 @@
                     "properties": {
                       "value": {
                         "type": "string",
-                        "enum": ["along", "across"]
+                        "enum": [
+                          "along",
+                          "across"
+                        ]
                       },
                       "confidence": {
                         "type": "string",
@@ -1188,12 +1551,19 @@
                         "type": "string"
                       }
                     },
-                    "required": ["value", "confidence", "source"],
+                    "required": [
+                      "value",
+                      "confidence",
+                      "source"
+                    ],
                     "additionalProperties": false
                   },
                   "path": {
                     "type": "string",
-                    "enum": ["roll", "panels"]
+                    "enum": [
+                      "roll",
+                      "panels"
+                    ]
                   },
                   "path_label_ru": {
                     "type": "string",
@@ -1231,7 +1601,11 @@
                             "type": "string"
                           }
                         },
-                        "required": ["value", "confidence", "source"],
+                        "required": [
+                          "value",
+                          "confidence",
+                          "source"
+                        ],
                         "additionalProperties": false
                       },
                       {
@@ -1268,7 +1642,10 @@
                           "anyOf": [
                             {
                               "type": "string",
-                              "enum": ["brand", "catalog"]
+                              "enum": [
+                                "brand",
+                                "catalog"
+                              ]
                             },
                             {
                               "type": "null"
@@ -1287,7 +1664,13 @@
                           ]
                         }
                       },
-                      "required": ["hex", "share", "book_code", "book_source", "delta_e"],
+                      "required": [
+                        "hex",
+                        "share",
+                        "book_code",
+                        "book_source",
+                        "delta_e"
+                      ],
                       "additionalProperties": false
                     }
                   },
@@ -1340,7 +1723,10 @@
           "type": "boolean"
         }
       },
-      "required": ["placements", "subcontracted"],
+      "required": [
+        "placements",
+        "subcontracted"
+      ],
       "additionalProperties": false
     },
     "assets": {
@@ -1354,14 +1740,23 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["reference_photo", "flat_svg", "pdf", "sample_photo"]
+            "enum": [
+              "reference_photo",
+              "flat_svg",
+              "pdf",
+              "sample_photo"
+            ]
           },
           "sha256": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$"
           }
         },
-        "required": ["key", "kind", "sha256"],
+        "required": [
+          "key",
+          "kind",
+          "sha256"
+        ],
         "additionalProperties": false
       }
     },
@@ -1392,10 +1787,21 @@
           "maximum": 9007199254740991
         }
       },
-      "required": ["generated_at", "kb_versions", "assumptions_count"],
+      "required": [
+        "generated_at",
+        "kb_versions",
+        "assumptions_count"
+      ],
       "additionalProperties": false
     }
   },
-  "required": ["spec_version", "style", "base", "measurements", "assets", "meta"],
+  "required": [
+    "spec_version",
+    "style",
+    "base",
+    "measurements",
+    "assets",
+    "meta"
+  ],
   "additionalProperties": false
 }

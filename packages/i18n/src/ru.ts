@@ -155,7 +155,8 @@ export const RU: Messages = {
   rfq_hl_allover: (stepCm, roll) =>
     `сплошной раппорт, шаг ${stepCm} см, ${roll ? 'печать полотна до раскроя' : 'печать по панелям'}`,
   rfq_hl_artwork: (zone, w, h, technique) => `нанесение: ${zone}, ${w}×${h} см, ${technique}`,
-  rfq_hl_special: (nodes) => `спецоборудование: ${nodes} — в документе есть замена под базовый парк`,
+  rfq_hl_special: (nodes) =>
+    `спецоборудование: ${nodes} — в документе есть замена под базовый парк`,
   rfq_hl_colorways: (n) => `${n} цвета`,
   seq_title: 'Технологическая последовательность',
   seq_no: '№',

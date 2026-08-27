@@ -10,8 +10,9 @@
  * Здесь только рисунок и доказательство, что он стыкуется.
  */
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { reportCliError } from './report-error.js';
 import { dirname, extname } from 'node:path';
-import { createLogger, isSeamsterlyError } from '@seamsterly/core';
+import { createLogger } from '@seamsterly/core';
 import {
   extractColors,
   fileTileCache,
@@ -223,10 +224,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSeamsterlyError(e)) {
-    console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
-  } else {
-    console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);
-  }
+  reportCliError(e);
   process.exit(1);
 });

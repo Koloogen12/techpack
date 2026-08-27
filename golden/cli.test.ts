@@ -138,7 +138,10 @@ describe('сквозная генерация', () => {
   it('в категории без библиотечных силуэтов сам возвращается к параметрике', async () => {
     // Отказ должен быть тихим и объяснённым, а не пустым листом.
     const result = await generate({
-      answersPath: answersFile({ category: 'polo', article: 'POL-E2E-001', fit_intent: 'fitted' }, 'polo.json'),
+      answersPath: answersFile(
+        { category: 'polo', article: 'POL-E2E-001', fit_intent: 'fitted' },
+        'polo.json',
+      ),
       photoPaths: [],
       outPath: join(tmp, 'polo.pdf'),
       drawing: 'auto',

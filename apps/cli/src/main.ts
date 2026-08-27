@@ -7,7 +7,8 @@
  * Тот же код исполняет concierge-заказы и производит артефакты для похода
  * по фабрикам. Веб-обёртка появится поверх него после стоп-крана.
  */
-import { createLogger, isSeamsterlyError } from '@seamsterly/core';
+import { createLogger } from '@seamsterly/core';
+import { reportCliError } from './report-error.js';
 import { EXPORT_ROLES, type ExportRole } from '@seamsterly/docgen';
 import { LOCALES, type Locale } from '@seamsterly/i18n';
 import { generate, type DrawingSource } from './generate.js';
@@ -99,7 +100,9 @@ function parseArgv(argv: readonly string[]): Cli {
     if (arg === '--drawing') {
       const value = argv[++i] ?? '';
       if (!DRAWING_SOURCES.includes(value as DrawingSource)) {
-        throw new Error(`неизвестный источник чертежа: ${value}. Доступны: ${DRAWING_SOURCES.join(', ')}`);
+        throw new Error(
+          `неизвестный источник чертежа: ${value}. Доступны: ${DRAWING_SOURCES.join(', ')}`,
+        );
       }
       cli.drawing = value as DrawingSource;
       mode = null;
@@ -215,12 +218,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSeamsterlyError(e)) {
-    console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}\n  (${e.code})`);
-    if (typeof e.details.issues === 'string') console.error(e.details.issues);
-  } else {
-    console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);
-  }
+  reportCliError(e);
   process.exit(1);
 });
 

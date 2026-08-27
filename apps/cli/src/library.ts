@@ -8,7 +8,7 @@
  * Рисунок — актив бренда, а не приложение к одному техпаку: одна и та же
  * графика идёт на футболку, худи и свитшот капсулы.
  */
-import { isSeamsterlyError } from '@seamsterly/core';
+import { reportCliError } from './report-error.js';
 import { ArtworkLibrary } from '@seamsterly/library';
 import { pluralRu } from './rfq-log.js';
 
@@ -79,10 +79,6 @@ try {
       `  паки:     ${a.used_in.length ? a.used_in.join(', ') : 'ещё не использован'}`,
   );
 } catch (e: unknown) {
-  if (isSeamsterlyError(e)) {
-    console.error(`\n✗ ${e.userMessage}\n  → ${e.userAction}`);
-  } else {
-    console.error(`\n✗ ${e instanceof Error ? e.message : String(e)}`);
-  }
+  reportCliError(e);
   process.exit(1);
 }

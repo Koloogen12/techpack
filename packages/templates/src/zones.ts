@@ -1,5 +1,13 @@
 import type { NodeZone } from '@seamsterly/kb';
-import { boxHeight, boxWidth, pathPoints, readPaths, unionBox, type Box, type RawPath } from './svg.js';
+import {
+  boxHeight,
+  boxWidth,
+  pathPoints,
+  readPaths,
+  unionBox,
+  type Box,
+  type RawPath,
+} from './svg.js';
 
 /**
  * Зоны изделия на библиотечном силуэте.
