@@ -13,6 +13,7 @@ import {
   MaterialsFileSchema,
   SeamCodesFileSchema,
   StitchCodesFileSchema,
+  MarketAcceptanceFileSchema,
   VisibilityMapFileSchema,
   GradingFileSchema,
   PomTemplateFileSchema,
@@ -77,6 +78,9 @@ import {
   type ToleranceProfileId,
   type QcRule,
   type ToleranceClassesFile,
+  type MarketAcceptance,
+  type MarketAcceptanceFile,
+  type ProductStandard,
   type VisibilityMapFile,
   CATEGORIES,
   type FlatFitClass,
@@ -152,6 +156,7 @@ export class KnowledgeBase {
     private readonly printZonesFile: PrintZonesFile,
     private readonly crossSection: BodyCrossSectionFile,
     private readonly flatConventions: FlatConventionsFile,
+    private readonly marketAcceptance: MarketAcceptanceFile,
   ) {}
 
   static load(): KnowledgeBase {
@@ -189,6 +194,7 @@ export class KnowledgeBase {
       loadFile('print_zones.json', PrintZonesFileSchema),
       loadFile('body_cross_section.json', BodyCrossSectionFileSchema),
       loadFile('flat_conventions.json', FlatConventionsFileSchema),
+      loadFile('market_acceptance.json', MarketAcceptanceFileSchema),
     );
   }
 
@@ -235,6 +241,27 @@ export class KnowledgeBase {
   /** Правила приёмки, которые поточечный допуск не выражает. */
   qcRules(): readonly QcRule[] {
     return this.tolerances.qc_rules;
+  }
+
+  /**
+   * Нормы приёмки рынка, на язык которого собран комплект.
+   *
+   * Пусто — норм для этого языка у нас нет, и лист остаётся с отсылкой к
+   * ГОСТ. Выдумывать чужие стандарты нельзя: это нормативные ссылки, по
+   * которым фабрика выпускает партию и отвечает за неё.
+   */
+  marketFor(locale: string): MarketAcceptance | null {
+    return this.marketAcceptance.markets.find((m) => m.locale === locale) ?? null;
+  }
+
+  /**
+   * Стандарт выпуска для категории на этом рынке.
+   *
+   * У трикотажной футболки и у худи в КНР разные стандарты; печатать один
+   * на всё значит соврать в строке, которую ОТК читает первой.
+   */
+  productStandardFor(market: MarketAcceptance, category: Category): ProductStandard | null {
+    return market.product_standards.find((s) => s.categories.includes(category)) ?? null;
   }
 
   /**
@@ -290,6 +317,20 @@ export class KnowledgeBase {
     const found = this.sizes.charts.find((c) => c.gender === gender);
     if (!found) throw new Error(`нет размерной сетки для: ${gender}`);
     return found;
+  }
+
+  /**
+   * Ярлычная шкала размера для рынка: 号型 для КНР, буквы для мира.
+   *
+   * Пусто — соответствия для этого размера в сетке нет. Выдумывать его
+   * нельзя: 号型 это не перевод, а другая система координат (рост/обхват
+   * + полнота), и ошибка в ней означает партию не того размера.
+   */
+  sizeLabelFor(gender: Gender, ru: number, market: 'cn' | 'int' | 'eu' | 'us'): string | null {
+    const row = this.sizeChart(gender).rows.find((r) => r.ru === ru);
+    if (!row) return null;
+    const value = row[market];
+    return value === undefined || value === null ? null : String(value);
   }
 
   /** Обхваты тела по российскому размеру. */

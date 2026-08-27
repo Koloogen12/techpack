@@ -9,6 +9,7 @@ import {
   type Category,
   type FitIntent,
   type MachineType,
+  type Gender,
   type NodeZone,
   type Specialty,
   kb,
@@ -373,7 +374,18 @@ function pageShell(
     ],
     [
       t.meta_base_size,
-      `RU ${spec.base.base_size_ru} · ${esc(t.meta_height)} ${num(spec.base.base_height_cm)}`,
+      // Для китайской фабрики базовый размер — это 号型, а не «RU 46»:
+      // российский номер ей ни о чём не говорит, а 165/92A задаёт рост,
+      // обхват груди и полнотную группу разом. RU остаётся рядом — по нему
+      // сверяются с российским брендом.
+      `RU ${spec.base.base_size_ru}` +
+        (options.locale === 'zh'
+          ? (() => {
+              const hao = kb().sizeLabelFor(spec.base.gender as Gender, spec.base.base_size_ru, 'cn');
+              return hao ? ` · ${esc(hao)}` : '';
+            })()
+          : '') +
+        ` · ${esc(t.meta_height)} ${num(spec.base.base_height_cm)}`,
     ],
     [
       t.meta_version,
@@ -414,7 +426,15 @@ function pageShell(
  */
 function pointName(p: StyleSpec['measurements']['points'][number], t: Messages): string {
   if (t === messages('ru')) return p.name_ru;
-  if (t === messages('zh')) return p.name_zh ?? p.name_en;
+  if (t === messages('zh')) {
+    const name = p.name_zh ?? p.name_en;
+    // 胸围 по-китайски — ПОЛНЫЙ обхват груди. Наш замер — половина в
+    // плоском виде, и фабрика прочтёт 92 там, где мы написали 46. В
+    // китайских техпаках это пишут явно: 1/2胸围. Правило, а не правка
+    // каждого имени: признак половины лежит в самой точке, и новая точка
+    // не сможет о нём забыть.
+    return p.measure_kind === 'half' && !name.startsWith('1/2') ? `1/2${name}` : name;
+  }
   return p.name_en;
 }
 
@@ -1158,9 +1178,35 @@ function gradingPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale
   // В нерусском комплекте лист остаётся, но правила заменены отсылкой:
   // печатать нормы ГОСТ русским текстом в китайском техпаке бесполезно,
   // а выдумывать их перевод — опасно, это нормативные формулировки.
+  // Нормы рынка, на язык которого собран комплект. У китайской фабрики нет
+  // ни доступа к ГОСТ 23193-78, ни обязанности его знать: она выпускает по
+  // 执行标准 и принимает партию по AQL. Отсылка «нормы по-русски» на её
+  // листе — это пустое место там, где ОТК ищет первое, что читает.
+  const market = locale === 'ru' ? null : base.marketFor(locale);
+  const standard = market
+    ? base.productStandardFor(market, spec.style.category as Category)
+    : null;
+  // В чужом комплекте от пробела остаётся только флаг: объяснение написано
+  // по-русски и адресовано нам, а не фабрике. Русский абзац в китайском
+  // паке — это строка, которую там никто не прочтёт.
+  const tbc = (v: { verified: boolean }): string =>
+    v.verified ? '' : ` <span class="tbc">— ${esc(t.to_be_confirmed)}</span>`;
+
+  const marketBlock = market
+    ? `<div style="margin-bottom:3mm">` +
+      `<div class="ml">${esc(market.standards_title_local)}</div>` +
+      `<ul class="dash" style="margin-top:1.5mm">` +
+      (standard ? `<li>${esc(standard.text_local)}${tbc(standard)}</li>` : '') +
+      `<li>${esc(market.safety.text_local)}${tbc(market.safety)}</li>` +
+      `<li>${esc(market.sampling.text_local)}${tbc(market.sampling)}</li>` +
+      `<li>${esc(market.measurement_note_local)}</li>` +
+      `</ul></div>`
+    : '';
+
   const acceptance =
     `<h2>${esc(t.grading_acceptance_title)}</h2>` +
     `<div class="note" style="margin-bottom:3mm">${esc(t.grading_acceptance_intro)}</div>` +
+    marketBlock +
     (locale !== 'ru' ? `<div class="note">GOST 23193-78 · ${esc(RU_ONLY_TITLE)}</div>` : '') +
     (locale !== 'ru' ? '' : `<ul class="dash">`) +
     (locale !== 'ru' ? [] : base.qcRules())

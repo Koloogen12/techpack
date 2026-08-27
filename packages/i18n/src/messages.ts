@@ -133,6 +133,15 @@ export interface Messages {
    * самый вектор и не обводит растр заново.
    */
   flats_library_source: string;
+  /**
+   * Пометка «значение подлежит подтверждению».
+   *
+   * Само объяснение, ЧТО именно подтвердить, написано по-русски и адресовано
+   * нам: это рабочая заметка справочника, а не сообщение фабрике. В чужом
+   * комплекте от неё остаётся только флаг — иначе в китайском паке стоит
+   * русский абзац, который там никто не прочтёт.
+   */
+  to_be_confirmed: string;
 
   // --- Паспорт изделия на обложке --------------------------------------------
   cover_category: string;
@@ -214,6 +223,55 @@ export interface Messages {
 
   // --- Общее -----------------------------------------------------------------
   sheet_of: (n: number, total: number) => string;
+
+  // ------------------------------------------------------------ лист на просчёт
+  //
+  // Отдельный документ на языке фабрики. Русский лист китайскому цеху
+  // бесполезен ровно так же, как русский техпак: просчёт — первый контакт,
+  // и непонятная бумага на нём заканчивается.
+  rfq_kicker: string;
+  rfq_row_category: string;
+  rfq_row_article: string;
+  rfq_row_fit: string;
+  rfq_row_fabric: string;
+  rfq_row_trim: string;
+  rfq_row_qty: string;
+  rfq_row_sizes: string;
+  rfq_row_consumption: string;
+  rfq_units_pcs: string;
+  /** Единица плотности полотна: заголовок колонки для этого не годится. */
+  rfq_gsm_unit: string;
+  /** Подпись под эскизом: тот же чертёж, что в паке. */
+  rfq_sketch_caption: string;
+  /** Раскладка тиража по размерам не задана — так и говорим. */
+  rfq_ratio_tbc: string;
+  rfq_consumption: (perUnit: string, perBatch: string | null) => string;
+  rfq_affects_title: string;
+  rfq_ask_title: string;
+  rfq_ask_price: string;
+  rfq_ask_reply_by: (date: string) => string;
+  rfq_ask_moq: string;
+  rfq_ask_lead_time: string;
+  rfq_ask_outsourced: string;
+  /** Что лежит в полном техпаке. */
+  rfq_pack_note: string;
+  rfq_pack_on_request: string;
+  rfq_pack_open: (link: string) => string;
+  rfq_contact_title: string;
+  rfq_contact_missing: string;
+  /** Первая фраза сообщения: категория и посадка. */
+  rfq_text_quote: (category: string, fit: string) => string;
+  rfq_text_fabric: (name: string, gsm: string | null) => string;
+  rfq_text_qty: (qty: number | null) => string;
+  rfq_text_sizes: (line: string) => string;
+  rfq_text_pack: string;
+  rfq_text_pack_link: (link: string) => string;
+  rfq_text_contact: (who: string) => string;
+  /** Особенности, которые меняют цену и срок. */
+  rfq_hl_allover: (stepCm: string, roll: boolean) => string;
+  rfq_hl_artwork: (zone: string, w: string, h: string, technique: string) => string;
+  rfq_hl_special: (nodes: string) => string;
+  rfq_hl_colorways: (n: number) => string;
   cm: string;
   pcs: string;
   m: string;

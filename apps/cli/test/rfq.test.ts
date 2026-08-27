@@ -198,3 +198,39 @@ describe('лист и пак показывают одно изделие', () =
     expect(html).not.toContain('Пришлём по запросу');
   });
 });
+
+describe('лист на языке фабрики', () => {
+  const CYRILLIC = /[А-Яа-яЁё]/;
+
+  it.each(['en', 'zh'] as const)('%s: в тексте нет наших слов', (locale) => {
+    // Просчёт — первый контакт с фабрикой, и непонятная бумага на нём
+    // заканчивается. Русские остатки здесь дороже, чем в паке.
+    const text = rfqText(SPEC, { contact: CONTACT, locale });
+    // Имя контакта — данные бренда, их не переводят; проверяем остальное.
+    const withoutContact = text.replace(CONTACT.name ?? '', '');
+    expect(withoutContact).not.toMatch(CYRILLIC);
+  });
+
+  it.each(['en', 'zh'] as const)('%s: в вёрстке листа нет наших подписей', (locale) => {
+    const html = renderRfqHtml(SPEC, { locale });
+    for (const ru of ['Лист на просчёт', 'Что нужно от вас', 'Кому отвечать', 'уточняется']) {
+      expect(html, ru).not.toContain(ru);
+    }
+  });
+
+  it('китайский лист называет себя 报价单', () => {
+    expect(renderRfqHtml(SPEC, { locale: 'zh' })).toContain('报价单');
+  });
+
+  it('и на китайском влезает в предел мессенджера', () => {
+    // Иероглиф несёт больше смысла на знак, но предел считается в знаках,
+    // и сокращение блоков обязано работать одинаково на всех языках.
+    expect(rfqText(PATTERN, { contact: CONTACT, locale: 'zh' }).length).toBeLessThanOrEqual(
+      RFQ_TEXT_LIMIT,
+    );
+  });
+
+  it('русский остаётся языком по умолчанию', () => {
+    expect(rfqText(SPEC, { contact: CONTACT })).toContain('Просчёт');
+  });
+});

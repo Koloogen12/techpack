@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderRfqPdf, rfqText, type RfqOptions } from '@seamsterly/docgen';
+import type { Locale } from '@seamsterly/i18n';
 import type { StyleSpec } from '@seamsterly/stylespec';
 import { readJobTemplate, renderJobTemplate } from './templates.js';
 
@@ -14,8 +15,16 @@ import { readJobTemplate, renderJobTemplate } from './templates.js';
  */
 
 export interface RfqSheet {
-  /** Путь к собранному PDF. */
+  /** Путь к собранному PDF на русском. */
   path: string;
+  /**
+   * Тот же лист на других языках.
+   *
+   * Китайская фабрика читает 报价单, а не «лист на просчёт»; готовить его
+   * отдельной командой значит однажды отправить русский и получить
+   * молчание, которое мы примем за отказ.
+   */
+  localized: { locale: Locale; path: string; text: string }[];
   /** Текст для мессенджера — его копируют и вставляют, а не переписывают. */
   text: string;
   /** Чего не хватает, чтобы лист сработал. Пусто — всё на месте. */
@@ -95,7 +104,13 @@ export async function buildRfq(
   dir: string,
   spec: StyleSpec,
   who: Who,
-  options: { dataDir: string; token: string; packLink?: string | undefined },
+  options: {
+    dataDir: string;
+    token: string;
+    packLink?: string | undefined;
+    /** Языки помимо русского. Русский собирается всегда. */
+    locales?: readonly Locale[];
+  },
 ): Promise<RfqSheet> {
   const contact = contactOf(dir, who, options.dataDir, options.token);
   const sizeRatio = sizeRatioOf(dir);
@@ -118,6 +133,17 @@ export async function buildRfq(
   const text = rfqText(spec, rfqOptions);
   writeFileSync(join(dir, 'rfq.txt'), text + '\n');
 
+  const localized: RfqSheet['localized'] = [];
+  for (const locale of new Set(options.locales ?? [])) {
+    if (locale === 'ru') continue;
+    const localeOptions = { ...rfqOptions, locale };
+    const localePath = join(dir, `rfq-${locale}.pdf`);
+    writeFileSync(localePath, await renderRfqPdf(spec, localeOptions));
+    const localeText = rfqText(spec, localeOptions);
+    writeFileSync(join(dir, `rfq-${locale}.txt`), localeText + '\n');
+    localized.push({ locale, path: localePath, text: localeText });
+  }
+
   // Пробелы называем поимённо: «что-то не заполнено» никого не заставит
   // открыть профиль, а «фабрике некуда ответить» — заставит.
   const gaps: string[] = [];
@@ -130,5 +156,5 @@ export async function buildRfq(
   if (!sizeRatio) {
     gaps.push('раскладка по размерам не задана — фабрика считает цену по ней, а не по тиражу');
   }
-  return { path, text, gaps };
+  return { path, text, localized, gaps };
 }

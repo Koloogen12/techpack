@@ -1,0 +1,62 @@
+{
+  "id": "market_acceptance",
+  "version": "0.1.0",
+  "description": "Нормы приёмки по рынкам сбыта: стандарт, по которому изделие выпускается, и правило выборочного контроля. Российская фабрика читает ГОСТ, китайская — 执行标准 и AQL; напечатать одной стороне нормы другой значит напечатать пустое место.",
+  "sources": [
+    "knowledge-base/etalon/ETALON-2-INTL-CN.md#А4",
+    "knowledge-base/etalon/ETALON-2-INTL-CN.md#А5",
+    "GB/T 2828.1-2012 计数抽样检验程序 (идентичен ISO 2859-1)"
+  ],
+  "markets": [
+    {
+      "id": "cn",
+      "locale": "zh",
+      "label_ru": "КНР",
+      "label_local": "中国",
+      "standards_title_local": "执行标准",
+      "safety": {
+        "code": "GB 18401-2010",
+        "grade": "B",
+        "text_local": "GB 18401-2010 B 类（直接接触皮肤）",
+        "text_ru": "GB 18401-2010, категория B — изделия в прямом контакте с кожей",
+        "verified": true,
+        "source": "knowledge-base/etalon/ETALON-2-INTL-CN.md#А5",
+        "note_ru": "Обязательный технический регламент КНР по текстилю. Категория B назначается всему трикотажу нашего ядра: он носится на голое тело."
+      },
+      "product_standards": [
+        {
+          "code": "GB/T 22849-2014",
+          "text_local": "GB/T 22849-2014 针织T恤衫",
+          "text_ru": "GB/T 22849-2014, трикотажные футболки",
+          "categories": ["tshirt", "longsleeve", "polo", "tank_top"],
+          "verified": false,
+          "source": "knowledge-base/etalon/ETALON-2-INTL-CN.md#А5",
+          "gap": "Сам стандарт назван эталоном, а вот раскладка по нашим категориям выведена нами: подтвердить у агента или фабрики, каким стандартом она выпускает поло и майку."
+        },
+        {
+          "code": "FZ/T 73020-2019",
+          "text_local": "FZ/T 73020-2019 针织休闲服装",
+          "text_ru": "FZ/T 73020-2019, трикотажная одежда для отдыха",
+          "categories": ["sweatshirt", "hoodie", "zip_hoodie"],
+          "verified": false,
+          "source": "knowledge-base/etalon/ETALON-2-INTL-CN.md#А5",
+          "gap": "Стандарт назван эталоном; раскладка по нашим категориям выведена нами — подтвердить у агента."
+        }
+      ],
+      "sampling": {
+        "code": "GB/T 2828.1",
+        "equivalent": "ISO 2859-1",
+        "level": "II",
+        "aql_major": 2.5,
+        "aql_minor": 4.0,
+        "text_local": "抽样检验 GB/T 2828.1（等同 ISO 2859-1），一般检验水平 II，AQL 2.5 主要缺陷 / 4.0 次要缺陷",
+        "text_ru": "Выборочный контроль по GB/T 2828.1 (идентичен ISO 2859-1), уровень II, AQL 2.5 по значительным дефектам и 4.0 по малозначительным",
+        "verified": false,
+        "source": "knowledge-base/etalon/ETALON-2-INTL-CN.md#А4",
+        "gap": "Эталон называет это де-факто стандартом рынка и сам помечает раздел как требующий валидации интервью с агентом. Подтвердить до того, как ставить в договор."
+      },
+      "measurement_note_local": "成衣尺寸按尺寸表核对，偏差不超过表中公差。",
+      "measurement_note_ru": "Готовое изделие сверяется с табелем мер, отклонение — в пределах допуска из таблицы."
+    }
+  ]
+}

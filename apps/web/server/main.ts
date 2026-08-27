@@ -822,7 +822,10 @@ const server = createServer(async (req, res) => {
           dir,
           spec,
           { name: invite.name, org: invite.org },
-          { dataDir: DATA, token: invite.token, packLink },
+          // Китайский лист собирается сразу: фабрики, ради которых он и
+          // задуман, русского не читают, а собирать его отдельной командой
+          // значит однажды отправить не тот.
+          { dataDir: DATA, token: invite.token, packLink, locales: ['zh'] },
         );
 
         const points = spec.measurements.points.length;
@@ -845,6 +848,16 @@ const server = createServer(async (req, res) => {
             .filter((line) => line !== '')
             .join('\n'),
         );
+
+        // Тот же лист на китайском — вторым файлом. Админ пересылает его
+        // китайской фабрике без единой лишней команды.
+        for (const l of rfq.localized) {
+          await tgDocument(
+            l.path,
+            `${spec.style.article}-rfq-${l.locale}.pdf`,
+            [`<b>Тот же лист · ${l.locale}</b>`, `<code>${l.text}</code>`].join('\n'),
+          );
+        }
 
         writeFileSync(
           join(dir, 'quote.json'),
@@ -1078,9 +1091,14 @@ const server = createServer(async (req, res) => {
       // Лист на просчёт — тот же файл, что ушёл фабрике. Бренд обязан видеть,
       // что именно отправлено от его имени.
       if (req.method === 'GET' && rest === '/rfq') {
+        // Язык листа: тот же выбор, что у техпака. Фабрике отправляют один
+        // файл, и чужой язык в нём только мешает.
+        const rfqLocale = (['en', 'zh'] as const).find(
+          (l) => l === url.searchParams.get('locale'),
+        );
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
-        const path = join(dir, 'rfq.pdf');
+        const path = join(dir, rfqLocale ? `rfq-${rfqLocale}.pdf` : 'rfq.pdf');
         const { statSync } = await import('node:fs');
         const fresh =
           existsSync(path) &&
@@ -1096,13 +1114,20 @@ const server = createServer(async (req, res) => {
             dir,
             spec,
             { name: invite.name, org: invite.org },
-            { dataDir: DATA, token: invite.token, packLink: link },
+            {
+              dataDir: DATA,
+              token: invite.token,
+              packLink: link,
+              ...(rfqLocale ? { locales: [rfqLocale] } : {}),
+            },
           );
         }
-        logEvent(invite.name, 'rfq', { id });
+        logEvent(invite.name, 'rfq', { id, ...(rfqLocale ? { locale: rfqLocale } : {}) });
         res.writeHead(200, {
           'content-type': 'application/pdf',
-          'content-disposition': `attachment; filename="${spec.style.article}-rfq.pdf"`,
+          'content-disposition':
+            `attachment; filename="${spec.style.article}-rfq` +
+            `${rfqLocale ? `-${rfqLocale}` : ''}.pdf"`,
         });
         return res.end(readFileSync(path));
       }

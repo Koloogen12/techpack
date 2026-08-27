@@ -1,10 +1,17 @@
 import { renderFlatsFromSpec } from '@seamsterly/flats';
 import {
+  CATEGORY_LABEL_EN,
   CATEGORY_LABEL_RU,
+  CATEGORY_LABEL_ZH,
+  FIT_INTENT_LABEL_EN,
   FIT_INTENT_LABEL_RU,
+  FIT_INTENT_LABEL_ZH,
+  MATERIAL_ROLE_LABEL_EN,
+  MATERIAL_ROLE_LABEL_ZH,
   type Category,
   type FitIntent,
 } from '@seamsterly/kb';
+import { messages, type Locale } from '@seamsterly/i18n';
 import type { StyleSpec } from '@seamsterly/stylespec';
 
 /**
@@ -52,6 +59,14 @@ export interface RfqOptions {
    * лишний день, а лист на просчёт от ссылки не толстеет.
    */
   packLink?: string | undefined;
+  /**
+   * Язык листа.
+   *
+   * Просчёт — первый контакт с фабрикой, и непонятная бумага на нём
+   * заканчивается: русский лист китайскому цеху бесполезен ровно так же,
+   * как русский техпак.
+   */
+  locale?: Locale | undefined;
 }
 
 const esc = (s: string): string =>
@@ -64,17 +79,25 @@ const num = (n: number): string =>
   Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, '');
 
 /** Ключевые особенности: то, что меняет цену и сроки. */
-export function rfqHighlights(spec: StyleSpec): string[] {
+export function rfqHighlights(spec: StyleSpec, locale: Locale = 'ru'): string[] {
+  const t = messages(locale);
   const out: string[] = [];
+  // Подписи зон, техник и узлов уже переведены в самой спеке: пак печатает
+  // их теми же полями. Брать здесь русский вариант значило бы завести
+  // второй перевод одного и того же и однажды их развести.
+  const pick = (en?: string, zh?: string, ru?: string): string =>
+    (locale === 'zh' ? (zh ?? en) : locale === 'en' ? en : ru) ?? ru ?? en ?? '';
 
   for (const a of spec.artwork?.placements ?? []) {
     out.push(
       a.kind === 'allover'
-        ? `сплошной раппорт, шаг ${num(a.size_cm.width.value)} см, ` +
-            `${a.pattern?.path === 'roll' ? 'печать полотна до раскроя' : 'печать по панелям'}`
-        : `нанесение: ${a.zone_label_ru.toLowerCase()}, ` +
-            `${num(a.size_cm.width.value)}×${num(a.size_cm.height.value)} см, ` +
-            `${a.technique_label_ru.toLowerCase()}`,
+        ? t.rfq_hl_allover(num(a.size_cm.width.value), a.pattern?.path === 'roll')
+        : t.rfq_hl_artwork(
+            pick(a.zone_label_en, a.zone_label_zh, a.zone_label_ru).toLowerCase(),
+            num(a.size_cm.width.value),
+            num(a.size_cm.height.value),
+            pick(a.technique_label_en, a.technique_label_zh, a.technique_label_ru).toLowerCase(),
+          ),
     );
   }
 
@@ -84,21 +107,26 @@ export function rfqHighlights(spec: StyleSpec): string[] {
   const special = (spec.construction?.nodes ?? []).filter((n) => n.requires_special_equipment);
   if (special.length) {
     out.push(
-      `спецоборудование: ${special.map((n) => n.label_ru.toLowerCase()).join(', ')} — ` +
-        `в документе есть замена под базовый парк`,
+      t.rfq_hl_special(
+        special.map((n) => pick(n.label_en, n.label_zh, n.label_ru).toLowerCase()).join(', '),
+      ),
     );
   }
 
   const colorways = spec.bom?.colorways.length ?? 0;
-  if (colorways > 1) out.push(`${colorways} цвета`);
+  if (colorways > 1) out.push(t.rfq_hl_colorways(colorways));
 
   return out;
 }
 
 /** Строка размерного ряда: с раскладкой, если она задана, иначе честно без. */
-export function rfqSizeLine(spec: StyleSpec, ratio?: Readonly<Record<string, number>>): string {
+export function rfqSizeLine(
+  spec: StyleSpec,
+  ratio?: Readonly<Record<string, number>>,
+  locale: Locale = 'ru',
+): string {
   if (!ratio || Object.keys(ratio).length === 0) {
-    return `${spec.base.size_range.join(' · ')} — раскладка по размерам уточняется`;
+    return `${spec.base.size_range.join(' · ')} — ${messages(locale).rfq_ratio_tbc}`;
   }
   const parts = spec.base.size_range.map((ru) => `${ru}: ${ratio[String(ru)] ?? 0}`);
   return parts.join(' · ');
@@ -116,30 +144,40 @@ export function rfqSizeLine(spec: StyleSpec, ratio?: Readonly<Record<string, num
 export const RFQ_TEXT_LIMIT = 500;
 
 export function rfqText(spec: StyleSpec, options: RfqOptions = {}): string {
+  const locale = options.locale ?? 'ru';
+  const t = messages(locale);
   const shell = spec.bom?.lines.find((l) => l.role === 'shell');
   const qty = spec.bom?.batch_qty;
   const contact = options.contact;
+  const fabricName =
+    locale === 'zh'
+      ? (shell?.name_zh ?? shell?.name_en ?? shell?.name_ru)
+      : locale === 'en'
+        ? (shell?.name_en ?? shell?.name_ru)
+        : shell?.name_ru;
 
   // Порядок блоков — порядок вопросов фабрики. Последние отпадают первыми.
   const blocks: string[] = [
-    `Просчёт: ${CATEGORY_LABEL_RU[spec.style.category as Category]}, ` +
-      `${FIT_INTENT_LABEL_RU[spec.base.fit_intent as FitIntent]}.`,
-    shell
-      ? `Полотно: ${shell.name_ru.toLowerCase()}` +
-        (shell.gsm ? `, ${num(shell.gsm.value)} г/м²` : '') +
-        `.`
+    t.rfq_text_quote(categoryLabel(spec, locale), fitLabel(spec, locale)),
+    shell && fabricName
+      ? t.rfq_text_fabric(
+          // Строчная буква уместна в русском и английском; иероглифы
+          // регистра не имеют, и toLowerCase там просто ничего не делает.
+          locale === 'zh' ? fabricName : fabricName.toLowerCase(),
+          shell.gsm ? num(shell.gsm.value) : null,
+        )
       : '',
-    qty ? `Тираж: ${qty} шт.` : 'Тираж уточняется.',
-    `Размеры: ${rfqSizeLine(spec, options.sizeRatio)}.`,
-    ...rfqHighlights(spec).map((h) => `${h[0]!.toUpperCase()}${h.slice(1)}.`),
-    options.packLink
-      ? `Техпак с замерами, узлами и допусками: ${options.packLink}`
-      : 'Техпак с замерами, узлами и допусками готов — пришлю по запросу.',
+    t.rfq_text_qty(qty ?? null),
+    t.rfq_text_sizes(rfqSizeLine(spec, options.sizeRatio, locale)),
+    ...rfqHighlights(spec, locale).map((h) =>
+      locale === 'zh' ? `${h}。` : `${h[0]!.toUpperCase()}${h.slice(1)}.`,
+    ),
+    options.packLink ? t.rfq_text_pack_link(options.packLink) : t.rfq_text_pack,
     // Имя без телефона и почты каналом связи не является: «Связь: Данил» в
     // мессенджере выглядит заполненной строкой и остаётся тупиком. Лучше
     // строки не будет вовсе — тогда пробел виден и его чинят.
     contact?.phone || contact?.email
-      ? `Связь: ${[contact.name, contact.phone, contact.email].filter(Boolean).join(', ')}.`
+      ? t.rfq_text_contact([contact.name, contact.phone, contact.email].filter(Boolean).join(', '))
       : '',
   ].filter(Boolean);
 
@@ -160,55 +198,112 @@ export function rfqText(spec: StyleSpec, options: RfqOptions = {}): string {
   // слова читается как сбой отправителя.
   if (text.length > RFQ_TEXT_LIMIT) {
     const cut = text.slice(0, RFQ_TEXT_LIMIT - 1);
-    text = `${cut.slice(0, cut.lastIndexOf(' ')).trimEnd()}…`;
+    const space = cut.lastIndexOf(' ');
+    // В китайском пробелов между словами нет, и резать по ним нечего:
+    // иероглиф — сам по себе граница.
+    text = `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
   }
 
   return text;
 }
 
+/** Категория и посадка на языке листа: словари уже есть, свои заводить не за чем. */
+function categoryLabel(spec: StyleSpec, locale: Locale): string {
+  const category = spec.style.category as Category;
+  if (locale === 'zh') return CATEGORY_LABEL_ZH[category];
+  if (locale === 'en') return CATEGORY_LABEL_EN[category];
+  return CATEGORY_LABEL_RU[category];
+}
+
+function fitLabel(spec: StyleSpec, locale: Locale): string {
+  const fit = spec.base.fit_intent as FitIntent;
+  if (locale === 'zh') return FIT_INTENT_LABEL_ZH[fit];
+  if (locale === 'en') return FIT_INTENT_LABEL_EN[fit];
+  return FIT_INTENT_LABEL_RU[fit];
+}
+
 /** Одностраничный лист на просчёт. A4 портрет — его отправляют почтой. */
 export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string {
+  const locale = options.locale ?? 'ru';
+  const t = messages(locale);
   const shell = spec.bom?.lines.find((l) => l.role === 'shell');
   const rib = spec.bom?.lines.find((l) => l.role === 'rib');
+  // Названия материалов и составы переведены в самой спеке — теми же
+  // полями, которыми их печатает пак.
+  const name = (l: typeof shell): string =>
+    (locale === 'zh'
+      ? (l?.name_zh ?? l?.name_en ?? l?.name_ru)
+      : locale === 'en'
+        ? (l?.name_en ?? l?.name_ru)
+        : l?.name_ru) ?? '';
+  const composition = (l: typeof shell): string =>
+    (locale === 'zh'
+      ? (l?.composition_zh ?? l?.composition_en ?? l?.composition.value)
+      : locale === 'en'
+        ? (l?.composition_en ?? l?.composition.value)
+        : l?.composition.value) ?? '';
   // Вид переда: из библиотеки, если пак собран из неё, иначе строим сами.
   // Оба документа обязаны показывать одно и то же изделие.
   const sketch = options.flat?.svg ?? renderFlatsFromSpec(spec).front.svg;
   const contact = options.contact;
-  const highlights = rfqHighlights(spec);
+  const highlights = rfqHighlights(spec, locale);
 
   const rows: [string, string][] = [
     // Название уже стоит заголовком листа: повторять его в первой строке
     // значит тратить строку на то, что человек только что прочитал.
-    ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
-    ['Артикул', esc(spec.style.article)],
-    ['Посадка', FIT_INTENT_LABEL_RU[spec.base.fit_intent as FitIntent]],
+    [t.rfq_row_category, categoryLabel(spec, locale)],
+    [t.rfq_row_article, esc(spec.style.article)],
+    [t.rfq_row_fit, fitLabel(spec, locale)],
     [
-      'Полотно',
+      t.rfq_row_fabric,
       shell
-        ? `${esc(shell.name_ru)}${shell.gsm ? `, ${num(shell.gsm.value)} г/м²` : ''} · ` +
-          `${esc(shell.composition.value)}`
-        : 'уточняется',
+        ? `${esc(name(shell))}${shell.gsm ? `, ${num(shell.gsm.value)} ${esc(t.rfq_gsm_unit)}` : ''} · ` +
+          `${esc(composition(shell))}`
+        : esc(t.to_be_confirmed),
     ],
     ...(rib
-      ? ([['Отделка', `${esc(rib.name_ru)} — ${esc(rib.placement_ru)}`]] as [string, string][])
+      ? ([
+          [
+            t.rfq_row_trim,
+            // Назначение в нерусском листе берётся из РОЛИ материала, а не
+            // из вольного текста: роль — замкнутое перечисление, её перевод
+            // полон по устройству. Тот же приём, что в самом паке.
+            `${esc(name(rib))} — ${esc(
+              locale === 'ru'
+                ? rib.placement_ru
+                : locale === 'zh'
+                  ? MATERIAL_ROLE_LABEL_ZH[rib.role]
+                  : MATERIAL_ROLE_LABEL_EN[rib.role],
+            )}`,
+          ],
+        ] as [string, string][])
       : []),
-    ['Тираж', spec.bom?.batch_qty ? `${spec.bom.batch_qty} шт` : 'уточняется'],
-    ['Размерный ряд', esc(rfqSizeLine(spec, options.sizeRatio))],
     [
-      'Расход полотна',
+      t.rfq_row_qty,
+      spec.bom?.batch_qty
+        ? `${spec.bom.batch_qty} ${esc(t.rfq_units_pcs)}`
+        : esc(t.to_be_confirmed),
+    ],
+    [t.rfq_row_sizes, esc(rfqSizeLine(spec, options.sizeRatio, locale))],
+    [
+      t.rfq_row_consumption,
       spec.bom
-        ? `${num(spec.bom.fabric_consumption_m.value)} м на изделие` +
-          (spec.bom.batch_consumption_m ? ` · ${num(spec.bom.batch_consumption_m)} м на тираж` : '')
+        ? esc(
+            t.rfq_consumption(
+              num(spec.bom.fabric_consumption_m.value),
+              spec.bom.batch_consumption_m ? num(spec.bom.batch_consumption_m) : null,
+            ),
+          )
         : '—',
     ],
   ];
 
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8">
-<title>Лист на просчёт — ${esc(spec.style.article)}</title>
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8">
+<title>${esc(t.rfq_kicker)} — ${esc(spec.style.article)}</title>
 <style>
   @page { size: A4 portrait; margin: 14mm 12mm; }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: Sora, "Helvetica Neue", Arial, sans-serif; color: #0E0E0E; font-size: 9.5pt; }
+  body { margin: 0; font-family: Sora, "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif; color: #0E0E0E; font-size: 9.5pt; }
   .kicker { font-size: 7.4pt; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 700; color: #6B6B67; }
   h1 { font-size: 17pt; font-weight: 700; margin: 1mm 0 1mm; letter-spacing: -0.3px; }
   .head { border-bottom: 1px solid #E4E1DC; padding-bottom: 3mm; margin-bottom: 5mm; }
@@ -230,7 +325,7 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
 </style></head><body>
 
 <div class="head">
-  <div class="kicker">Лист на просчёт</div>
+  <div class="kicker">${esc(t.rfq_kicker)}</div>
   <h1>${esc(spec.style.name)}</h1>
   <div class="note">${esc(spec.style.description ?? '')}</div>
 </div>
@@ -241,40 +336,35 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
   </tbody></table>
   <figure class="sketch" style="margin:0">
     ${sketch}
-    <figcaption>Перед · чертёж из техпака</figcaption>
+    <figcaption>${esc(t.rfq_sketch_caption)}</figcaption>
   </figure>
 </div>
 
 ${
   highlights.length
-    ? `<h2>Что влияет на цену и срок</h2><ul>` +
+    ? `<h2>${esc(t.rfq_affects_title)}</h2><ul>` +
       highlights.map((h) => `<li>${esc(h)}</li>`).join('') +
       `</ul>`
     : ''
 }
 
 <div class="ask">
-  <div class="kicker">Что нужно от вас</div>
+  <div class="kicker">${esc(t.rfq_ask_title)}</div>
   <ol>
-    <li>Цена за изделие при этом тираже${options.replyBy ? ` — ответ до ${esc(options.replyBy)}` : ''}</li>
-    <li>Минимальная партия, при которой вы беретесь</li>
-    <li>Срок от подтверждения образца до отгрузки</li>
-    <li>Что из перечисленного вы не делаете у себя и отдаёте подрядчику</li>
+    <li>${esc(t.rfq_ask_price)}${options.replyBy ? esc(t.rfq_ask_reply_by(options.replyBy)) : ''}</li>
+    <li>${esc(t.rfq_ask_moq)}</li>
+    <li>${esc(t.rfq_ask_lead_time)}</li>
+    <li>${esc(t.rfq_ask_outsourced)}</li>
   </ol>
 </div>
 
 <div class="note" style="margin-top:5mm">
-  Технический пакет готов: табель мер с допусками по ГОСТ 23193-78, узлы обработки
-  с кодами швов и типом оборудования, технологическая последовательность,
-  спецификация материалов и маркировка. ${
-    options.packLink
-      ? `Открыть целиком: <b>${esc(options.packLink)}</b>. Просчитывать по этому листу, а не по нему.`
-      : 'Пришлём по запросу — просчитывать по этому листу, а не по нему.'
-  }
+  ${esc(t.rfq_pack_note)}
+  ${options.packLink ? esc(t.rfq_pack_open(options.packLink)) : esc(t.rfq_pack_on_request)}
 </div>
 
 <div class="contact">
-  <div class="kicker">Кому отвечать</div>
+  <div class="kicker">${esc(t.rfq_contact_title)}</div>
   ${
     contact?.company || contact?.name
       ? `<div style="margin-top:1.5mm">${[
@@ -295,8 +385,7 @@ ${
     // с ней, а не вместо неё.
     contact?.phone || contact?.email
       ? ''
-      : `<div class="warn" style="margin-top:1.5mm">Телефон и почта не указаны — фабрике
-         некуда ответить. Заполните профиль бренда перед отправкой.</div>`
+      : `<div class="warn" style="margin-top:1.5mm">${esc(t.rfq_contact_missing)}</div>`
   }
 </div>
 

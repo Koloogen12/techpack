@@ -85,6 +85,7 @@ export const EN: Messages = {
     'The silhouette comes from the model library and is fitted to the drawing footprint derived from the size chart. Detail proportions on it are illustrative: the size chart is the only source of dimensions. Callouts mark an area of the garment, not a point of measure — a library silhouette carries no control points, so no dimension may be read off it.',
   flats_library_missing: 'Details not shown on the illustrative silhouette',
   flats_library_source: 'Library silhouette · the source vector ships with this pack',
+  to_be_confirmed: 'to be confirmed',
 
   form_kicker: 'Measurement Sheet · Seamsterly',
   form_who: 'Measured by',
@@ -113,6 +114,50 @@ export const EN: Messages = {
   cover_shell: 'Shell fabric',
 
   sheet_of: (n, total) => `Sheet ${n} of ${total}`,
+
+  // ------------------------------------------------------------ request for quote
+  rfq_kicker: 'Request for quote',
+  rfq_row_category: 'Category',
+  rfq_row_article: 'Style no.',
+  rfq_row_fit: 'Fit',
+  rfq_row_fabric: 'Fabric',
+  rfq_row_trim: 'Trim',
+  rfq_row_qty: 'Order quantity',
+  rfq_row_sizes: 'Size run',
+  rfq_row_consumption: 'Fabric consumption',
+  rfq_units_pcs: 'pcs',
+  rfq_gsm_unit: 'gsm',
+  rfq_sketch_caption: 'Front · flat from the tech pack',
+  rfq_ratio_tbc: 'size ratio to be confirmed',
+  rfq_consumption: (perUnit, perBatch) =>
+    `${perUnit} m per unit` + (perBatch ? ` · ${perBatch} m per order` : ''),
+  rfq_affects_title: 'What drives price and lead time',
+  rfq_ask_title: 'What we need from you',
+  rfq_ask_price: 'Unit price at this quantity',
+  rfq_ask_reply_by: (date) => ` — reply by ${date}`,
+  rfq_ask_moq: 'Minimum order quantity you accept',
+  rfq_ask_lead_time: 'Lead time from sample approval to shipment',
+  rfq_ask_outsourced: 'Which of the above you do not do in-house and subcontract',
+  rfq_pack_note:
+    'The full tech pack is ready: points of measure with tolerances, construction nodes with seam codes and machine types, the operation sequence, the bill of materials and labelling.',
+  rfq_pack_on_request: 'Sent on request — quote from this sheet, not from the pack.',
+  rfq_pack_open: (link) => `Open in full: ${link}. Quote from this sheet, not from the pack.`,
+  rfq_contact_title: 'Who to reply to',
+  rfq_contact_missing:
+    'No phone and no email — the factory has nowhere to reply. Fill in the brand profile before sending.',
+  rfq_text_quote: (category, fit) => `Quote request: ${category}, ${fit}.`,
+  rfq_text_fabric: (name, gsm) => `Fabric: ${name}${gsm ? `, ${gsm} gsm` : ''}.`,
+  rfq_text_qty: (qty) => (qty ? `Quantity: ${qty} pcs.` : 'Quantity to be confirmed.'),
+  rfq_text_sizes: (line) => `Sizes: ${line}.`,
+  rfq_text_pack: 'Tech pack with measurements, nodes and tolerances is ready — sent on request.',
+  rfq_text_pack_link: (link) => `Tech pack with measurements, nodes and tolerances: ${link}`,
+  rfq_text_contact: (who) => `Contact: ${who}.`,
+  rfq_hl_allover: (stepCm, roll) =>
+    `all-over repeat, ${stepCm} cm step, ${roll ? 'roll printing before cutting' : 'panel printing'}`,
+  rfq_hl_artwork: (zone, w, h, technique) => `artwork: ${zone}, ${w}×${h} cm, ${technique}`,
+  rfq_hl_special: (nodes) =>
+    `special equipment: ${nodes} — the pack lists a substitute for the standard machine park`,
+  rfq_hl_colorways: (n) => `${n} colourways`,
   seq_title: 'Operation breakdown',
   seq_no: 'No.',
   seq_operation: 'Operation',
