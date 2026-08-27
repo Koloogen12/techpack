@@ -1072,6 +1072,9 @@ async function chooseLibraryFlat(
   chosen.candidates = usable.slice(0, 3);
 
   let id = options.template === 'ask' ? null : options.template;
+  // Названный флагом силуэт — уже выбор человека, даже если он его не
+  // увидел: команду набирали руками.
+  let chosenByHuman = Boolean(id);
 
   if (!id) {
     if (usable.length === 0) {
@@ -1089,6 +1092,7 @@ async function chooseLibraryFlat(
       }
     } else {
       id = await options.askTemplate(usable.slice(0, 3));
+      chosenByHuman = Boolean(id);
     }
   }
   if (!id) return undefined;
@@ -1118,9 +1122,14 @@ async function chooseLibraryFlat(
     };
   }
 
-  // Отметка о выборе — очередь на разметку контрольных точек: силуэт,
-  // который выбирают чаще прочих, заслуживает переезда в мастера.
-  notePromotion(rendered.templateId);
+  // Отметка о ВЫБОРЕ ЧЕЛОВЕКА, а не о применении силуэта.
+  //
+  // Счётчик — очередь на ручную разметку контрольных точек, и решает её
+  // человеческое предпочтение. Считать автоподбор значит повышать силуэт
+  // за то, что его выбирает наш собственный скоринг: круг, в котором
+  // очередь заполняется нашим же мнением о себе. Явно названный силуэт
+  // и ответ на вопрос «какой ближе?» — выбор; молчаливый автоподбор — нет.
+  if (chosenByHuman) notePromotion(rendered.templateId);
   if (rendered.missing.length) {
     notes.push(
       `На силуэте библиотеки не показаны: ${rendered.missing

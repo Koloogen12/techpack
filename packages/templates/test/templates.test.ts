@@ -488,3 +488,25 @@ describe('штраф за отсутствующую деталь', () => {
     if (bad) expect(bad.fit_fraction).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('очередь на повышение в мастера', () => {
+  it('частота выбора влияет на счёт последним разрядом', () => {
+    // При прочих равных выигрывает силуэт, который люди уже выбирали,
+    // а не первый по алфавиту. Но перебить признак им нельзя.
+    const chosen = scoreTemplate(entry('chosen', { promotion_score: 20 }), query)!;
+    const fresh = scoreTemplate(entry('fresh'), query)!;
+    expect(chosen.score).toBeGreaterThan(fresh.score);
+    expect(chosen.score - fresh.score).toBeLessThan(3);
+  });
+
+  it('частота не перебивает совпадение признаков', () => {
+    // Иначе однажды выбранный силуэт без капюшона начал бы побеждать
+    // силуэт с капюшоном у худи — просто потому, что его уже брали.
+    const popular = scoreTemplate(
+      entry('popular', { promotion_score: 9999, traits: traits({ hood: false }) }),
+      query,
+    )!;
+    const right = scoreTemplate(entry('right'), query)!;
+    expect(right.score).toBeGreaterThan(popular.score);
+  });
+});
