@@ -17,3 +17,9 @@ design_handoff_specform/**
 market-research/**
 *.html
 apps/web/data/
+
+# Машинный вывод: манифест библиотеки собирает templates:ingest, JSON-схему —
+# stylespec:schema. Форматировать их значит получать шум в дифе при каждой
+# пересборке и спорить с генератором о переносах.
+packages/kb/data/templates/template_manifest.json
+packages/stylespec/schema/stylespec.schema.json

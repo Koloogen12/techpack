@@ -77,8 +77,7 @@ const track = (type, payload) => {
 
 const PDF_URL = (id) => '/app/api/jobs/' + id + '/pdf?t=' + encodeURIComponent(TOKEN || '');
 /** Табель мер таблицей: по нему считают расход и сверяет ОТК. */
-const POM_CSV_URL = (id) =>
-  '/app/api/jobs/' + id + '/pom.csv?t=' + encodeURIComponent(TOKEN || '');
+const POM_CSV_URL = (id) => '/app/api/jobs/' + id + '/pom.csv?t=' + encodeURIComponent(TOKEN || '');
 /** Лист на просчёт — та же страница, что ушла фабрике. */
 const RFQ_URL = (id) => '/app/api/jobs/' + id + '/rfq?t=' + encodeURIComponent(TOKEN || '');
 const PHOTO_URL = (id, n) =>
@@ -1960,7 +1959,8 @@ class Component extends DCLogic {
           ? [libUrl]
           : s.view === 'all'
             ? [this.flatAllUrl(engLayers)]
-            : [this.flatUrl(s.view, engLayers)])
+            : [this.flatUrl(s.view, engLayers)]
+        )
           .filter(Boolean)
           .map((u) => ({
             bg:
@@ -4392,7 +4392,9 @@ class Component extends DCLogic {
       silhCards: ((s.silh && s.silh.candidates) || []).map((c) => {
         const active = s.silh && c.id === s.silh.id;
         return {
-          title: active ? 'Сейчас на чертеже' : 'Подходит на ' + Math.round(c.fit_fraction * 100) + '%',
+          title: active
+            ? 'Сейчас на чертеже'
+            : 'Подходит на ' + Math.round(c.fit_fraction * 100) + '%',
           sub: (c.reasons || []).slice(0, 2).join(', '),
           style:
             'flex:1;min-width:0;border-radius:10px;padding:8px;cursor:pointer;border:1px solid ' +

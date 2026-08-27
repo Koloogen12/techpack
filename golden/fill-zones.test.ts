@@ -331,7 +331,10 @@ describe('перехлёст размеров назван вслух', () => {
       return step > 0 && p.tolerance.value > step / 2 + 0.001;
     });
     if (overlapping.length === 0) return;
-    expect(notes.some((n) => /различ|двух размерах/i.test(n)), category).toBe(true);
+    expect(
+      notes.some((n) => /различ|двух размерах/i.test(n)),
+      category,
+    ).toBe(true);
   });
 
   it('градация не убывает ни в одной точке', () => {
