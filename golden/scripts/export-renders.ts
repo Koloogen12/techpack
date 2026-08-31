@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@seamsterly/kb';
+import { CATEGORIES } from '@seamster/kb';
 /**
  * Выгрузка живых визуализаций из кэша в референсы голден-набора.
  *
@@ -13,11 +13,11 @@ import { CATEGORIES } from '@seamsterly/kb';
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { VisionReportSchema } from '@seamsterly/vision';
-import { FileRenderCache, visualize } from '@seamsterly/render';
-import { fitImage } from '@seamsterly/docgen';
-import { parseAnswers, specInputFrom } from '@seamsterly/cli';
+import { buildStyleSpec } from '@seamster/assembly';
+import { VisionReportSchema } from '@seamster/vision';
+import { FileRenderCache, visualize } from '@seamster/render';
+import { fitImage } from '@seamster/docgen';
+import { parseAnswers, specInputFrom } from '@seamster/cli';
 
 /** Дата фиксирована: она не влияет на промпт, но влияет на отпечаток спеки. */
 const AT = new Date('2026-08-25T00:00:00.000Z');

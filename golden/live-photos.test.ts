@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec, scaleAdvice } from '@seamsterly/assembly';
-import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
-import type { Category } from '@seamsterly/kb';
-import { parseAnswers, specInputFrom, type Answers } from '@seamsterly/cli';
+import { buildStyleSpec, scaleAdvice } from '@seamster/assembly';
+import { VisionReportSchema, type VisionReport } from '@seamster/vision';
+import type { Category } from '@seamster/kb';
+import { parseAnswers, specInputFrom, type Answers } from '@seamster/cli';
 import { checkSpec } from './invariants.js';
 import { GOLDEN_SHOTS } from './shots.js';
 

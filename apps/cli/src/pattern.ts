@@ -12,15 +12,15 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { reportCliError } from './report-error.js';
 import { dirname, extname } from 'node:path';
-import { createLogger } from '@seamsterly/core';
+import { createLogger } from '@seamster/core';
 import {
   extractColors,
   fileTileCache,
   generateTile,
   matchColors,
   separateColors,
-} from '@seamsterly/pattern';
-import { ArtworkLibrary, type ArtworkAsset } from '@seamsterly/library';
+} from '@seamster/pattern';
+import { ArtworkLibrary, type ArtworkAsset } from '@seamster/library';
 import { chromium } from 'playwright';
 
 const MIME: Record<string, string> = {

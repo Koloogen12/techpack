@@ -9,7 +9,7 @@ export default tseslint.config(
       '.claude/worktrees/**',
       '**/dist/**',
       'coverage/**',
-      'design_handoff_seamsterly/**',
+      'design_handoff_seamster/**',
       'market-research/**',
       '*.html',
     ],

@@ -31,9 +31,9 @@ const BatchSchema = z.object({
 });
 
 function client(): Anthropic {
-  const baseURL = process.env.SEAMSTERLY_VISION_BASE_URL;
+  const baseURL = process.env.SEAMSTER_VISION_BASE_URL;
   const apiKey = baseURL
-    ? (process.env.SEAMSTERLY_VISION_KEY ?? process.env.COMETAPI_KEY)
+    ? (process.env.SEAMSTER_VISION_KEY ?? process.env.COMETAPI_KEY)
     : process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('нет ключа: задайте COMETAPI_KEY или ANTHROPIC_API_KEY');
   return new Anthropic({ apiKey, ...(baseURL ? { baseURL } : {}) });
@@ -187,7 +187,7 @@ async function main(): Promise<void> {
   }
 
   const api = client();
-  const model = process.env.SEAMSTERLY_VISION_MODEL ?? 'claude-opus-5';
+  const model = process.env.SEAMSTER_VISION_MODEL ?? 'claude-opus-5';
   let done = 0;
   let failed = 0;
   for (let i = 0; i < tasks.length; i += BATCH) {

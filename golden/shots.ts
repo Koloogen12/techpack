@@ -1,4 +1,4 @@
-import type { PhotoView } from '@seamsterly/kb';
+import type { PhotoView } from '@seamster/kb';
 
 /**
  * Из чего состоит голден-набор: какие снимки, каким ракурсом, к какой анкете.

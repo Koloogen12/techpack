@@ -5,7 +5,7 @@ import {
   type Category,
   type KnowledgeBase,
   type PhotoView,
-} from '@seamsterly/kb';
+} from '@seamster/kb';
 
 /**
  * Промпт vision-этапа, версия 1.

@@ -98,7 +98,7 @@ html, body {
    и в поток не входит, поэтому без запаса содержимое ложится на него. */
 .body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: 9mm; }
 
-/* --- Футер: три части. Seamsterly живёт здесь, а не в шапке. --- */
+/* --- Футер: три части. Seamster живёт здесь, а не в шапке. --- */
 .foot {
   position: absolute;
   left: 14mm; right: 14mm; bottom: 7mm;

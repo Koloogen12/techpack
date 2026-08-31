@@ -9,8 +9,8 @@
  * Запуск: pnpm golden:warm (нужен ключ API).
  */
 import { readFileSync } from 'node:fs';
-import { FileVisionCache, analyzePhotos } from '@seamsterly/vision';
-import { answersFingerprint, parseAnswers, readPhoto } from '@seamsterly/cli';
+import { FileVisionCache, analyzePhotos } from '@seamster/vision';
+import { answersFingerprint, parseAnswers, readPhoto } from '@seamster/cli';
 import { GOLDEN_SHOTS } from '../shots.js';
 
 const cache = new FileVisionCache('.cache/vision');

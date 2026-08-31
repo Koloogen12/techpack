@@ -1,6 +1,6 @@
 import { chromium, type Browser } from 'playwright';
-import { SeamsterlyError } from '@seamsterly/core';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { SeamsterError } from '@seamster/core';
+import type { StyleSpec } from '@seamster/stylespec';
 import { renderHtml, type DocVisuals, type HtmlOptions } from './html.js';
 import { roleProfile, type ExportRole } from './roles.js';
 import { renderRfqHtml, type RfqOptions } from './rfq.js';
@@ -26,7 +26,7 @@ export async function renderPdf(spec: StyleSpec, options: PdfOptions = {}): Prom
   try {
     browser = options.browser ?? (await chromium.launch());
   } catch (cause) {
-    throw new SeamsterlyError('RENDER_FAILED', 'не удалось запустить браузер для печати PDF', {
+    throw new SeamsterError('RENDER_FAILED', 'не удалось запустить браузер для печати PDF', {
       userMessage: 'Не удалось собрать документ.',
       userAction: 'Повторить бесплатно. Если повторяется — напишите нам, это на нашей стороне.',
       cause,
@@ -47,7 +47,7 @@ export async function renderPdf(spec: StyleSpec, options: PdfOptions = {}): Prom
     await page.close();
     return pdf;
   } catch (cause) {
-    throw new SeamsterlyError('RENDER_FAILED', 'ошибка печати PDF', {
+    throw new SeamsterError('RENDER_FAILED', 'ошибка печати PDF', {
       userMessage: 'Не удалось собрать документ.',
       userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
       cause,
@@ -75,7 +75,7 @@ export async function renderRfqPdf(
   try {
     shared = browser ?? (await chromium.launch());
   } catch (cause) {
-    throw new SeamsterlyError('RENDER_FAILED', 'не удалось запустить браузер для печати листа', {
+    throw new SeamsterError('RENDER_FAILED', 'не удалось запустить браузер для печати листа', {
       userMessage: 'Не удалось собрать лист на просчёт.',
       userAction: 'Повторить бесплатно. Если повторяется — напишите нам, это на нашей стороне.',
       cause,
@@ -89,7 +89,7 @@ export async function renderRfqPdf(
     await page.close();
     return pdf;
   } catch (cause) {
-    throw new SeamsterlyError('RENDER_FAILED', 'ошибка печати листа на просчёт', {
+    throw new SeamsterError('RENDER_FAILED', 'ошибка печати листа на просчёт', {
       userMessage: 'Не удалось собрать лист на просчёт.',
       userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
       cause,

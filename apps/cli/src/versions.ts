@@ -9,8 +9,8 @@
  * Каталог версий по умолчанию `versions/`, меняется флагом --versions.
  */
 import { reportCliError } from './report-error.js';
-import { diffSpecs, summarise, VersionStore } from '@seamsterly/versions';
-import { CONFIDENCE_LABEL_RU } from '@seamsterly/core';
+import { diffSpecs, summarise, VersionStore } from '@seamster/versions';
+import { CONFIDENCE_LABEL_RU } from '@seamster/core';
 
 const args = process.argv.slice(2);
 const dirFlag = args.indexOf('--versions');

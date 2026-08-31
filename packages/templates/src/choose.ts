@@ -1,6 +1,6 @@
-import type { NodeZone } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
-import type { VisionReport } from '@seamsterly/vision';
+import type { NodeZone } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
+import type { VisionReport } from '@seamster/vision';
 import {
   MAX_PROPORTION_DRIFT,
   renderLibraryView,

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { SeamsterlyError } from '@seamsterly/core';
+import { SeamsterError } from '@seamster/core';
 import { reportCliError } from '../src/report-error.js';
 
 /**
@@ -20,7 +20,7 @@ describe('печать ошибки человеку', () => {
 
   it('печатает и объяснение, и список полей', () => {
     const out = capture(
-      new SeamsterlyError('SPEC_INVALID', 'внутреннее', {
+      new SeamsterError('SPEC_INVALID', 'внутреннее', {
         userMessage: 'В бланке не хватает данных.',
         userAction: 'Проверьте поля, перечисленные ниже, и повторите',
         details: { issues: '  method: недопустимое значение' },
@@ -33,7 +33,7 @@ describe('печать ошибки человеку', () => {
 
   it('без списка полей печатает только объяснение', () => {
     const out = capture(
-      new SeamsterlyError('SPEC_INVALID', 'внутреннее', {
+      new SeamsterError('SPEC_INVALID', 'внутреннее', {
         userMessage: 'Не вышло.',
         userAction: 'Повторите',
       }),

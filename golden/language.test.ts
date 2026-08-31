@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { isSeamsterlyError } from '@seamsterly/core';
-import { renderHtml, renderRfqHtml, rfqText } from '@seamsterly/docgen';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import { isSeamsterError } from '@seamster/core';
+import { renderHtml, renderRfqHtml, rfqText } from '@seamster/docgen';
 import {
   CATEGORIES,
   type Category,
@@ -11,8 +11,8 @@ import {
   MACHINE_TYPES,
   ZONE_LABEL_RU,
   NODE_ZONES,
-} from '@seamsterly/kb';
-import { LOCALES, messages } from '@seamsterly/i18n';
+} from '@seamster/kb';
+import { LOCALES, messages } from '@seamster/i18n';
 import { SCENARIOS } from './scenarios.js';
 
 /**
@@ -119,8 +119,8 @@ describe('сообщения об ошибках не содержат внут�
       buildStyleSpec(input);
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e), String(e)).toBe(true);
-      if (isSeamsterlyError(e)) {
+      expect(isSeamsterError(e), String(e)).toBe(true);
+      if (isSeamsterError(e)) {
         expect(leaked(e.userMessage), e.userMessage).toEqual([]);
         expect(leaked(e.userAction), e.userAction).toEqual([]);
       }

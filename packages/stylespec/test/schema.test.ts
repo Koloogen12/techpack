@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { isSeamsterlyError } from '@seamsterly/core';
+import { isSeamsterError } from '@seamster/core';
 import {
   SPEC_VERSION,
   migrateToCurrent,
@@ -102,8 +102,8 @@ describe('миграции', () => {
       migrateToCurrent({ ...(load('minimal.json') as object), spec_version: '99.0.0' });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) expect(e.code).toBe('SPEC_VERSION_UNSUPPORTED');
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) expect(e.code).toBe('SPEC_VERSION_UNSUPPORTED');
     }
   });
 

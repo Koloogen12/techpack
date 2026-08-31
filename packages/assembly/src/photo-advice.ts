@@ -1,6 +1,6 @@
-import { confidenceRank } from '@seamsterly/core';
-import { kb as defaultKb, type KnowledgeBase, type PhotoView } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { confidenceRank } from '@seamster/core';
+import { kb as defaultKb, type KnowledgeBase, type PhotoView } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
 
 /**
  * Какой недостающий кадр поднимет точность сильнее всего.

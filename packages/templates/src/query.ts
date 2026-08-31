@@ -1,6 +1,6 @@
-import type { Category } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
-import type { VisionReport } from '@seamsterly/vision';
+import type { Category } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
+import type { VisionReport } from '@seamster/vision';
 import type { MatchQuery } from './match.js';
 import type { TemplateTraits } from './manifest.js';
 

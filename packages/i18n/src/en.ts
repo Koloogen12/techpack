@@ -87,7 +87,7 @@ export const EN: Messages = {
   flats_library_source: 'Library silhouette · the source vector ships with this pack',
   to_be_confirmed: 'to be confirmed',
 
-  form_kicker: 'Measurement Sheet · Seamsterly',
+  form_kicker: 'Measurement Sheet · Seamster',
   form_who: 'Measured by',
   form_date: 'Date',
   form_label_size: 'Size on the label',

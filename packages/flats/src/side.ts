@@ -1,4 +1,4 @@
-import type { Centimeters } from '@seamsterly/core';
+import type { Centimeters } from '@seamster/core';
 import { buildGeometry, type FlatMeasurements, type Point } from './geometry.js';
 import {
   DEFAULT_PATH_OPTIONS,

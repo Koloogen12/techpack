@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { parseStyleSpec, specFingerprint } from '@seamsterly/stylespec';
+import { buildStyleSpec } from '@seamster/assembly';
+import { parseStyleSpec, specFingerprint } from '@seamster/stylespec';
 import { SCENARIOS } from './scenarios.js';
 import { checkSpec, confidenceBreakdown } from './invariants.js';
 

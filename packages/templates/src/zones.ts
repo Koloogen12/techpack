@@ -1,4 +1,4 @@
-import type { NodeZone } from '@seamsterly/kb';
+import type { NodeZone } from '@seamster/kb';
 import {
   boxHeight,
   boxWidth,

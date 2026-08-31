@@ -1,11 +1,11 @@
-import { assume, fromBase, userInput, type Tracked } from '@seamsterly/core';
+import { assume, fromBase, userInput, type Tracked } from '@seamster/core';
 import {
   categoryWithGender,
   kb as defaultKb,
   type Category,
   type Gender,
   type KnowledgeBase,
-} from '@seamsterly/kb';
+} from '@seamster/kb';
 
 /**
  * Движок маркировки.

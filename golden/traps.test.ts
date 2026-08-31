@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { checkSeam, extractColors, readSwatch, separateColors } from '@seamsterly/pattern';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import { checkSeam, extractColors, readSwatch, separateColors } from '@seamster/pattern';
 
 /**
  * ПРИМЕРЫ-ЛОВУШКИ.

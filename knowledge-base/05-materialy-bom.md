@@ -105,7 +105,7 @@
 
 ### 3.3. Как нормирует фабрика
 
-Норма = площадь лекал + межлекальные выпады (≈80% потерь) + потери настила ([busel](http://www.busel.org/texts/cat5vk/id5awrfee.htm), [Инфоурок](https://infourok.ru/raschyot-norm-rashoda-materiala-analiz-racionalnoy-raskladki-lekal-4013945.html)). Типовые % выпадов: брюки 5–6%, платья 12–15%, плащ ~20% ([studfile](https://studfile.net/preview/10100843/page:11/)). **Вывод:** Seamsterly даёт предварительный расход с пометкой «уточняется фабрикой по раскладке»; финальную норму считает фабрика.
+Норма = площадь лекал + межлекальные выпады (≈80% потерь) + потери настила ([busel](http://www.busel.org/texts/cat5vk/id5awrfee.htm), [Инфоурок](https://infourok.ru/raschyot-norm-rashoda-materiala-analiz-racionalnoy-raskladki-lekal-4013945.html)). Типовые % выпадов: брюки 5–6%, платья 12–15%, плащ ~20% ([studfile](https://studfile.net/preview/10100843/page:11/)). **Вывод:** Seamster даёт предварительный расход с пометкой «уточняется фабрикой по раскладке»; финальную норму считает фабрика.
 
 ## 4. Словарь RU↔EN
 

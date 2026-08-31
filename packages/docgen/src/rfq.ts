@@ -1,4 +1,4 @@
-import { renderFlatsFromSpec } from '@seamsterly/flats';
+import { renderFlatsFromSpec } from '@seamster/flats';
 import {
   CATEGORY_LABEL_EN,
   CATEGORY_LABEL_RU,
@@ -10,9 +10,9 @@ import {
   MATERIAL_ROLE_LABEL_ZH,
   type Category,
   type FitIntent,
-} from '@seamsterly/kb';
-import { messages, type Locale } from '@seamsterly/i18n';
-import type { StyleSpec } from '@seamsterly/stylespec';
+} from '@seamster/kb';
+import { messages, type Locale } from '@seamster/i18n';
+import type { StyleSpec } from '@seamster/stylespec';
 
 /**
  * Лист на просчёт (RFQ).

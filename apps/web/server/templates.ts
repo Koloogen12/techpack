@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { kb, ZONE_LABEL_EN, ZONE_LABEL_RU, ZONE_LABEL_ZH, type NodeZone } from '@seamsterly/kb';
-import { flatDefaults, renderFlatsFromSpec } from '@seamsterly/flats';
-import { messages, type Locale } from '@seamsterly/i18n';
+import { kb, ZONE_LABEL_EN, ZONE_LABEL_RU, ZONE_LABEL_ZH, type NodeZone } from '@seamster/kb';
+import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
+import { messages, type Locale } from '@seamster/i18n';
 
 /** Подписи зон по языкам комплекта. */
 const ZONE_LABEL: Record<Locale, Record<NodeZone, string>> = {
@@ -16,8 +16,8 @@ import {
   proposeTemplates,
   renderChosenTemplate,
   type CandidateView,
-} from '@seamsterly/templates';
-import type { StyleSpec } from '@seamsterly/stylespec';
+} from '@seamster/templates';
+import type { StyleSpec } from '@seamster/stylespec';
 
 /**
  * Силуэт джобы: чем нарисован её чертёж и чем его можно заменить.

@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
 import {
   buildGeometry,
   checkFlatLines,
   flatDefaults,
   measurementsFrom,
   renderFlatsFromSpec,
-} from '@seamsterly/flats';
-import { CATEGORIES, kb, type NodeZone } from '@seamsterly/kb';
+} from '@seamster/flats';
+import { CATEGORIES, kb, type NodeZone } from '@seamster/kb';
 
 /**
  * ЗАЛИВКА ПО ЗОНАМ — снимок, а не намерение.

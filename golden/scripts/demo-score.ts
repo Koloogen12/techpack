@@ -13,13 +13,13 @@
  * Файлы пишутся во ВРЕМЕННЫЙ каталог и в репозиторий не попадают: выдуманные
  * замеры в `golden/measured` откалибровали бы справочник по выдумке.
  */
-import { CATEGORIES } from '@seamsterly/kb';
+import { CATEGORIES } from '@seamster/kb';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { VisionReportSchema } from '@seamsterly/vision';
-import { parseAnswers, specInputFrom } from '@seamsterly/cli';
+import { buildStyleSpec } from '@seamster/assembly';
+import { VisionReportSchema } from '@seamster/vision';
+import { parseAnswers, specInputFrom } from '@seamster/cli';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');
 

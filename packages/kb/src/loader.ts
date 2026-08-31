@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SeamsterlyError } from '@seamsterly/core';
+import { SeamsterError } from '@seamster/core';
 import type { z } from 'zod';
 import {
   CareSymbolsFileSchema,
@@ -98,7 +98,7 @@ function loadFile<T>(relativePath: string, schema: z.ZodType<T>): T {
   try {
     raw = readFileSync(path, 'utf8');
   } catch (cause) {
-    throw new SeamsterlyError('KB_MISSING', `справочник не найден: ${relativePath}`, {
+    throw new SeamsterError('KB_MISSING', `справочник не найден: ${relativePath}`, {
       userMessage: 'Внутренняя ошибка: не удалось загрузить справочник.',
       userAction: 'Повторить генерацию. Если повторяется — напишите нам, это на нашей стороне.',
       details: { path: relativePath },
@@ -109,7 +109,7 @@ function loadFile<T>(relativePath: string, schema: z.ZodType<T>): T {
   const parsed = schema.safeParse(JSON.parse(raw));
   if (!parsed.success) {
     // Справочник с ошибкой не грузится молча: битые данные дороже упавшего процесса.
-    throw new SeamsterlyError('KB_INVALID', `справочник ${relativePath} не прошёл валидацию`, {
+    throw new SeamsterError('KB_INVALID', `справочник ${relativePath} не прошёл валидацию`, {
       userMessage: 'Внутренняя ошибка: справочник повреждён.',
       userAction: 'Повторить генерацию. Если повторяется — напишите нам, это на нашей стороне.',
       details: { path: relativePath, issues: JSON.stringify(parsed.error.issues, null, 2) },
@@ -339,7 +339,7 @@ export class KnowledgeBase {
     const row = chart.rows.find((r) => r.ru === ru);
     if (!row) {
       const available = chart.rows.map((r) => r.ru).join(', ');
-      throw new SeamsterlyError('SPEC_INVALID', `размер ${ru} отсутствует в сетке ${gender}`, {
+      throw new SeamsterError('SPEC_INVALID', `размер ${ru} отсутствует в сетке ${gender}`, {
         userMessage: `Размера ${ru} нет в нашей размерной сетке.`,
         userAction: `Выберите размер из доступных: ${available}`,
         details: { gender, ru, available },
@@ -369,7 +369,7 @@ export class KnowledgeBase {
       if (looser) return { entry: looser, fallbackFrom: fit };
     }
 
-    throw new SeamsterlyError('KB_MISSING', `нет прибавки для ${category}/${fit}/${fabric}`, {
+    throw new SeamsterError('KB_MISSING', `нет прибавки для ${category}/${fit}/${fabric}`, {
       userMessage: 'Для этого сочетания категории и посадки у нас пока нет типовых значений.',
       userAction: 'Выберите другую посадку или напишите нам — добавим.',
       details: { category, fit, fabric },
@@ -395,7 +395,7 @@ export class KnowledgeBase {
   pomTemplate(category: Category): PomTemplateFile {
     const found = this.pomTemplates.get(category);
     if (!found) {
-      throw new SeamsterlyError('CATEGORY_UNSUPPORTED', `нет шаблона POM для ${category}`, {
+      throw new SeamsterError('CATEGORY_UNSUPPORTED', `нет шаблона POM для ${category}`, {
         userMessage: 'Для этой категории мы пока не делаем техпаки.',
         userAction: 'Выберите категорию из доступных или запишитесь в лист ожидания',
         details: { category, supported: this.supportedCategories().join(', ') },
@@ -409,7 +409,7 @@ export class KnowledgeBase {
   categoryDefaultsFor(category: Category): CategoryDefaultsFile {
     const found = this.categoryDefaults.get(category);
     if (!found) {
-      throw new SeamsterlyError('CATEGORY_UNSUPPORTED', `нет дефолтов для ${category}`, {
+      throw new SeamsterError('CATEGORY_UNSUPPORTED', `нет дефолтов для ${category}`, {
         userMessage: 'Для этой категории мы пока не делаем техпаки.',
         userAction: 'Выберите категорию из доступных или запишитесь в лист ожидания',
         details: { category, supported: [...this.categoryDefaults.keys()].join(', ') },

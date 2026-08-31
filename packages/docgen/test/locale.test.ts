@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
-import { LOCALES } from '@seamsterly/i18n';
+import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
+import { LOCALES } from '@seamster/i18n';
 import { renderHtml, TRANSLATED_SECTIONS } from '../src/index.js';
 
 const RAW: StyleSpec = parseStyleSpec(

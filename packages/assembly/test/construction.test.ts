@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kb } from '@seamsterly/kb';
+import { kb } from '@seamster/kb';
 import {
   buildConstruction,
   countConstructionAssumptions,

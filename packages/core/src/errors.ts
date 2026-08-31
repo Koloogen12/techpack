@@ -18,7 +18,7 @@ export type ErrorCode =
   | 'RENDER_FAILED'
   | 'CONFIG_MISSING';
 
-export interface SeamsterlyErrorOptions {
+export interface SeamsterErrorOptions {
   /** Человеческим языком, для пользователя. Без терминов и кодов. */
   userMessage: string;
   /** Что сделать, чтобы починить. Всегда конкретное действие. */
@@ -27,15 +27,15 @@ export interface SeamsterlyErrorOptions {
   cause?: unknown;
 }
 
-export class SeamsterlyError extends Error {
+export class SeamsterError extends Error {
   readonly code: ErrorCode;
   readonly userMessage: string;
   readonly userAction: string;
   readonly details: Record<string, unknown>;
 
-  constructor(code: ErrorCode, technicalMessage: string, options: SeamsterlyErrorOptions) {
+  constructor(code: ErrorCode, technicalMessage: string, options: SeamsterErrorOptions) {
     super(technicalMessage, options.cause === undefined ? undefined : { cause: options.cause });
-    this.name = 'SeamsterlyError';
+    this.name = 'SeamsterError';
     this.code = code;
     this.userMessage = options.userMessage;
     this.userAction = options.userAction;
@@ -48,6 +48,6 @@ export class SeamsterlyError extends Error {
   }
 }
 
-export function isSeamsterlyError(e: unknown): e is SeamsterlyError {
-  return e instanceof SeamsterlyError;
+export function isSeamsterError(e: unknown): e is SeamsterError {
+  return e instanceof SeamsterError;
 }

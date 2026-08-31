@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/web",
+  "name": "@seamster/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,16 +8,16 @@
     "build": "vite build && node scripts/build-proto.mjs"
   },
   "dependencies": {
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/flats": "workspace:*",
-    "@seamsterly/stylespec": "workspace:*",
+    "@seamster/core": "workspace:*",
+    "@seamster/flats": "workspace:*",
+    "@seamster/stylespec": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@seamsterly/fit": "workspace:*",
-    "@seamsterly/kb": "workspace:*",
-    "@seamsterly/docgen": "workspace:*",
-    "@seamsterly/i18n": "workspace:*",
-    "@seamsterly/templates": "workspace:*"
+    "@seamster/fit": "workspace:*",
+    "@seamster/kb": "workspace:*",
+    "@seamster/docgen": "workspace:*",
+    "@seamster/i18n": "workspace:*",
+    "@seamster/templates": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

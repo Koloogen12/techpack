@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
 import { applyFitting, editMeasurement, parseMeasuredSet, type MeasuredSet } from '../src/index.js';
 
 const INPUT: StyleSpecInput = {

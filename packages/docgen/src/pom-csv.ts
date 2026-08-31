@@ -1,6 +1,6 @@
-import { CONFIDENCE_LABEL_RU, type Confidence } from '@seamsterly/core';
-import { messages, type Locale } from '@seamsterly/i18n';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { CONFIDENCE_LABEL_RU, type Confidence } from '@seamster/core';
+import { messages, type Locale } from '@seamster/i18n';
+import type { StyleSpec } from '@seamster/stylespec';
 
 /**
  * Табель мер таблицей — тот же документ, что и в паке, но в файле, который

@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { isSeamsterlyError } from '@seamsterly/core';
-import { generate } from '@seamsterly/cli';
-import { kb } from '@seamsterly/kb';
+import { isSeamsterError } from '@seamster/core';
+import { generate } from '@seamster/cli';
+import { kb } from '@seamster/kb';
 import {
   FileVisionCache,
   cacheKey,
@@ -12,7 +12,7 @@ import {
   hashPhoto,
   promptFingerprint,
   type VisionReport,
-} from '@seamsterly/vision';
+} from '@seamster/vision';
 import { checkSpec } from './invariants.js';
 
 /**
@@ -242,8 +242,8 @@ describe('расхождения между фото и ответами', () =>
       );
       expect.unreachable('должно было отказать');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) {
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) {
         expect(e.code).toBe('CATEGORY_UNSUPPORTED');
         expect(e.userMessage).toContain('Пальто');
       }

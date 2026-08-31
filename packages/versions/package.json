@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/versions",
+  "name": "@seamster/versions",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,10 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/stylespec": "workspace:*"
+    "@seamster/core": "workspace:*",
+    "@seamster/stylespec": "workspace:*"
   },
   "devDependencies": {
-    "@seamsterly/assembly": "workspace:*"
+    "@seamster/assembly": "workspace:*"
   }
 }

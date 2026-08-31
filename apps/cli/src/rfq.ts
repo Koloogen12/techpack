@@ -11,9 +11,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { reportCliError } from './report-error.js';
 import { dirname } from 'node:path';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { renderRfqPdf, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@seamsterly/docgen';
-import { LOCALES, type Locale } from '@seamsterly/i18n';
+import { buildStyleSpec } from '@seamster/assembly';
+import { renderRfqPdf, rfqText, RFQ_TEXT_LIMIT, type RfqOptions } from '@seamster/docgen';
+import { LOCALES, type Locale } from '@seamster/i18n';
 import { parseAnswers, specInputFrom } from './index.js';
 
 interface Cli {

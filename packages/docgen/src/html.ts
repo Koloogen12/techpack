@@ -1,5 +1,5 @@
-import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamsterly/core';
-import { flatDefaults, renderFlatsFromSpec } from '@seamsterly/flats';
+import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamster/core';
+import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -23,10 +23,10 @@ import {
   MATERIAL_ROLE_LABEL_ZH,
   ZONE_LABEL_EN,
   ZONE_LABEL_ZH,
-} from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
-import type { SpecDiff } from '@seamsterly/versions';
-import { messages, type Locale, type Messages } from '@seamsterly/i18n';
+} from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
+import type { SpecDiff } from '@seamster/versions';
+import { messages, type Locale, type Messages } from '@seamster/i18n';
 import { DOC_CSS } from './styles.js';
 
 /**
@@ -343,7 +343,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
  * Оболочка страницы: мастхед, мета-полоса, содержимое, футер.
  *
  * Мастхед несёт бренд КЛИЕНТА, а не наш. Документ принадлежит бренду
- * и показывается фабрике от его имени; Seamsterly живёт в футере.
+ * и показывается фабрике от его имени; Seamster живёт в футере.
  * У эталона наоборот — своё имя сверху, — и это ровно та мелочь,
  * из-за которой документ выглядит чужим.
  *
@@ -413,7 +413,7 @@ function pageShell(
     `</div>` +
     `<div class="body">${page.body}</div>` +
     `<div class="foot">` +
-    `<span>Seamsterly · ${esc(spec.style.article)}</span>` +
+    `<span>Seamster · ${esc(spec.style.article)}</span>` +
     `<span class="legend">${statusLegend(t)}</span>` +
     `<span>${esc(t.sheet_of(index, total))}</span>` +
     `</div></section>`

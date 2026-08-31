@@ -1,5 +1,5 @@
-import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
 import { measurementsFrom, needsSideView, type RenderOptions } from './render.js';
 import { garmentDepth } from './side.js';
 

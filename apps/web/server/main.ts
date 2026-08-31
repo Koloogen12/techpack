@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Демо-сервер Seamsterly: инвайты, очередь генерации, живой документ.
+ * Демо-сервер Seamster: инвайты, очередь генерации, живой документ.
  *
  *   PORT=8131 DATA_DIR=data pnpm demo:server
  *
@@ -20,11 +20,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
-import { isSeamsterlyError } from '@seamsterly/core';
-import { editMeasurement } from '@seamsterly/fit';
-import { flatDefaults } from '@seamsterly/flats';
-import { kb } from '@seamsterly/kb';
-import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
+import { isSeamsterError } from '@seamster/core';
+import { editMeasurement } from '@seamster/fit';
+import { flatDefaults } from '@seamster/flats';
+import { kb } from '@seamster/kb';
+import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
 import { generate } from '../../cli/src/generate.js';
 import { parseAnswers } from '../../cli/src/answers.js';
 import { FREE_PER_MONTH, Limits } from './limits.js';
@@ -32,7 +32,7 @@ import { Notifications } from './notify.js';
 import { Referrals, refCode } from './referrals.js';
 import { tgDocument, tgNotify, tgTrace, telegramReady } from './telegram.js';
 import { buildRfq } from './rfq.js';
-import { findTemplate } from '@seamsterly/templates';
+import { findTemplate } from '@seamster/templates';
 import {
   candidatesFor,
   readJobTemplate,
@@ -208,7 +208,7 @@ async function pump(): Promise<void> {
     console.error(`job ${id}:`, error);
     const s = statuses.get(id);
     if (s) {
-      s.error = isSeamsterlyError(error)
+      s.error = isSeamsterError(error)
         ? { message: error.userMessage, action: error.userAction }
         : { message: 'Генерация не получилась.', action: 'Повторите — лимит не списан.' };
       setStage(id, 'error');
@@ -379,7 +379,7 @@ const server = createServer(async (req, res) => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           chat_id: chat,
-          text: 'Проверка связи — канал Seamsterly работает.',
+          text: 'Проверка связи — канал Seamster работает.',
         }),
       });
       const body = (await r.json()) as { ok?: boolean; description?: string };
@@ -412,7 +412,7 @@ const server = createServer(async (req, res) => {
         });
       const spec = id ? specOf(id) : null;
       if (!spec) return json(res, 404, { error: 'нет такого документа' });
-      const { renderHtml } = await import('@seamsterly/docgen');
+      const { renderHtml } = await import('@seamster/docgen');
       // Язык ссылки. Ради этого она и задумана: документ открывает фабрика,
       // и русский текст на её экране означает переписку вместо чтения.
       const shareLocale = (['en', 'zh'] as const).find((l) => l === url.searchParams.get('locale'));
@@ -715,8 +715,8 @@ const server = createServer(async (req, res) => {
         answers = parseAnswers(JSON.parse(body.toString('utf8')));
       } catch (e) {
         return json(res, 400, {
-          error: isSeamsterlyError(e) ? e.userMessage : 'анкета не разобралась',
-          detail: isSeamsterlyError(e) ? e.userAction : String(e),
+          error: isSeamsterError(e) ? e.userMessage : 'анкета не разобралась',
+          detail: isSeamsterError(e) ? e.userAction : String(e),
         });
       }
       const id = randomBytes(8).toString('hex');
@@ -1040,7 +1040,7 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && rest === '/preview') {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
-        const { renderHtml } = await import('@seamsterly/docgen');
+        const { renderHtml } = await import('@seamster/docgen');
         const locale = (['ru', 'en', 'zh'] as const).find(
           (l) => l === url.searchParams.get('locale'),
         );
@@ -1125,7 +1125,7 @@ const server = createServer(async (req, res) => {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
         const csvLocale = (['en', 'zh'] as const).find((l) => l === url.searchParams.get('locale'));
-        const { pomCsv } = await import('@seamsterly/docgen');
+        const { pomCsv } = await import('@seamster/docgen');
         logEvent(invite.name, 'pom_csv', { id, ...(csvLocale ? { locale: csvLocale } : {}) });
         res.writeHead(200, {
           'content-type': 'text/csv; charset=utf-8',
@@ -1192,7 +1192,7 @@ const server = createServer(async (req, res) => {
           existsSync(join(dir, name)) ? statSync(join(dir, name)).mtimeMs : 0;
         const sourceM = Math.max(mtime('spec.json'), mtime('template.json'));
         if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < sourceM) {
-          const { renderPdf, roleProfile } = await import('@seamsterly/docgen');
+          const { renderPdf, roleProfile } = await import('@seamster/docgen');
           const profile = role ? roleProfile(role) : null;
           // Силуэт библиотеки пересобирается здесь же: это чистая геометрия,
           // браузер для неё не нужен, а без него лист чертежа вернулся бы к
@@ -1322,7 +1322,7 @@ function adminPage(): string {
 
   return (
     `<!doctype html><html lang="ru"><head><meta charset="utf-8">` +
-    `<meta name="robots" content="noindex,nofollow"><title>Seamsterly · созвоны</title>` +
+    `<meta name="robots" content="noindex,nofollow"><title>Seamster · созвоны</title>` +
     `<style>body{margin:0;padding:32px;background:#FBFAF8;color:#161616;font:14px/1.5 Sora,Arial,sans-serif;max-width:920px}` +
     `h1{font-size:22px}h2{font-size:16px;margin-top:32px}` +
     `.mono{font-family:"JetBrains Mono",monospace;font-size:11px}` +

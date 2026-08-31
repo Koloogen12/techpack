@@ -13,7 +13,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/engine.ts',
-      name: 'SeamsterlyEngine',
+      name: 'SeamsterEngine',
       formats: ['iife'],
       fileName: () => 'engine.js',
     },

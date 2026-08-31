@@ -2,11 +2,11 @@
  * Состязательный прогон по флоу. Не «код не упал», а «документом можно
  * пользоваться»: каждая проверка отвечает на вопрос, который задаст фабрика.
  */
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { renderHtml, renderRfqHtml, rfqText, RFQ_TEXT_LIMIT } from '@seamsterly/docgen';
-import { checkFlatLines, flatDefaults, renderFlatsFromSpec } from '@seamsterly/flats';
-import { CATEGORIES, kb, ZONE_LABEL_RU, type Category, type NodeZone } from '@seamsterly/kb';
-import { LOCALES } from '@seamsterly/i18n';
+import { buildStyleSpec } from '@seamster/assembly';
+import { renderHtml, renderRfqHtml, rfqText, RFQ_TEXT_LIMIT } from '@seamster/docgen';
+import { checkFlatLines, flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
+import { CATEGORIES, kb, ZONE_LABEL_RU, type Category, type NodeZone } from '@seamster/kb';
+import { LOCALES } from '@seamster/i18n';
 import {
   catalogedEntries,
   landmarksOf,
@@ -14,7 +14,7 @@ import {
   readTemplateSvg,
   renderChosenTemplate,
   templateLibraryExists,
-} from '@seamsterly/templates';
+} from '@seamster/templates';
 
 const CYRILLIC = /[А-Яа-яЁё]{3,}/;
 

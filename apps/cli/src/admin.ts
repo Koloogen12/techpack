@@ -17,8 +17,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { reportCliError } from './report-error.js';
 import { dirname } from 'node:path';
-import { ArtworkLibrary } from '@seamsterly/library';
-import { VersionStore } from '@seamsterly/versions';
+import { ArtworkLibrary } from '@seamster/library';
+import { VersionStore } from '@seamster/versions';
 import { buildAdminReport } from './admin-report.js';
 
 const args = process.argv.slice(2);

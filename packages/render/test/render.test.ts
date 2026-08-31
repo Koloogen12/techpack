@@ -2,8 +2,8 @@ import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import type { StyleSpec } from '@seamster/stylespec';
 import {
   FileRenderCache,
   MemoryRenderCache,
@@ -323,9 +323,9 @@ describe('цепочка моделей', () => {
   });
 
   it('заданная основная модель встаёт в ГОЛОВУ цепочки, а не отменяет её', () => {
-    process.env.SEAMSTERLY_IMAGE_MODEL = 'своя';
+    process.env.SEAMSTER_IMAGE_MODEL = 'своя';
     const chain = defaultImageModels();
-    delete process.env.SEAMSTERLY_IMAGE_MODEL;
+    delete process.env.SEAMSTER_IMAGE_MODEL;
     expect(chain[0]).toBe('своя');
     expect(chain.length).toBeGreaterThan(1);
   });

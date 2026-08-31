@@ -8,11 +8,11 @@
  * а тест не может запускать команду.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import type { ArtworkLibrary } from '@seamsterly/library';
-import type { VersionStore } from '@seamsterly/versions';
-import { type VersionEntry } from '@seamsterly/versions';
-import type { StyleSpec } from '@seamsterly/stylespec';
-import { CATEGORY_LABEL_RU } from '@seamsterly/kb';
+import type { ArtworkLibrary } from '@seamster/library';
+import type { VersionStore } from '@seamster/versions';
+import { type VersionEntry } from '@seamster/versions';
+import type { StyleSpec } from '@seamster/stylespec';
+import { CATEGORY_LABEL_RU } from '@seamster/kb';
 import { parseRfqLog, summariseRfq } from './rfq-log.js';
 
 const esc = (s: string): string =>
@@ -205,7 +205,7 @@ export function render(rows: Row[], attention: Attention[], rfq: string | null):
 
   return (
     `<!doctype html><html lang="ru"><head><meta charset="utf-8">` +
-    `<title>Seamsterly — консьерж</title><style>${STYLE}</style></head><body>` +
+    `<title>Seamster — консьерж</title><style>${STYLE}</style></head><body>` +
     `<div class="top"><h1>Консьерж</h1>` +
     `<div class="ml">состояние на ${new Date().toISOString().slice(0, 16).replace('T', ' ')}</div></div>` +
     `<div class="tiles">` +

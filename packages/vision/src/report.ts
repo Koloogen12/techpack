@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CATEGORIES } from '@seamsterly/kb';
+import { CATEGORIES } from '@seamster/kb';
 
 /**
  * VisionReport — строго типизированный выход анализа фото.

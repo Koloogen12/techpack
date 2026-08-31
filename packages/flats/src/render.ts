@@ -1,5 +1,5 @@
-import type { Centimeters } from '@seamsterly/core';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import type { Centimeters } from '@seamster/core';
+import type { StyleSpec } from '@seamster/stylespec';
 import { buildPaths, DEFAULT_PATH_OPTIONS, type PathOptions } from './paths.js';
 import { buildSidePaths, garmentDepth, type SideGeometry } from './side.js';
 import type { FlatGeometry, FlatMeasurements } from './geometry.js';

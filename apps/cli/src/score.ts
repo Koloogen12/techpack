@@ -15,9 +15,9 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { reportCliError } from './report-error.js';
 import { dirname, join, resolve } from 'node:path';
-import { buildStyleSpec } from '@seamsterly/assembly';
+import { buildStyleSpec } from '@seamster/assembly';
 import { specInputFrom } from './generate.js';
-import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
+import { VisionReportSchema, type VisionReport } from '@seamster/vision';
 import {
   ACCEPTANCE,
   anchorSuspect,
@@ -29,7 +29,7 @@ import {
   METHOD_TRUST,
   type ComparisonResult,
   type MeasuredSet,
-} from '@seamsterly/fit';
+} from '@seamster/fit';
 import { parseAnswers } from './answers.js';
 
 const AT = new Date('2026-08-25T00:00:00.000Z');

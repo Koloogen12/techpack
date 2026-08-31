@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type Anthropic from '@anthropic-ai/sdk';
 import { afterAll, describe, expect, it } from 'vitest';
-import { CostLedger, isSeamsterlyError } from '@seamsterly/core';
-import { kb } from '@seamsterly/kb';
+import { CostLedger, isSeamsterError } from '@seamster/core';
+import { kb } from '@seamster/kb';
 import type { AnalyzeOptions } from '../src/index.js';
 import {
   FileVisionCache,
@@ -291,8 +291,8 @@ describe('границы входа', () => {
       });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) expect(e.userAction).toContain('удалите');
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) expect(e.userAction).toContain('удалите');
     }
   });
 
@@ -312,8 +312,8 @@ describe('границы входа', () => {
       });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) expect(e.code).toBe('VISION_SCHEMA_MISMATCH');
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) expect(e.code).toBe('VISION_SCHEMA_MISMATCH');
     }
   });
 });

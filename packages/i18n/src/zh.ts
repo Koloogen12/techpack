@@ -81,7 +81,7 @@ export const ZH: Messages = {
   flats_library_source: '款式库轮廓 · 原始矢量文件随本技术包提供',
   to_be_confirmed: '待确认',
 
-  form_kicker: '测量表 · Seamsterly',
+  form_kicker: '测量表 · Seamster',
   form_who: '测量人',
   form_date: '日期',
   form_label_size: '唛头尺码',

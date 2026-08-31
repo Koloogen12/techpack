@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SeamsterlyError } from '@seamsterly/core';
+import { SeamsterError } from '@seamster/core';
 
 /**
  * Замеры реального изделия, снятые рулеткой.
@@ -110,7 +110,7 @@ export function parseMeasuredSet(raw: unknown): MeasuredSet {
     const issues = parsed.error.issues
       .map((i) => `  ${i.path.join('.') || '(корень)'}: ${i.message}`)
       .join('\n');
-    throw new SeamsterlyError('SPEC_INVALID', `бланк замеров не прошёл проверку:\n${issues}`, {
+    throw new SeamsterError('SPEC_INVALID', `бланк замеров не прошёл проверку:\n${issues}`, {
       userMessage: 'В бланке замеров не хватает данных или они противоречат друг другу.',
       userAction: 'Проверьте поля, перечисленные ниже, и повторите',
       details: { issues },

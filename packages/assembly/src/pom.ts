@@ -1,5 +1,5 @@
 import {
-  SeamsterlyError,
+  SeamsterError,
   clamp,
   confidenceRank,
   fromBase,
@@ -10,7 +10,7 @@ import {
   type Centimeters,
   type Confidence,
   type Tracked,
-} from '@seamsterly/core';
+} from '@seamster/core';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -25,8 +25,8 @@ import {
   type ScaleReferenceId,
   type ScaleSide,
   type ToleranceProfileId,
-} from '@seamsterly/kb';
-import type { GradedValue, Measurements, PomValue } from '@seamsterly/stylespec';
+} from '@seamster/kb';
+import type { GradedValue, Measurements, PomValue } from '@seamster/stylespec';
 
 /**
  * POM-движок: строит табель мер.
@@ -197,7 +197,7 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   if (duplicates.length) {
     // Дубль размера порождает дубль артикула SKU — два разных изделия под
     // одним кодом маркировки. Ловится здесь, а не на приёмке партии.
-    throw new SeamsterlyError(
+    throw new SeamsterError(
       'SPEC_INVALID',
       `размерный ряд содержит дубли: ${[...new Set(duplicates)].join(', ')}`,
       {
@@ -209,7 +209,7 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   }
 
   if (input.base_height_cm < HEIGHT_RANGE.min || input.base_height_cm > HEIGHT_RANGE.max) {
-    throw new SeamsterlyError(
+    throw new SeamsterError(
       'SPEC_INVALID',
       `рост ${input.base_height_cm} вне диапазона ${HEIGHT_RANGE.min}–${HEIGHT_RANGE.max}`,
       {
@@ -221,7 +221,7 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   }
 
   if (!input.size_range.includes(input.base_size_ru)) {
-    throw new SeamsterlyError(
+    throw new SeamsterError(
       'SPEC_INVALID',
       `базовый размер ${input.base_size_ru} вне ряда ${input.size_range.join(',')}`,
       {
@@ -907,7 +907,7 @@ function calibrate(
 ): Map<string, Tracked<number>> {
   const computed = raw.get(manual.code);
   if (!computed) {
-    throw new SeamsterlyError('SPEC_INVALID', `ручной замер для неизвестной точки ${manual.code}`, {
+    throw new SeamsterError('SPEC_INVALID', `ручной замер для неизвестной точки ${manual.code}`, {
       userMessage: 'Не нашли точку, для которой вы указали замер.',
       userAction: 'Выберите точку из таблицы замеров',
       details: { code: manual.code },

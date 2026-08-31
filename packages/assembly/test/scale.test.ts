@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kb } from '@seamsterly/kb';
+import { kb } from '@seamster/kb';
 import { buildMeasurements, type PomInput, type ScaleObservation } from '../src/index.js';
 
 const base = kb();

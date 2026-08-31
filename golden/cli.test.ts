@@ -2,13 +2,13 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { isSeamsterlyError } from '@seamsterly/core';
-import { buildAdminReport, generate, parseAnswers } from '@seamsterly/cli';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { applyFitting, parseMeasuredSet } from '@seamsterly/fit';
-import { ArtworkLibrary } from '@seamsterly/library';
-import { VersionStore } from '@seamsterly/versions';
-import { parseStyleSpec } from '@seamsterly/stylespec';
+import { isSeamsterError } from '@seamster/core';
+import { buildAdminReport, generate, parseAnswers } from '@seamster/cli';
+import { buildStyleSpec } from '@seamster/assembly';
+import { applyFitting, parseMeasuredSet } from '@seamster/fit';
+import { ArtworkLibrary } from '@seamster/library';
+import { VersionStore } from '@seamster/versions';
+import { parseStyleSpec } from '@seamster/stylespec';
 
 /**
  * Сквозной прогон станка: файл ответов на входе, PDF на выходе.
@@ -20,7 +20,7 @@ import { parseStyleSpec } from '@seamsterly/stylespec';
  * Фотографии не используются: тест обязан идти без ключа API и без сети.
  */
 
-const tmp = mkdtempSync(join(tmpdir(), 'seamsterly-cli-'));
+const tmp = mkdtempSync(join(tmpdir(), 'seamster-cli-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 const ANSWERS = {
@@ -193,8 +193,8 @@ describe('кривые входы отвечают человеку, а не с�
         });
         expect.unreachable('должно было упасть');
       } catch (e) {
-        expect(isSeamsterlyError(e), String(e)).toBe(true);
-        if (isSeamsterlyError(e)) {
+        expect(isSeamsterError(e), String(e)).toBe(true);
+        if (isSeamsterError(e)) {
           expect(e.userMessage.length).toBeGreaterThan(10);
           expect(e.userAction.length).toBeGreaterThan(10);
           // Технические подробности наружу не отдаются.
@@ -211,7 +211,7 @@ describe('кривые входы отвечают человеку, а не с�
       parseAnswers({ ...ANSWERS, category: 'dress' });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
+      expect(isSeamsterError(e)).toBe(true);
     }
   });
 
@@ -227,8 +227,8 @@ describe('кривые входы отвечают человеку, а не с�
       });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) expect(e.code).toBe('PHOTO_UNUSABLE');
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) expect(e.code).toBe('PHOTO_UNUSABLE');
     }
   }, 60_000);
 });
@@ -250,8 +250,8 @@ describe('файл анкеты', () => {
       });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e), String(e)).toBe(true);
-      if (isSeamsterlyError(e)) {
+      expect(isSeamsterError(e), String(e)).toBe(true);
+      if (isSeamsterError(e)) {
         expect(e.userMessage).toContain('Не нашли файл');
         // Системный текст наружу не отдаётся.
         expect(e.userMessage).not.toContain('ENOENT');
@@ -266,8 +266,8 @@ describe('файл анкеты', () => {
       await generate({ answersPath: path, photoPaths: [], outPath: join(tmp, 'b.pdf'), now: AT });
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) {
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) {
         expect(e.userMessage).toContain('не JSON');
         expect(e.userAction).toContain('запятая');
       }
@@ -330,7 +330,7 @@ describe('консьерж-панель', () => {
    * проверки печати — это отказ печатника через день после отправки.
    */
   const panelDir = (): { store: VersionStore; library: ArtworkLibrary } => {
-    const dir = mkdtempSync(join(tmpdir(), 'seamsterly-admin-'));
+    const dir = mkdtempSync(join(tmpdir(), 'seamster-admin-'));
     return {
       store: new VersionStore(dir),
       library: new ArtworkLibrary(join(dir, 'artwork')),

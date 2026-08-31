@@ -15,8 +15,8 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { kb } from '@seamsterly/kb';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import { kb } from '@seamster/kb';
 import { flatDefaults, renderFlatsFromSpec } from '../src/index.js';
 
 const REF_DIR = 'kb/benchmarks/hoodie-flats';

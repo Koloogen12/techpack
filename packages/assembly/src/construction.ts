@@ -1,13 +1,13 @@
-import { assume, fromBase, fromPhoto, type Tracked } from '@seamsterly/core';
+import { assume, fromBase, fromPhoto, type Tracked } from '@seamster/core';
 import {
   kb as defaultKb,
   type Category,
   type ConstructionNode,
   type KnowledgeBase,
   type TechOperation,
-} from '@seamsterly/kb';
+} from '@seamster/kb';
 import type { PhotoConfidence } from './pom.js';
-import type { ConstructionNodeValue } from '@seamsterly/stylespec';
+import type { ConstructionNodeValue } from '@seamster/stylespec';
 
 /**
  * Движок конструкции: собирает набор узлов обработки и технологическую

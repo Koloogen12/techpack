@@ -1,12 +1,12 @@
-import { assume, fromBase, roundCm, type Tracked } from '@seamsterly/core';
-import { SeamsterlyError } from '@seamsterly/core';
+import { assume, fromBase, roundCm, type Tracked } from '@seamster/core';
+import { SeamsterError } from '@seamster/core';
 import {
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
   type Material,
   type MaterialRole,
-} from '@seamsterly/kb';
+} from '@seamster/kb';
 import type { PhotoConfidence } from './pom.js';
 
 /**
@@ -31,8 +31,8 @@ import type { PhotoConfidence } from './pom.js';
  * трижды дал расхождение на сборке входа спеки: одна сущность, описанная
  * в двух местах, расходится не «если», а «когда».
  */
-export type { Colorway } from '@seamsterly/stylespec';
-import type { Colorway } from '@seamsterly/stylespec';
+export type { Colorway } from '@seamster/stylespec';
+import type { Colorway } from '@seamster/stylespec';
 
 export interface BomInput {
   category: Category;
@@ -49,8 +49,8 @@ export interface BomInput {
  * Строка спецификации берётся ИЗ СХЕМЫ, а не описывается здесь заново —
  * по той же причине, что и колорвей с узлом конструкции.
  */
-export type { BomLine } from '@seamsterly/stylespec';
-import type { BomLine } from '@seamsterly/stylespec';
+export type { BomLine } from '@seamster/stylespec';
+import type { BomLine } from '@seamster/stylespec';
 
 export interface BomResult {
   /** Спецификация одна на колорвей: замена цвета меняет свотчи и Pantone. */
@@ -96,7 +96,7 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
   if (dupIds.length) {
     // Два цвета с одним идентификатором дают одинаковые артикулы SKU —
     // на складе и в «Честном знаке» это два разных товара под одним кодом.
-    throw new SeamsterlyError(
+    throw new SeamsterError(
       'SPEC_INVALID',
       `дубли идентификаторов колорвеев: ${dupIds.join(', ')}`,
       {

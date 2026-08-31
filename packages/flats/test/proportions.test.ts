@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import {
-  CATEGORIES,
-  kb,
-  type Category,
-  type FitIntent,
-  type ProportionScope,
-} from '@seamsterly/kb';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import { CATEGORIES, kb, type Category, type FitIntent, type ProportionScope } from '@seamster/kb';
 import { buildGeometry, flatDefaults, measurementsFrom } from '../src/index.js';
 import type { FlatGeometry, FlatMeasurements } from '../src/geometry.js';
 

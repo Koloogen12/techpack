@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { isSeamsterlyError } from '@seamsterly/core';
+import { isSeamsterError } from '@seamster/core';
 import { ArtworkLibrary, type ArtworkAsset } from '../src/index.js';
 
 const dirs: string[] = [];
@@ -56,8 +56,8 @@ describe('библиотека артов', () => {
       lib.get('botanical');
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) expect(e.userAction).toContain('stripes');
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) expect(e.userAction).toContain('stripes');
     }
   });
 

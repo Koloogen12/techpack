@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@seamsterly/kb';
+import { CATEGORIES } from '@seamster/kb';
 /**
  * Кадры спинки для голден-набора.
  *
@@ -11,7 +11,7 @@ import { CATEGORIES } from '@seamsterly/kb';
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { generateImage } from '@seamsterly/render';
+import { generateImage } from '@seamster/render';
 
 /** Что видно со спинки именно у этой категории. */
 const BACK_DETAILS: Record<string, string> = {

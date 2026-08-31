@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/docgen",
+  "name": "@seamster/docgen",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,12 +7,12 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/flats": "workspace:*",
-    "@seamsterly/stylespec": "workspace:*",
+    "@seamster/core": "workspace:*",
+    "@seamster/flats": "workspace:*",
+    "@seamster/stylespec": "workspace:*",
     "playwright": "^1.62.1",
-    "@seamsterly/kb": "workspace:*",
-    "@seamsterly/versions": "workspace:*",
-    "@seamsterly/i18n": "workspace:*"
+    "@seamster/kb": "workspace:*",
+    "@seamster/versions": "workspace:*",
+    "@seamster/i18n": "workspace:*"
   }
 }

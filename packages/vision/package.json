@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/vision",
+  "name": "@seamster/vision",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/kb": "workspace:*",
+    "@seamster/core": "workspace:*",
+    "@seamster/kb": "workspace:*",
     "zod": "^4.4.3"
   }
 }

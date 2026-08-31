@@ -1,6 +1,6 @@
-import { isSeamsterlyError, type CostLedger, type Logger, silentLogger } from '@seamsterly/core';
-import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
+import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
 import { defaultImageModels, generateImage, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 import { buildRenderPrompt, type RenderPromptOptions } from './prompt.js';
@@ -118,7 +118,7 @@ export async function visualize(
     return { ok: true, image: toVisualization(value, key, false) };
   } catch (error) {
     // Сознательно не пробрасываем: документ важнее картинки.
-    const userMessage = isSeamsterlyError(error)
+    const userMessage = isSeamsterError(error)
       ? error.userMessage
       : 'Не удалось построить визуализацию изделия.';
     logger.warn('render: визуализация не получилась, документ собирается без неё', {
@@ -126,7 +126,7 @@ export async function visualize(
     });
     return {
       ok: false,
-      reason: isSeamsterlyError(error) ? error.code : 'unknown',
+      reason: isSeamsterError(error) ? error.code : 'unknown',
       userMessage,
     };
   }

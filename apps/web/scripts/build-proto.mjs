@@ -2,11 +2,11 @@
 /**
  * Сборка кабинета из прототипа хендоффа.
  *
- * Разметка берётся из design_handoff_seamsterly/SpecForm - Воркспейс.dc.html
+ * Разметка берётся из design_handoff_seamster/SpecForm - Воркспейс.dc.html
  * БАЙТ-В-БАЙТ и исполняется рантаймом прототипа (support.js). Никакого
  * пересказа вёрстки: единственные правки — подстановка биндингов в места,
  * где прототип нёс демо-данные текстом (имя пака, артикул, e-mail), и
- * ребрендинг SPECFORM → SEAMSTERLY, разрешённый хендоффом (README, D8).
+ * ребрендинг SPECFORM → SEAMSTER, разрешённый хендоффом (README, D8).
  *
  * Каждая замена обязана примениться ровно столько раз, сколько заявлено, —
  * иначе сборка падает: молча разъехаться с прототипом нельзя.
@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const webRoot = join(here, '..');
 const repoRoot = join(webRoot, '..', '..');
-const handoff = join(repoRoot, 'design_handoff_seamsterly');
+const handoff = join(repoRoot, 'design_handoff_seamster');
 const dist = join(webRoot, 'dist');
 const require = createRequire(import.meta.url);
 
@@ -49,9 +49,34 @@ const sub = (from, to, times) => {
   replaced += n;
 };
 
-// Ребрендинг — единственная разрешённая правка текста (хендофф, D8).
-sub('SPECFORM OS', 'SEAMSTERLY', 2);
-sub('SPECFORM · 498BA296', 'SEAMSTERLY · {{ artShort }}', 1);
+// Ребрендинг — разрешён хендоффом (README, D8). Прототип нёс рабочее название
+// текстом, а рядом — заглушечную иконку из двух линий. Оба места получают
+// настоящий знак: словесный вместо текста, монограмма внутрь готовой плашки.
+// Контейнеры, отступы и размеры прототипа при этом не трогаются — меняется
+// только содержимое: строка на картинку, иконка на букву.
+const icon = (px, stroke) =>
+  `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="#fff" ` +
+  `stroke-width="${stroke}" stroke-linecap="round"><path d="M5 9h14"></path>` +
+  `<path d="M5 15h9"></path></svg>`;
+// Буква занимает ту же высоту, что занимала иконка.
+const letter = (px) => `<img src="./mark-s.svg" alt="" style="height:${px}px;display:block">`;
+sub(icon(15, '2.4'), letter(14), 1);
+sub(icon(19, '2.6'), letter(18), 1);
+
+// Кегль знака подобран по высоте прописных, которые стояли здесь текстом:
+// строчное слово рядом с капсом читается мельче при равной высоте кегля.
+const word = (px) => `<img src="./logo.svg" alt="Seamster" style="height:${px}px;display:block">`;
+sub(
+  '<span style="font:700 12px/16px Sora,sans-serif;letter-spacing:2.2px">SPECFORM OS</span>',
+  word(13),
+  1,
+);
+sub(
+  '<span style="font:700 13px/18px Sora,sans-serif;letter-spacing:2.4px">SPECFORM OS</span>',
+  word(14),
+  1,
+);
+sub('SPECFORM · 498BA296', 'SEAMSTER · {{ artShort }}', 1);
 
 // Данные, зашитые в разметку текстом, становятся биндингами — сама разметка
 // (теги, стили, порядок) не меняется ни на символ.
@@ -237,7 +262,7 @@ sub(
   `<sc-if value="{{ quoteRealOn }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;flex-direction:column;gap:7px">
 <div style="border-radius:10px;border:1px solid rgba(31,138,76,.28);background:#fff;padding:11px 12px">
-<div style="font:600 11.5px/16px Sora,sans-serif">Партнёрская сеть фабрик Seamsterly</div>
+<div style="font:600 11.5px/16px Sora,sans-serif">Партнёрская сеть фабрик Seamster</div>
 <div style="font:400 10px/15px Sora,sans-serif;color:#6B6B67;margin-top:3px">Отправим ваш техпак фабрикам, которые шьют такие изделия, и вернёмся с ценами. Выбор фабрик и переписку берём на себя.</div>
 </div>
 <input value="{{ quoteComment }}" onChange="{{ onQuoteComment }}" placeholder="Что важно учесть: сроки, тираж, пожелания по цене" style="width:100%;padding:9px 10px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#fff;font:400 11px/15px Sora,sans-serif" style-focus="border-color:rgba(14,14,14,.35)">
@@ -391,7 +416,8 @@ const page = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Seamsterly</title>
+<link rel="icon" href="./favicon.svg">
+<title>Seamster</title>
 <script src="./react.js"></script>
 <script src="./react-dom.js"></script>
 <script src="./engine.js"></script>
@@ -417,6 +443,12 @@ copyFileSync(
   join(dist, 'react-dom.js'),
 );
 cpSync(join(handoff, 'assets'), join(dist, 'assets'), { recursive: true });
+
+// Знак — из бренд-кита, а не копией в проекте: один источник на все носители.
+const brand = join(repoRoot, 'brand-kit', 'logo');
+copyFileSync(join(brand, 'seamster.svg'), join(dist, 'logo.svg'));
+copyFileSync(join(brand, 'seamster-s.svg'), join(dist, 'mark-s.svg'));
+copyFileSync(join(brand, 'favicon.svg'), join(dist, 'favicon.svg'));
 
 console.log(
   `dist собран: шаблон ${Math.round(tpl.length / 1024)} КБ · подстановок ${replaced} · логика ${Math.round(logic.length / 1024)} КБ`,

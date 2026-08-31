@@ -58,7 +58,7 @@
 
 - Волны охвата: 2021 — верхняя одежда, кожа, трикотажные блузки, постельное; 04.2024 (ПП № 883) — рубашки, костюмы, брюки, платья, свитеры, спорткостюмы; **с 01.03.2025 — +30 позиций** (бельё, майки, носки, детское) — фактически к 2026 почти вся одежда. Источники: [markirovka.ru — 3-я волна](https://markirovka.ru/community/shoes-and-clothes/rasshirenie-perechnya-tovarov-legkoy-promyshlennosti-mart-2025), [честныйзнак.рф — легпром](https://честныйзнак.рф/business/projects/light_industry/), [Контур](https://kontur.ru/markirovka/spravka/48063-markirovka_legkoy_promyshlennosti).
 - Пайплайн бренда: УКЭП + регистрация в ГИС МТ → GTIN (ГС1 РУС / Нацкаталог) → **карточка товара** (ТН ВЭД, наименование, товарный знак, состав, цвет, **размер**, пол/возраст, страна, фото) → заказ кодов (GS1 DataMatrix) → нанесение → ввод в оборот → УПД через ЭДО. [getmark — GTIN](https://getmark.ru/blog/o-markirovke/kak-poluchit-gtin-dlya-odezhdy-proizvoditelyu-importeru-kak-zakazat/), [sberbusiness — Нацкаталог](https://sberbusiness.live/publications/nacionalnyj-katalog-chestnyj-znak).
-- **Следствие для Seamsterly:** каждая размер-цвет-комбинация = отдельный GTIN → техпак выдаёт **SKU-матрицу (артикул × цвет × размер)** + атрибуты карточки Нацкаталога (на 90% совпадают с реквизитами ярлыка).
+- **Следствие для Seamster:** каждая размер-цвет-комбинация = отдельный GTIN → техпак выдаёт **SKU-матрицу (артикул × цвет × размер)** + атрибуты карточки Нацкаталога (на 90% совпадают с реквизитами ярлыка).
 
 ## 6. Шаблон страницы Labels & Packaging (РФ)
 

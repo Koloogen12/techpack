@@ -1,12 +1,12 @@
 // Логика кабинета. Основа — ДОСЛОВНЫЙ порт класса Component из прототипа
-// хендоффа (design_handoff_seamsterly/SpecForm - Воркспейс.dc.html):
+// хендоффа (design_handoff_seamster/SpecForm - Воркспейс.dc.html):
 // вся вёрстка, стили и поведение — прототипа, один в один. Поверх него —
 // проводка реальных данных: инвайт, список паков, спека, живой чертёж,
 // правка замеров, PDF. Без инвайт-токена кабинет работает ровно как
 // прототип, на демо-данных — это и есть эталон для сверки с макетами.
 //
 // Файл исполняется рантаймом прототипа (support.js) через new Function —
-// никаких import, только браузерные API и window.SeamsterlyEngine.
+// никаких import, только браузерные API и window.SeamsterEngine.
 
 /* ================================================================ проводка */
 
@@ -15,14 +15,14 @@ const TOKEN = (() => {
     const u = new URL(location.href);
     const t = u.searchParams.get('t');
     if (t) {
-      sessionStorage.setItem('seamsterly_invite', t);
+      sessionStorage.setItem('seamster_invite', t);
       // Токен убирается из адресной строки: он не должен попасть в скриншот
       // созвона и в историю, которой делятся.
       u.searchParams.delete('t');
       history.replaceState(null, '', u.toString());
       return t;
     }
-    return sessionStorage.getItem('seamsterly_invite');
+    return sessionStorage.getItem('seamster_invite');
   } catch {
     return null;
   }
@@ -663,7 +663,7 @@ class Component extends DCLogic {
     if (!TOKEN && REF) {
       // Пришёл по приглашению: сразу объясняем, что происходит, и просим контакт.
       this.setState({
-        modal: { kind: 'claim', title: 'Вас пригласили в Seamsterly' },
+        modal: { kind: 'claim', title: 'Вас пригласили в Seamster' },
       });
     }
     if (TOKEN) {
@@ -914,7 +914,7 @@ class Component extends DCLogic {
 
   flatResult(view, layers) {
     const s = this.state;
-    const E = window.SeamsterlyEngine;
+    const E = window.SeamsterEngine;
     if (!E || !s.curSpec) return null;
     try {
       const m = E.measurementsFrom(this.specLive());
@@ -989,7 +989,7 @@ class Component extends DCLogic {
   thumbUrl(id) {
     if (this._thumbs[id]) return this._thumbs[id];
     const p = this._specs[id];
-    const E = window.SeamsterlyEngine;
+    const E = window.SeamsterEngine;
     if (!p || !E) return null;
     try {
       const m = E.measurementsFrom(p.spec);
@@ -2674,7 +2674,7 @@ class Component extends DCLogic {
         ? 'position:fixed;right:8px;top:46px;bottom:8px;width:312px;z-index:38'
         : 'position:absolute;right:64px;top:11px;bottom:11px;width:312px;z-index:12',
       greetText: fresh
-        ? 'Привет' + (s.me ? ', ' + s.me.name : '') + ' — добро пожаловать в Seamsterly.'
+        ? 'Привет' + (s.me ? ', ' + s.me.name : '') + ' — добро пожаловать в Seamster.'
         : 'Привет' + (s.me ? ', ' + s.me.name : DEMO ? ', Данил' : '') + ' — с возвращением.',
       heroExOn: !fresh,
       pvSection: PV.sec,
@@ -3790,7 +3790,7 @@ class Component extends DCLogic {
       signOut: () => {
         if (TOKEN) {
           try {
-            sessionStorage.removeItem('seamsterly_invite');
+            sessionStorage.removeItem('seamster_invite');
           } catch {
             /* приватный режим */
           }
@@ -4250,7 +4250,7 @@ class Component extends DCLogic {
           return;
         }
         this.showToast(
-          'Скачан seamsterly-' +
+          'Скачан seamster-' +
             artShortVal +
             '-' +
             (s.pdfLang === 'Русский' ? 'ru' : s.pdfLang === 'English' ? 'en' : 'zh') +
@@ -4276,7 +4276,7 @@ class Component extends DCLogic {
             referral:
               'Отправьте ссылку тому, кто шьёт свою одежду. Когда друг подключится, вам начислится дополнительная генерация — она не сгорает в конце месяца.',
             claim:
-              'Seamsterly собирает производственный техпак по фотографиям изделия: чертёж, замеры с допусками, материалы и конструкцию. Оставьте контакт — пришлём доступ.',
+              'Seamster собирает производственный техпак по фотографиям изделия: чертёж, замеры с допусками, материалы и конструкцию. Оставьте контакт — пришлём доступ.',
             waitlist:
               'Оплата откроется после беты. Записали вас в лист ожидания — сообщим, как только тариф заработает, и учтём условия раннего доступа.',
           }[s.modal.kind] ||

@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/assembly",
+  "name": "@seamster/assembly",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,9 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/kb": "workspace:*",
-    "@seamsterly/stylespec": "workspace:*",
+    "@seamster/core": "workspace:*",
+    "@seamster/kb": "workspace:*",
+    "@seamster/stylespec": "workspace:*",
     "zod": "^4.4.3"
   }
 }

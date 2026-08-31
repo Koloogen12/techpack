@@ -9,7 +9,7 @@
  * графика идёт на футболку, худи и свитшот капсулы.
  */
 import { reportCliError } from './report-error.js';
-import { ArtworkLibrary } from '@seamsterly/library';
+import { ArtworkLibrary } from '@seamster/library';
 import { pluralRu } from './rfq-log.js';
 
 const id = process.argv[2];

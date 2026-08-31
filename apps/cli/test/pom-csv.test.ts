@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { pomCsv } from '@seamsterly/docgen';
+import { buildStyleSpec } from '@seamster/assembly';
+import { pomCsv } from '@seamster/docgen';
 
 /**
  * Табель таблицей — файл, по которому фабрика считает расход и сверяет ОТК.

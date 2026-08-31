@@ -3,12 +3,12 @@
  * Самые дорогие дефекты — это когда два документа об одном изделии
  * расходятся, и фабрика узнаёт об этом после раскроя.
  */
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { renderHtml, renderRfqHtml, rfqText } from '@seamsterly/docgen';
-import { flatDefaults, measurementsFrom, renderFlatsFromSpec } from '@seamsterly/flats';
-import { CATEGORIES, kb, type Category } from '@seamsterly/kb';
-import { LOCALES } from '@seamsterly/i18n';
-import { specFingerprint } from '@seamsterly/stylespec';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import { renderHtml, renderRfqHtml, rfqText } from '@seamster/docgen';
+import { flatDefaults, measurementsFrom, renderFlatsFromSpec } from '@seamster/flats';
+import { CATEGORIES, kb, type Category } from '@seamster/kb';
+import { LOCALES } from '@seamster/i18n';
+import { specFingerprint } from '@seamster/stylespec';
 
 const problems: string[] = [];
 const note = (a: string, t: string): void => void problems.push(`${a}: ${t}`);

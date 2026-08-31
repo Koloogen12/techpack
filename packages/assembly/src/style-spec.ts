@@ -1,5 +1,5 @@
-import { SPEC_VERSION, parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
-import { kb as defaultKb, type KnowledgeBase } from '@seamsterly/kb';
+import { SPEC_VERSION, parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
+import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
 import { buildMeasurements, countMeasurementAssumptions, type PomInput } from './pom.js';
 import {
   buildConstruction,

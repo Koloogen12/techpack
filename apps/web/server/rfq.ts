@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { renderRfqPdf, rfqText, type RfqOptions } from '@seamsterly/docgen';
-import type { Locale } from '@seamsterly/i18n';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { renderRfqPdf, rfqText, type RfqOptions } from '@seamster/docgen';
+import type { Locale } from '@seamster/i18n';
+import type { StyleSpec } from '@seamster/stylespec';
 import { readJobTemplate, renderJobTemplate } from './templates.js';
 
 /**

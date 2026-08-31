@@ -8,8 +8,8 @@
  * Запуск: pnpm golden:export (нужен прогретый кэш, см. README).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { FileVisionCache, cacheKey, defaultModel, hashPhoto } from '@seamsterly/vision';
-import { parseAnswers as parse, answersFingerprint } from '@seamsterly/cli';
+import { FileVisionCache, cacheKey, defaultModel, hashPhoto } from '@seamster/vision';
+import { parseAnswers as parse, answersFingerprint } from '@seamster/cli';
 import { GOLDEN_SHOTS } from '../shots.js';
 
 const parseAnswers = (raw: string) => parse(JSON.parse(raw));

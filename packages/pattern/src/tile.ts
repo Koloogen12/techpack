@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isSeamsterlyError, type Logger, silentLogger } from '@seamsterly/core';
+import { isSeamsterError, type Logger, silentLogger } from '@seamster/core';
 import {
   FileRenderCache,
   MemoryRenderCache,
@@ -7,7 +7,7 @@ import {
   generateImage,
   type RenderCache,
   type ReferenceImage,
-} from '@seamsterly/render';
+} from '@seamster/render';
 import type { Browser } from 'playwright';
 import { buildTilePrompt, TILE_PROMPT_VERSION, type TilePromptOptions } from './prompt.js';
 import { checkSeam, type SeamReport } from './seam.js';
@@ -166,10 +166,8 @@ export async function generateTile(
       } catch (error) {
         return {
           ok: false,
-          reason: isSeamsterlyError(error) ? error.code : 'unknown',
-          userMessage: isSeamsterlyError(error)
-            ? error.userMessage
-            : 'Не удалось построить раппорт.',
+          reason: isSeamsterError(error) ? error.code : 'unknown',
+          userMessage: isSeamsterError(error) ? error.userMessage : 'Не удалось построить раппорт.',
         };
       }
     }

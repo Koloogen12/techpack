@@ -13,11 +13,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { reportCliError } from './report-error.js';
 import { join } from 'node:path';
-import { CONFIDENCE_LABEL_RU } from '@seamsterly/core';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import { applyFitting, parseMeasuredSet } from '@seamsterly/fit';
-import { VisionReportSchema, type VisionReport } from '@seamsterly/vision';
-import { diffSpecs, summarise, VersionStore } from '@seamsterly/versions';
+import { CONFIDENCE_LABEL_RU } from '@seamster/core';
+import { buildStyleSpec } from '@seamster/assembly';
+import { applyFitting, parseMeasuredSet } from '@seamster/fit';
+import { VisionReportSchema, type VisionReport } from '@seamster/vision';
+import { diffSpecs, summarise, VersionStore } from '@seamster/versions';
 import { parseAnswers } from './answers.js';
 import { specInputFrom } from './generate.js';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSeamsterlyError } from '@seamsterly/core';
+import { isSeamsterError } from '@seamster/core';
 import { parsePhotoArg, viewFromName } from '../src/generate.js';
 
 /**
@@ -36,8 +36,8 @@ describe('разбор аргумента --photos', () => {
       parsePhotoArg('сбоку:a.png');
       expect.unreachable('должно было упасть');
     } catch (e) {
-      expect(isSeamsterlyError(e)).toBe(true);
-      if (isSeamsterlyError(e)) expect(e.userAction).toContain('front_flat');
+      expect(isSeamsterError(e)).toBe(true);
+      if (isSeamsterError(e)) expect(e.userAction).toContain('front_flat');
     }
   });
 

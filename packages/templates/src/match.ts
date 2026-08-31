@@ -1,4 +1,4 @@
-import type { Category, FitIntent } from '@seamsterly/kb';
+import type { Category, FitIntent } from '@seamster/kb';
 import type { TemplateEntry, TemplateTraits } from './manifest.js';
 
 /**

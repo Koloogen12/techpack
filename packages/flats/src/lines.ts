@@ -1,5 +1,5 @@
-import { kb as defaultKb, type KnowledgeBase, type NodeZone } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { kb as defaultKb, type KnowledgeBase, type NodeZone } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
 
 /**
  * Проверка связи «узел обработки ↔ линия на чертеже».

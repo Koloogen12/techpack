@@ -1,4 +1,4 @@
-import type { Centimeters } from '@seamsterly/core';
+import type { Centimeters } from '@seamster/core';
 
 /**
  * Геометрия технического чертежа футболки.

@@ -1,7 +1,7 @@
-import { CONFIDENCE_LEVELS, type Confidence } from '@seamsterly/core';
-import { measurementsFrom, renderFlat } from '@seamsterly/flats';
-import { renderHtml } from '@seamsterly/docgen';
-import { specFingerprint, type StyleSpec } from '@seamsterly/stylespec';
+import { CONFIDENCE_LEVELS, type Confidence } from '@seamster/core';
+import { measurementsFrom, renderFlat } from '@seamster/flats';
+import { renderHtml } from '@seamster/docgen';
+import { specFingerprint, type StyleSpec } from '@seamster/stylespec';
 
 /**
  * Инварианты продукта.

@@ -38,46 +38,46 @@ importers:
 
   apps/cli:
     dependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../../packages/assembly
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@seamsterly/docgen':
+      '@seamster/docgen':
         specifier: workspace:*
         version: link:../../packages/docgen
-      '@seamsterly/fit':
+      '@seamster/fit':
         specifier: workspace:*
         version: link:../../packages/fit
-      '@seamsterly/flats':
+      '@seamster/flats':
         specifier: workspace:*
         version: link:../../packages/flats
-      '@seamsterly/i18n':
+      '@seamster/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../../packages/kb
-      '@seamsterly/library':
+      '@seamster/library':
         specifier: workspace:*
         version: link:../../packages/library
-      '@seamsterly/pattern':
+      '@seamster/pattern':
         specifier: workspace:*
         version: link:../../packages/pattern
-      '@seamsterly/render':
+      '@seamster/render':
         specifier: workspace:*
         version: link:../../packages/render
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../../packages/stylespec
-      '@seamsterly/templates':
+      '@seamster/templates':
         specifier: workspace:*
         version: link:../../packages/templates
-      '@seamsterly/versions':
+      '@seamster/versions':
         specifier: workspace:*
         version: link:../../packages/versions
-      '@seamsterly/vision':
+      '@seamster/vision':
         specifier: workspace:*
         version: link:../../packages/vision
       playwright:
@@ -89,22 +89,22 @@ importers:
 
   apps/site:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@seamsterly/docgen':
+      '@seamster/docgen':
         specifier: workspace:*
         version: link:../../packages/docgen
-      '@seamsterly/i18n':
+      '@seamster/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../../packages/kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../../packages/stylespec
-      '@seamsterly/versions':
+      '@seamster/versions':
         specifier: workspace:*
         version: link:../../packages/versions
       playwright:
@@ -113,28 +113,28 @@ importers:
 
   apps/web:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@seamsterly/docgen':
+      '@seamster/docgen':
         specifier: workspace:*
         version: link:../../packages/docgen
-      '@seamsterly/fit':
+      '@seamster/fit':
         specifier: workspace:*
         version: link:../../packages/fit
-      '@seamsterly/flats':
+      '@seamster/flats':
         specifier: workspace:*
         version: link:../../packages/flats
-      '@seamsterly/i18n':
+      '@seamster/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../../packages/kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../../packages/stylespec
-      '@seamsterly/templates':
+      '@seamster/templates':
         specifier: workspace:*
         version: link:../../packages/templates
       react:
@@ -159,49 +159,49 @@ importers:
 
   golden:
     dependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../packages/assembly
-      '@seamsterly/cli':
+      '@seamster/cli':
         specifier: workspace:*
         version: link:../apps/cli
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../packages/core
-      '@seamsterly/docgen':
+      '@seamster/docgen':
         specifier: workspace:*
         version: link:../packages/docgen
-      '@seamsterly/fit':
+      '@seamster/fit':
         specifier: workspace:*
         version: link:../packages/fit
-      '@seamsterly/flats':
+      '@seamster/flats':
         specifier: workspace:*
         version: link:../packages/flats
-      '@seamsterly/i18n':
+      '@seamster/i18n':
         specifier: workspace:*
         version: link:../packages/i18n
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../packages/kb
-      '@seamsterly/library':
+      '@seamster/library':
         specifier: workspace:*
         version: link:../packages/library
-      '@seamsterly/pattern':
+      '@seamster/pattern':
         specifier: workspace:*
         version: link:../packages/pattern
-      '@seamsterly/render':
+      '@seamster/render':
         specifier: workspace:*
         version: link:../packages/render
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../packages/stylespec
-      '@seamsterly/templates':
+      '@seamster/templates':
         specifier: workspace:*
         version: link:../packages/templates
-      '@seamsterly/versions':
+      '@seamster/versions':
         specifier: workspace:*
         version: link:../packages/versions
-      '@seamsterly/vision':
+      '@seamster/vision':
         specifier: workspace:*
         version: link:../packages/vision
       playwright:
@@ -210,13 +210,13 @@ importers:
 
   packages/assembly:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
       zod:
@@ -231,22 +231,22 @@ importers:
 
   packages/docgen:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/flats':
+      '@seamster/flats':
         specifier: workspace:*
         version: link:../flats
-      '@seamsterly/i18n':
+      '@seamster/i18n':
         specifier: workspace:*
         version: link:../i18n
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
-      '@seamsterly/versions':
+      '@seamster/versions':
         specifier: workspace:*
         version: link:../versions
       playwright:
@@ -255,39 +255,39 @@ importers:
 
   packages/fit:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/i18n':
+      '@seamster/i18n':
         specifier: workspace:*
         version: link:../i18n
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../assembly
 
   packages/flats:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
     devDependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../assembly
 
@@ -295,7 +295,7 @@ importers:
 
   packages/kb:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -304,7 +304,7 @@ importers:
 
   packages/library:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
       zod:
@@ -313,13 +313,13 @@ importers:
 
   packages/pattern:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/render':
+      '@seamster/render':
         specifier: workspace:*
         version: link:../render
       playwright:
@@ -328,33 +328,33 @@ importers:
 
   packages/render:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
     devDependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../assembly
 
   packages/stylespec:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../assembly
 
@@ -363,16 +363,16 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.120.0
         version: 0.120.0(zod@4.4.3)
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
-      '@seamsterly/vision':
+      '@seamster/vision':
         specifier: workspace:*
         version: link:../vision
       zod:
@@ -381,14 +381,14 @@ importers:
 
   packages/versions:
     dependencies:
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/stylespec':
+      '@seamster/stylespec':
         specifier: workspace:*
         version: link:../stylespec
     devDependencies:
-      '@seamsterly/assembly':
+      '@seamster/assembly':
         specifier: workspace:*
         version: link:../assembly
 
@@ -397,10 +397,10 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.120.0
         version: 0.120.0(zod@4.4.3)
-      '@seamsterly/core':
+      '@seamster/core':
         specifier: workspace:*
         version: link:../core
-      '@seamsterly/kb':
+      '@seamster/kb':
         specifier: workspace:*
         version: link:../kb
       zod:

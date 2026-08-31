@@ -1,4 +1,4 @@
-import { roundCm } from '@seamsterly/core';
+import { roundCm } from '@seamster/core';
 import type { ComparisonResult, PointComparison } from './compare.js';
 
 /**

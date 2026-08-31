@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
-import { RFQ_TEXT_LIMIT, renderRfqHtml, rfqSizeLine, rfqText } from '@seamsterly/docgen';
+import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
+import { RFQ_TEXT_LIMIT, renderRfqHtml, rfqSizeLine, rfqText } from '@seamster/docgen';
 import {
   emptyRfqLog,
   parseRfqLog,

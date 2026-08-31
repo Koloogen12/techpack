@@ -7,12 +7,12 @@
  * Тот же код исполняет concierge-заказы и производит артефакты для похода
  * по фабрикам. Веб-обёртка появится поверх него после стоп-крана.
  */
-import { createLogger } from '@seamsterly/core';
+import { createLogger } from '@seamster/core';
 import { reportCliError } from './report-error.js';
-import { EXPORT_ROLES, type ExportRole } from '@seamsterly/docgen';
-import { LOCALES, type Locale } from '@seamsterly/i18n';
+import { EXPORT_ROLES, type ExportRole } from '@seamster/docgen';
+import { LOCALES, type Locale } from '@seamster/i18n';
 import { generate, type DrawingSource } from './generate.js';
-import type { CandidateView } from '@seamsterly/templates';
+import type { CandidateView } from '@seamster/templates';
 
 interface Cli {
   answers: string;

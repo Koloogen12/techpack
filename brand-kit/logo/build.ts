@@ -78,3 +78,48 @@ writeFileSync(
 );
 
 console.log(`знак собран: ${w}×${h}, охранное поле ${pad}`);
+
+// ------------------------------------------------------------------ монограмма
+/**
+ * Плашка-квадрат со строчной «s» — для favicon и мест, где словесный знак не
+ * помещается по ширине: шапка в узком окне, аватар, иконка приложения.
+ *
+ * Буква берётся из того же слова, а не рисуется заново: монограмма и знак
+ * обязаны быть одной рукой, иначе на одном экране их видно как двух разных.
+ */
+const S = dOf(9);
+const sBox = pathBox(S)!;
+const sw = sBox.maxX - sBox.minX;
+const sh = sBox.maxY - sBox.minY;
+
+/** Плашка со строчной «s»: поле вокруг буквы и скругление — долями стороны. */
+const SIDE = 100;
+const sd = shift(S, -sBox.minX, -sBox.minY);
+
+function plaque(inset: number, radius: number): string {
+  const scale = Number(((SIDE * (1 - inset * 2)) / Math.max(sw, sh)).toFixed(4));
+  const place =
+    `translate(${((SIDE - sw * scale) / 2).toFixed(2)} ${((SIDE - sh * scale) / 2).toFixed(2)}) ` +
+    `scale(${scale})`;
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIDE} ${SIDE}" width="${SIDE}" height="${SIDE}" ` +
+    `role="img" aria-label="seamster"><title>seamster</title>` +
+    `<rect width="${SIDE}" height="${SIDE}" rx="${(radius * SIDE).toFixed(0)}" fill="${INK}"/>` +
+    `<g transform="${place}"><path fill="${PAPER}" d="${sd}"/></g></svg>\n`
+  );
+}
+
+// Скругление как у плашки прототипа — 9 из 30 стороны.
+writeFileSync(join(HERE, 'seamster-mark.svg'), plaque(0.26, 9 / 30));
+// Favicon живёт на 16 px: буква крупнее и угол острее, иначе на вкладке каша.
+writeFileSync(join(HERE, 'favicon.svg'), plaque(0.13, 0.2));
+
+// Та же буква без плашки: ложится в готовый чёрный квадрат прототипа.
+writeFileSync(
+  join(HERE, 'seamster-s.svg'),
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sw.toFixed(2)} ${sh.toFixed(2)}" ` +
+    `width="${Math.round(sw)}" height="${Math.round(sh)}" role="img" aria-label="s">` +
+    `<path fill="${PAPER}" d="${sd}"/></svg>\n`,
+);
+
+console.log(`монограмма: ${SIDE}×${SIDE}, буква ${sw.toFixed(0)}×${sh.toFixed(0)}`);

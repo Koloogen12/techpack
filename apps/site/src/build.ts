@@ -21,17 +21,11 @@
 import { mkdirSync, writeFileSync, copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Browser } from 'playwright';
-import {
-  renderHtml,
-  renderPdf,
-  renderRolePdfs,
-  EXPORT_ROLES,
-  roleProfile,
-} from '@seamsterly/docgen';
-import { VersionStore } from '@seamsterly/versions';
-import { LOCALES, LOCALE_LABEL } from '@seamsterly/i18n';
-import { CATEGORY_LABEL_RU } from '@seamsterly/kb';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { renderHtml, renderPdf, renderRolePdfs, EXPORT_ROLES, roleProfile } from '@seamster/docgen';
+import { VersionStore } from '@seamster/versions';
+import { LOCALES, LOCALE_LABEL } from '@seamster/i18n';
+import { CATEGORY_LABEL_RU } from '@seamster/kb';
+import type { StyleSpec } from '@seamster/stylespec';
 import { SITE_CSS, esc, layout } from './layout.js';
 
 const args = process.argv.slice(2);
@@ -167,7 +161,7 @@ function indexPage(entries: readonly Entry[]): string {
     .join('');
 
   return layout(
-    'Seamsterly · техпаки на оценку',
+    'Seamster · техпаки на оценку',
     `<h1>Техпаки на оценку</h1>` +
       `<div class="note lead">Здесь настоящие производственные пакеты, собранные нашим ` +
       `движком: табель мер с допусками, градация, чертёж, спецификация материалов, ` +
@@ -233,8 +227,8 @@ if (existsSync('README.md')) copyFileSync('README.md', join(holding, 'README.md'
 
 function holdingPage(): string {
   return layout(
-    'Seamsterly',
-    `<h1>Seamsterly</h1>` +
+    'Seamster',
+    `<h1>Seamster</h1>` +
       `<div class="note lead">Фотография изделия превращается в производственный ` +
       `технический пакет для швейной фабрики: табель мер с допусками, градация ` +
       `по размерному ряду, технический чертёж, спецификация материалов, узлы ` +

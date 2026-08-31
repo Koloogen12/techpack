@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { SeamsterlyError, silentLogger, type CostLedger, type Logger } from '@seamsterly/core';
-import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamsterly/kb';
+import { SeamsterError, silentLogger, type CostLedger, type Logger } from '@seamster/core';
+import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamster/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
 import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt, promptFingerprint } from './prompt.js';
 import { VisionReportSchema, type VisionReport } from './report.js';
@@ -63,7 +63,7 @@ export interface AnalyzeResult {
 export const MAX_PHOTOS = 6;
 
 export function defaultModel(): string {
-  return process.env.SEAMSTERLY_VISION_MODEL ?? 'claude-opus-5';
+  return process.env.SEAMSTER_VISION_MODEL ?? 'claude-opus-5';
 }
 
 /**
@@ -87,13 +87,13 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   } = options;
 
   if (photos.length === 0) {
-    throw new SeamsterlyError('PHOTO_UNUSABLE', 'вызов анализа без фотографий', {
+    throw new SeamsterError('PHOTO_UNUSABLE', 'вызов анализа без фотографий', {
       userMessage: 'Нужна хотя бы одна фотография изделия.',
       userAction: 'Загрузите фото или скриншот карточки товара',
     });
   }
   if (photos.length > MAX_PHOTOS) {
-    throw new SeamsterlyError(
+    throw new SeamsterError(
       'PHOTO_UNUSABLE',
       `фотографий ${photos.length}, максимум ${MAX_PHOTOS}`,
       {
@@ -135,7 +135,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   // прокси перегоняет запрос в чат-формат, и модель отвечает прозой.
   // Схема уходит в промпт, ответ разбирается и проверяется тем же zod:
   // мусор не пройдёт, он упадёт здесь, а не на фабрике.
-  if (process.env.SEAMSTERLY_VISION_BASE_URL) {
+  if (process.env.SEAMSTER_VISION_BASE_URL) {
     const report = await analyzeViaProxy(client, model, photos, category, base, logger);
     const proxyMs = Math.round(performance.now() - startedAt);
     cache.set(key, report);
@@ -184,7 +184,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   const ms = Math.round(performance.now() - startedAt);
 
   if (response.stop_reason === 'refusal') {
-    throw new SeamsterlyError('VISION_FAILED', 'модель отказалась разбирать снимки', {
+    throw new SeamsterError('VISION_FAILED', 'модель отказалась разбирать снимки', {
       userMessage: 'Не удалось разобрать эти фотографии.',
       userAction: 'Загрузите другие снимки изделия. Попытка бесплатная — лимит не списан.',
       details: { stop_reason: response.stop_reason },
@@ -195,15 +195,11 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   if (!parsed) {
     // Structured output не сошёлся со схемой. Молча продолжать нельзя:
     // документ построится на мусоре, и это заметят только на фабрике.
-    throw new SeamsterlyError(
-      'VISION_SCHEMA_MISMATCH',
-      'ответ модели не сошёлся со схемой отчёта',
-      {
-        userMessage: 'Разбор фотографий не завершился корректно.',
-        userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
-        details: { model, promptVersion: PROMPT_VERSION },
-      },
-    );
+    throw new SeamsterError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
+      userMessage: 'Разбор фотографий не завершился корректно.',
+      userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
+      details: { model, promptVersion: PROMPT_VERSION },
+    });
   }
 
   const report = VisionReportSchema.parse(parsed);
@@ -321,7 +317,7 @@ async function analyzeViaProxy(
     }
   }
 
-  throw new SeamsterlyError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
+  throw new SeamsterError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
     userMessage: 'Разбор фотографий не завершился корректно.',
     userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
     details: { model, promptVersion: PROMPT_VERSION, proxy: true },
@@ -333,12 +329,12 @@ function createClient(): Anthropic {
   // сервер стоит именно там. CometAPI проксирует /v1/messages в родном
   // формате — модель та же, меняется только адрес и ключ. Проверено живым
   // вызовом, не выведено из документации.
-  const baseURL = process.env.SEAMSTERLY_VISION_BASE_URL;
+  const baseURL = process.env.SEAMSTER_VISION_BASE_URL;
   const apiKey = baseURL
-    ? (process.env.SEAMSTERLY_VISION_KEY ?? process.env.COMETAPI_KEY)
+    ? (process.env.SEAMSTER_VISION_KEY ?? process.env.COMETAPI_KEY)
     : process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new SeamsterlyError('CONFIG_MISSING', 'ключ анализа фотографий не задан', {
+    throw new SeamsterError('CONFIG_MISSING', 'ключ анализа фотографий не задан', {
       userMessage: 'Сервис анализа фотографий недоступен.',
       userAction: 'Повторить позже. Это на нашей стороне, лимит не списан.',
     });

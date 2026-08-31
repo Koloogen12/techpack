@@ -1,4 +1,4 @@
-# Seamsterly
+# Seamster
 
 Фото изделия → **StyleSpec** (структурированные данные изделия) → производственный техпак, который фабрика РФ принимает в работу. Каждое значение несёт статус уверенности.
 
@@ -22,7 +22,7 @@
 | [TECH-REQUIREMENTS-PIPELINE.md](TECH-REQUIREMENTS-PIPELINE.md)                                     | архитектура пайплайна, требования-дифференциаторы R1–R10                                |
 | [docs/adr/](docs/adr/)                                                                             | почему выбрано именно так                                                               |
 | [knowledge-base/](knowledge-base/)                                                                 | предметная область: POM, допуски, градация, узлы, коды швов, нормативка, приёмка фабрик |
-| [ux/](ux/), [UI-SPEC-app.md](UI-SPEC-app.md), [design_handoff_seamsterly/](design_handoff_seamsterly/) | флоу, экраны, дизайн-токены                                                             |
+| [ux/](ux/), [UI-SPEC-app.md](UI-SPEC-app.md), [design_handoff_seamster/](design_handoff_seamster/) | флоу, экраны, дизайн-токены                                                             |
 
 ## Три принципа, которые определяют весь код
 

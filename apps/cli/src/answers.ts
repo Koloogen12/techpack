@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { SeamsterlyError } from '@seamsterly/core';
-import { CategorySchema, FitIntentSchema, GenderSchema, FabricKindSchema } from '@seamsterly/kb';
+import { SeamsterError } from '@seamster/core';
+import { CategorySchema, FitIntentSchema, GenderSchema, FabricKindSchema } from '@seamster/kb';
 
 /**
  * Ответы мастера — файл-вход concierge-режима.
@@ -261,7 +261,7 @@ export function parseAnswers(raw: unknown): Answers {
     const issues = parsed.error.issues
       .map((i) => `  ${i.path.join('.') || '(корень)'}: ${i.message}`)
       .join('\n');
-    throw new SeamsterlyError('SPEC_INVALID', `файл ответов не прошёл проверку:\n${issues}`, {
+    throw new SeamsterError('SPEC_INVALID', `файл ответов не прошёл проверку:\n${issues}`, {
       userMessage: 'В анкете не хватает данных или они противоречат друг другу.',
       userAction: 'Проверьте поля, перечисленные ниже, и повторите',
       details: { issues },

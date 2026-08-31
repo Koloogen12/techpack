@@ -1,5 +1,5 @@
-import { CategorySchema, FabricKindSchema, FitIntentSchema, GenderSchema } from '@seamsterly/kb';
-import { MEASURE_KINDS } from '@seamsterly/core';
+import { CategorySchema, FabricKindSchema, FitIntentSchema, GenderSchema } from '@seamster/kb';
+import { MEASURE_KINDS } from '@seamster/core';
 import { z } from 'zod';
 import { tracked } from './tracked-schema.js';
 

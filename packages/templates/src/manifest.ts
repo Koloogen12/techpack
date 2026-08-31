@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CategorySchema, FitIntentSchema } from '@seamsterly/kb';
+import { CategorySchema, FitIntentSchema } from '@seamster/kb';
 
 /**
  * Что известно о шаблоне библиотеки.

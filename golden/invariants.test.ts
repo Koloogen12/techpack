@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec } from '@seamsterly/assembly';
-import type { StyleSpec } from '@seamsterly/stylespec';
+import { buildStyleSpec } from '@seamster/assembly';
+import type { StyleSpec } from '@seamster/stylespec';
 import { SCENARIOS } from './scenarios.js';
 import { checkSpec } from './invariants.js';
 

@@ -1,4 +1,4 @@
-import { SeamsterlyError, type CostLedger, type Logger, silentLogger } from '@seamsterly/core';
+import { SeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
 
 /**
  * Клиент генерации изображений через CometAPI.
@@ -82,11 +82,11 @@ const DEFAULT_MODELS = [
 const DEFAULT_TIMEOUT_MS = 180_000;
 
 export function defaultImageModel(): string {
-  return process.env.SEAMSTERLY_IMAGE_MODEL ?? DEFAULT_MODEL;
+  return process.env.SEAMSTER_IMAGE_MODEL ?? DEFAULT_MODEL;
 }
 
 export function defaultImageModels(): readonly string[] {
-  const configured = process.env.SEAMSTERLY_IMAGE_MODELS;
+  const configured = process.env.SEAMSTER_IMAGE_MODELS;
   if (configured) {
     const list = configured
       .split(',')
@@ -94,7 +94,7 @@ export function defaultImageModels(): readonly string[] {
       .filter(Boolean);
     if (list.length) return list;
   }
-  const primary = process.env.SEAMSTERLY_IMAGE_MODEL;
+  const primary = process.env.SEAMSTER_IMAGE_MODEL;
   // Явно заданная основная модель встаёт в голову цепочки, а не отменяет её:
   // отменять запасные значило бы вернуть тот самый отказ, ради которого
   // цепочка и существует.
@@ -138,13 +138,13 @@ export async function generateImage(
 ): Promise<GeneratedImage> {
   const apiKey = options.apiKey ?? process.env.COMETAPI_KEY;
   if (!apiKey) {
-    throw new SeamsterlyError('CONFIG_MISSING', 'COMETAPI_KEY не задан', {
+    throw new SeamsterError('CONFIG_MISSING', 'COMETAPI_KEY не задан', {
       userMessage: 'Визуализация изделия не настроена.',
       userAction: 'Добавьте COMETAPI_KEY в .env — документ соберётся и без неё',
     });
   }
 
-  const baseUrl = options.baseUrl ?? process.env.SEAMSTERLY_IMAGE_BASE_URL ?? DEFAULT_BASE_URL;
+  const baseUrl = options.baseUrl ?? process.env.SEAMSTER_IMAGE_BASE_URL ?? DEFAULT_BASE_URL;
   const logger = options.logger ?? silentLogger;
   const chain = options.models?.length
     ? options.models
@@ -153,7 +153,7 @@ export async function generateImage(
       : defaultImageModels();
 
   const startedAt = performance.now();
-  let lastError: SeamsterlyError | null = null;
+  let lastError: SeamsterError | null = null;
 
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i]!;
@@ -197,7 +197,7 @@ export async function generateImage(
 
   throw (
     lastError ??
-    new SeamsterlyError('RENDER_FAILED', 'визуализация не получилась', {
+    new SeamsterError('RENDER_FAILED', 'визуализация не получилась', {
       userMessage: 'Визуализация не получилась.',
       userAction: 'Документ соберётся без неё. Повторите бесплатно.',
     })
@@ -206,7 +206,7 @@ export async function generateImage(
 
 interface Attempt {
   image: { bytes: Uint8Array; mediaType: string } | null;
-  error: SeamsterlyError | null;
+  error: SeamsterError | null;
   retryable: boolean;
   reason: string;
 }
@@ -252,7 +252,7 @@ async function callOnce(
       image: null,
       retryable: true,
       reason: 'сеть или таймаут',
-      error: new SeamsterlyError('RENDER_FAILED', 'сервис визуализации недоступен', {
+      error: new SeamsterError('RENDER_FAILED', 'сервис визуализации недоступен', {
         userMessage: 'Не удалось построить визуализацию изделия.',
         userAction: 'Документ соберётся без неё. Повторите позже — лимит не списан.',
         cause,
@@ -279,7 +279,7 @@ async function callOnce(
       image: null,
       retryable: worthNextModel(response.status),
       reason: `ответ ${response.status}`,
-      error: new SeamsterlyError('RENDER_FAILED', `сервис визуализации вернул ${response.status}`, {
+      error: new SeamsterError('RENDER_FAILED', `сервис визуализации вернул ${response.status}`, {
         userMessage: 'Не удалось построить визуализацию изделия.',
         userAction: 'Документ соберётся без неё. Повторите позже — лимит не списан.',
         details: { status: response.status, detail },
@@ -295,7 +295,7 @@ async function callOnce(
       image: null,
       retryable: true,
       reason: 'ответ не разобрался',
-      error: new SeamsterlyError('RENDER_FAILED', 'ответ сервиса визуализации не разобран', {
+      error: new SeamsterError('RENDER_FAILED', 'ответ сервиса визуализации не разобран', {
         userMessage: 'Визуализация не получилась.',
         userAction: 'Документ соберётся без неё. Повторите бесплатно.',
         cause,
@@ -313,7 +313,7 @@ async function callOnce(
     image: null,
     retryable: true,
     reason: 'ответ без изображения (обычно блокировка по safety)',
-    error: new SeamsterlyError('RENDER_FAILED', 'в ответе сервиса нет изображения', {
+    error: new SeamsterError('RENDER_FAILED', 'в ответе сервиса нет изображения', {
       userMessage: 'Визуализация не получилась.',
       userAction: 'Документ соберётся без неё. Повторите бесплатно.',
       details: { model },

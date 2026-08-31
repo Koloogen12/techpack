@@ -33,7 +33,7 @@ export interface Claim {
 
 /** Публичный код приглашающего: 8 символов от хеша токена. */
 export function refCode(token: string): string {
-  return createHash('sha256').update(`seamsterly-ref:${token}`).digest('hex').slice(0, 8);
+  return createHash('sha256').update(`seamster-ref:${token}`).digest('hex').slice(0, 8);
 }
 
 export class Referrals {

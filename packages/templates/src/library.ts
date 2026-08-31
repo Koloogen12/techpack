@@ -1,4 +1,4 @@
-import type { NodeZone } from '@seamsterly/kb';
+import type { NodeZone } from '@seamster/kb';
 import { boxHeight, boxWidth, type Box } from './svg.js';
 import { landmarksOf, zonesOf, type SilhouetteDetails } from './zones.js';
 

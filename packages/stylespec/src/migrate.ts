@@ -1,4 +1,4 @@
-import { SeamsterlyError } from '@seamsterly/core';
+import { SeamsterError } from '@seamster/core';
 import { SPEC_VERSION, StyleSpecSchema, type StyleSpec } from './schema.js';
 
 /**
@@ -134,14 +134,14 @@ export const MIGRATIONS: readonly Migration[] = [
 
 function versionOf(snapshot: unknown): string {
   if (typeof snapshot !== 'object' || snapshot === null || !('spec_version' in snapshot)) {
-    throw new SeamsterlyError('SPEC_INVALID', 'снапшот без spec_version', {
+    throw new SeamsterError('SPEC_INVALID', 'снапшот без spec_version', {
       userMessage: 'Не удалось открыть техпак: файл повреждён.',
       userAction: 'Откройте предыдущую версию или напишите нам',
     });
   }
   const version = (snapshot as { spec_version: unknown }).spec_version;
   if (typeof version !== 'string') {
-    throw new SeamsterlyError('SPEC_INVALID', 'spec_version не строка', {
+    throw new SeamsterError('SPEC_INVALID', 'spec_version не строка', {
       userMessage: 'Не удалось открыть техпак: файл повреждён.',
       userAction: 'Откройте предыдущую версию или напишите нам',
     });
@@ -161,7 +161,7 @@ export function migrateToCurrent(snapshot: unknown): { spec: StyleSpec; applied:
   while (version !== SPEC_VERSION) {
     const step = MIGRATIONS.find((m) => m.from === version);
     if (!step) {
-      throw new SeamsterlyError(
+      throw new SeamsterError(
         'SPEC_VERSION_UNSUPPORTED',
         `нет миграции с версии ${version} (текущая ${SPEC_VERSION})`,
         {
@@ -183,7 +183,7 @@ export function migrateToCurrent(snapshot: unknown): { spec: StyleSpec; applied:
 export function parseStyleSpec(snapshot: unknown): StyleSpec {
   const parsed = StyleSpecSchema.safeParse(snapshot);
   if (!parsed.success) {
-    throw new SeamsterlyError('SPEC_INVALID', 'снапшот не прошёл валидацию схемы', {
+    throw new SeamsterError('SPEC_INVALID', 'снапшот не прошёл валидацию схемы', {
       userMessage: 'Не удалось открыть техпак: данные не сходятся.',
       userAction: 'Повторить генерацию бесплатно. Если повторяется — напишите нам.',
       details: { issues: JSON.stringify(parsed.error.issues, null, 2) },

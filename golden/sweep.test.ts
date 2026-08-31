@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
-import { measurementsFrom, measuredBicep, buildGeometry, renderFlat } from '@seamsterly/flats';
-import { renderHtml } from '@seamsterly/docgen';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
+import { measurementsFrom, measuredBicep, buildGeometry, renderFlat } from '@seamster/flats';
+import { renderHtml } from '@seamster/docgen';
 import { checkSpec } from './invariants.js';
 
 /**

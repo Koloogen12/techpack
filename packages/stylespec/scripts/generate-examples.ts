@@ -7,7 +7,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildStyleSpec, type StyleSpecInput } from '@seamsterly/assembly';
+import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
 
 const DIR = new URL('../examples/', import.meta.url).pathname;
 

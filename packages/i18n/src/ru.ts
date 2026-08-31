@@ -87,7 +87,7 @@ export const RU: Messages = {
   flats_library_source: 'Силуэт библиотеки · исходный вектор приложен к комплекту',
   to_be_confirmed: 'подлежит подтверждению',
 
-  form_kicker: 'Бланк замеров · Seamsterly',
+  form_kicker: 'Бланк замеров · Seamster',
   form_who: 'Кто мерил',
   form_date: 'Дата',
   form_label_size: 'Размер на ярлыке',

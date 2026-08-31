@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/flats",
+  "name": "@seamster/flats",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,11 +8,11 @@
     "./client": "./src/client.ts"
   },
   "dependencies": {
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/stylespec": "workspace:*",
-    "@seamsterly/kb": "workspace:*"
+    "@seamster/core": "workspace:*",
+    "@seamster/stylespec": "workspace:*",
+    "@seamster/kb": "workspace:*"
   },
   "devDependencies": {
-    "@seamsterly/assembly": "workspace:*"
+    "@seamster/assembly": "workspace:*"
   }
 }

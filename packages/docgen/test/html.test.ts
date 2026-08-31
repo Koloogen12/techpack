@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseStyleSpec, type StyleSpec } from '@seamsterly/stylespec';
-import { diffSpecs } from '@seamsterly/versions';
+import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
+import { diffSpecs } from '@seamster/versions';
 import {
   DOC_SECTIONS,
   EXPORT_ROLES,
@@ -282,8 +282,8 @@ describe('выгрузка по ролям', () => {
     const h = renderHtml({ ...SPEC, style: { ...SPEC.style, brand: 'ЧУЖОЙ БРЕНД' } });
     const masthead = h.slice(h.indexOf('class="masthead"'), h.indexOf('class="meta"'));
     expect(masthead).toContain('ЧУЖОЙ БРЕНД');
-    expect(masthead).not.toContain('Seamsterly');
-    expect(h).toContain('Seamsterly ·');
+    expect(masthead).not.toContain('Seamster');
+    expect(h).toContain('Seamster ·');
   });
 });
 

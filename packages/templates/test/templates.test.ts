@@ -10,7 +10,7 @@ import {
 } from '../src/match.js';
 import { MAX_PROPORTION_DRIFT, renderLibraryView } from '../src/library.js';
 import { landmarksOf, zonesOf } from '../src/zones.js';
-import type { NodeZone } from '@seamsterly/kb';
+import type { NodeZone } from '@seamster/kb';
 import type { TemplateEntry, TemplateTraits } from '../src/manifest.js';
 
 const traits = (over: Partial<TemplateTraits> = {}): TemplateTraits => ({

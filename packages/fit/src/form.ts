@@ -5,8 +5,8 @@ import {
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
-} from '@seamsterly/kb';
-import { messages, type Locale } from '@seamsterly/i18n';
+} from '@seamster/kb';
+import { messages, type Locale } from '@seamster/i18n';
 
 /**
  * Печатный бланк замеров.

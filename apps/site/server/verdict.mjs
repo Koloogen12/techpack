@@ -15,7 +15,7 @@ import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 const PORT = Number(process.env.PORT ?? 8130);
-const DATA = process.env.VERDICT_FILE ?? '/opt/seamsterly/data/verdicts.jsonl';
+const DATA = process.env.VERDICT_FILE ?? '/opt/seamster/data/verdicts.jsonl';
 const ADMIN = process.env.ADMIN_TOKEN ?? '';
 const MAX_BODY = 16 * 1024;
 

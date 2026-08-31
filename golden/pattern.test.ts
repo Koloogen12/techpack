@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
-import { checkSeam, extractColors, mirrorTile, separateColors } from '@seamsterly/pattern';
+import { checkSeam, extractColors, mirrorTile, separateColors } from '@seamster/pattern';
 
 /**
  * Паттерн-студия на синтетических тайлах.

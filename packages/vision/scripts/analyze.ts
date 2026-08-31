@@ -6,10 +6,10 @@
  * Инструмент concierge-режима и отладки промпта. Печатает отчёт,
  * себестоимость вызова и ключ кэша — по нему прогон воспроизводится.
  */
-import { CATEGORIES } from '@seamsterly/kb';
+import { CATEGORIES } from '@seamster/kb';
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
-import { CostLedger, createLogger, isSeamsterlyError } from '@seamsterly/core';
+import { CostLedger, createLogger, isSeamsterError } from '@seamster/core';
 import {
   FileVisionCache,
   analyzePhotos,
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     category,
     answersFingerprint: `cli|${category}`,
     model,
-    cache: new FileVisionCache(process.env.SEAMSTERLY_CACHE_DIR ?? '.cache/vision'),
+    cache: new FileVisionCache(process.env.SEAMSTER_CACHE_DIR ?? '.cache/vision'),
     ledger,
     logger: createLogger({ level: 'warn' }),
   });
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  if (isSeamsterlyError(e)) {
+  if (isSeamsterError(e)) {
     console.error(`\n✗ ${e.userMessage}\n  ${e.userAction}\n  (${e.code}: ${e.message})`);
   } else {
     console.error(e);

@@ -1,5 +1,5 @@
 {
-  "name": "@seamsterly/cli",
+  "name": "@seamster/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,21 +10,21 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@seamsterly/assembly": "workspace:*",
-    "@seamsterly/core": "workspace:*",
-    "@seamsterly/docgen": "workspace:*",
-    "@seamsterly/kb": "workspace:*",
-    "@seamsterly/stylespec": "workspace:*",
-    "@seamsterly/vision": "workspace:*",
+    "@seamster/assembly": "workspace:*",
+    "@seamster/core": "workspace:*",
+    "@seamster/docgen": "workspace:*",
+    "@seamster/kb": "workspace:*",
+    "@seamster/stylespec": "workspace:*",
+    "@seamster/vision": "workspace:*",
     "zod": "^4.4.3",
     "playwright": "^1.62.1",
-    "@seamsterly/fit": "workspace:*",
-    "@seamsterly/render": "workspace:*",
-    "@seamsterly/pattern": "workspace:*",
-    "@seamsterly/library": "workspace:*",
-    "@seamsterly/versions": "workspace:*",
-    "@seamsterly/i18n": "workspace:*",
-    "@seamsterly/templates": "workspace:*",
-    "@seamsterly/flats": "workspace:*"
+    "@seamster/fit": "workspace:*",
+    "@seamster/render": "workspace:*",
+    "@seamster/pattern": "workspace:*",
+    "@seamster/library": "workspace:*",
+    "@seamster/versions": "workspace:*",
+    "@seamster/i18n": "workspace:*",
+    "@seamster/templates": "workspace:*",
+    "@seamster/flats": "workspace:*"
   }
 }

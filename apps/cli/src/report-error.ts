@@ -1,4 +1,4 @@
-import { isSeamsterlyError } from '@seamsterly/core';
+import { isSeamsterError } from '@seamster/core';
 
 /**
  * Печать ошибки человеку — одним местом на все команды.
@@ -10,7 +10,7 @@ import { isSeamsterlyError } from '@seamsterly/core';
  * скопирована в каждый файл.
  */
 export function reportCliError(error: unknown): void {
-  if (isSeamsterlyError(error)) {
+  if (isSeamsterError(error)) {
     console.error(`\n✗ ${error.userMessage}\n  → ${error.userAction}`);
     if (typeof error.details.issues === 'string') console.error(error.details.issues);
     return;

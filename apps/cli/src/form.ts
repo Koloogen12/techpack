@@ -11,9 +11,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { reportCliError } from './report-error.js';
 import { dirname } from 'node:path';
 import { chromium } from 'playwright';
-import { CATEGORIES, type Category } from '@seamsterly/kb';
-import { renderMeasurementForm } from '@seamsterly/fit';
-import { LOCALES, type Locale } from '@seamsterly/i18n';
+import { CATEGORIES, type Category } from '@seamster/kb';
+import { renderMeasurementForm } from '@seamster/fit';
+import { LOCALES, type Locale } from '@seamster/i18n';
 
 interface Cli {
   category: Category;
