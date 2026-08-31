@@ -10,6 +10,8 @@ FROM node:22-bookworm-slim
 # без --with-deps браузер запускается на машине разработчика и падает здесь.
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Без этого corepack ждёт подтверждения загрузки pnpm и падает в неинтерактиве.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 RUN corepack enable && apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates \
@@ -22,10 +24,15 @@ WORKDIR /app
 # отсечено .dockerignore.
 COPY . .
 
-RUN pnpm install --frozen-lockfile --silent \
- && pnpm exec playwright install --with-deps chromium \
- && pnpm --filter @seamster/web build \
- && pnpm store prune 2>/dev/null || true
+# Шаги раздельны намеренно: в одной цепочке с завершающим «|| true» провал
+# любого шага маскируется, образ собирается пустым и ломается уже на запуске.
+RUN pnpm install --frozen-lockfile
+
+# playwright лежит в зависимостях docgen, а не корня: в pnpm-workspace бинари
+# вложенных пакетов не поднимаются в корневой .bin, и «pnpm exec» их не видит.
+RUN pnpm --filter @seamster/docgen exec playwright install --with-deps chromium
+
+RUN pnpm --filter @seamster/web build
 
 # Данные — только в томе: каталог образа должен остаться пустым, иначе при
 # первом запуске том накроет его и разница будет незаметна до потери данных.

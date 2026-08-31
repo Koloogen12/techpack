@@ -18,8 +18,8 @@ services:
       - /etc/seamster/secrets.env
     environment:
       PUBLIC_ORIGIN: ${PUBLIC_URL}
-      HOST: "0.0.0.0"
-      PORT: "8131"
+      HOST: '0.0.0.0'
+      PORT: '8131'
       DATA_DIR: /data
       WEB_DIST: apps/web/dist
     volumes:

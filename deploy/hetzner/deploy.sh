@@ -20,11 +20,16 @@ say() { printf '\n→ %s\n' "$1"; }
 
 # Исключения не косметические: node_modules и dist с macOS ломают сборку
 # linux-образа, а .env с ключами не должен уезжать на сервер вообще.
+#
+# Пути якорные — ведущий слеш обязателен. Без него rsync исключает КАЖДЫЙ
+# каталог с таким именем на любой глубине: «--exclude=versions» унёс с собой
+# packages/versions, workspace-пакет, и pnpm молча оставил симлинк в пустоту —
+# образ собрался, а контейнер упал на первом импорте.
 EXCLUDES=(
   --exclude=.git --exclude=node_modules --exclude='**/node_modules'
-  --exclude=out --exclude=.cache --exclude=/apps/web/dist --exclude=/apps/web/data
-  --exclude=versions --exclude=market-research --exclude='база svg'
-  --exclude=.claude --exclude='*.log' --exclude='.DS_Store' --exclude=.env
+  --exclude=/out --exclude=/.cache --exclude=/apps/web/dist --exclude=/apps/web/data
+  --exclude=/market-research --exclude='/база svg'
+  --exclude=/.claude --exclude='*.log' --exclude='.DS_Store' --exclude=.env
 )
 
 say "код → $STACK"
@@ -81,13 +86,30 @@ EOF
 say "проверка"
 ssh "$HOST" "DOMAIN=$DOMAIN bash -s" <<'EOF'
 set -euo pipefail
-for i in $(seq 1 20); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $DOMAIN" http://127.0.0.1/app/api/health || true)
-  [ "$code" = "200" ] && { echo "health $code"; exit 0; }
+
+# 1. Сам контейнер, минуя Caddy. Пока DNS смотрит на старый адрес, это
+#    единственная проверка, которая говорит про приложение, а не про маршрут.
+for i in $(seq 1 30); do
+  body=$(docker run --rm --network edge alpine:3     wget -qO- --timeout=5 http://seamster-app-1:8131/app/api/health 2>/dev/null || true)
+  [ -n "$body" ] && { echo "контейнер: $body"; break; }
   sleep 3
 done
-echo "health не ответил 200 (последний код: ${code:-нет})"
-exit 1
+[ -n "${body:-}" ] || { echo "контейнер не ответил на /app/api/health"; exit 1; }
+
+# 2. Маршрут. Caddy редиректит http на https, поэтому здесь ждём 308 — тот же
+#    код, что отдают соседние домены. 404 означал бы, что блок не подхватился.
+code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $DOMAIN" http://127.0.0.1/app/ || true)
+case "$code" in
+  308|200) echo "маршрут: $code" ;;
+  404) echo "маршрут: 404 — блока $DOMAIN нет в Caddyfile"; exit 1 ;;
+  *)   echo "маршрут: $code — неожиданный код"; exit 1 ;;
+esac
+
+# 3. Соседи на месте: сравнивать с кодами, снятыми до выкатки.
+echo "соседи:"
+for d in $(grep -oE '^[a-z0-9.*-]+\.[a-z]+' /opt/caddy/Caddyfile | sort -u); do
+  printf '  %-24s %s\n' "$d" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -H "Host: $d" http://127.0.0.1/ || echo timeout)"
+done
 EOF
 
 printf '\n✓ выкачено: https://%s/app/\n' "$DOMAIN"
