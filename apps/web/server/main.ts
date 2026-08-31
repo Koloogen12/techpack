@@ -42,6 +42,12 @@ import {
 } from './templates.js';
 
 const PORT = Number(process.env.PORT ?? 8131);
+/**
+ * Адрес прослушивания. По умолчанию только петля: на машине разработчика
+ * кабинет не должен торчать в локальную сеть. В контейнере наоборот — Caddy
+ * стучится из соседнего контейнера, и петля даёт ровно 502.
+ */
+const HOST = process.env.HOST ?? '127.0.0.1';
 const DATA = process.env.DATA_DIR ?? 'data';
 const ADMIN = process.env.ADMIN_TOKEN ?? '';
 const MAX_PHOTO = 12 * 1024 * 1024;
@@ -1343,8 +1349,8 @@ function adminPage(): string {
   );
 }
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`demo server on 127.0.0.1:${PORT} · data: ${DATA} · invites: ${invites().length}`);
+server.listen(PORT, HOST, () => {
+  console.log(`demo server on ${HOST}:${PORT} · data: ${DATA} · invites: ${invites().length}`);
   if (!ADMIN) console.log('ADMIN_TOKEN не задан — админ-просмотр выключен');
   if (!telegramReady) console.log('TELEGRAM_BOT_TOKEN/ADMIN_ID не заданы — канал выключен');
   // Незапланированный рестарт видно по этому сообщению: если оно пришло

@@ -1,0 +1,18 @@
+.git
+node_modules
+**/node_modules
+out
+.cache
+apps/web/dist
+apps/web/data
+versions
+market-research
+база svg
+design_handoff_seamster/assets/*.mp4
+*.log
+.DS_Store
+.env
+.claude
+golden
+ux
+knowledge-base
