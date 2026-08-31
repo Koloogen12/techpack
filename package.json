@@ -45,7 +45,8 @@
     "templates:catalog": "tsx --env-file-if-exists=.env packages/templates/scripts/catalog.ts",
     "qa:sweep": "tsx golden/qa/sweep.ts",
     "qa:consistency": "tsx golden/qa/consistency.ts",
-    "qa:cabinet": "./golden/qa/cabinet.sh"
+    "qa:cabinet": "./golden/qa/cabinet.sh",
+    "brand:logo": "tsx brand-kit/logo/build.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
