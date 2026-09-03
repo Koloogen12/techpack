@@ -76,7 +76,56 @@ sub(
   word(14),
   1,
 );
-sub('SPECFORM · 498BA296', 'SEAMSTER · {{ artShort }}', 1);
+// Превью документа. Прототип рисовал первую страницу РУКАМИ: чужое изделие,
+// чужие узлы, дата из макета. Человек грузил худи и видел в превью жакет с
+// молнией по асимметрии. Показываем настоящий документ — тот же renderHtml,
+// что печатает PDF, во врезке. Артикул внутри макета уезжает вместе с ним,
+// поэтому отдельной подстановки на него больше нет.
+const fakePreview = `<div style="align-self:center;width:100%;max-width:620px;aspect-ratio:297/210;background:#fff;border:1px solid #E4E1DC;box-shadow:0 12px 34px rgba(14,14,14,.1);border-radius:4px;padding:20px 22px;display:flex;flex-direction:column;gap:8px;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<span style="font:500 8px/11px 'JetBrains Mono',monospace;color:#5A5A56">SPECFORM · 498BA296</span>
+<span style="font:400 7px/10px Sora,sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:#B0ADA6">{{ pvSection }}</span>
+</div>
+<div style="height:1px;background:#E4E1DC"></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+<span style="display:flex;flex-direction:column"><span style="font:600 6.5px/9px Sora,sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#B0ADA6">{{ pvL1 }}</span><span style="font:300 8.5px/12px Inter,sans-serif;color:#B0ADA6">{{ pvNA }}</span></span>
+<span style="display:flex;flex-direction:column"><span style="font:600 6.5px/9px Sora,sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#B0ADA6">{{ pvL2 }}</span><span style="font:300 8.5px/12px Inter,sans-serif;color:#C0392B">Структурный жакет</span></span>
+<span style="display:flex;flex-direction:column"><span style="font:600 6.5px/9px Sora,sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#B0ADA6">{{ pvL3 }}</span><span style="font:300 8.5px/12px Inter,sans-serif;color:#B0ADA6">{{ pvNA }}</span></span>
+<span style="display:flex;flex-direction:column"><span style="font:600 6.5px/9px Sora,sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#B0ADA6">{{ pvL4 }}</span><span style="font:300 8.5px/12px Inter,sans-serif;color:#C0392B">M</span></span>
+</div>
+<div style="flex:1;min-height:0;display:flex;gap:12px">
+<span style="flex:1.5;display:flex;align-items:center;justify-content:center;border:1px solid #EFEDE9;border-radius:3px;overflow:hidden">
+<img src="assets/flat-alt.png" alt="" style="max-width:94%;max-height:94%;object-fit:contain">
+</span>
+<span style="flex:1;display:flex;flex-direction:column;gap:5px;border:1px solid #EFEDE9;border-radius:3px;padding:9px">
+<span style="font:700 8.5px/12px Sora,sans-serif">Структурный жакет</span>
+<span style="display:flex;justify-content:space-between"><span style="font:400 7px/10px Sora,sans-serif;color:#B0ADA6">{{ pvR1 }}</span><span style="font:300 7.5px/10px Inter,sans-serif;color:#C0392B">{{ pvV1 }}</span></span>
+<span style="display:flex;justify-content:space-between"><span style="font:400 7px/10px Sora,sans-serif;color:#B0ADA6">{{ pvR2 }}</span><span style="font:300 7.5px/10px Inter,sans-serif;color:#C0392B">{{ pvV2 }}</span></span>
+<span style="display:flex;justify-content:space-between"><span style="font:400 7px/10px Sora,sans-serif;color:#B0ADA6">{{ pvR3 }}</span><span style="font:300 7.5px/10px Inter,sans-serif;color:#C0392B">{{ pvV3 }}</span></span>
+<span style="display:flex;justify-content:space-between"><span style="font:400 7px/10px Sora,sans-serif;color:#B0ADA6">Ряд</span><span style="font:300 7.5px/10px Inter,sans-serif;color:#C0392B">XS–XL</span></span>
+<span style="height:1px;background:#EFEDE9;margin:2px 0"></span>
+<span style="font:600 6.5px/9px Sora,sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#B0ADA6">Ключевые узлы</span>
+<span style="font:400 7px/10.5px Sora,sans-serif;color:#5A5A56">— Горловина: обтачка косой бейкой</span>
+<span style="font:400 7px/10.5px Sora,sans-serif;color:#5A5A56">— Молния по асимметрии, лента под припуск</span>
+<span style="font:400 7px/10.5px Sora,sans-serif;color:#5A5A56">— Низ: подгибка 2 см двойной иглой</span>
+</span>
+</div>
+</div>`;
+sub(
+  fakePreview,
+  '<iframe src="{{ docPreviewUrl }}" title="Превью документа" ' +
+    'style="align-self:center;width:100%;max-width:620px;aspect-ratio:297/210;background:#fff;' +
+    'border:1px solid #E4E1DC;box-shadow:0 12px 34px rgba(14,14,14,.1);border-radius:4px;' +
+    'pointer-events:none"></iframe>',
+  1,
+);
+sub('Превью PDF · страница 1 из 9', 'Превью документа · {{ docPages }}', 1);
+sub('PDF полный · 9 страниц', 'PDF полный · {{ docPages }}', 1);
+sub(
+  `<span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6">16 июл, 07:12</span>`,
+  `<span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6">{{ docUpdated }}</span>`,
+  1,
+);
 
 // Дополнительный ряд вопроса анкеты нёс подпись «Тираж» и ценовую подсказку
 // как единственный случай. Теперь такой ряд есть и у вопроса про пол —
@@ -147,18 +196,6 @@ sub('<span>{{ fabT.size }}: M / RU 46</span>', '<span>{{ fabT.size }}: {{ fabSiz
 sub(
   '<span style="position:absolute;inset:14px;background:url(assets/flat-alt.png) 50% 50%/contain no-repeat"></span>',
   '<span style="{{ fabHeroBg }}"></span>',
-  1,
-);
-
-// Превью PDF в экспорте — название пака из данных.
-sub(
-  '<span style="font:300 8.5px/12px Inter,sans-serif;color:#C0392B">Структурный жакет</span>',
-  '<span style="font:300 8.5px/12px Inter,sans-serif;color:#C0392B">{{ docName }}</span>',
-  1,
-);
-sub(
-  '<span style="font:700 8.5px/12px Sora,sans-serif">Структурный жакет</span>',
-  '<span style="font:700 8.5px/12px Sora,sans-serif">{{ docName }}</span>',
   1,
 );
 

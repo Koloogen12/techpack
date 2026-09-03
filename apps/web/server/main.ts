@@ -1138,7 +1138,18 @@ const server = createServer(async (req, res) => {
         const locale = (['ru', 'en', 'zh'] as const).find(
           (l) => l === url.searchParams.get('locale'),
         );
-        const html = renderHtml(spec, { pro: true, ...(locale ? { locale } : {}) });
+        let html = renderHtml(spec, { pro: true, ...(locale ? { locale } : {}) });
+        // Режим врезки: кабинет показывает документ в маленьком окне превью,
+        // и без вписывания человек видит левый верхний угол первой страницы.
+        // Показываем ровно первый лист, вписанный по ширине окна.
+        if (url.searchParams.get('frame') === '1') {
+          html +=
+            `<style>html,body{margin:0;overflow:hidden;background:#fff}</style>` +
+            `<script>addEventListener('load',function(){` +
+            `var p=document.querySelectorAll('.page');if(!p.length)return;` +
+            `for(var i=1;i<p.length;i++)p[i].style.display='none';` +
+            `document.body.style.zoom=innerWidth/p[0].offsetWidth;});</script>`;
+        }
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
         return res.end(html);
       }

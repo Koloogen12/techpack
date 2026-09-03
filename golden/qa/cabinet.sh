@@ -124,6 +124,11 @@ curl -s -o /dev/null -X PATCH -H "$H" -H 'content-type: application/json' -d '{"
 after=$(curl -s -o /dev/null -w '%{size_download}' -H "$H" "$BASE/jobs/$ID/pdf")
 if [ "${before:-0}" -gt 0 ] && [ "${after:-0}" -gt $(( before * 70 / 100 )) ]; then ok "($before → $after байт)"; else bad "PDF похудел после правки: $before → $after"; fi
 
+step "13f. превью в кабинете — этот документ, а не макет"
+body=$(curl -s -H "$H" "$BASE/jobs/$ID/preview?frame=1")
+art=$(curl -s -H "$H" $BASE/jobs/$ID/spec | python3 -c "import json,sys; print(json.load(sys.stdin)['spec']['style']['article'])" 2>/dev/null)
+if echo "$body" | grep -q "$art" && ! echo "$body" | grep -q "Молния по асимметрии"; then ok "($art)"; else bad "превью не про этот пак"; fi
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")

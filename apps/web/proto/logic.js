@@ -567,6 +567,7 @@ class Component extends DCLogic {
     quick: null,
     quickBusy: false,
     hasRender: false,
+    docPages: 0,
     picks: {
       cat: 'Худи',
       size: 'RU 46 / M',
@@ -1414,6 +1415,18 @@ class Component extends DCLogic {
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
+    // Сколько листов в документе — считаем по самому документу, а не пишем
+    // числом в вёрстке: у худи с принтом и у майки без него оно разное.
+    if (!DEMO && TOKEN && this.state.curId) {
+      const pid = this.state.curId;
+      fetch('/app/api/jobs/' + pid + '/preview?t=' + encodeURIComponent(TOKEN))
+        .then((r) => (r.ok ? r.text() : ''))
+        .then((html) => {
+          const n = (html.match(/class="page"/g) || []).length;
+          if (this.state.curId === pid && n) this.setState({ docPages: n });
+        })
+        .catch(() => {});
+    }
     // Есть ли у работы визуализация — проверяем один раз при открытии.
     if (!DEMO && TOKEN && this.state.curId) {
       const jid = this.state.curId;
@@ -3949,6 +3962,16 @@ class Component extends DCLogic {
             : 'background:#fff;border:1px solid rgba(14,14,14,.12);color:#5A5A56'),
         go: () => this.set('pdfLang', l),
       })),
+      // Превью документа — живой HTML того же рендера, что печатает PDF.
+      // Пока работа не открыта, показывается пустая страница, а не чужое
+      // изделие из макета.
+      docPreviewUrl:
+        !DEMO && TOKEN && s.curId && doc
+          ? '/app/api/jobs/' + s.curId + '/preview?frame=1&t=' + encodeURIComponent(TOKEN)
+          : 'about:blank',
+      docPages: s.docPages
+        ? s.docPages + ' ' + plural(s.docPages, 'лист', 'листа', 'листов')
+        : 'первая страница',
       qtyHint:
         {
           50: 'малый тираж: фурнитуру берём из розничных партий — дороже на единицу',
