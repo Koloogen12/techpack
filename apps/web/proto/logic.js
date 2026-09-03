@@ -946,9 +946,36 @@ class Component extends DCLogic {
    * Три вида одним SVG в общей системе координат — единый масштаб
    * по построению: бок узкий и обязан выглядеть узким (иначе чертёж врёт).
    */
+  /**
+   * Картинка вида: силуэт из библиотеки, пока он есть; параметрический
+   * мастер — только без силуэта. Единственная точка, где кабинет решает,
+   * что показать человеку, — иначе мастер просачивается через боковые пути.
+   */
+  viewUrl(view, layers) {
+    const s = this.state;
+    if (s.silh && s.silh.id && s.curId) {
+      return (
+        'url("/app/api/jobs/' +
+        s.curId +
+        '/flat?view=' +
+        (view === 'all' ? 'all' : view) +
+        '&t=' +
+        encodeURIComponent(TOKEN || '') +
+        '&n=' +
+        (s.flatNonce || 0) +
+        '")'
+      );
+    }
+    return view === 'all' ? this.flatAllUrl(layers) : this.flatUrl(view, layers);
+  }
+
+  heroFlatUrl() {
+    return this.viewUrl('all');
+  }
+
   flatAllUrl(layers) {
     const parts = [];
-    for (const v of ['front', 'side', 'back']) {
+    for (const v of ['front', 'back']) {
       const r = this.flatResult(v, layers);
       if (r) parts.push(r);
     }
@@ -1410,7 +1437,7 @@ class Component extends DCLogic {
     const opsReal = this.curOps();
     const infoReal = this.curInfo(fmtDay(curJob && curJob.created_at));
     const liveOn = !!doc;
-    const liveFrontUrl = liveOn ? this.flatUrl('front') : null;
+    const liveFrontUrl = liveOn ? this.viewUrl('front') : null;
 
     const POM = pomReal || POM_DEMO;
     const FIT = pomReal
@@ -1852,7 +1879,11 @@ class Component extends DCLogic {
       flat: {
         k: 'Чертёж',
         img: 'assets/flat-alt.png',
-        b: liveOn ? '3 вида · живой чертёж из спеки' : '3 вида · перед / бок / спинка',
+        b: liveOn
+          ? s.silh && s.silh.id
+            ? '2 вида · силуэт из библиотеки'
+            : '2 вида · чертёж из спеки'
+          : '2 вида · перед / спинка',
       },
       photo: { k: 'Фото-референс', img: 'assets/flat-main.png', b: 'исходник · photo-1' },
       render: {
@@ -1877,7 +1908,7 @@ class Component extends DCLogic {
         ' 50% 50%/contain no-repeat;transform:scale(' +
         s.galZoom +
         ');transition:transform .2s ease';
-      const allUrl = liveOn && s.gal === 'flat' ? this.flatAllUrl() : null;
+      const allUrl = liveOn && s.gal === 'flat' ? this.viewUrl('all') : null;
       if (allUrl) return 'position:absolute;inset:16px;background:' + allUrl + tail;
       if (liveOn && s.gal === 'photo' && s.curId)
         return 'position:absolute;inset:16px;background:url(' + PHOTO_URL(s.curId, 1) + ')' + tail;
@@ -1896,10 +1927,11 @@ class Component extends DCLogic {
         go: () => this.set('gal', id),
       }));
 
+    // Вида «бок» нет: в библиотеке ни одного бокового силуэта, а рисовать
+    // его из ничего значило бы показывать выдумку рядом с чертежом.
     const views = [
       ['all', 'Все виды'],
       ['front', 'Перед'],
-      ['side', 'Бок'],
       ['back', 'Спинка'],
     ].map(([id, label]) => ({
       label,
@@ -1943,7 +1975,7 @@ class Component extends DCLogic {
     // значило бы завести второй источник правды о том же чертеже.
     const silhId = s.silh && s.silh.id;
     const libUrl =
-      silhId && s.view !== 'all' && s.view !== 'side'
+      silhId && s.view !== 'side'
         ? 'url("/app/api/jobs/' +
           s.curId +
           '/flat?view=' +
@@ -2196,15 +2228,35 @@ class Component extends DCLogic {
     });
 
     const dlSvgViews = () => {
-      const viewsToSave = ['front', 'side', 'back'];
-      let n = 0;
-      viewsToSave.forEach((v) => {
-        const svg = this.flatSvg(v);
-        if (!svg) return;
+      const viewsToSave = ['front', 'back'];
+      const save = (v, svg) => {
         const a = document.createElement('a');
         a.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
         a.download = artShortVal + '-' + v + '.svg';
         a.click();
+      };
+      // Скачивается то, что человек видит: силуэт из библиотеки, когда он
+      // есть. Мастер — только без силуэта.
+      if (s.silh && s.silh.id && s.curId) {
+        viewsToSave.forEach((v) =>
+          fetch(
+            '/app/api/jobs/' +
+              s.curId +
+              '/flat?view=' +
+              v +
+              '&t=' +
+              encodeURIComponent(TOKEN || ''),
+          )
+            .then((r) => (r.ok ? r.text() : null))
+            .then((svg) => svg && save(v, svg)),
+        );
+        return viewsToSave.length;
+      }
+      let n = 0;
+      viewsToSave.forEach((v) => {
+        const svg = this.flatSvg(v);
+        if (!svg) return;
+        save(v, svg);
         n++;
       });
       return n;
@@ -2732,8 +2784,10 @@ class Component extends DCLogic {
       viewBadge:
         s.view === 'all'
           ? liveOn
-            ? '3 вида · живой чертёж'
-            : '3 вида · клик по номеру откроет узел'
+            ? s.silh && s.silh.id
+              ? '2 вида · силуэт из библиотеки'
+              : '2 вида · чертёж из спеки'
+            : '2 вида · клик по номеру откроет узел'
           : 'вид: ' + { front: 'перед', side: 'бок', back: 'спинка' }[s.view],
       pager: secIdx + 1 + ' / ' + SECTIONS.length,
       // У каждого пункта меню своё действие. Раньше все четыре вели в раздел
@@ -4560,7 +4614,7 @@ class Component extends DCLogic {
       fabSize: doc ? INT_OF(bru, bru) + ' / RU ' + bru : 'M / RU 46',
       fabHeroBg:
         'position:absolute;inset:14px;background:' +
-        ((liveOn && this.flatAllUrl()) || 'url(assets/flat-alt.png)') +
+        ((liveOn && this.heroFlatUrl()) || 'url(assets/flat-alt.png)') +
         ' 50% 50%/contain no-repeat',
     };
   }

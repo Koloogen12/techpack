@@ -42,6 +42,8 @@ import { buildRfq } from './rfq.js';
 import { findTemplate } from '@seamster/templates';
 import {
   candidatesFor,
+  composeViews,
+  ensureJobTemplate,
   readJobTemplate,
   renderJobTemplate,
   replaceJobTemplate,
@@ -214,6 +216,10 @@ async function pump(): Promise<void> {
       id: result.template?.id ?? null,
       candidates: result.template?.candidates ?? [],
       chosen_by_user: false,
+      ...(result.template?.illustrative !== undefined
+        ? { illustrative: result.template.illustrative }
+        : {}),
+      ...(result.template?.drift !== undefined ? { drift: result.template.drift } : {}),
     });
     const s = statuses.get(id)!;
     s.notes = result.notes;
@@ -1146,12 +1152,23 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && rest === '/flat') {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
-        const current = readJobTemplate(dir);
-        if (!current.id) return json(res, 404, { error: 'чертёж построен параметрически' });
+        // Силуэт есть у любой работы: старым он подбирается здесь и сейчас.
+        // Параметрический мастер человеку не показывается.
+        const current = ensureJobTemplate(dir, spec);
+        if (!current.id)
+          return json(res, 404, { error: 'в библиотеке нет силуэта для этой категории' });
         const rendered = renderJobTemplate(spec, current.id);
-        if (!rendered) return json(res, 404, { error: 'силуэт не подошёл под табель мер' });
-        const view = url.searchParams.get('view') === 'back' ? 'back' : 'front';
-        const svg = view === 'back' ? rendered.back?.svg : rendered.front.svg;
+        if (!rendered) return json(res, 404, { error: 'силуэт не отрисовался' });
+        const view = url.searchParams.get('view') ?? 'front';
+        if (view !== 'front' && view !== 'back' && view !== 'all') {
+          return json(res, 404, { error: 'такого вида нет: есть перед, спинка и оба вместе' });
+        }
+        const svg =
+          view === 'all'
+            ? composeViews(rendered.front, rendered.back)
+            : view === 'back'
+              ? rendered.back?.svg
+              : rendered.front.svg;
         if (!svg) return json(res, 404, { error: 'вида нет у этого силуэта' });
         res.writeHead(200, {
           'content-type': 'image/svg+xml; charset=utf-8',

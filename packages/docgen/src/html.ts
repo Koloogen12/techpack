@@ -276,7 +276,10 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     );
   };
 
-  add('cover', t.section_cover, [coverBody(spec, t, locale)]);
+  // Обложка несёт тот же силуэт, что раздел чертежа: параметрический мастер
+  // человеку не показывается, пока есть библиотечный.
+  const coverLibrary = options.visuals?.libraryFlats?.[locale] ?? options.visuals?.libraryFlats?.ru;
+  add('cover', t.section_cover, [coverBody(spec, t, locale, coverLibrary)]);
   // Лист изменений идёт СРАЗУ за обложкой: человек, который уже читал прошлую
   // версию, не станет перечитывать сорок страниц ради двух правок. Без этого
   // листа «версия 2» означает «читайте всё заново», и её просто не читают.
@@ -485,8 +488,13 @@ const LEGEND: [Confidence, string][] = [
   ['assumption', 'подтвердить по образцу до запуска партии'],
 ];
 
-function coverBody(spec: StyleSpec, t: Messages, locale: Locale): string {
-  if (locale !== 'ru') return coverFactory(spec, t, locale);
+function coverBody(
+  spec: StyleSpec,
+  t: Messages,
+  locale: Locale,
+  library?: LibraryFlatViews,
+): string {
+  if (locale !== 'ru') return coverFactory(spec, t, locale, library);
 
   const passport: [string, string][] = [
     ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
@@ -515,17 +523,13 @@ function coverBody(spec: StyleSpec, t: Messages, locale: Locale): string {
     .slice(0, room)
     .map((n) => `<b>${esc(n.label_ru)}.</b> ${esc(n.plain_ru)}`);
 
-  const flats = renderFlatsFromSpec(spec, viewLabels(t));
+  const canvas = coverCanvas(spec, t, library, 'Технический чертёж', 'Перед', 'Спинка');
 
   return (
     `<div class="cover">` +
     // Левая половина — холст с чертежом. Ровно та композиция, которой
     // эталон обязан своим видом: вещь лежит на столе студии.
-    `<div class="canvas">` +
-    `<div class="ml">Технический чертёж</div>` +
-    `<figure>${flats.front.svg}<figcaption class="ml">Перед</figcaption></figure>` +
-    `<figure>${flats.back.svg}<figcaption class="ml">Спинка</figcaption></figure>` +
-    `</div>` +
+    canvas +
     // Правая — паспорт изделия и сводка честности.
     `<div style="display:flex;flex-direction:column;min-height:0">` +
     // Длинное название набирается мельче, а не выталкивает содержимое
@@ -993,8 +997,39 @@ function passportFactory(spec: StyleSpec, t: Messages, locale: Locale): [string,
   return rows;
 }
 
-function coverFactory(spec: StyleSpec, t: Messages, locale: Locale): string {
-  const flats = renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) });
+/**
+ * Холст обложки: перед и спинка.
+ *
+ * Библиотечный силуэт — всегда, когда он есть. Параметрическое построение
+ * остаётся только на случай, когда библиотека не дала ничего: показывать
+ * его рядом с профессиональным силуэтом нельзя, разница видна с порога.
+ * Бокового вида нет: в библиотеке его не существует, а рисовать его из
+ * ничего — значит выдумывать.
+ */
+function coverCanvas(
+  spec: StyleSpec,
+  t: Messages,
+  library: LibraryFlatViews | undefined,
+  title: string,
+  frontLabel: string,
+  backLabel: string,
+): string {
+  const figures = library
+    ? viewFigure({ ...library.front, geometry: {} }, frontLabel) +
+      (library.back ? viewFigure({ ...library.back, geometry: {} }, backLabel) : '')
+    : (() => {
+        const flats = renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) });
+        return viewFigure(flats.front, frontLabel) + viewFigure(flats.back, backLabel);
+      })();
+  return `<div class="canvas"><div class="ml">${esc(title)}</div>${figures}</div>`;
+}
+
+function coverFactory(
+  spec: StyleSpec,
+  t: Messages,
+  locale: Locale,
+  library?: LibraryFlatViews,
+): string {
   const missing = DOC_SECTIONS.filter((x) => !TRANSLATED_SECTIONS.includes(x) && x !== 'cover');
   const label = (x: DocSection): string =>
     ({
@@ -1015,12 +1050,7 @@ function coverFactory(spec: StyleSpec, t: Messages, locale: Locale): string {
 
   return (
     `<div class="cover">` +
-    `<div class="canvas">` +
-    `<div class="ml">${esc(t.section_flats)}</div>` +
-    viewFigure(flats.front, t.view_front) +
-    viewFigure(flats.back, t.view_back) +
-    (flats.side ? viewFigure(flats.side, t.view_side) : '') +
-    `</div>` +
+    coverCanvas(spec, t, library, t.section_flats, t.view_front, t.view_back) +
     `<div style="display:flex;flex-direction:column;min-height:0">` +
     `<h1${spec.style.name.length > 34 ? ' style="font-size:15pt"' : ''}>` +
     `${esc(spec.style.name)}</h1>` +

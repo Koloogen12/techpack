@@ -11,6 +11,7 @@ const ZONE_LABEL: Record<Locale, Record<NodeZone, string>> = {
   zh: ZONE_LABEL_ZH,
 };
 import {
+  MAX_PROPORTION_DRIFT,
   candidateViews,
   notePromotion,
   proposeTemplates,
@@ -33,6 +34,13 @@ export interface JobTemplate {
   candidates: CandidateView[];
   /** Выбрал ли силуэт человек. Ложь — подобрано автоматически. */
   chosen_by_user: boolean;
+  /**
+   * Силуэт взят по остаточному принципу: признаки совпали слабо либо
+   * пропорции корпуса расходятся с табелем. Документ обязан это сказать.
+   */
+  illustrative?: boolean;
+  /** Расхождение пропорций корпуса с табелем, доля. */
+  drift?: number;
 }
 
 const FILE = 'template.json';
@@ -105,7 +113,84 @@ function renderOptions(
     disclaimer: mode === 'sketch' ? '' : messages(locale).flats_library_disclaimer,
     zones: mode === 'sketch' ? [] : zonesOfSpec(spec),
     zoneLabel: (z) => ZONE_LABEL[locale][z],
+    // Выбор уже сделан — при генерации или человеком. Отказывать здесь
+    // значило бы показывать мастер вместо силуэта, а мастер хуже.
+    allowDrift: true,
   };
+}
+
+/**
+ * Силуэт для работы, у которой его нет: старые работы собирались до
+ * библиотеки, а часть — с отказом по пропорциям. Берётся лучший кандидат
+ * подбора и помечается иллюстративным; параметрический мастер человеку
+ * не показывается ни при каком исходе.
+ */
+export function ensureJobTemplate(dir: string, spec: StyleSpec): JobTemplate {
+  const current = readJobTemplate(dir);
+  if (current.id) return current;
+  const master = renderFlatsFromSpec(spec, flatDefaults(spec));
+  const choice = proposeTemplates(spec, {
+    aspect: master.front.viewBox.width / master.front.viewBox.height,
+    top: 6,
+  });
+  const options = renderOptions(spec);
+  for (const c of choice.candidates) {
+    const rendered = renderChosenTemplate(c.entry.id, options);
+    if (!rendered) continue;
+    const next: JobTemplate = {
+      id: rendered.templateId,
+      candidates: current.candidates.length ? current.candidates : candidatesFor(spec),
+      chosen_by_user: false,
+      illustrative: !choice.confident || rendered.drift > MAX_PROPORTION_DRIFT,
+      drift: rendered.drift,
+    };
+    writeJobTemplate(dir, next);
+    return next;
+  }
+  return current;
+}
+
+/**
+ * Перед и спинка одним SVG в общем масштабе.
+ *
+ * Кабинет показывает вид одной картинкой-фоном, и два отдельных файла
+ * пришлось бы совмещать вёрсткой, теряя общий масштаб. Внутренние svg
+ * вкладываются как есть; их id получают суффикс вида, иначе clipPath
+ * переда перекроет спинку.
+ */
+export function composeViews(
+  front: { svg: string; viewBox: { width: number; height: number } },
+  back: { svg: string; viewBox: { width: number; height: number } } | null,
+): string {
+  const gap = back ? Math.max(front.viewBox.width, back.viewBox.width) * 0.12 : 0;
+  const w = front.viewBox.width + (back ? gap + back.viewBox.width : 0);
+  const h = Math.max(front.viewBox.height, back?.viewBox.height ?? 0);
+  const nest = (
+    view: { svg: string; viewBox: { width: number; height: number } },
+    x: number,
+    suffix: string,
+  ): string => {
+    const m = /^\s*<svg\b([^>]*)>([\s\S]*)<\/svg>\s*$/.exec(view.svg);
+    if (!m) return '';
+    const attrs = m[1] ?? '';
+    const vb =
+      /viewBox="([^"]+)"/.exec(attrs)?.[1] ?? `0 0 ${view.viewBox.width} ${view.viewBox.height}`;
+    const body = (m[2] ?? '')
+      .replace(/\bid="([^"]+)"/g, `id="$1-${suffix}"`)
+      .replace(/url\(#([^)]+)\)/g, `url(#$1-${suffix})`)
+      .replace(/href="#([^"]+)"/g, `href="#$1-${suffix}"`);
+    const y = (h - view.viewBox.height) / 2;
+    return (
+      `<svg x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${view.viewBox.width.toFixed(2)}" ` +
+      `height="${view.viewBox.height.toFixed(2)}" viewBox="${vb}" preserveAspectRatio="xMidYMid meet">${body}</svg>`
+    );
+  };
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w.toFixed(2)} ${h.toFixed(2)}">` +
+    nest(front, 0, 'f') +
+    (back ? nest(back, front.viewBox.width + gap, 'b') : '') +
+    `</svg>`
+  );
 }
 
 /**

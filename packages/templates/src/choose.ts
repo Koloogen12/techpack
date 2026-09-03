@@ -102,6 +102,16 @@ export interface RenderChoiceOptions {
   zones: readonly NodeZone[];
   /** Подпись зоны на языке комплекта. */
   zoneLabel: (zone: NodeZone) => string;
+  /**
+   * Рисовать даже при расхождении пропорций с табелем.
+   *
+   * Отказ по расхождению возвращал человека к параметрическому мастеру —
+   * а мастер оказался хуже любого библиотечного силуэта. Силуэт с честной
+   * оговоркой «иллюстративный, пропорции отличаются» лучше чертежа, с
+   * которого не снять ни одного размера. Расхождение остаётся в результате:
+   * по нему ставится оговорка.
+   */
+  allowDrift?: boolean;
 }
 
 /**
@@ -180,7 +190,13 @@ export function renderChosenTemplate(
   });
   // Отказ только по ИЗМЕРЕННОМУ расхождению: если торс не отделился от
   // рукавов, мерить было нечем, и отсутствие улики уликой не считается.
-  if (front.proportionMeasured && front.proportionDrift > MAX_PROPORTION_DRIFT) return null;
+  if (
+    !options.allowDrift &&
+    front.proportionMeasured &&
+    front.proportionDrift > MAX_PROPORTION_DRIFT
+  ) {
+    return null;
+  }
 
   const backSvg = readTemplateSvg(entry, 'back');
   const back = backSvg

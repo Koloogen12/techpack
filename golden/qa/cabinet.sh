@@ -102,6 +102,14 @@ step "13. чертёж из библиотеки отдаётся"
 code=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/flat?view=front")
 [ "$code" = "200" ] || [ "$code" = "404" ] && ok || bad "чертёж вернул $code"
 
+step "13b. все виды одним силуэтом из библиотеки"
+body=$(curl -s -H "$H" "$BASE/jobs/$ID/flat?view=all")
+echo "$body" | grep -q "<svg" && ok || bad "вид all не отдан: ${body:0:80}"
+
+step "13c. бокового вида нет и не выдумывается"
+code=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/flat?view=side")
+[ "$code" = "404" ] && ok || bad "бок отдан ($code)"
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")

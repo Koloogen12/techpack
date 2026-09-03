@@ -49,6 +49,8 @@ import type { Locale } from '@seamster/i18n';
 import { ArtworkLibrary } from '@seamster/library';
 import { diffSpecs, VersionStore } from '@seamster/versions';
 import {
+  AUTO_FIT_FRACTION,
+  MAX_PROPORTION_DRIFT,
   candidateViews,
   findTemplate,
   notePromotion,
@@ -209,6 +211,10 @@ export interface GenerateResult {
      * последнее слово за человеком — он видит изделие, а мы признаки.
      */
     candidates: CandidateView[];
+    /** Силуэт взят по остаточному принципу — документ несёт оговорку. */
+    illustrative?: boolean;
+    /** Расхождение пропорций корпуса с табелем, доля. */
+    drift?: number;
   } | null;
   cost: { usd: number; ms: number; stages: readonly { stage: string; usd: number; ms: number }[] };
 }
@@ -795,12 +801,19 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Силуэт из библиотеки подбирается ПОСЛЕ сборки спеки: масштаб ему
     // задаёт табель мер, а не наоборот. Отчёт зрения идёт следом только
     // как источник деталей — карман и рукав в табеле не записаны.
-    const picked: { candidates: CandidateView[] } = { candidates: [] };
+    const picked: PickedTemplate = { candidates: [] };
     const library = await chooseLibraryFlat(spec, options, report ?? undefined, notes, picked);
     const chosenId = library?.ru?.templateId;
     if (chosenId) {
       const shipped = shipTemplateSources(chosenId, options.outPath);
-      usedTemplate = shipped ? { ...shipped, candidates: picked.candidates } : null;
+      usedTemplate = shipped
+        ? {
+            ...shipped,
+            candidates: picked.candidates,
+            ...(picked.illustrative !== undefined ? { illustrative: picked.illustrative } : {}),
+            ...(picked.drift !== undefined ? { drift: picked.drift } : {}),
+          }
+        : null;
     }
     const visuals: DocVisuals = { ...built, ...(library ? { libraryFlats: library } : {}) };
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
@@ -996,12 +1009,19 @@ function visionNotes(report: VisionReport): string[] {
  * библиотечный только масштабируется. Подменять первое вторым можно лишь
  * когда об этом попросили и когда подмена не искажает пропорции.
  */
+/** Что выбрано и почему — уходит в template.json работы. */
+interface PickedTemplate {
+  candidates: CandidateView[];
+  illustrative?: boolean;
+  drift?: number;
+}
+
 async function chooseLibraryFlat(
   spec: StyleSpec,
   options: GenerateOptions,
   report: VisionReport | undefined,
   notes: string[],
-  chosen: { candidates: CandidateView[] },
+  chosen: PickedTemplate,
 ): Promise<DocVisuals['libraryFlats']> {
   const source: DrawingSource = options.drawing ?? 'auto';
   if (source === 'parametric') return undefined;
@@ -1076,40 +1096,72 @@ async function chooseLibraryFlat(
   // увидел: команду набирали руками.
   let chosenByHuman = Boolean(id);
 
+  // Параметрический мастер человеку не показывается: он оказался хуже
+  // любого библиотечного силуэта. Поэтому силуэт берётся всегда — по
+  // уверенному подбору, а без него по остаточному принципу, с честной
+  // оговоркой в документе. «Иллюстративный» значит: признаки совпали слабо
+  // либо пропорции корпуса разошлись с табелем сильнее допустимого.
+  let illustrative = false;
+  const drawable = { ...renderOptions, allowDrift: true };
   if (!id) {
-    if (usable.length === 0) {
-      notes.push('Библиотека не предложила подходящего силуэта — чертёж построен параметрически.');
-      return undefined;
-    }
-    if (!options.askTemplate) {
-      // При `library` порог уверенности снимается: выбор источника уже
-      // сделан человеком, и переспрашивать его подбором незачем.
-      id = source === 'library' || choice.confident ? usable[0]!.id : null;
-      if (!id) {
-        notes.push(
-          'Силуэт из библиотеки не совпал по ключевым признакам — чертёж построен параметрически.',
-        );
-      }
-    } else {
+    if (options.askTemplate && usable.length) {
       id = await options.askTemplate(usable.slice(0, 3));
       chosenByHuman = Boolean(id);
     }
+    // При `library` порог уверенности снимается: выбор источника уже
+    // сделан человеком, и переспрашивать его подбором незачем.
+    if (!id && usable.length && (source === 'library' || choice.confident)) id = usable[0]!.id;
+    if (!id) {
+      const fallback = usable[0]?.id ?? choice.candidates[0]?.entry.id ?? null;
+      if (!fallback) {
+        notes.push('В библиотеке нет силуэта этой категории — чертёж построен параметрически.');
+        return undefined;
+      }
+      id = fallback;
+      illustrative = true;
+    }
   }
-  if (!id) return undefined;
 
-  const rendered = renderChosenTemplate(id, renderOptions);
+  let rendered = renderChosenTemplate(id, drawable);
   if (!rendered) {
-    notes.push(
-      `Силуэт «${id}» не подошёл по пропорциям к табелю мер — чертёж построен параметрически.`,
-    );
-    return undefined;
+    // Файла силуэта нет — следующий кандидат, а не мастер.
+    const next = choice.candidates
+      .map((c) => c.entry.id)
+      .find((cid) => cid !== id && renderChosenTemplate(cid, drawable) !== null);
+    if (!next) {
+      notes.push(`Силуэт «${id}» не отрисовался, замены нет — чертёж построен параметрически.`);
+      return undefined;
+    }
+    id = next;
+    illustrative = true;
+    rendered = renderChosenTemplate(id, drawable)!;
   }
+  if (rendered.driftMeasured && rendered.drift > MAX_PROPORTION_DRIFT) illustrative = true;
+  if (illustrative) {
+    const fit = choice.candidates.find((c) => c.entry.id === id)?.fit_fraction;
+    const why = [
+      fit !== undefined && fit < AUTO_FIT_FRACTION
+        ? `признаки совпали на ${Math.round(fit * 100)} %`
+        : '',
+      rendered.driftMeasured && rendered.drift > MAX_PROPORTION_DRIFT
+        ? `пропорции корпуса расходятся с табелем на ${Math.round(rendered.drift * 100)} %`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    notes.push(
+      `Силуэт на чертеже иллюстративный${why ? `: ${why}` : ''}. ` +
+        `Размеры — только в табеле мер; силуэт можно заменить на экране чертежа.`,
+    );
+  }
+  chosen.illustrative = illustrative;
+  chosen.drift = rendered.drift;
 
   const byLocale: Partial<Record<Locale, LibraryFlatViews>> = {};
   for (const locale of locales) {
     const lt = messages(locale);
     const views = renderChosenTemplate(id, {
-      ...renderOptions,
+      ...drawable,
       disclaimer: lt.flats_library_disclaimer,
       zoneLabel: (z: NodeZone) => ZONE_LABEL_BY_LOCALE[locale][z],
     });
