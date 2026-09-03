@@ -8,12 +8,20 @@
  * Запуск: pnpm golden:export (нужен прогретый кэш, см. README).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { FileVisionCache, cacheKey, defaultModel, hashPhoto } from '@seamster/vision';
+import { kb } from '@seamster/kb';
+import {
+  FileVisionCache,
+  cacheKey,
+  defaultModel,
+  hashPhoto,
+  promptFingerprint,
+} from '@seamster/vision';
 import { parseAnswers as parse, answersFingerprint } from '@seamster/cli';
 import { GOLDEN_SHOTS } from '../shots.js';
 
 const parseAnswers = (raw: string) => parse(JSON.parse(raw));
 
+const base = kb();
 const cache = new FileVisionCache('.cache/vision');
 for (const shot of GOLDEN_SHOTS) {
   const answers = parseAnswers(readFileSync(`golden/answers/${shot.answers}`, 'utf8'));
@@ -22,6 +30,9 @@ for (const shot of GOLDEN_SHOTS) {
     views: shot.photos.map((p) => p.view),
     category: answers.category,
     answersFingerprint: answersFingerprint(answers),
+    // Тот же ключ, что строит разбор: без отпечатка промпта ключ падает на
+    // голую версию, и прогретый кэш выглядит пустым.
+    promptFingerprint: promptFingerprint(base, answers.category),
     model: defaultModel(),
   });
   const report = cache.get(key);

@@ -196,7 +196,9 @@ describe('детерминизм через кэш', () => {
     const first = await analyzePhotos(opts);
     const second = await analyzePhotos(opts);
 
-    expect(calls).toBe(1);
+    // Разбор — два параллельных вызова: структура и пропорции. Второй прогон
+    // того же входа не добавляет ни одного.
+    expect(calls).toBe(2);
     expect(first.fromCache).toBe(false);
     expect(second.fromCache).toBe(true);
     expect(second.cacheKey).toBe(first.cacheKey);
@@ -261,8 +263,9 @@ describe('учёт себестоимости', () => {
 
     const entry = ledger.entries()[0]!;
     expect(entry.stage).toBe('vision');
-    expect(entry.inputTokens).toBe(14_000);
-    expect(entry.cacheWriteTokens).toBe(2_000);
+    // Два вызова — токены обоих суммируются в одну запись стадии.
+    expect(entry.inputTokens).toBe(28_000);
+    expect(entry.cacheWriteTokens).toBe(4_000);
     // Порядок величины: техпак обязан стоить центы, а не доллары.
     expect(entry.usd).toBeGreaterThan(0);
     expect(entry.usd).toBeLessThan(0.5);

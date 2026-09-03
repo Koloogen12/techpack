@@ -302,6 +302,7 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
   // причине, что и рукав: длина рукава от центра спинки складывается из них.
   clampShoulder(raw, notes);
   clampCuff(raw, base, notes);
+  clampHood(raw, notes);
 
   // Наблюдение по длине рукава переносится на длину руки.
   //
@@ -530,6 +531,36 @@ function clampCuff(raw: Map<string, Tracked<number>>, base: KnowledgeBase, notes
       'default_from_base',
       'engine:pom/cuff-vs-bicep',
       `манжета приведена к типовому отношению к ширине рукава (${convention.min}–${convention.max}) — проверьте по образцу`,
+    ),
+  );
+}
+
+/**
+ * Лицевой край капюшона всегда длиннее его ширины: он идёт через макушку,
+ * а ширина — поперёк. Модель на сложенном капюшоне путает эти две величины,
+ * и пара с фото ломает геометрию, которую документ обещает соблюдать.
+ * Край поднимается к ширине с малым запасом — минимальное вмешательство,
+ * а не середина типового диапазона.
+ */
+function clampHood(raw: Map<string, Tracked<number>>, notes: string[]): void {
+  const width = raw.get('H02');
+  const edge = raw.get('H03');
+  if (!width || !edge || edge.value > width.value) return;
+
+  const allowed = roundCm(width.value * 1.05);
+  notes.push(
+    `Лицевой край капюшона по фото вышел ${roundCm(edge.value)} см при ширине капюшона ` +
+      `${roundCm(width.value)} см — край короче ширины, чего у капюшона не бывает: на ` +
+      `сложенном капюшоне за край принята его ширина. Значение поднято до ${allowed} см. ` +
+      `Померьте капюшон по образцу.`,
+  );
+  raw.set(
+    'H03',
+    track(
+      allowed,
+      'default_from_base',
+      'engine:pom/hood-edge-vs-width',
+      'поднято к ширине капюшона: лицевой край всегда длиннее ширины — проверьте по образцу',
     ),
   );
 }

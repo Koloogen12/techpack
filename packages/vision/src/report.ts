@@ -64,7 +64,7 @@ export const VisionReportSchema = z.object({
         .number()
         .describe('Отношение к ширине по груди в плоском виде. Строго больше нуля'),
       confidence: VisionConfidenceSchema,
-      reason: z.string().describe('Коротко: по каким ориентирам на фото получено отношение'),
+      reason: z.string().describe('До восьми слов: ориентир и оговорка'),
     }),
   ),
 
@@ -74,7 +74,7 @@ export const VisionReportSchema = z.object({
       key: z
         .string()
         .describe('Ключ признака из карты видимости, например neckline_type или topstitch_rows'),
-      value: z.string().describe('Что именно наблюдается'),
+      value: z.string().describe('Что наблюдается, до десяти слов'),
       confidence: VisionConfidenceSchema,
     }),
   ),
@@ -111,7 +111,7 @@ export const VisionReportSchema = z.object({
   not_visible: z.array(
     z.object({
       key: z.string().describe('Ключ признака из карты видимости'),
-      reason: z.string().describe('Почему не видно: ракурс, изнанка, скрыто внутри'),
+      reason: z.string().describe('До шести слов: ракурс, изнанка, скрыто внутри'),
     }),
   ),
 
@@ -146,9 +146,26 @@ export const VisionReportSchema = z.object({
           'false — если он стоит, приподнят, свисает с края или заметно искажён перспективой',
       ),
     confidence: VisionConfidenceSchema,
-    reason: z.string().describe('Коротко: как определены края предмета и его плоскость'),
+    reason: z.string().describe('До восьми слов: края предмета и плоскость'),
   }),
   photo_quality_notes: z.array(z.string()),
 });
 
 export type VisionReport = z.infer<typeof VisionReportSchema>;
+
+/** Половина отчёта: структура и видимость — всё, кроме пропорций. */
+export const StructurePartSchema = VisionReportSchema.pick({
+  category: true,
+  silhouette: true,
+  fabric: true,
+  visible_elements: true,
+  topstitching: true,
+  colorways: true,
+  not_visible: true,
+  photo_quality_notes: true,
+});
+/** Половина отчёта: пропорции и опорный предмет. */
+export const ProportionsPartSchema = VisionReportSchema.pick({
+  proportions: true,
+  scale_object: true,
+});

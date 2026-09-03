@@ -4,8 +4,19 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { SeamsterError, silentLogger, type CostLedger, type Logger } from '@seamster/core';
 import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamster/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
-import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt, promptFingerprint } from './prompt.js';
-import { VisionReportSchema, type VisionReport } from './report.js';
+import {
+  PROMPT_VERSION,
+  buildSystemPrompt,
+  buildUserPrompt,
+  promptFingerprint,
+  type ReportPart,
+} from './prompt.js';
+import {
+  ProportionsPartSchema,
+  StructurePartSchema,
+  VisionReportSchema,
+  type VisionReport,
+} from './report.js';
 
 /** Форматы, которые принимает Claude API. */
 export const MEDIA_TYPES = {
@@ -144,55 +155,56 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
     return { report, cacheKey: key, fromCache: false };
   }
 
-  const response = await client.messages.parse({
-    model,
-    max_tokens: 16_000,
-    system: [
-      {
-        type: 'text',
-        text: buildSystemPrompt(base, category),
-        // Префикс стабилен между запросами: справочники меняются редко,
-        // а фотографии идут после него. Кэшируем целиком.
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
-    messages: [
-      {
-        role: 'user',
-        content: [
-          ...photos.map((photo) => ({
-            type: 'image' as const,
-            source: {
-              type: 'base64' as const,
-              media_type: MEDIA_TYPES[photo.format],
-              data: Buffer.from(photo.bytes).toString('base64'),
-            },
-          })),
-          {
-            type: 'text' as const,
-            text: buildUserPrompt(
-              photos.map((p, i) => ({ index: i + 1, view: p.view })),
-              base,
-            ),
-          },
-        ],
-      },
-    ],
-    output_config: { format: zodOutputFormat(VisionReportSchema) },
-  });
+  // Два вызова параллельно: структура и видимость — отдельно от пропорций.
+  // Ответ модели идёт со скоростью вывода, и при одном вызове человек ждал
+  // около двух минут; половины короче вдвое и ждут их одновременно.
+  // Системный префикс у обоих один и кэшируется.
+  const system = [
+    {
+      type: 'text' as const,
+      text: buildSystemPrompt(base, category),
+      cache_control: { type: 'ephemeral' as const },
+    },
+  ];
+  const images = photos.map((photo) => ({
+    type: 'image' as const,
+    source: {
+      type: 'base64' as const,
+      media_type: MEDIA_TYPES[photo.format],
+      data: Buffer.from(photo.bytes).toString('base64'),
+    },
+  }));
+  const shots = photos.map((p, i) => ({ index: i + 1, view: p.view }));
+  const ask = <T extends z.ZodType>(part: ReportPart, schema: T) =>
+    client.messages.parse({
+      model,
+      max_tokens: 6_000,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: [...images, { type: 'text' as const, text: buildUserPrompt(shots, base, part) }],
+        },
+      ],
+      output_config: { format: zodOutputFormat(schema) },
+    });
 
+  const [structure, proportions] = await Promise.all([
+    ask('structure', StructurePartSchema),
+    ask('proportions', ProportionsPartSchema),
+  ]);
   const ms = Math.round(performance.now() - startedAt);
 
-  if (response.stop_reason === 'refusal') {
-    throw new SeamsterError('VISION_FAILED', 'модель отказалась разбирать снимки', {
-      userMessage: 'Не удалось разобрать эти фотографии.',
-      userAction: 'Загрузите другие снимки изделия. Попытка бесплатная — лимит не списан.',
-      details: { stop_reason: response.stop_reason },
-    });
+  for (const response of [structure, proportions]) {
+    if (response.stop_reason === 'refusal') {
+      throw new SeamsterError('VISION_FAILED', 'модель отказалась разбирать снимки', {
+        userMessage: 'Не удалось разобрать эти фотографии.',
+        userAction: 'Загрузите другие снимки изделия. Попытка бесплатная — лимит не списан.',
+        details: { stop_reason: response.stop_reason },
+      });
+    }
   }
-
-  const parsed = response.parsed_output;
-  if (!parsed) {
+  if (!structure.parsed_output || !proportions.parsed_output) {
     // Structured output не сошёлся со схемой. Молча продолжать нельзя:
     // документ построится на мусоре, и это заметят только на фабрике.
     throw new SeamsterError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
@@ -201,6 +213,18 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
       details: { model, promptVersion: PROMPT_VERSION },
     });
   }
+  const parsed = { ...structure.parsed_output, ...proportions.parsed_output };
+  const usage = {
+    input_tokens: structure.usage.input_tokens + proportions.usage.input_tokens,
+    output_tokens: structure.usage.output_tokens + proportions.usage.output_tokens,
+    cache_creation_input_tokens:
+      (structure.usage.cache_creation_input_tokens ?? 0) +
+      (proportions.usage.cache_creation_input_tokens ?? 0),
+    cache_read_input_tokens:
+      (structure.usage.cache_read_input_tokens ?? 0) +
+      (proportions.usage.cache_read_input_tokens ?? 0),
+  };
+  const response = { usage };
 
   const report = VisionReportSchema.parse(parsed);
 
