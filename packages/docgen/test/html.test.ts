@@ -531,3 +531,44 @@ describe('фотореалистичный раппорт на изделии', 
     expect(page()).toContain('шаг 24 см');
   });
 });
+
+describe('лист чертежа — чем он нарисован', () => {
+  const LIBRARY = {
+    front: { svg: '<svg viewBox="0 0 10 10"><path d="M0 0"/></svg>', viewBox: { width: 10 } },
+    templateId: 'lib-hoodie-01',
+    missing: ['pocket'] as const,
+  };
+  const flatsPage = (options: object): string =>
+    pagesOf(renderHtml(SPEC, { pro: true, ...options })).find((p) =>
+      p.includes('data-section="flats"'),
+    ) ?? '';
+
+  it('есть эскиз — лист собран на нём, а не на построении и не на библиотеке', () => {
+    const page = flatsPage({
+      visuals: { sketch: { dataUri: PIXEL }, libraryFlats: { ru: LIBRARY } },
+    });
+    expect(page).toContain('img class="sketch"');
+    expect(page).toContain('Эскиз построен по узлам этой спецификации');
+    // Строки про непоказанные детали быть не должно: эскиз рисует их все.
+    expect(page).not.toContain('не показаны детали');
+  });
+
+  it('эскиза нет — лист спускается на библиотечный силуэт и говорит о пропусках', () => {
+    const page = flatsPage({ visuals: { libraryFlats: { ru: LIBRARY } } });
+    expect(page).not.toContain('img class="sketch"');
+    expect(page).toContain('не показаны детали');
+  });
+
+  it('под эскизом остаётся идентификатор силуэта — по нему выдают исходный вектор', () => {
+    const page = flatsPage({
+      visuals: { sketch: { dataUri: PIXEL }, libraryFlats: { ru: LIBRARY } },
+    });
+    expect(page).toContain('lib-hoodie-01');
+  });
+
+  it('оговорка под эскизом называет, кто главнее при расхождении', () => {
+    const page = flatsPage({ visuals: { sketch: { dataUri: PIXEL } } });
+    expect(page).toContain('верен раздел конструкции');
+    expect(page).toContain('единственный источник размеров табель мер');
+  });
+});

@@ -8,6 +8,7 @@
     "packages/*/scripts/**/*.ts",
     "packages/*/test/**/*.ts",
     "apps/*/src/**/*.ts",
+    "apps/*/server/**/*.ts",
     "golden/**/*.ts",
     "*.ts"
   ],

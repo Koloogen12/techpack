@@ -139,6 +139,18 @@ export interface DocVisuals {
    */
   libraryFlats?: Partial<Record<Locale, LibraryFlatViews>>;
   /**
+   * Технический эскиз изделия, построенный по узлам ЭТОЙ спецификации.
+   *
+   * Отвечает на то, о чём библиотечный силуэт вынужден молчать: карман
+   * кенгуру, шнур с люверсами, рибана — они нарисованы, а не перечислены
+   * строкой «не показаны детали». Перед и спинка приходят одним листом
+   * и потому заведомо одно изделие: порознь модель рисует две разные вещи.
+   *
+   * Не источник размеров и не источник истины по конструкции: рисует его
+   * модель. Лист говорит это вслух, и раздел конструкции остаётся главнее.
+   */
+  sketch?: DocImage;
+  /**
    * Тайл раппорта для превью на изделии.
    *
    * Чертёж рисуется в сантиметрах, поэтому шаг здесь РАЗМЕРНО ТОЧЕН: 24 см
@@ -299,15 +311,21 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     // языке всё равно лучше, чем отсутствие чертежа.
     const byLocale = options.visuals?.libraryFlats;
     const library = byLocale ? (byLocale[locale] ?? byLocale.ru) : undefined;
+    // Порядок предпочтения: эскиз по узлам этой вещи → библиотечный силуэт →
+    // построение по спеке. Первый показывает именно это изделие, второй —
+    // похожее, третий — геометрию. Чем ниже спуск, тем дальше от вещи.
+    const sketch = options.visuals?.sketch;
     add('flats', t.section_flats, [
-      library
-        ? libraryFlatsBody(library, t, locale)
-        : flatsBody(
-            spec,
-            renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) }),
-            t,
-            locale,
-          ),
+      sketch
+        ? sketchFlatsBody(sketch, library, t)
+        : library
+          ? libraryFlatsBody(library, t, locale)
+          : flatsBody(
+              spec,
+              renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) }),
+              t,
+              locale,
+            ),
     ]);
   }
   add('measurements', t.section_measurements, measurementsPages(spec, pro, t, locale));
@@ -1665,6 +1683,33 @@ function flatsBody(
  * перестраивает геометрию»; библиотечный обещать этого не может и обязан
  * сказать обратное — размеры живут в табеле, а рисунок показывает силуэт.
  */
+/**
+ * Раздел чертежа, собранный из машинного эскиза.
+ *
+ * Оговорка тут строже, чем под библиотечным силуэтом, и по другой причине.
+ * Там рисунок ВЕРЕН, но не про эту вещь; здесь он про эту вещь, но рисует
+ * его модель — значит, может ошибиться в узле. Поэтому лист прямо называет,
+ * кто главнее при расхождении, и оставляет идентификатор библиотечного
+ * силуэта: по нему бренд получает выверенный вектор в выгрузке исходников.
+ */
+function sketchFlatsBody(
+  sketch: DocImage,
+  library: LibraryFlatViews | undefined,
+  t: Messages,
+): string {
+  return (
+    `<div class="canvas sketch">` +
+    `<div class="ml">${esc(t.flats_label)}</div>` +
+    `<img class="sketch" src="${sketch.dataUri}" alt="">` +
+    `</div>` +
+    `<div class="note" style="margin-top:3mm">${esc(t.flats_sketch_note)}</div>` +
+    `<div class="note" style="margin-top:1mm;opacity:.65">` +
+    `${esc(t.flats_sketch_source)}` +
+    (library ? ` · ${esc(t.flats_library_source)}: ${esc(library.templateId)}` : '') +
+    `</div>`
+  );
+}
+
 function libraryFlatsBody(library: LibraryFlatViews, t: Messages, locale: Locale): string {
   const zoneLabel = { ru: ZONE_LABEL_RU, en: ZONE_LABEL_EN, zh: ZONE_LABEL_ZH }[locale];
   const missing = (library.missing ?? []).map((z) => zoneLabel[z]);

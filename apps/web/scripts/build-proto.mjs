@@ -483,6 +483,17 @@ sub(
   1,
 );
 
+// Подсказка под холстом обязана описывать ТУ картинку, что на экране.
+// Она обещала перестройку по замеру и клик по номеру — это правда про
+// параметрический чертёж и неправда про эскиз и покупной силуэт: у них
+// нет ни контрольных точек, ни номеров. Обещание стало биндингом.
+sub(
+  '>Геометрия правится только через данные: измените замер или узел — ' +
+    'чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.<',
+  '>{{ flatHint }}<',
+  1,
+);
+
 sub(
   '</svg>\n<span style="position:absolute;left:12px;top:12px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.92);border:1px solid #E4E1DC;font:400 9.7px/14px \'JetBrains Mono\',monospace;color:#5A5A56">{{ viewBadge }}</span>',
   '</svg>\n</sc-if>\n<span style="position:absolute;left:12px;top:12px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.92);border:1px solid #E4E1DC;font:400 9.7px/14px \'JetBrains Mono\',monospace;color:#5A5A56">{{ viewBadge }}</span>',

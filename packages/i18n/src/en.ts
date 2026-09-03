@@ -103,6 +103,9 @@ export const EN: Messages = {
   flats_library_note:
     'The silhouette comes from the model library and is fitted to the drawing footprint derived from the size chart. Detail proportions on it are illustrative: the size chart is the only source of dimensions. Callouts mark an area of the garment, not a point of measure — a library silhouette carries no control points, so no dimension may be read off it.',
   flats_library_missing: 'Details not shown on the illustrative silhouette',
+  flats_sketch_note:
+    'The flat is drawn from the construction nodes of this specification: front and back are the same garment, at one shared scale. Proportions on it are approximate — the size chart is the only source of dimensions. Where the drawing disagrees with the construction section, the construction section governs.',
+  flats_sketch_source: 'Technical flat · drawn from the construction nodes of this spec',
   flats_library_source: 'Library silhouette · the source vector ships with this pack',
   to_be_confirmed: 'to be confirmed',
 

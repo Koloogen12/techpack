@@ -27,6 +27,7 @@ import {
   FileVisionCache,
   analyzePhotos,
   defaultModel,
+  quickLook,
   type Photo,
   type PhotoFormat,
   type VisionReport,
@@ -43,7 +44,13 @@ import {
   type LibraryFlatViews,
   type ExportRole,
 } from '@seamster/docgen';
-import { FileRenderCache, visualize } from '@seamster/render';
+import {
+  FileRenderCache,
+  flatSketch,
+  sketchFileName,
+  sketchMismatch,
+  visualize,
+} from '@seamster/render';
 import { readSwatch } from '@seamster/pattern';
 import type { Locale } from '@seamster/i18n';
 import { ArtworkLibrary } from '@seamster/library';
@@ -430,9 +437,56 @@ async function readSwatches(
   return { swatches, bytes, notes };
 }
 
+/**
+ * Сторож эскиза: рисунок не попадает в документ, пока не сойдётся со спекой.
+ *
+ * Эскиз рисует модель, а модель ошибается. Сверять её вывод с ней же самой
+ * бессмысленно, поэтому сверка идёт ТЕМ ЖЕ механизмом, которым разбирается
+ * присланное фото: на готовый эскиз смотрят как на снимок и говорят, что
+ * на нём. Дальше сравниваются не картинки, а два описания.
+ *
+ * Не сошлось — эскиза просто нет, и лист чертежа спускается на библиотечный
+ * силуэт. Отказ говорится вслух в примечаниях: молчаливая подмена рисунка
+ * и есть то, из-за чего документ однажды показал не ту вещь.
+ *
+ * Проверка платная, но дешёвая и кэшируется по байтам картинки: повторная
+ * сборка того же пака не платит за неё второй раз.
+ */
+async function checkSketch(
+  spec: StyleSpec,
+  sketch: Awaited<ReturnType<typeof flatSketch>>,
+  options: GenerateOptions,
+  notes: string[],
+): Promise<Awaited<ReturnType<typeof flatSketch>>> {
+  if (!sketch.ok) return sketch;
+  try {
+    const { look } = await quickLook({
+      photo: { bytes: sketch.bytes, format: sketch.mediaType === 'image/png' ? 'png' : 'jpeg' },
+      cacheDir: join(options.cacheDir ?? '.cache/vision', 'sketch'),
+    });
+    const why = sketchMismatch(spec, {
+      category: look.category.value,
+      elements: look.elements,
+    });
+    if (!why) return sketch;
+    options.logger?.warn('эскиз: не сошёлся со спекой', { why });
+    notes.push(`Технический эскиз не принят: ${why}. Лист чертежа собран на библиотечном силуэте.`);
+    return {
+      ok: false,
+      reason: 'mismatch',
+      userMessage: `Эскиз не сошёлся со спецификацией: ${why}.`,
+    };
+  } catch {
+    // Сторож не смог посмотреть — это не повод отказывать рисунку.
+    // Иначе сбой стороннего сервиса роняет то, что уже нарисовано верно.
+    return sketch;
+  }
+}
+
 async function buildVisuals(
   browser: Browser,
   visual: Awaited<ReturnType<typeof visualize>>,
+  sketch: Awaited<ReturnType<typeof flatSketch>>,
   photoPaths: readonly string[],
   spec?: StyleSpec,
   tileBytes?: Uint8Array | null,
@@ -476,6 +530,13 @@ async function buildVisuals(
 
   return {
     ...(visual.ok ? { render: { dataUri: visual.image.dataUri } } : {}),
+    ...(sketch.ok
+      ? {
+          sketch: {
+            dataUri: `data:${sketch.mediaType};base64,${Buffer.from(sketch.bytes).toString('base64')}`,
+          },
+        }
+      : {}),
     ...(photos.length ? { photos } : {}),
     ...(patternTile ? { patternTile } : {}),
     ...(patternVisual?.ok ? { patternRender: { dataUri: patternVisual.image.dataUri } } : {}),
@@ -725,9 +786,18 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   }
 
   options.onStage?.('render');
-  const [browser, visual, patternVisual, ...extraVisuals] = await Promise.all([
+  const [browser, visual, sketch, patternVisual, ...extraVisuals] = await Promise.all([
     chromium.launch(),
     visualize(spec, { ...visualOptions, ...swatchRef(colorways[0]?.id) }),
+    // Технический эскиз — перед и спинка одним листом, по узлам ЭТОГО
+    // изделия. Идёт параллельно с визуализацией: оба вызова ждут сеть,
+    // и последовательно они удвоили бы ожидание.
+    flatSketch(spec, {
+      offline: options.render !== true,
+      cache: new FileRenderCache(join(options.renderCacheDir ?? '.cache/render', 'sketch')),
+      ...(options.logger ? { logger: options.logger } : {}),
+      ledger,
+    }),
     // Вторая картинка — то же изделие, но в раппорте. Отдельный вызов,
     // а не вариант первого: у них разные ключи кэша и разная судьба
     // в ролевых выгрузках.
@@ -747,6 +817,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   ]);
 
   const colorwayVisuals = new Map(extraColorways.map((c, i) => [c.id, extraVisuals[i]!]));
+
+  // Эскиз проходит сторожа прежде, чем попасть в документ.
+  const checked = await checkSketch(spec, sketch, options, notes);
 
   // --- История версий -------------------------------------------------------
   // Прошлая версия НЕ переписывается: спор с фабрикой разрешается сверкой
@@ -791,6 +864,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     const built = await buildVisuals(
       browser,
       visual,
+      checked,
       shots.map((s) => s.path),
       spec,
       tileBytes,
@@ -824,6 +898,15 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       if (base64)
         writeFileSync(join(dirname(options.outPath), 'render.png'), Buffer.from(base64, 'base64'));
     }
+    // Эскиз тоже кладётся файлом: он рисуется один раз и дальше не меняется.
+    // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
+    // документа держится именно на хранении, а не на детерминизме модели.
+    if (checked.ok)
+      writeFileSync(
+        join(dirname(options.outPath), sketchFileName(checked.mediaType)),
+        checked.bytes,
+      );
+    else if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));

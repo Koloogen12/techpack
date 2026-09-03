@@ -216,6 +216,21 @@ table.plain td.k { width: 34mm; color: var(--secondary); font-size: 7.6pt; paddi
 .canvas svg { width: 100%; height: auto; max-height: 118mm; }
 .canvas img { max-width: 100%; max-height: 118mm; object-fit: contain; display: block; margin: 0 auto; }
 .canvas figcaption { margin-top: 3mm; }
+/* Эскиз занимает холст целиком: он приходит одним листом с обоими видами,
+   и делить его на колонки нечем — внутри картинки нет швов, по которым
+   можно резать. Верхняя граница по высоте выше общей: на листе чертежа
+   под холстом только оговорка, а не таблица.
+
+   multiply гасит белый фон растра: без него картинка ложится на холст
+   белым прямоугольником с видимыми краями, и лист выглядит как скриншот,
+   вставленный в макет. Линии эскиза чёрные и от умножения не страдают.
+
+   Подпись холста здесь встаёт В ПОТОК, а не абсолютом в углу: эскиз
+   занимает прямоугольник целиком, и любая надпись поверх него ложится
+   на капюшон. Отступом её не отодвинуть — картинка тянется под неё. */
+.canvas.sketch { flex-direction: column; align-items: stretch; gap: 4mm; }
+.canvas.sketch > .ml { position: static; }
+.canvas img.sketch { max-height: 122mm; width: auto; mix-blend-mode: multiply; }
 
 .note { font-size: 7.6pt; color: var(--secondary); line-height: 1.45; }
 .note.warn { color: var(--data-red); }

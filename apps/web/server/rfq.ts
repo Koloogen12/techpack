@@ -121,7 +121,9 @@ export async function buildRfq(
   const library = chosen.id ? renderJobTemplate(spec, chosen.id, 'ru', 'sketch') : null;
 
   const rfqOptions: RfqOptions = {
-    contact,
+    // Контакта может не быть: лист на просчёт уходит и без него, фабрика
+    // тогда отвечает по ссылке. Поэтому поле ставится только когда есть.
+    ...(contact ? { contact } : {}),
     ...(sizeRatio ? { sizeRatio } : {}),
     ...(library ? { flat: { svg: library.front.svg } } : {}),
     ...(options.packLink ? { packLink: options.packLink } : {}),

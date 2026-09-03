@@ -32,6 +32,7 @@ import { editMeasurement } from '@seamster/fit';
 import { flatDefaults } from '@seamster/flats';
 import { kb } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
+import type { DocVisuals } from '@seamster/docgen';
 import { generate } from '../../cli/src/generate.js';
 import { parseAnswers } from '../../cli/src/answers.js';
 import { FREE_PER_MONTH, Limits } from './limits.js';
@@ -157,6 +158,56 @@ function photoCount(dir: string): number {
   } catch {
     return 0;
   }
+}
+
+/**
+ * Файл эскиза работы — с типом, а не с угаданным расширением.
+ *
+ * Модель отдаёт то JPEG, то PNG, и имя файла отражает содержимое. Искать
+ * его в трёх местах по-разному значило бы завести три разных ответа на
+ * вопрос «есть ли у работы эскиз».
+ */
+/**
+ * Картинки работы для документа — одним ответом на всех.
+ *
+ * Экран и выгрузка обязаны показывать ОДИН документ. Пока превью собирало
+ * его без визуалов, а PDF с ними, кабинет показывал параметрический чертёж
+ * там, где в файле стоял силуэт: две сборки разошлись ровно потому, что их
+ * было две.
+ */
+function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): DocVisuals | null {
+  const chosen = readJobTemplate(dir);
+  // Набор видов строится на язык выгрузки: плашка вшита в SVG, и русская
+  // оговорка в китайском комплекте бесполезна.
+  const library = chosen.id ? renderJobTemplate(spec, chosen.id, locale) : null;
+  // Картинки переживают пересборку: они сняты один раз и лежат файлами
+  // рядом со спекой. Раньше жили только внутри первого PDF, и правка
+  // любого замера роняла их из документа молча.
+  const renderPath = join(dir, 'render.png');
+  const render = existsSync(renderPath)
+    ? { dataUri: `data:image/png;base64,${readFileSync(renderPath).toString('base64')}` }
+    : null;
+  const found = sketchPath(dir);
+  const sketch = found
+    ? { dataUri: `data:${found.type};base64,${readFileSync(found.path).toString('base64')}` }
+    : null;
+  if (!library && !render && !sketch) return null;
+  return {
+    ...(library ? { libraryFlats: { [locale]: library } } : {}),
+    ...(render ? { render } : {}),
+    ...(sketch ? { sketch } : {}),
+  };
+}
+
+function sketchPath(dir: string): { path: string; type: string } | null {
+  for (const [name, type] of [
+    ['sketch.png', 'image/png'],
+    ['sketch.jpg', 'image/jpeg'],
+  ] as const) {
+    const path = join(dir, name);
+    if (existsSync(path)) return { path, type };
+  }
+  return null;
 }
 
 function jobDir(id: string): string {
@@ -1166,7 +1217,12 @@ const server = createServer(async (req, res) => {
         const locale = (['ru', 'en', 'zh'] as const).find(
           (l) => l === url.searchParams.get('locale'),
         );
-        let html = renderHtml(spec, { pro: true, ...(locale ? { locale } : {}) });
+        const previewVisuals = jobVisuals(dir, spec, locale ?? 'ru');
+        let html = renderHtml(spec, {
+          pro: true,
+          ...(locale ? { locale } : {}),
+          ...(previewVisuals ? { visuals: previewVisuals } : {}),
+        });
         // Режим врезки: кабинет показывает документ в маленьком окне превью,
         // и без вписывания человек видит левый верхний угол первой страницы.
         // Показываем ровно первый лист, вписанный по ширине окна.
@@ -1273,6 +1329,8 @@ const server = createServer(async (req, res) => {
           ['flat-front.svg', 'Чертёж · перед'],
           ['flat-back.svg', 'Чертёж · спинка'],
           ['render.png', 'Визуализация'],
+          ['sketch.png', 'Технический эскиз'],
+          ['sketch.jpg', 'Технический эскиз'],
         ];
         const files = known
           .filter(([name]) => existsSync(join(dir, name)))
@@ -1288,6 +1346,13 @@ const server = createServer(async (req, res) => {
         if (!existsSync(path)) return json(res, 404, { error: 'визуализации нет' });
         res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache' });
         return res.end(readFileSync(path));
+      }
+
+      if (req.method === 'GET' && rest === '/sketch') {
+        const found = sketchPath(dir);
+        if (!found) return json(res, 404, { error: 'эскиза нет' });
+        res.writeHead(200, { 'content-type': found.type, 'cache-control': 'no-cache' });
+        return res.end(readFileSync(found.path));
       }
 
       if (req.method === 'GET' && rest === '/flat') {
@@ -1396,18 +1461,7 @@ const server = createServer(async (req, res) => {
         if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < sourceM) {
           const { renderPdf, roleProfile } = await import('@seamster/docgen');
           const profile = role ? roleProfile(role) : null;
-          // Силуэт библиотеки пересобирается здесь же: это чистая геометрия,
-          // браузер для неё не нужен, а без него лист чертежа вернулся бы к
-          // параметрическому виду — и выгрузка разошлась бы с экраном.
-          const chosen = readJobTemplate(dir);
-          const library = chosen.id ? renderJobTemplate(spec, chosen.id, locale ?? 'ru') : null;
-          // Картинка изделия переживает пересборку: она снята один раз и
-          // лежит файлом рядом со спекой. Раньше жила только внутри первого
-          // PDF, и правка любого замера роняла её из документа молча.
-          const renderPath = join(dir, 'render.png');
-          const render = existsSync(renderPath)
-            ? { dataUri: `data:image/png;base64,${readFileSync(renderPath).toString('base64')}` }
-            : null;
+          const visuals = jobVisuals(dir, spec, locale ?? 'ru');
           writeFileSync(
             pdfPath,
             await renderPdf(spec, {
@@ -1415,16 +1469,7 @@ const server = createServer(async (req, res) => {
                 ? { sections: profile.sections, pro: profile.pro, roleLabel: profile.label_ru }
                 : { pro: true }),
               ...(locale ? { locale } : {}),
-              // Набор видов строится на язык выгрузки: плашка вшита в SVG,
-              // и русская оговорка в китайском комплекте бесполезна.
-              ...(library || render
-                ? {
-                    visuals: {
-                      ...(library ? { libraryFlats: { [locale ?? 'ru']: library } } : {}),
-                      ...(render ? { render } : {}),
-                    },
-                  }
-                : {}),
+              ...(visuals ? { visuals } : {}),
             }),
           );
         }
