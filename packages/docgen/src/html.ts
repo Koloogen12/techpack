@@ -517,8 +517,10 @@ function coverBody(
   // а не описание: узлы целиком повторены в разделе конструкции, а описание
   // изделия живёт только здесь — потерять его значило бы потерять данные,
   // тогда как список тут работает анонсом.
+  // Место под элементы делится с карточкой происхождения значений, а в ней
+  // теперь ещё и строка про масштаб: элементов помещается на один меньше.
   const described = spec.style.description?.length ?? 0;
-  const room = Math.max(2, 5 - Math.floor(described / 90));
+  const room = Math.max(2, 4 - Math.floor(described / 90));
   const features = (spec.construction?.nodes ?? [])
     .filter((n) => n.visible_on_photo)
     .slice(0, room)
@@ -550,7 +552,7 @@ function coverBody(
         `</ul>`
       : '') +
     `<div style="flex:1"></div>` +
-    honestySummary(calculated, assumptions, sources) +
+    honestySummary(calculated, assumptions, sources, spec) +
     `</div></div>`
   );
 }
@@ -578,10 +580,12 @@ function honestySummary(
   calculated: number,
   assumptions: number,
   sources: Record<Confidence, number>,
+  spec: StyleSpec,
 ): string {
   return (
     `<div class="card${assumptions > 0 ? ' warn' : ''}" style="margin-top:5mm">` +
     `<div class="ml">Откуда взяты значения</div>` +
+    scaleLine(spec) +
     `<div style="font-size:8.6pt;margin:2mm 0 3mm">` +
     `<b>${calculated}</b> значений в документе` +
     (assumptions > 0
@@ -605,6 +609,40 @@ function honestySummary(
         `там, где увидеть правду было нельзя. Подтвердите по образцу до запуска партии.</div>`
       : '') +
     `</div>`
+  );
+}
+
+/**
+ * Как задан масштаб документа.
+ *
+ * Весь табель считается от одной величины — ширины по груди. Она либо
+ * ИЗМЕРЕНА по предмету известного размера в кадре, либо НАЗНАЧЕНА: взята из
+ * размерной сетки по названному размеру плюс типовая прибавка на посадку.
+ * Разница в точности кратная, и читатель обязан знать, что перед ним.
+ *
+ * Строка стоит первой в блоке о происхождении значений: она объясняет не
+ * одно число, а все сто сорок три.
+ */
+function scaleLine(spec: StyleSpec): string {
+  // Якорь узнаётся по источнику: движок помечает им ту точку, от которой
+  // считается всё остальное. Отдельного поля «якорь» в снапшоте нет —
+  // документ не должен знать внутреннее устройство сборки.
+  const anchor = spec.measurements.points.find((p) => p.base.source.includes('pom/anchor'));
+  const measured =
+    anchor?.base.confidence === 'measured_by_scale' ||
+    spec.measurements.points.some((p) => p.base.confidence === 'measured_by_scale');
+  if (measured) {
+    return (
+      `<div class="note" style="margin-top:1.5mm">` +
+      `<b>Масштаб измерен.</b> Ширина по груди снята с фотографии по предмету известного ` +
+      `размера в кадре — от неё посчитан весь табель.</div>`
+    );
+  }
+  return (
+    `<div class="note warn" style="margin-top:1.5mm">` +
+    `<b>Масштаб задан размером, а не измерен.</b> Ширина по груди — из сетки и типовой ` +
+    `прибавки, от неё считается весь табель. Положите в кадр лист А4 и переснимите: ` +
+    `тогда ширина снимется с фотографии.</div>`
   );
 }
 

@@ -164,6 +164,10 @@ case "$code:$gaps" in
   *)             bad "гейт не сошёлся: код $code, готовность $gaps";;
 esac
 
+step "13l. документ говорит, как задан масштаб"
+body=$(curl -s -H "$H" "$BASE/jobs/$ID/preview")
+if echo "$body" | grep -q "Масштаб задан размером" || echo "$body" | grep -q "Масштаб измерен"; then ok; else bad "о масштабе не сказано ничего"; fi
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
 if [ -z "$tok" ]; then
