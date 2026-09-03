@@ -37,10 +37,33 @@ const seen = (over: Partial<SketchSeen['elements']> = {}, category = 'hoodie'): 
 });
 
 describe('промпт эскиза — проекция узлов', () => {
-  it('просит два вида одним листом: порознь модель рисует две разные вещи', () => {
+  it('просит три вида одним листом: порознь модель рисует разные вещи', () => {
     const p = buildSketchPrompt(HOODIE);
-    expect(p).toContain('TWO views of the SAME');
-    expect(p).toContain('identical width and length');
+    expect(p).toContain('THREE views of the SAME');
+    expect(p).toContain('front view on the left, side profile view in the middle');
+    expect(p).toContain('identical body length');
+  });
+
+  it('профиль описан своими словами, а не переписанным передом', () => {
+    // В профиль читается другое: не мешок кармана, а его боковой вход;
+    // не капюшон вообще, а его глубина.
+    const side = buildSketchPrompt(HOODIE).split('Side profile shows:')[1]?.split('.')[0] ?? '';
+    expect(side).toContain('depth of the hood');
+    expect(side).toContain('side opening of the front pocket');
+    expect(side).toContain('down the side of the body');
+  });
+
+  it('профиль не дорисовывает лицевую фурнитуру', () => {
+    // Люверсы и кулиска в профиль не видны; нарисованные там — вымысел.
+    const side = buildSketchPrompt(HOODIE).split('Side profile shows:')[1]?.split('.')[0] ?? '';
+    expect(side).not.toContain('eyelet');
+    expect(side).not.toContain('drawcord');
+  });
+
+  it('у футболки профиль тоже описан — есть боковой шов и подгибка', () => {
+    const side = buildSketchPrompt(TSHIRT).split('Side profile shows:')[1]?.split('.')[0] ?? '';
+    expect(side).toContain('down the side of the body');
+    expect(side).not.toContain('hood');
   });
 
   it('узлы худи названы поимённо, а не категорией вообще', () => {

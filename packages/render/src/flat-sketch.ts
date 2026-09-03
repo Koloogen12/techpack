@@ -13,11 +13,17 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * такого не умеет: он подобран по признакам из каталога и рисует похожую
  * вещь, а не эту.
  *
- * Перед и спинка просятся ОДНИМ листом. Порознь модель рисует два разных
- * изделия — разной ширины и с разным капюшоном; на одном холсте они выходят
- * парой, потому что рисуются вместе. Это проверено на живых прогонах.
+ * Виды просятся ОДНИМ листом. Порознь модель рисует разные изделия — разной
+ * ширины и с разным капюшоном; на одном холсте они выходят комплектом,
+ * потому что рисуются вместе. Это проверено на живых прогонах.
+ *
+ * Видов три: перед, профиль, спинка. Профиль библиотека силуэтов дать не
+ * могла — покупных боковых видов нет, и рисовать его построением значило бы
+ * показывать выдумку. Здесь он рисуется тем же изделием, что перед и спинка,
+ * и отвечает на то, чего не видно ни на одном из них: насколько глубок
+ * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v1';
+export const SKETCH_PROMPT_VERSION = 'v2';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -38,6 +44,29 @@ const NODE_ENGLISH: Record<string, string> = {
   polo_collar: 'a ribbed polo collar',
   shoulder_seam_overlock: 'dropped shoulder seams',
   sleeve_set_in: 'set-in sleeves hanging straight down along the body',
+};
+
+/**
+ * Что тот же узел показывает В ПРОФИЛЬ.
+ *
+ * Отдельная карта, а не фильтр переднего списка: в профиль читается другое.
+ * Карман кенгуру виден боковым входом, а не мешком; капюшон — глубиной, а не
+ * швом; посадка плеча — вылетом шва за линию проймы. Узлы, которых профиль
+ * не показывает вовсе (люверсы, кулиска, петли), сюда просто не попадают —
+ * и правильно: боковой вид, дорисовавший лицевую фурнитуру, врёт.
+ */
+const NODE_SIDE_ENGLISH: Record<string, string> = {
+  hood_set_in: 'the depth of the hood standing away from the neck',
+  kangaroo_pocket: 'the side opening of the front pocket at the body edge',
+  patch_pocket: 'the edge of a patch pocket',
+  cuff_rib: 'the ribbed cuff at the wrist',
+  waistband_rib: 'the ribbed waistband at the hem',
+  neck_rib_band: 'the ribbed neckband',
+  hem_coverstitch: 'the turned hem at the bottom edge',
+  shoulder_seam_overlock: 'the shoulder seam dropping well past the natural shoulder point',
+  sleeve_set_in: 'the armhole seam where the sleeve joins the body',
+  side_sleeve_seam: 'one continuous seam running from the underarm down the side of the body',
+  zip_full_length: 'the front zipper edge',
 };
 
 const CATEGORY_ENGLISH: Record<Category, string> = {
@@ -88,15 +117,26 @@ export function buildSketchPrompt(spec: StyleSpec): string {
           : 'The body reads short and boxy.'
       : '';
 
+  // Бок описывается СВОИМ списком, а не отфильтрованным передним. В профиль
+  // читается другое: не «карман кенгуру», а его боковой вход; не капюшон
+  // вообще, а его глубина. Фильтрацией переднего списка этого не получить.
+  const side = nodes
+    .map((n) => NODE_SIDE_ENGLISH[n.node_id])
+    .filter((x): x is string => Boolean(x))
+    .filter((x, i, all) => all.indexOf(x) === i);
+
   return [
-    `A technical flat sketch sheet showing TWO views of the SAME ${fit} ${garment}, side by side:`,
-    'front view on the left, back view on the right, both laid flat, identical proportions, identical width and length, same scale.',
+    `A technical flat sketch sheet showing THREE views of the SAME ${fit} ${garment}, side by side in one row:`,
+    'front view on the left, side profile view in the middle, back view on the right.',
+    'All three are the same garment at the same scale: identical body length, identical sleeve length, identical rib depth.',
+    'Front and back are laid flat and symmetrical; the side view is a narrow profile silhouette, roughly a third of the width of the front view, showing the garment from the left side with one sleeve hanging along the body.',
     'Pure black line drawing on plain white background, uniform line weight, no shading, no gradients, no fabric texture, no colour, no fill.',
     'Apparel industry CAD flat: closed outline, seam lines solid, topstitching shown as dashed lines.',
     front.length ? `Front shows: ${front.join(', ')}.` : '',
+    side.length ? `Side profile shows: ${side.join(', ')}.` : '',
     backOnly.length ? `Back shows: ${backOnly.join(', ')}, and a plain back panel.` : '',
     shape,
-    'Perfectly symmetrical, centred, no perspective, no mannequin, no person, no shadow, no text, no labels, no logo, no measurements.',
+    'Centred, evenly spaced, no perspective, no mannequin, no person, no shadow, no text, no labels, no logo, no measurements.',
   ]
     .filter(Boolean)
     .join(' ');
