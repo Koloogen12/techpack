@@ -810,8 +810,15 @@ const server = createServer(async (req, res) => {
       const profilePath = join(DATA, 'profiles', `${invite.token}.json`);
       if (existsSync(profilePath)) {
         try {
+          // Профиль хранится в форме кабинета; страна и товарный знак лежат
+          // рядом с юрлицом. Раньше они не доезжали до анкеты, и обязательные
+          // реквизиты ярлыка оставались пустыми даже у заполненного профиля —
+          // то есть гейт отправки было нечем пройти.
           const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as {
             legal?: { company?: string; inn?: string; address?: string };
+            country?: string;
+            trademark?: string;
+            contact?: { name?: string; phone?: string; email?: string };
           };
           const parsed = JSON.parse(enriched) as Record<string, unknown>;
           if (profile.legal?.company && !parsed.brand_profile) {
@@ -819,8 +826,13 @@ const server = createServer(async (req, res) => {
               company_name: profile.legal.company,
               ...(profile.legal.inn ? { inn: profile.legal.inn } : {}),
               ...(profile.legal.address ? { address: profile.legal.address } : {}),
+              ...(profile.country ? { country: profile.country } : {}),
+              ...(profile.trademark ? { trademark: profile.trademark } : {}),
+              ...(profile.contact?.name ? { contact_name: profile.contact.name } : {}),
+              ...(profile.contact?.phone ? { contact_phone: profile.contact.phone } : {}),
+              ...(profile.contact?.email ? { contact_email: profile.contact.email } : {}),
             };
-            if (!parsed.brand) parsed.brand = profile.legal.company;
+            if (!parsed.brand) parsed.brand = profile.trademark ?? profile.legal.company;
           }
           enriched = JSON.stringify(parsed);
         } catch {
@@ -921,6 +933,22 @@ const server = createServer(async (req, res) => {
       // консьерж-этап, и притворяться автоматикой мы не будем.
       if (req.method === 'POST' && rest === '/quote') {
         const spec = specOf(id);
+        // Просчёт уходит фабрикам от имени бренда — тот же гейт, что у ссылки.
+        const quoteSpec = specOf(id);
+        if (quoteSpec) {
+          const { readiness } = await import('@seamster/docgen');
+          const state = readiness(quoteSpec);
+          if (!state.ready) {
+            logEvent(invite.name, 'quote_blocked', { id, gaps: state.gaps.map((g) => g.id) });
+            return json(res, 409, {
+              error: `Документ не готов к отправке: не заполнено ${state.gaps.length} ${
+                state.gaps.length === 1 ? 'обязательный реквизит' : 'обязательных реквизита'
+              } маркировки.`,
+              action: 'Заполните профиль бренда — это одна форма, и она нужна один раз.',
+              gaps: state.gaps,
+            });
+          }
+        }
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
         const body = await readBody(req, 4096);
         const comment = body
@@ -1157,6 +1185,24 @@ const server = createServer(async (req, res) => {
       // Ссылка для фабрики: отдельный токен, живёт в каталоге джобы.
       // Идемпотентно — повторный запрос возвращает тот же токен.
       if (req.method === 'POST' && rest === '/share') {
+        // Ссылка уходит фабрике от имени бренда. Документ без страны
+        // изготовления, юрлица и товарного знака запускает партию, которую
+        // нельзя продать в ЕАЭС: наружу такой документ не выпускаем.
+        const shareSpec = specOf(id);
+        if (shareSpec) {
+          const { readiness } = await import('@seamster/docgen');
+          const state = readiness(shareSpec);
+          if (!state.ready) {
+            logEvent(invite.name, 'share_blocked', { id, gaps: state.gaps.map((g) => g.id) });
+            return json(res, 409, {
+              error: `Документ не готов к отправке: не заполнено ${state.gaps.length} ${
+                state.gaps.length === 1 ? 'обязательный реквизит' : 'обязательных реквизита'
+              } маркировки.`,
+              action: 'Заполните профиль бренда — это одна форма, и она нужна один раз.',
+              gaps: state.gaps,
+            });
+          }
+        }
         const path = join(dir, 'share.txt');
         let token: string;
         if (existsSync(path)) token = readFileSync(path, 'utf8').trim();
@@ -1210,6 +1256,15 @@ const server = createServer(async (req, res) => {
       // Что уже выгружено по этой работе. Прототип показывал два файла с
       // датами из макета — 16 и 15 июля; человек видел «скачать снова» для
       // файлов, которых никогда не было.
+      // Готовность к отправке: чего не хватает, чтобы документ можно было
+      // отдать фабрике. Считается по реквизитам, которые заполняет бренд.
+      if (req.method === 'GET' && rest === '/readiness') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const { readiness } = await import('@seamster/docgen');
+        return json(res, 200, readiness(spec));
+      }
+
       if (req.method === 'GET' && rest === '/files') {
         const { statSync } = await import('node:fs');
         const known: [string, string][] = [

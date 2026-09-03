@@ -69,6 +69,19 @@ export const ZH: Messages = {
   seam_legend_body:
     '黑色为面料层与折边，红色为线迹与包缝。示意图表示缝制结构，非比例：缝份数值见右侧栏。' +
     '结构依据 ISO 4916，具体构型由工艺师在首件样衣上确认。',
+  cut_part: '裁片',
+  cut_material: '面料',
+  cut_qty: '数量',
+  cut_fold: '对折',
+  cut_grain: '布纹',
+  cut_on_fold: '对折裁',
+  cut_grain_length: '顺布纹',
+  cut_grain_cross: '横布纹（罗纹顺向）',
+  cut_total: '每件裁片数',
+  cut_note:
+    '裁片清单依据本款结构生成。纸样与排料由版师依本文件制作 — 我们提供清单与数量，便于品控点数、裁床核对。',
+  cut_shell: '主面料',
+  cut_rib: '罗纹',
   node_stitch: '线迹',
   node_spi: '针距',
   node_machine: '机器',

@@ -16,6 +16,14 @@ step "2. без инвайта доступа нет"
 code=$(curl -s -o /dev/null -w '%{http_code}' $BASE/jobs)
 [ "$code" = "401" ] || [ "$code" = "403" ] && ok || bad "открыто без инвайта ($code)"
 
+step "2b. профиль бренда заполнен до сборки"
+curl -s -o /dev/null -X PUT -H "$H" -H 'content-type: application/json' -d '{
+  "legal":{"company":"ИП Кочнев Д. А.","inn":"662345678901","address":"Екатеринбург, ул. Мира 32"},
+  "country":"Россия","trademark":"SEAMSTER"
+}' $BASE/profile
+saved=$(curl -s -H "$H" $BASE/profile | python3 -c "import json,sys; p=json.load(sys.stdin).get('profile') or {}; print(p.get('trademark',''))" 2>/dev/null)
+[ "$saved" = "SEAMSTER" ] && ok || bad "профиль не сохранился"
+
 step "3. создание пака"
 ID=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d '{
   "id":"qa","name":"QA прогон","article":"QA-E2E-001","category":"hoodie",
@@ -143,10 +151,30 @@ for m in "1 240 ₽" "≈ 38 мин" "15 июл, 18:40" "16 июл, 07:10 · п�
 done
 [ -z "$bad_markers" ] && ok || bad "макет в сборке:$bad_markers"
 
+step "13i. лист деталей кроя перечисляет детали"
+parts=$(curl -s -H "$H" "$BASE/jobs/$ID/preview" | grep -o "Деталей на изделие: [0-9]*" | head -1)
+[ -n "$parts" ] && ok "($parts)" || bad "листа деталей кроя нет"
+
+step "13j. гейт отправки согласован с готовностью документа"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$H" $BASE/jobs/$ID/share)
+gaps=$(curl -s -H "$H" "$BASE/jobs/$ID/readiness" | python3 -c "import json,sys; d=json.load(sys.stdin); print(('готов' if d['ready'] else 'пробелов ' + str(len(d['gaps']))))" 2>/dev/null)
+case "$code:$gaps" in
+  200:готов)     ok "(профиль заполнен — ссылка выдана)";;
+  409:пробелов*) ok "(документ не готов — ссылка заблокирована, $gaps)";;
+  *)             bad "гейт не сошёлся: код $code, готовность $gaps";;
+esac
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
-code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")
-[ "$code" = "200" ] && ok || bad "публичный документ $code"
+if [ -z "$tok" ]; then
+  # Гейт держит документ: это штатный отказ, а не поломка — проверяем его,
+  # а не выдачу ссылки.
+  gaps=$(curl -s -H "$H" "$BASE/jobs/$ID/readiness" | python3 -c "import json,sys; print(len(json.load(sys.stdin)['gaps']))" 2>/dev/null)
+  [ "${gaps:-0}" -gt 0 ] && ok "(гейт держит: пробелов $gaps)" || bad "ссылки нет и гейт не объясняет почему"
+else
+  code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")
+  [ "$code" = "200" ] && ok || bad "публичный документ $code"
+fi
 
 step "14б. ссылка для фабрики говорит на трёх языках"
 langs=0

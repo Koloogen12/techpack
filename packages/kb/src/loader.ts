@@ -84,6 +84,9 @@ import {
   type VisibilityMapFile,
   CATEGORIES,
   type FlatFitClass,
+  CutPartsFileSchema,
+  type CutPart,
+  type CutPartsFile,
 } from './schemas/index.js';
 
 const DATA_DIR = new URL('../data/', import.meta.url).pathname;
@@ -143,6 +146,7 @@ export class KnowledgeBase {
     private readonly categoryDefaults: ReadonlyMap<Category, CategoryDefaultsFile>,
     private readonly stitches: StitchCodesFile,
     private readonly seams: SeamCodesFile,
+    private readonly cutParts: CutPartsFile,
     private readonly construction: ConstructionNodesFile,
     private readonly machinePark: MachineParkFile,
     private readonly materialsFile: MaterialsFile,
@@ -181,6 +185,7 @@ export class KnowledgeBase {
       defaults,
       loadFile('stitch_codes.json', StitchCodesFileSchema),
       loadFile('seam_codes.json', SeamCodesFileSchema),
+      loadFile('cut_parts.json', CutPartsFileSchema),
       loadFile('construction_nodes.json', ConstructionNodesFileSchema),
       loadFile('machine_park_profiles.json', MachineParkFileSchema),
       loadFile('materials.json', MaterialsFileSchema),
@@ -441,6 +446,21 @@ export class KnowledgeBase {
   }
 
   /**
+   * Детали кроя изделия: то, что режут из полотна.
+   *
+   * Деталь попадает в список либо по категории (перед, спинка, рукав есть
+   * всегда), либо по узлу: карман кенгуру — только если у изделия есть узел
+   * кармана. Иначе документ обещает фабрике деталь, которой в раскладке нет.
+   */
+  cutPartsFor(category: Category, nodeIds: readonly string[]): readonly CutPart[] {
+    const has = new Set(nodeIds);
+    return this.cutParts.parts.filter((p) => {
+      if (p.requires_node) return has.has(p.requires_node);
+      return p.applies_to?.includes(category) ?? false;
+    });
+  }
+
+  /**
    * Шов, если он есть в справочнике. В отличие от seam() не бросает:
    * документ рисует схему там, где устройство известно, и молча обходится
    * без неё там, где нет, — код шва всё равно назван в таблице.
@@ -628,6 +648,7 @@ export class KnowledgeBase {
     }
     for (const s of this.stitches.stitches) if (!s.verified) push('stitch_codes', s.code, s.gap);
     for (const s of this.seams.seams) if (!s.verified) push('seam_codes', s.code, s.gap);
+    for (const p of this.cutParts.parts) if (!p.verified) push('cut_parts', p.id, p.gap);
     for (const n of this.construction.nodes)
       if (!n.verified) push('construction_nodes', n.id, n.gap);
     for (const p of this.machinePark.profiles) {

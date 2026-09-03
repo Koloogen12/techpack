@@ -121,6 +121,23 @@ sub(
 );
 sub('Превью PDF · страница 1 из 9', 'Превью документа · {{ docPages }}', 1);
 
+// Страна изготовления и товарный знак — обязательные реквизиты ярлыка по
+// статье 9 ТР ТС 017/2011, и без них документ не уходит фабрике. В форме
+// прототипа их не было вовсе: гейт отправки было нечем пройти.
+sub(
+  `<span style="display:flex;flex-direction:column;gap:4px">
+<span style="font:600 8.5px/12px Sora,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#6B6B67">Адрес производства</span>
+<input value="{{ legalAddrIn }}" onChange="{{ onLegalAddr }}" placeholder="Екатеринбург, ул. Мира 32" style="width:100%;padding:7px 9px;border-radius:8px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11px/15px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
+</span>`,
+  `<span style="display:flex;flex-direction:column;gap:4px">
+<span style="font:600 8.5px/12px Sora,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#6B6B67">Адрес производства</span>
+<input value="{{ legalAddrIn }}" onChange="{{ onLegalAddr }}" placeholder="Екатеринбург, ул. Мира 32" style="width:100%;padding:7px 9px;border-radius:8px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11px/15px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
+</span>` +
+    `\n<span style="display:flex;flex-direction:column;gap:4px">\n<span style="font:600 8.5px/12px Sora,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#6B6B67">Страна изготовления</span>\n<input value="{{ legalCountryIn }}" onChange="{{ onLegalCountry }}" placeholder="Россия" style="width:100%;padding:7px 9px;border-radius:8px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11px/15px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">\n</span>` +
+    `\n<span style="display:flex;flex-direction:column;gap:4px">\n<span style="font:600 8.5px/12px Sora,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#6B6B67">Товарный знак</span>\n<input value="{{ legalTmIn }}" onChange="{{ onLegalTm }}" placeholder="SEAMSTER" style="width:100%;padding:7px 9px;border-radius:8px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;font:400 11px/15px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">\n</span>`,
+  1,
+);
+
 // Лента версий: «v1.0 — сгенерирована · 16 июл, 07:10 · по фото». Дата
 // принадлежала макету и на живой работе выглядела настоящей.
 sub(

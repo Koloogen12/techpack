@@ -552,6 +552,8 @@ class Component extends DCLogic {
     legalOrg: '',
     legalInn: '',
     legalAddr: '',
+    legalCountry: '',
+    legalTm: '',
     legalDone: false,
     libLogo: false,
     scaleShot: false,
@@ -707,6 +709,8 @@ class Component extends DCLogic {
                   legalOrg: profile.legal.company,
                   legalInn: profile.legal.inn || '',
                   legalAddr: profile.legal.address || '',
+                  legalCountry: profile.country || '',
+                  legalTm: profile.trademark || '',
                 }
               : {}),
             libMats: profile.mats || [],
@@ -1241,6 +1245,10 @@ class Component extends DCLogic {
           legal: s.legalDone
             ? { company: s.legalOrg, inn: s.legalInn, address: s.legalAddr }
             : null,
+          // Страна и товарный знак — обязательные реквизиты ярлыка; без них
+          // документ не уходит фабрике.
+          country: s.legalCountry || null,
+          trademark: s.legalTm || null,
           mats: s.libMats,
           logo: s.libLogo,
           grid: s.libGrid,
@@ -3470,9 +3478,13 @@ class Component extends DCLogic {
       legalOrgIn: s.legalOrg,
       legalInnIn: s.legalInn,
       legalAddrIn: s.legalAddr,
+      legalCountryIn: s.legalCountry,
+      legalTmIn: s.legalTm,
       onLegalOrg: (e) => this.set('legalOrg', e.target.value),
       onLegalInn: (e) => this.set('legalInn', e.target.value),
       onLegalAddr: (e) => this.set('legalAddr', e.target.value),
+      onLegalCountry: (e) => this.set('legalCountry', e.target.value),
+      onLegalTm: (e) => this.set('legalTm', e.target.value),
       legalCancel: () => this.set('legalOpen', false),
       legalSaveStyle:
         'height:27px;border-radius:9px;display:flex;align-items:center;padding:0 11px;font:600 10.5px/15px Sora,sans-serif;' +

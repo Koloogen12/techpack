@@ -76,6 +76,20 @@ export const EN: Messages = {
     'Black shows fabric plies and folds, red shows stitch lines and edge overlocking. ' +
     'The diagram shows how the seam is built, not its scale: the allowance is in the column beside it. ' +
     'Construction per ISO 4916; the exact configuration is confirmed by the technologist on the first sample.',
+  cut_part: 'Piece',
+  cut_material: 'Fabric',
+  cut_qty: 'Qty',
+  cut_fold: 'Fold',
+  cut_grain: 'Grain',
+  cut_on_fold: 'on fold',
+  cut_grain_length: 'along the piece',
+  cut_grain_cross: 'across (rib runs lengthwise)',
+  cut_total: 'Pieces per garment',
+  cut_note:
+    'The list follows the construction of this garment. Patterns and the marker are made by the pattern maker ' +
+    'from this document — we give the list and the count so QC can check the bundle and the cutter knows what to cut.',
+  cut_shell: 'shell fabric',
+  cut_rib: 'rib',
   node_stitch: 'Stitch',
   node_spi: 'SPI',
   node_machine: 'Machine',

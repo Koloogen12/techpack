@@ -196,6 +196,45 @@ export const SeamCodesFileSchema = RefBookMetaSchema.extend({
   seams: z.array(SeamCodeSchema).min(1),
 });
 
+/**
+ * Деталь кроя.
+ *
+ * Лист деталей — то, с чего конструктор начинает раскладку, и то, чем ОТК
+ * считает комплектность пачки. Деталь попадает в лист по УЗЛУ: нет узла
+ * «карман кенгуру» — нет и детали кармана, иначе документ обещает фабрике
+ * то, чего в изделии не будет.
+ */
+export const CutPartSchema = z
+  .object({
+    id: z.string().min(1),
+    name_ru: z.string().min(1),
+    name_en: z.string().min(1),
+    name_zh: z.string().min(1),
+    /** Из какого материала режется: основное полотно, рибана, прокладка. */
+    role: z.enum(['shell', 'rib', 'interlining']),
+    /** Сколько штук на изделие. */
+    qty: z.number().int().min(1).max(8),
+    /** Кроится со сгибом: в раскладке лежит половина детали. */
+    on_fold: z.boolean(),
+    /** Долевая: вдоль детали или поперёк (рубчик рибаны). */
+    grain: z.enum(['length', 'cross']),
+    /** Категории, где деталь есть всегда. Пусто — только по узлу. */
+    applies_to: z.array(CategorySchema).optional(),
+    /** Узел, без которого детали в изделии нет. */
+    requires_node: z.string().min(1).optional(),
+    note_ru: z.string().min(1).optional(),
+  })
+  .and(VerifiabilitySchema)
+  .superRefine(verifiabilityRefinement);
+
+export type CutPart = z.infer<typeof CutPartSchema>;
+
+export const CutPartsFileSchema = RefBookMetaSchema.extend({
+  parts: z.array(CutPartSchema).min(1),
+});
+
+export type CutPartsFile = z.infer<typeof CutPartsFileSchema>;
+
 /** Зоны изделия. Порядок в списке = порядок разделов в документе. */
 export const NODE_ZONES = [
   'neckline',

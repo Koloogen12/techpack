@@ -328,7 +328,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     if (body) add('pattern_preview', t.section_pattern_preview, [body]);
   }
   add('labels', t.section_labels, labelsPages(spec, t, locale));
-  add('patterns', t.section_patterns, [patternsBody()]);
+  add('patterns', t.section_patterns, [patternsBody(spec, t, locale)]);
 
   // Общее число листов известно только когда собраны все: футер печатает
   // «лист N из M», и документ без M заставляет технолога гадать, всё ли
@@ -2112,17 +2112,57 @@ function labelsPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
 
 // ---------------------------------------------------------------- лекала
 
-function patternsBody(): string {
+/**
+ * Лист деталей кроя.
+ *
+ * Раньше здесь стояла пустая страница «лекала предоставляются конструктором» —
+ * честная, но бесполезная: конструктор и так это знает, а комплектность пачки
+ * считать не по чему. Теперь лист называет, ЧТО режут: деталь, из какого
+ * полотна, сколько штук, со сгибом или нет, куда идёт долевая.
+ *
+ * Состав выводится из узлов изделия, а не из категории вслепую: нет узла
+ * кармана — нет и детали кармана. Лекала мы по-прежнему не строим, и лист
+ * говорит это прямо.
+ */
+function patternsBody(spec: StyleSpec, t: Messages, locale: Locale): string {
+  const base = kb();
+  const nodeIds = (spec.construction?.nodes ?? []).map((n) => n.node_id);
+  const parts = base.cutPartsFor(spec.style.category as Category, nodeIds);
+
+  const name = (p: (typeof parts)[number]): string =>
+    locale === 'ru' ? p.name_ru : locale === 'zh' ? p.name_zh : p.name_en;
+  const material = (role: string): string => {
+    const line = spec.bom?.lines.find((l) => l.role === role);
+    if (!line) return role === 'rib' ? t.cut_rib : t.cut_shell;
+    return locale === 'ru'
+      ? line.name_ru
+      : locale === 'zh'
+        ? (line.name_zh ?? line.name_ru)
+        : (line.name_en ?? line.name_ru);
+  };
+
+  const rows = parts
+    .map(
+      (p, i) =>
+        `<tr><td class="num mono">${i + 1}</td>` +
+        `<td><b>${esc(name(p))}</b>` +
+        (p.note_ru && locale === 'ru' ? `<div class="note">${esc(p.note_ru)}</div>` : '') +
+        `</td>` +
+        `<td class="note">${esc(material(p.role))}</td>` +
+        `<td class="num mono">${p.qty}</td>` +
+        `<td class="note">${p.on_fold ? esc(t.cut_on_fold) : '—'}</td>` +
+        `<td class="note">${esc(p.grain === 'length' ? t.cut_grain_length : t.cut_grain_cross)}</td></tr>`,
+    )
+    .join('');
+
+  const total = parts.reduce((sum, p) => sum + p.qty, 0);
+
   return (
-    `<div class="placeholder">` +
-    `<div class="kicker">Лекала, градация, раскладка</div>` +
-    `<div style="font-size:13pt;font-weight:700">Предоставляются конструктором</div>` +
-    `<div class="note" style="max-width:150mm">Мы не строим лекала и не делаем раскладку — ` +
-    `это работа конструктора по этому документу. Табель мер с допусками, узлы обработки ` +
-    `и технологическая последовательность даны полностью, поэтому конструктор и фабрика ` +
-    `могут работать без дополнительных вопросов к заказчику.</div>` +
-    `<div class="note">Расход полотна в разделе материалов — предварительный: точное ` +
-    `значение считается по раскладке на конкретный размерный ряд.</div>` +
-    `</div>`
+    `<h2>${esc(t.section_patterns)}</h2>` +
+    `<table><thead><tr><th>№</th><th>${esc(t.cut_part)}</th><th>${esc(t.cut_material)}</th>` +
+    `<th class="num">${esc(t.cut_qty)}</th><th>${esc(t.cut_fold)}</th>` +
+    `<th>${esc(t.cut_grain)}</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<div class="note" style="margin-top:3mm"><b>${esc(t.cut_total)}: ${total}.</b> ` +
+    `${esc(t.cut_note)}</div>`
   );
 }

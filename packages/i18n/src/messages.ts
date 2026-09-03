@@ -100,6 +100,19 @@ export interface Messages {
   /** Легенда к схемам швов под таблицей узлов. */
   seam_legend_title: string;
   seam_legend_body: string;
+  /** Лист деталей кроя. */
+  cut_part: string;
+  cut_material: string;
+  cut_qty: string;
+  cut_fold: string;
+  cut_grain: string;
+  cut_on_fold: string;
+  cut_grain_length: string;
+  cut_grain_cross: string;
+  cut_total: string;
+  cut_note: string;
+  cut_shell: string;
+  cut_rib: string;
   node_stitch: string;
   node_spi: string;
   node_machine: string;
