@@ -8,7 +8,7 @@ import { PROMPT_VERSION, buildSystemPrompt, buildUserPrompt, promptFingerprint }
 import { VisionReportSchema, type VisionReport } from './report.js';
 
 /** Форматы, которые принимает Claude API. */
-const MEDIA_TYPES = {
+export const MEDIA_TYPES = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   png: 'image/png',
@@ -324,7 +324,7 @@ async function analyzeViaProxy(
   });
 }
 
-function createClient(): Anthropic {
+export function createClient(): Anthropic {
   // Обход геоблока: Anthropic отвечает 403 с российских адресов, и боевой
   // сервер стоит именно там. CometAPI проксирует /v1/messages в родном
   // формате — модель та же, меняется только адрес и ключ. Проверено живым

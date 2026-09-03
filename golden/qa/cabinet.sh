@@ -6,7 +6,7 @@ BASE=http://127.0.0.1:8132/app/api
 H="x-invite: localdemo1234567890"
 fail=0
 step() { printf '%-46s' "$1"; }
-ok()   { echo "ok"; }
+ok()   { echo "ok${1:+ $1}"; }
 bad()  { echo "ПРОБЛЕМА: $1"; fail=$((fail+1)); }
 
 step "1. кабинет отвечает"
@@ -28,6 +28,10 @@ ID=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d '{
 step "3b. старт без фото отклоняется"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$H" $BASE/jobs/$ID/start)
 [ "$code" = "400" ] && ok || bad "старт без фото прошёл ($code) — документ соберётся вслепую"
+
+step "3d. быстрый взгляд узнаёт худи на снимке"
+ql=$(curl -s -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-front.png "$BASE/quicklook" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('category',{}).get('value',''), d.get('source',{}).get('value',''), d.get('ms',''))" 2>/dev/null)
+case "$ql" in hoodie*) ok "($ql)";; *) bad "быстрый взгляд: ${ql:-нет ответа}";; esac
 
 step "3c. фото принимается с ракурсом"
 cnt=$(curl -s -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-front.png "$BASE/jobs/$ID/photos?view=front_flat" | python3 -c "import json,sys; print(json.load(sys.stdin).get('count',0))" 2>/dev/null)

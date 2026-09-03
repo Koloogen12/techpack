@@ -22,6 +22,7 @@ export const PHOTO_VIEWS = [
   'detail_sleeve',
   'inside_out',
   'on_form',
+  'sketch',
 ] as const;
 
 export const PhotoViewSchema = z.enum(PHOTO_VIEWS);

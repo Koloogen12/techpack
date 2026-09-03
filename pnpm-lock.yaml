@@ -137,6 +137,9 @@ importers:
       '@seamster/templates':
         specifier: workspace:*
         version: link:../../packages/templates
+      '@seamster/vision':
+        specifier: workspace:*
+        version: link:../../packages/vision
       react:
         specifier: ^18.3.1
         version: 18.3.1

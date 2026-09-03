@@ -107,6 +107,22 @@ const FIT_OF = {
   Свободная: 'loose',
   Oversize: 'oversize',
 };
+/** Откуда снимок — по-русски, для подсказки. */
+const SOURCE_RU = {
+  flat_lay: 'раскладка',
+  on_form: 'на модели',
+  runway: 'с показа',
+  sketch: 'эскиз',
+  other: '',
+};
+/** Ракурс первого кадра по источнику: с раскладки читаются замеры, с остальных — нет. */
+const VIEW_OF_SOURCE = {
+  flat_lay: 'front_flat',
+  on_form: 'on_form',
+  runway: 'on_form',
+  sketch: 'sketch',
+};
+
 const FIT_RU = {
   fitted: 'Прилегающая',
   semi_fitted: 'Обычная',
@@ -548,6 +564,8 @@ class Component extends DCLogic {
     galZoom: 1,
     sideHid: false,
     wshots: null,
+    quick: null,
+    quickBusy: false,
     picks: {
       cat: 'Худи',
       size: 'RU 46 / M',
@@ -1053,8 +1071,65 @@ class Component extends DCLogic {
         ...(asRef ? { refFiles: p.refFiles.concat(files.map((f) => f.name)) } : {}),
       }));
       if (!asRef) this.showToast('Файл добавлен — ' + (cur.length + files.length) + ' из 6');
+      // Первый снимок сразу идёт на быстрый взгляд: к шагу 2 анкета уже
+      // заполнена, человеку остаётся подтвердить.
+      if (!asRef && cur.length === 0 && files[0]) this.quickLook(files[0]);
     };
     input.click();
+  }
+
+  /**
+   * Быстрый взгляд модели на снимок — до анкеты.
+   *
+   * Заполняет вопросы второго шага: категорию, посадку, материал. Пол и
+   * размер с фото не читаются и остаются за человеком. Отказ ничего не
+   * ломает: анкета просто остаётся пустой, как раньше.
+   */
+  quickLook(file) {
+    if (!TOKEN || DEMO) return;
+    this.setState({ quick: null, quickBusy: true });
+    fetch('/app/api/quicklook', {
+      method: 'POST',
+      headers: { 'content-type': file.type || 'image/jpeg', 'x-invite': TOKEN },
+      body: file,
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((q) => {
+        if (!q || !q.category) {
+          this.setState({ quickBusy: false });
+          return;
+        }
+        const catLabel = Object.keys(CAT_OF).find((k) => CAT_OF[k] === q.category.value) || null;
+        const fitLabel = FIT_RU[q.silhouette.value] || null;
+        const matLabel = q.fabric_kind.value === 'woven' ? 'Ткань' : 'Трикотаж';
+        this.setState((p) => ({
+          quick: q,
+          quickBusy: false,
+          picks: {
+            ...p.picks,
+            ...(catLabel ? { cat: catLabel } : {}),
+            ...(fitLabel ? { fit: fitLabel } : {}),
+            mat: matLabel,
+          },
+        }));
+        const src = SOURCE_RU[q.source.value] || '';
+        this.showToast(
+          catLabel
+            ? 'Похоже, это ' +
+                catLabel.toLowerCase() +
+                ' · ' +
+                (fitLabel || '').toLowerCase() +
+                ' · ' +
+                matLabel.toLowerCase() +
+                (src ? ' · ' + src : '') +
+                ' — проверьте на шаге 2'
+            : 'На снимке ' +
+                (q.category.other_description || 'другое изделие') +
+                ' — таких категорий пока нет',
+        );
+        track('quicklook', { category: q.category.value, source: q.source.value, ms: q.ms });
+      })
+      .catch(() => this.setState({ quickBusy: false }));
   }
 
   launchGeneration() {
@@ -1074,9 +1149,9 @@ class Component extends DCLogic {
       name: s.picks.cat,
       article: 'DEMO-' + String(Date.now()).slice(-6),
       category: CAT_OF[s.picks.cat] || 'hoodie',
-      gender: 'women',
+      gender: s.picks.gender === 'Мужское' ? 'men' : 'women',
       base_size_ru: base,
-      base_height_cm: 170,
+      base_height_cm: s.picks.gender === 'Мужское' ? 176 : 170,
       fit_intent: FIT_OF[s.picks.fit] || 'semi_fitted',
       fabric_kind: s.picks.mat === 'Ткань' ? 'woven' : 'knit',
       size_range: [...new Set(sr)].sort((a, b) => a - b),
@@ -1104,8 +1179,16 @@ class Component extends DCLogic {
           body: JSON.stringify(answers),
         });
         this.setState({ curId: id });
+        // Ракурс первого кадра — из быстрого взгляда: с раскладки снимаются
+        // замеры, с модели, показа и эскиза — только силуэт и элементы.
+        const firstView =
+          s.quick && s.quick.source && VIEW_OF_SOURCE[s.quick.source.value]
+            ? VIEW_OF_SOURCE[s.quick.source.value]
+            : null;
+        let fi = 0;
         for (const f of files) {
-          const r = await fetch('/app/api/jobs/' + id + '/photos', {
+          const view = fi++ === 0 && firstView ? '?view=' + firstView : '';
+          const r = await fetch('/app/api/jobs/' + id + '/photos' + view, {
             method: 'POST',
             headers: { 'content-type': f.type || 'image/jpeg', 'x-invite': TOKEN },
             body: f,
@@ -2346,7 +2429,9 @@ class Component extends DCLogic {
     const questions = [
       {
         num: '01',
-        title: 'Похоже, это ' + (s.picks.cat || 'худи').toLowerCase() + ' — верно?',
+        title: s.quickBusy
+          ? 'Смотрим снимок…'
+          : 'Похоже, это ' + (s.picks.cat || 'худи').toLowerCase() + ' — верно?',
         why: 'категория задаёт набор точек замеров',
         auto: true,
         opts: ['Худи', 'Худи на молнии', 'Свитшот', 'Футболка', 'Лонгслив', 'Поло', 'Майка'].map(
@@ -2356,11 +2441,12 @@ class Component extends DCLogic {
       },
       {
         num: '02',
-        title: 'Базовый размер и рост',
-        why: 'остальные размеры считаются от него',
+        title: 'Базовый размер, рост и для кого',
+        why: 'остальные размеры считаются от него; пол задаёт сетку тела',
         auto: false,
         opts: ['RU 44 / S', 'RU 46 / M', 'RU 48 / L'].map((l) => mkOpt('size', l)),
-        extra: false,
+        extra: true,
+        extraOpts: ['Женское', 'Мужское'].map((l) => mkOpt('gender', l)),
       },
       {
         num: '03',
@@ -2372,7 +2458,7 @@ class Component extends DCLogic {
       },
       {
         num: '04',
-        title: 'Материал — трикотаж, так?',
+        title: 'Материал — ' + (s.picks.mat === 'Ткань' ? 'ткань' : 'трикотаж') + ', так?',
         why: 'от него зависят допуски и усадка',
         auto: true,
         opts: ['Трикотаж', 'Ткань'].map((l) => mkOpt('mat', l)),
@@ -2460,24 +2546,24 @@ class Component extends DCLogic {
       },
       print: {
         title: 'Создать принт',
-        kicker: 'Быстрое действие',
+        kicker: 'Скоро',
         head: 'Принт по описанию',
         desc: 'Сгенерируем принт и разложим его по выбранной зоне изделия.',
         cta: 'Сгенерировать принт',
-        credit: '~2 мин',
-        on: !!s.printText.trim(),
-        hint: 'опишите принт словами',
+        credit: 'скоро',
+        on: false,
+        hint: 'в работе — появится в одном из ближайших обновлений',
         sec: false,
       },
       fit: {
         title: 'Виртуальная примерка',
-        kicker: 'Быстрое действие',
+        kicker: 'Скоро',
         head: 'Примерка на модели',
         desc: 'Покажем посадку изделия на фото модели по таблице замеров пака.',
         cta: 'Примерить',
-        credit: '~4 мин',
-        on: s.fitFile,
-        hint: 'нужно фото модели',
+        credit: 'скоро',
+        on: false,
+        hint: 'в работе — появится в одном из ближайших обновлений',
         sec: false,
       },
     };
@@ -4030,7 +4116,10 @@ class Component extends DCLogic {
         ['import', 'Импорт PDF · Excel'],
       ].map(([id, label]) => ({
         label,
-        go: () => this.set('wizMode', id),
+        go: () =>
+          id === 'import'
+            ? this.showToast('Импорт PDF и Excel — скоро. Пока начните с фото.')
+            : this.set('wizMode', id),
         style:
           'height:31px;display:inline-flex;align-items:center;padding:0 13px;border-radius:9px;cursor:pointer;font:600 11px/16px Sora,sans-serif;' +
           (s.wizMode === id

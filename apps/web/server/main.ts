@@ -686,6 +686,43 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
 
+    // Быстрый взгляд на первый снимок — до анкеты. Ответ заполняет вопросы
+    // второго шага, человек их подтверждает. Стоит копейки, живёт секунды,
+    // сантиметров не содержит: пропорции остаются полному разбору.
+    if (req.method === 'POST' && url.pathname === '/app/api/quicklook') {
+      const body = await readBody(req, MAX_PHOTO);
+      if (!body || body.length < 1024)
+        return json(res, 413, { error: 'файл пустой или слишком большой' });
+      const ct = String(req.headers['content-type'] ?? '');
+      const format = ct.includes('png')
+        ? 'png'
+        : ct.includes('webp')
+          ? 'webp'
+          : ct.includes('gif')
+            ? 'gif'
+            : 'jpg';
+      try {
+        const { quickLook } = await import('@seamster/vision');
+        const { look, fromCache, ms } = await quickLook({
+          photo: { bytes: body, format },
+          cacheDir: join(DATA, 'cache', 'quicklook'),
+        });
+        logEvent(invite.name, 'quicklook', {
+          category: look.category.value,
+          source: look.source.value,
+          ms,
+          cached: fromCache,
+        });
+        return json(res, 200, { ...look, ms, cached: fromCache });
+      } catch (error) {
+        console.error('quicklook:', error);
+        return json(res, 502, {
+          error: 'Снимок не разобрался — заполните анкету вручную.',
+          action: 'Это ничего не стоит: генерация не списана.',
+        });
+      }
+    }
+
     if (req.method === 'GET' && url.pathname === '/app/api/jobs') {
       const { readdirSync } = await import('node:fs');
       const list = readdirSync(join(DATA, 'jobs'), { withFileTypes: true })
