@@ -23,7 +23,7 @@
         "max": 200,
         "default": 160
       },
-      "applications": ["tshirt", "longsleeve", "tank_top", "polo"],
+      "applications": ["tshirt", "longsleeve", "tank_top", "polo", "dress"],
       "photo_detectable": "structure",
       "care_profile_id": "cotton_knit",
       "verified": false,
@@ -47,7 +47,7 @@
         "max": 250,
         "default": 200
       },
-      "applications": ["longsleeve", "tshirt", "polo", "tank_top"],
+      "applications": ["longsleeve", "tshirt", "polo", "tank_top", "dress"],
       "photo_detectable": "partial",
       "care_profile_id": "cotton_knit",
       "verified": false,
@@ -78,7 +78,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "structure",
       "care_profile_id": "cotton_knit",
@@ -201,7 +202,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -227,7 +229,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -253,7 +256,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -279,7 +283,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -305,7 +310,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -331,7 +337,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -357,7 +364,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "photo_detectable": "no",
       "verified": false,

@@ -1,4 +1,9 @@
-import { kb as defaultKb, type Category, type KnowledgeBase } from '@seamster/kb';
+import {
+  CATEGORY_VISUAL_EN,
+  kb as defaultKb,
+  type Category,
+  type KnowledgeBase,
+} from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
 
 /**
@@ -114,7 +119,7 @@ export function buildRenderPrompt(
         `${length / chest > 1.45 ? 'a long, lean shape' : length / chest > 1.25 ? 'a balanced shape' : 'a short, boxy shape'}.`
       : '';
 
-  const garment = ENGLISH_CATEGORY[category] ?? 'knitted top';
+  const garment = CATEGORY_VISUAL_EN[category] ?? 'knitted top';
 
   // Масштаб мотива задаётся ОТНОШЕНИЕМ к ширине груди, а не сантиметрами:
   // модель не знает, сколько на её картинке сантиметров, но прекрасно
@@ -174,13 +179,3 @@ function weight(gsm: number | null): string {
   if (gsm < 260) return ', mid-weight, holding its shape with a few soft folds';
   return ', heavy and structured, standing away from the body with large soft folds';
 }
-
-const ENGLISH_CATEGORY: Record<Category, string> = {
-  tshirt: 'short-sleeve crew-neck t-shirt',
-  longsleeve: 'long-sleeve crew-neck knit top',
-  sweatshirt: 'crew-neck sweatshirt',
-  hoodie: 'pullover hoodie',
-  zip_hoodie: 'full-zip hoodie with a two-way front zipper',
-  polo: 'short-sleeve polo shirt with a ribbed collar and a two-button placket',
-  tank_top: 'sleeveless tank top with bound armholes',
-};

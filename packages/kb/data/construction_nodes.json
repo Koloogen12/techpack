@@ -34,7 +34,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": false,
       "alternative_node_id": null,
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом. ОТДЕЛЬНО: в базе знаний код стежка 504 (трёхниточный), а в колонке оборудования указан четырёхниточный оверлок — источник сам себе противоречит. Следуем коду. Уточнить у технолога.",
@@ -66,7 +66,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": false,
       "alternative_node_id": null,
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
@@ -103,7 +103,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": true,
       "alternative_node_id": "neck_rib_band",
-      "applies_to": ["tshirt", "longsleeve", "tank_top"],
+      "applies_to": ["tshirt", "longsleeve", "tank_top", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
@@ -142,7 +142,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
@@ -187,7 +188,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3.7",
@@ -220,7 +222,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": false,
       "alternative_node_id": null,
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
@@ -252,7 +254,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": false,
       "alternative_node_id": null,
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
@@ -291,7 +293,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
@@ -324,7 +327,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": false,
       "alternative_node_id": null,
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
@@ -363,7 +366,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
@@ -401,7 +405,7 @@
       "visible_on_photo": true,
       "requires_special_equipment": false,
       "alternative_node_id": null,
-      "applies_to": ["longsleeve", "sweatshirt", "hoodie", "zip_hoodie"],
+      "applies_to": ["longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3.4",
       "gap": "Значение помечено в базе знаний как экспертный baseline без открытого норматива (★). Подтвердить на интервью с технологами (knowledge-base/07 §7, совместить с RAT-1). Число стежков на дюйм в базе знаний отсутствует — взято отраслевое значение для трикотажа. Требование R5 обязывает указывать SPI на операцию, поэтому поле заполнено, но подлежит подтверждению технологом.",
@@ -706,7 +710,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
@@ -746,7 +751,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
@@ -786,7 +792,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#3",

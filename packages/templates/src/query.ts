@@ -21,6 +21,7 @@ const SLEEVE_BY_CATEGORY: Record<Category, TemplateTraits['sleeve']> = {
   sweatshirt: 'long',
   hoodie: 'long',
   zip_hoodie: 'long',
+  dress: 'long',
 };
 
 const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
@@ -30,6 +31,7 @@ const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
   hoodie: 'none',
   zip_hoodie: 'full_zip',
   polo: 'buttons',
+  dress: 'none',
   tank_top: 'none',
 };
 

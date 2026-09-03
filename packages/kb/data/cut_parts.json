@@ -16,7 +16,7 @@
       "qty": 1,
       "on_fold": true,
       "grain": "length",
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "polo", "tank_top"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "polo", "tank_top", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Состав деталей выведен из узлов категории, а не из лекал: лекала строит конструктор. Число и сгибы подтвердить на первой раскладке."
@@ -52,7 +52,8 @@
         "hoodie",
         "zip_hoodie",
         "polo",
-        "tank_top"
+        "tank_top",
+        "dress"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
@@ -67,7 +68,7 @@
       "qty": 2,
       "on_fold": false,
       "grain": "length",
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo"],
+      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo", "dress"],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Состав деталей выведен из узлов категории. Подтвердить на первой раскладке."

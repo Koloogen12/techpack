@@ -91,6 +91,7 @@ const CAT_RU = {
   zip_hoodie: 'Худи на молнии',
   polo: 'Поло',
   tank_top: 'Майка',
+  dress: 'Платье',
 };
 const CAT_OF = {
   Футболка: 'tshirt',
@@ -100,6 +101,7 @@ const CAT_OF = {
   'Худи на молнии': 'zip_hoodie',
   Поло: 'polo',
   Майка: 'tank_top',
+  Платье: 'dress',
 };
 const FIT_OF = {
   Прилегающая: 'fitted',
@@ -2540,9 +2542,16 @@ class Component extends DCLogic {
           : 'Похоже, это ' + (s.picks.cat || 'худи').toLowerCase() + ' — верно?',
         why: 'категория задаёт набор точек замеров',
         auto: true,
-        opts: ['Худи', 'Худи на молнии', 'Свитшот', 'Футболка', 'Лонгслив', 'Поло', 'Майка'].map(
-          (l) => mkOpt('cat', l),
-        ),
+        opts: [
+          'Худи',
+          'Худи на молнии',
+          'Свитшот',
+          'Футболка',
+          'Лонгслив',
+          'Поло',
+          'Майка',
+          'Платье',
+        ].map((l) => mkOpt('cat', l)),
         extra: false,
       },
       {

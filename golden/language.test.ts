@@ -104,7 +104,8 @@ describe('сообщения об ошибках не содержат внут�
     { ...SCENARIOS[0]!.input, base_size_ru: 99 },
     { ...SCENARIOS[0]!.input, base_height_cm: 300 },
     { ...SCENARIOS[0]!.input, size_range: [46, 46] },
-    { ...SCENARIOS[0]!.input, category: 'dress' as never },
+    // Пиджака в реестре изделий нет; платье с 3 сентября 2026 поддержано.
+    { ...SCENARIOS[0]!.input, category: 'blazer' as never },
     {
       ...SCENARIOS[0]!.input,
       colorways: [

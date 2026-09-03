@@ -164,3 +164,66 @@ describe('имя файла', () => {
     expect(sketchFileName('image/jpeg')).toBe('sketch.jpg');
   });
 });
+
+describe('платье — первая вещь вне стритвира', () => {
+  const DRESS = spec({ category: 'dress', name: 'Платье', article: 'DR-1' });
+
+  it('промпт называет изделие платьем, а не удлинённым верхом', () => {
+    expect(buildSketchPrompt(DRESS)).toContain('knit dress');
+  });
+
+  it('длина рукава у платья не проверяется: её выбирает дизайнер, а не категория', () => {
+    // У футболки короткий рукав — признак категории, и длинный ловится
+    // отбраковкой. У платья бывает любой, и придирка выбрасывала бы верные эскизы.
+    for (const sleeve of ['long', 'short', 'none'] as const)
+      expect(
+        sketchMismatch(DRESS, {
+          category: 'dress',
+          elements: { hood: false, closure: 'none', pocket: 'none', sleeve },
+        }),
+      ).toBeNull();
+  });
+
+  it('а вот подмена изделия у платья ловится по-прежнему', () => {
+    expect(
+      sketchMismatch(DRESS, {
+        category: 'tshirt',
+        elements: { hood: false, closure: 'none', pocket: 'none', sleeve: 'short' },
+      }),
+    ).toContain('tshirt');
+  });
+});
+
+describe('длина подола — главный признак цельного изделия', () => {
+  const withLength = (cm: number) => {
+    const s = spec({ category: 'dress' });
+    const t01 = s.measurements.points.find((p) => p.code === 'T01')!;
+    return {
+      ...s,
+      measurements: {
+        ...s.measurements,
+        points: s.measurements.points.map((p) =>
+          p.code === 'T01' ? { ...t01, base: { ...t01.base, value: cm } } : p,
+        ),
+      },
+    };
+  };
+
+  it('короткое платье и миди перестали быть одним и тем же', () => {
+    // Отношение к груди даёт обеим «long and lean»: 80/50 и 105/50 попадают
+    // в один бакет. Именно на этом эскиз рисовал платье миди там, где
+    // в табеле стояли 80 см — вещь до середины бедра.
+    expect(buildSketchPrompt(withLength(80))).toContain('mid thigh');
+    expect(buildSketchPrompt(withLength(105))).toContain('midi length');
+  });
+
+  it('весь ряд длин различим', () => {
+    expect(buildSketchPrompt(withLength(70))).toContain('tunic length');
+    expect(buildSketchPrompt(withLength(93))).toContain('at the knee');
+    expect(buildSketchPrompt(withLength(130))).toContain('maxi length');
+  });
+
+  it('у верха длина подола не называется: там она следует из категории', () => {
+    expect(buildSketchPrompt(HOODIE)).not.toContain('hem falls');
+  });
+});

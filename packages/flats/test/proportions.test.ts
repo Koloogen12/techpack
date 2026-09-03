@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
-import { CATEGORIES, kb, type Category, type FitIntent, type ProportionScope } from '@seamster/kb';
+import {
+  CATEGORIES,
+  CATEGORY_CLASS,
+  kb,
+  type Category,
+  type FitIntent,
+  type ProportionScope,
+} from '@seamster/kb';
 import { buildGeometry, flatDefaults, measurementsFrom } from '../src/index.js';
 import type { FlatGeometry, FlatMeasurements } from '../src/geometry.js';
 
@@ -163,7 +170,24 @@ function samples(m: FlatMeasurements, g: FlatGeometry, fit: FitIntent): Sample[]
   ];
 }
 
-const CASES = CATEGORIES.flatMap((category) =>
+/**
+ * Бенчмарк идёт по ВЕРХУ, а не по всему реестру.
+ *
+ * Диапазоны в flat_conventions сняты с профессиональных флэтов верха: длина
+ * к груди до 1.65, подол не шире груди, рукав от 0.78 длины изделия. У платья
+ * длина к груди больше двух, подол шире груди, а рукав — половина длины,
+ * и по этим конвенциям оно провалится всеми четырьмя правилами разом.
+ *
+ * Это не поблажка платью: параметрический мастер корпуса цельного изделия
+ * не имеет вовсе, он построил бы очень длинную футболку. Человеку мастер
+ * не показывается ни в одном месте продукта (с 3 сентября 2026), а лист
+ * чертежа платья собирается на эскизе, который платье рисует платьем.
+ * Мерить мастер конвенциями верха на изделии, которого он не умеет, значило
+ * бы сторожить несуществующее поведение.
+ */
+const BENCHMARKED = CATEGORIES.filter((c) => CATEGORY_CLASS[c] === 'top');
+
+const CASES = BENCHMARKED.flatMap((category) =>
   FITS.map((fit) => {
     const s = spec(category, fit);
     const d = flatDefaults(s, base);

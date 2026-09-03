@@ -1,5 +1,5 @@
 import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
-import type { Category } from '@seamster/kb';
+import { CATEGORY_CLASS, CATEGORY_VISUAL_EN, type Category } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
 import { generateImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
@@ -23,7 +23,7 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * и отвечает на то, чего не видно ни на одном из них: насколько глубок
  * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v2';
+export const SKETCH_PROMPT_VERSION = 'v3';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -69,16 +69,6 @@ const NODE_SIDE_ENGLISH: Record<string, string> = {
   zip_full_length: 'the front zipper edge',
 };
 
-const CATEGORY_ENGLISH: Record<Category, string> = {
-  tshirt: 'short-sleeve crew-neck t-shirt',
-  longsleeve: 'long-sleeve crew-neck knit top',
-  sweatshirt: 'crew-neck sweatshirt',
-  hoodie: 'pullover hoodie',
-  zip_hoodie: 'full-zip hoodie',
-  polo: 'short-sleeve polo shirt',
-  tank_top: 'sleeveless tank top',
-};
-
 const FIT_ENGLISH: Record<string, string> = {
   fitted: 'close-fitting',
   semi_fitted: 'regular straight-cut',
@@ -88,7 +78,7 @@ const FIT_ENGLISH: Record<string, string> = {
 
 export function buildSketchPrompt(spec: StyleSpec): string {
   const category = spec.style.category as Category;
-  const garment = CATEGORY_ENGLISH[category] ?? 'knitted top';
+  const garment = CATEGORY_VISUAL_EN[category] ?? 'knitted top';
   const fit = FIT_ENGLISH[spec.base.fit_intent] ?? 'regular';
 
   const nodes = spec.construction?.nodes ?? [];
@@ -117,6 +107,29 @@ export function buildSketchPrompt(spec: StyleSpec): string {
           : 'The body reads short and boxy.'
       : '';
 
+  // У цельного изделия длина — главный признак, и отношением к груди она
+  // не выражается: туника 80 см и платье миди 105 см дают один и тот же
+  // бакет «long and lean», а это две разные вещи. Здесь длина меряется
+  // ростом, потому что именно так её называет человек: до колена, ниже
+  // колена, в пол. У верха отношение к груди работает, и оно не трогается.
+  //
+  // Границы посчитаны от анатомии, а не на глаз. Плечевая точка стоит на
+  // 0.82 роста, колено — на 0.285, щиколотка — на 0.06 (ISO 8559). Значит
+  // длина от плеча до колена равна 0.82 − 0.285 = 0.535 роста, до щиколотки
+  // 0.76. Отсюда и пороги: они привязаны к телу, а не к красивым числам.
+  const height = spec.base.base_height_cm;
+  const hem =
+    CATEGORY_CLASS[category] === 'whole' && length !== null && height
+      ? (() => {
+          const r = length / height;
+          if (r < 0.44) return 'The hem falls at upper thigh, a tunic length.';
+          if (r < 0.5) return 'The hem falls at mid thigh, a short dress.';
+          if (r < 0.57) return 'The hem falls at the knee.';
+          if (r < 0.7) return 'The hem falls below the knee, a midi length.';
+          return 'The hem falls to the ankle, a maxi length.';
+        })()
+      : '';
+
   // Бок описывается СВОИМ списком, а не отфильтрованным передним. В профиль
   // читается другое: не «карман кенгуру», а его боковой вход; не капюшон
   // вообще, а его глубина. Фильтрацией переднего списка этого не получить.
@@ -136,6 +149,7 @@ export function buildSketchPrompt(spec: StyleSpec): string {
     side.length ? `Side profile shows: ${side.join(', ')}.` : '',
     backOnly.length ? `Back shows: ${backOnly.join(', ')}, and a plain back panel.` : '',
     shape,
+    hem,
     'Centred, evenly spaced, no perspective, no mannequin, no person, no shadow, no text, no labels, no logo, no measurements.',
   ]
     .filter(Boolean)
@@ -254,11 +268,25 @@ export interface SketchSeen {
   };
 }
 
-/** Какой длины рукав обязан быть у категории. Прочие — длинный. */
-const SLEEVE_BY_CATEGORY: Partial<Record<Category, 'long' | 'short' | 'none'>> = {
+/**
+ * Какой длины рукав ОБЯЗАН быть у категории.
+ *
+ * `null` — категория рукав не задаёт, и придираться не к чему: платье бывает
+ * и с длинным рукавом, и с коротким, и без. Отбраковывать по рукаву там, где
+ * его выбирает дизайнер, значит выбрасывать верные эскизы.
+ *
+ * Полная карта, а не Partial: новая вещь в реестре обязана ответить на этот
+ * вопрос явно, а не провалиться в молчаливый умолчательный «длинный».
+ */
+const SLEEVE_BY_CATEGORY: Record<Category, 'long' | 'short' | 'none' | null> = {
   tshirt: 'short',
   polo: 'short',
   tank_top: 'none',
+  longsleeve: 'long',
+  sweatshirt: 'long',
+  hoodie: 'long',
+  zip_hoodie: 'long',
+  dress: null,
 };
 
 /**
@@ -295,10 +323,14 @@ export function sketchMismatch(spec: StyleSpec, seen: SketchSeen): string | null
   if (wantPocket !== seenPocket)
     return wantPocket ? 'на эскизе нет кармана' : 'на эскизе лишний карман';
 
-  const wantSleeve = SLEEVE_BY_CATEGORY[category] ?? 'long';
+  const wantSleeve = SLEEVE_BY_CATEGORY[category];
   // 'other' — не приговор: взгляд так отвечает, когда не уверен, и городить
   // на неуверенности отказ значит терять хорошие эскизы.
-  if (seen.elements.sleeve !== 'other' && seen.elements.sleeve !== wantSleeve)
+  if (
+    wantSleeve !== null &&
+    seen.elements.sleeve !== 'other' &&
+    seen.elements.sleeve !== wantSleeve
+  )
     return `на эскизе рукав ${seen.elements.sleeve}, а нужен ${wantSleeve}`;
 
   return null;
