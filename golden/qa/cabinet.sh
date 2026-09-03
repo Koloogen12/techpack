@@ -114,6 +114,16 @@ step "13c. бокового вида нет и не выдумывается"
 code=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/flat?view=side")
 [ "$code" = "404" ] && ok || bad "бок отдан ($code)"
 
+step "13d. визуализация лежит файлом и отдаётся"
+code=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/render")
+case "$code" in 200) ok "(есть)";; 404) ok "(нет визуализации — документ собран без неё)";; *) bad "render отдал $code";; esac
+
+step "13e. пересборка PDF не теряет картинку"
+before=$(curl -s -o /dev/null -w '%{size_download}' -H "$H" "$BASE/jobs/$ID/pdf")
+curl -s -o /dev/null -X PATCH -H "$H" -H 'content-type: application/json' -d '{"code":"T05","value_cm":57}' "$BASE/jobs/$ID/measurements"
+after=$(curl -s -o /dev/null -w '%{size_download}' -H "$H" "$BASE/jobs/$ID/pdf")
+if [ "${before:-0}" -gt 0 ] && [ "${after:-0}" -gt $(( before * 70 / 100 )) ]; then ok "($before → $after байт)"; else bad "PDF похудел после правки: $before → $after"; fi
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")

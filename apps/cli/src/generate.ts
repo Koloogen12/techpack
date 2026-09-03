@@ -817,6 +817,13 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     }
     const visuals: DocVisuals = { ...built, ...(library ? { libraryFlats: library } : {}) };
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
+    // Картинка кладётся файлом рядом с документом: кабинет её показывает,
+    // а пересборка PDF после правки замера переиспользует, а не теряет.
+    if (visual.ok) {
+      const base64 = visual.image.dataUri.split(',')[1];
+      if (base64)
+        writeFileSync(join(dirname(options.outPath), 'render.png'), Buffer.from(base64, 'base64'));
+    }
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));

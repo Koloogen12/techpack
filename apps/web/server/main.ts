@@ -396,7 +396,14 @@ const server = createServer(async (req, res) => {
           webp: 'image/webp',
           woff2: 'font/woff2',
         };
-        res.writeHead(200, { 'content-type': types[ext] ?? 'application/octet-stream' });
+        // Кабинет собирается в один index.html и обновляется каждой выкаткой.
+        // Без этого заголовка браузер держит прошлую сборку эвристически:
+        // человек видит старый чертёж и старые кнопки, а мы думаем, что
+        // правка доехала. no-cache не запрещает кэш — он требует проверять.
+        res.writeHead(200, {
+          'content-type': types[ext] ?? 'application/octet-stream',
+          'cache-control': 'no-cache, must-revalidate',
+        });
         return res.end(readFileSync(file));
       }
       if (rel === 'index.html' || !rel.includes('.')) {
@@ -1186,6 +1193,16 @@ const server = createServer(async (req, res) => {
 
       // Готовый вид чертежа из библиотеки. Строится геометрией, без браузера,
       // поэтому его не жалко пересобирать на каждый показ.
+      // Визуализация изделия. Лежит файлом в джобе: раньше она жила только
+      // внутри первого PDF как data-URI, и любая правка замера пересобирала
+      // документ уже без картинки — молча.
+      if (req.method === 'GET' && rest === '/render') {
+        const path = join(dir, 'render.png');
+        if (!existsSync(path)) return json(res, 404, { error: 'визуализации нет' });
+        res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache' });
+        return res.end(readFileSync(path));
+      }
+
       if (req.method === 'GET' && rest === '/flat') {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
@@ -1297,6 +1314,13 @@ const server = createServer(async (req, res) => {
           // параметрическому виду — и выгрузка разошлась бы с экраном.
           const chosen = readJobTemplate(dir);
           const library = chosen.id ? renderJobTemplate(spec, chosen.id, locale ?? 'ru') : null;
+          // Картинка изделия переживает пересборку: она снята один раз и
+          // лежит файлом рядом со спекой. Раньше жила только внутри первого
+          // PDF, и правка любого замера роняла её из документа молча.
+          const renderPath = join(dir, 'render.png');
+          const render = existsSync(renderPath)
+            ? { dataUri: `data:image/png;base64,${readFileSync(renderPath).toString('base64')}` }
+            : null;
           writeFileSync(
             pdfPath,
             await renderPdf(spec, {
@@ -1306,7 +1330,14 @@ const server = createServer(async (req, res) => {
               ...(locale ? { locale } : {}),
               // Набор видов строится на язык выгрузки: плашка вшита в SVG,
               // и русская оговорка в китайском комплекте бесполезна.
-              ...(library ? { visuals: { libraryFlats: { [locale ?? 'ru']: library } } } : {}),
+              ...(library || render
+                ? {
+                    visuals: {
+                      ...(library ? { libraryFlats: { [locale ?? 'ru']: library } } : {}),
+                      ...(render ? { render } : {}),
+                    },
+                  }
+                : {}),
             }),
           );
         }

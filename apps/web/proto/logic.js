@@ -566,6 +566,7 @@ class Component extends DCLogic {
     wshots: null,
     quick: null,
     quickBusy: false,
+    hasRender: false,
     picks: {
       cat: 'Худи',
       size: 'RU 46 / M',
@@ -1413,6 +1414,15 @@ class Component extends DCLogic {
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
+    // Есть ли у работы визуализация — проверяем один раз при открытии.
+    if (!DEMO && TOKEN && this.state.curId) {
+      const jid = this.state.curId;
+      fetch('/app/api/jobs/' + jid + '/render?t=' + encodeURIComponent(TOKEN), { method: 'HEAD' })
+        .then((r) => {
+          if (this.state.curId === jid) this.setState({ hasRender: r.ok });
+        })
+        .catch(() => this.setState({ hasRender: false }));
+    }
   }
 
   mkTip(text) {
@@ -1972,7 +1982,11 @@ class Component extends DCLogic {
             : '2 вида · чертёж из спеки'
           : '2 вида · перед / спинка',
       },
-      photo: { k: 'Фото-референс', img: 'assets/flat-main.png', b: 'исходник · photo-1' },
+      photo: {
+        k: 'Фото и визуализация',
+        img: 'assets/flat-main.png',
+        b: 'исходник и как это выглядит',
+      },
       render: {
         k: '3D-рендер · черновик',
         img: 'assets/thumb.jpg',
@@ -1996,6 +2010,17 @@ class Component extends DCLogic {
         s.galZoom +
         ');transition:transform .2s ease';
       const allUrl = liveOn && s.gal === 'flat' ? this.viewUrl('all') : null;
+      // Визуализация изделия — рядом с исходными снимками: человек ради неё
+      // и приходит, а жила она только внутри PDF.
+      if (liveOn && s.gal === 'photo' && s.curId && s.hasRender && !s.curShot)
+        return (
+          'position:absolute;inset:16px;background:url("/app/api/jobs/' +
+          s.curId +
+          '/render?t=' +
+          encodeURIComponent(TOKEN || '') +
+          '") 50% 50%/contain no-repeat' +
+          tail
+        );
       if (allUrl) return 'position:absolute;inset:16px;background:' + allUrl + tail;
       if (liveOn && s.gal === 'photo' && s.curId)
         return 'position:absolute;inset:16px;background:url(' + PHOTO_URL(s.curId, 1) + ')' + tail;
