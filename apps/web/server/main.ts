@@ -17,7 +17,14 @@
  *    убили бы время ответа обеих.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { isSeamsterError } from '@seamster/core';
@@ -129,7 +136,26 @@ interface JobStatus {
 
 const statuses = new Map<string, JobStatus>();
 const queue: string[] = [];
-let running = false;
+/**
+ * Работы в исполнении. Разбор фото ждёт сеть, а не процессор, поэтому люди не
+ * обязаны стоять друг за другом: раньше один флаг на весь сервер отвечал
+ * «одна генерация уже идёт» любому, пока шла чужая.
+ */
+const active = new Set<string>();
+const MAX_CONCURRENT = 3;
+
+/** Сколько работ этого человека уже стоит в очереди или исполняется. */
+function activeFor(token: string): number {
+  return [...queue, ...active].filter((id) => ownerOf(id)?.token === token).length;
+}
+
+function photoCount(dir: string): number {
+  try {
+    return (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[]).length;
+  } catch {
+    return 0;
+  }
+}
 
 function jobDir(id: string): string {
   return join(DATA, 'jobs', id);
@@ -154,10 +180,12 @@ function ownerOf(id: string): Invite | null {
 }
 
 async function pump(): Promise<void> {
-  if (running) return;
+  if (active.size >= MAX_CONCURRENT) return;
   const id = queue.shift();
   if (!id) return;
-  running = true;
+  active.add(id);
+  // Следующая работа стартует сразу, не дожидаясь этой.
+  void pump();
   const started = Date.now();
   const owner = ownerOf(id);
   try {
@@ -233,7 +261,7 @@ async function pump(): Promise<void> {
       ]);
     }
   } finally {
-    running = false;
+    active.delete(id);
     void pump();
   }
 }
@@ -709,7 +737,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/app/api/jobs') {
       // Квота проверяется до создания джобы: отказать на входе честнее,
       // чем дать собрать анкету и упереться в лимит на кнопке «Запустить».
-      const gate = limits.check(invite.token, running || queue.length ? 1 : 0, monthlyOf(invite));
+      const gate = limits.check(invite.token, activeFor(invite.token), monthlyOf(invite));
       if (!gate.ok) {
         logEvent(invite.name, 'limit_blocked', { reason: gate.error });
         return json(res, 402, { error: gate.error, action: gate.action });
@@ -795,9 +823,19 @@ const server = createServer(async (req, res) => {
       }
 
       if (req.method === 'POST' && rest === '/start') {
+        // Без снимка разбор пропускается молча, и документ собирается из одних
+        // типовых значений — с нулём оценок по фото и видом настоящего техпака.
+        // Кабинет так не даёт, но API обязан быть не слабее кабинета.
+        if (photoCount(dir) === 0) {
+          logEvent(invite.name, 'start_rejected', { id, reason: 'no_photo' });
+          return json(res, 400, {
+            error: 'Без фотографии изделия техпак не собрать.',
+            action: 'Добавьте хотя бы один снимок и запустите снова.',
+          });
+        }
         // Вторая проверка не дублирует первую: между созданием джобы и
         // стартом человек мог открыть вкладку второй раз или добить квоту.
-        const gate = limits.check(invite.token, running || queue.length ? 1 : 0, monthlyOf(invite));
+        const gate = limits.check(invite.token, activeFor(invite.token), monthlyOf(invite));
         if (!gate.ok) {
           logEvent(invite.name, 'limit_blocked', { id, reason: gate.error });
           return json(res, 402, { error: gate.error, action: gate.action });
@@ -1349,7 +1387,39 @@ function adminPage(): string {
   );
 }
 
+/**
+ * Работы, застигнутые перезапуском посреди разбора. Их статус на диске застыл
+ * на «vision» или «render», а человек ждёт готовности, которая не наступит.
+ * Такие работы возвращаются в очередь: разбор фото повторится из кэша даром.
+ * Созданные, но не запущенные («queued» без истории) не трогаются — старт
+ * остаётся за человеком.
+ */
+function recoverUnfinished(): number {
+  const inFlight = new Set<Stage>(['vision', 'assembly', 'render', 'docgen']);
+  let n = 0;
+  for (const entry of readdirSync(join(DATA, 'jobs'), { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const id = entry.name;
+    if (existsSync(join(jobDir(id), 'deleted.flag'))) continue;
+    let s: JobStatus;
+    try {
+      s = JSON.parse(readFileSync(join(jobDir(id), 'status.json'), 'utf8')) as JobStatus;
+    } catch {
+      continue;
+    }
+    if (!inFlight.has(s.stage)) continue;
+    statuses.set(id, s);
+    setStage(id, 'queued', 'возвращена в очередь после перезапуска');
+    queue.push(id);
+    n++;
+  }
+  if (n) void pump();
+  return n;
+}
+
 server.listen(PORT, HOST, () => {
+  const recovered = recoverUnfinished();
+  if (recovered) console.log(`возвращено в очередь после перезапуска: ${recovered}`);
   console.log(`demo server on ${HOST}:${PORT} · data: ${DATA} · invites: ${invites().length}`);
   if (!ADMIN) console.log('ADMIN_TOKEN не задан — админ-просмотр выключен');
   if (!telegramReady) console.log('TELEGRAM_BOT_TOKEN/ADMIN_ID не заданы — канал выключен');

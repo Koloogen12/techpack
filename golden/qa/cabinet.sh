@@ -25,15 +25,40 @@ ID=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d '{
 }' $BASE/jobs | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
 [ -n "$ID" ] && ok || { bad "пак не создан"; exit 1; }
 
+step "3b. старт без фото отклоняется"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$H" $BASE/jobs/$ID/start)
+[ "$code" = "400" ] && ok || bad "старт без фото прошёл ($code) — документ соберётся вслепую"
+
+step "3c. фото принимается с ракурсом"
+cnt=$(curl -s -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-front.png "$BASE/jobs/$ID/photos?view=front_flat" | python3 -c "import json,sys; print(json.load(sys.stdin).get('count',0))" 2>/dev/null)
+[ "${cnt:-0}" -ge 1 ] && ok || bad "фото не принято"
+
+# Разбор фото идёт по-настоящему (первый прогон — вызов модели, дальше кэш),
+# поэтому ждём до шести минут, а не три.
 step "4. генерация запускается"
 curl -s -o /dev/null -X POST -H "$H" $BASE/jobs/$ID/start
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
   stage=$(curl -s -H "$H" $BASE/jobs/$ID/status | python3 -c "import json,sys; print(json.load(sys.stdin).get('stage',''))" 2>/dev/null)
   [ "$stage" = "done" ] && break
   [ "$stage" = "error" ] && break
   sleep 3
 done
 [ "$stage" = "done" ] && ok || bad "стадия $stage"
+
+step "4b. документ собран с глазами, а не вслепую"
+seen=$(curl -s -H "$H" $BASE/jobs/$ID/spec | python3 -c "
+import json,sys
+d=json.load(sys.stdin)['spec']
+n=0
+def walk(o):
+    global n
+    if isinstance(o,dict):
+        if str(o.get('source','')).startswith('vision'): n+=1
+        for v in o.values(): walk(v)
+    elif isinstance(o,list):
+        for v in o: walk(v)
+walk(d); print(n)" 2>/dev/null)
+[ "${seen:-0}" -ge 5 ] && ok || bad "оценок по фото ${seen:-0} — разбор снимка не участвовал"
 
 step "5. спека читается"
 pts=$(curl -s -H "$H" $BASE/jobs/$ID/spec | python3 -c "import json,sys; print(len(json.load(sys.stdin)['spec']['measurements']['points']))" 2>/dev/null)
@@ -106,9 +131,9 @@ step "18. чужой пак не виден"
 code=$(curl -s -o /dev/null -w '%{http_code}' -H "x-invite: 17059d0df20e14e19831" $BASE/jobs/$ID/spec)
 [ "$code" = "404" ] && ok || bad "чужой пак отдан ($code)"
 
-step "19. фото принимается с ракурсом"
-cnt=$(curl -s -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-front.png "$BASE/jobs/$ID/photos?view=front_flat" | python3 -c "import json,sys; print(json.load(sys.stdin).get('count',0))" 2>/dev/null)
-[ "${cnt:-0}" -ge 1 ] && ok || bad "фото не принято"
+step "19. второе фото добавляется к первому"
+cnt=$(curl -s -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-back.png "$BASE/jobs/$ID/photos?view=back_flat" | python3 -c "import json,sys; print(json.load(sys.stdin).get('count',0))" 2>/dev/null)
+[ "${cnt:-0}" -ge 2 ] && ok || bad "второе фото не принято (count=${cnt:-0})"
 
 step "20. пустой файл отклоняется"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$H" -H 'content-type: image/png' --data-binary "" "$BASE/jobs/$ID/photos")
