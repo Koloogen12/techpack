@@ -1101,7 +1101,10 @@ class Component extends DCLogic {
           return;
         }
         const catLabel = Object.keys(CAT_OF).find((k) => CAT_OF[k] === q.category.value) || null;
-        const fitLabel = FIT_RU[q.silhouette.value] || null;
+        // Посадку быстрая модель путает чаще прочего (loose вместо oversize):
+        // подставляем только при высокой уверенности, иначе выбор за человеком.
+        const fitLabel =
+          q.silhouette.confidence === 'high' ? FIT_RU[q.silhouette.value] || null : null;
         const matLabel = q.fabric_kind.value === 'woven' ? 'Ткань' : 'Трикотаж';
         this.setState((p) => ({
           quick: q,
@@ -2447,6 +2450,8 @@ class Component extends DCLogic {
         auto: false,
         opts: ['RU 44 / S', 'RU 46 / M', 'RU 48 / L'].map((l) => mkOpt('size', l)),
         extra: true,
+        extraLabel: 'для кого',
+        extraHint: '',
         extraOpts: ['Женское', 'Мужское'].map((l) => mkOpt('gender', l)),
       },
       {
@@ -2472,6 +2477,8 @@ class Component extends DCLogic {
         auto: false,
         opts: ['XS–XL', 'S–XXL', '42–52'].map((l) => mkOpt('range', l)),
         extra: true,
+        extraLabel: 'тираж',
+        extraHint: '',
         extraOpts: ['50', '100', '300', '500+'].map((l) => mkOpt('qty', l)),
       },
     ];
