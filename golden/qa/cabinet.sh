@@ -133,6 +133,16 @@ step "13g. список выгруженного — реальные файлы
 files=$(curl -s -H "$H" "$BASE/jobs/$ID/files" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d['files']), ','.join(f['name'] for f in d['files'][:3]))" 2>/dev/null)
 case "$files" in 0*|"") bad "файлов не видно: ${files:-нет ответа}";; *) ok "($files)";; esac
 
+step "13h. в кабинете не осталось данных макета"
+page=$(curl -s "http://127.0.0.1:8132/app/index.html")
+# Маркеры, которые once показывались НА ЖИВЫХ данных. Демо-ветки за флагом
+# DEMO сюда не входят: там макет показывается намеренно.
+bad_markers=""
+for m in "1 240 ₽" "≈ 38 мин" "15 июл, 18:40" "16 июл, 07:10 · по фото" "Превью PDF · страница 1 из 9"; do
+  echo "$page" | grep -q "$m" && bad_markers="$bad_markers $m"
+done
+[ -z "$bad_markers" ] && ok || bad "макет в сборке:$bad_markers"
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")

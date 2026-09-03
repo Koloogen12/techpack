@@ -1543,9 +1543,18 @@ class Component extends DCLogic {
     const doc = s.curSpec;
     const curJob = jobsLive && s.curId ? s.jobs.find((j) => j.id === s.curId) : null;
     const docNameVal = doc ? doc.style.name : curJob ? curJob.name : 'Структурный жакет';
-    const docArtVal = doc ? doc.style.article : '498BA296–123E';
-    const artShortVal = doc ? doc.style.article : '498BA296';
-    const docUpdatedVal = curJob ? fmtWhen(curJob.created_at) : '16 июл, 07:10';
+    const docArtVal = doc ? doc.style.article : DEMO ? '498BA296–123E' : '—';
+    const artShortVal = doc ? doc.style.article : DEMO ? '498BA296' : '—';
+    // Дефолты — только для демо-режима, где макет показывается намеренно.
+    // В живом кабинете выдуманная дата once уже уехала на экран версий и
+    // выглядела как настоящая: лучше прочерк, чем правдоподобная ложь.
+    const docUpdatedVal = curJob
+      ? fmtWhen(curJob.created_at)
+      : doc && doc.meta && doc.meta.generated_at
+        ? fmtWhen(doc.meta.generated_at)
+        : DEMO
+          ? '16 июл, 07:10'
+          : '—';
     const bru = doc && doc.base ? doc.base.base_size_ru || 46 : 46;
     // Остаток генераций: сервер — единственный источник правды, интерфейс
     // только показывает. До ответа /me держим месячную норму.
@@ -2534,8 +2543,8 @@ class Component extends DCLogic {
         extraHint:
           {
             50: 'малый тираж: фурнитуру берём из розничных партий — дороже на единицу',
-            100: 'при 100 ед: молния — партия от 100 м, материалы ≈ 1 240 ₽/ед',
-            300: '300 ед: оптовые цены полотна, −12% к материалам',
+            100: 'при 100 ед: фурнитура идёт партиями — шнур и люверсы дешевеют заметно',
+            300: '300 ед: полотно берётся рулонами — оптовая цена у поставщика',
             '500+': 'от 500 ед: имеет смысл просчёт у 2–3 фабрик сразу',
           }[s.picks.qty] || 'влияет на подсказки по закупке',
         extraOpts: ['50', '100', '300', '500+'].map((l) => mkOpt('qty', l)),
@@ -4018,8 +4027,8 @@ class Component extends DCLogic {
       qtyHint:
         {
           50: 'малый тираж: фурнитуру берём из розничных партий — дороже на единицу',
-          100: 'при 100 ед: молния — партия от 100 м, материалы ≈ 1 240 ₽/ед',
-          300: '300 ед: оптовые цены полотна, −12% к материалам',
+          100: 'при 100 ед: фурнитура идёт партиями — шнур и люверсы дешевеют заметно',
+          300: '300 ед: полотно берётся рулонами — оптовая цена у поставщика',
           '500+': 'от 500 ед: имеет смысл просчёт у 2–3 фабрик сразу',
         }[s.picks.qty] || 'влияет на подсказки по закупке',
       goHome: () => this.setState({ screen: 'home', toolMode: null, userMenu: false }),
@@ -4804,7 +4813,7 @@ class Component extends DCLogic {
           ? this.thumbUrl(lastJob.id) + ' 50% 50%/contain no-repeat,#fff'
           : 'url(assets/thumb.jpg) 50% 50%/cover no-repeat'),
       contName: (lastJob ? lastJob.name : 'Структурный жакет') + ' — Обзор',
-      contDate: lastJob ? fmtDay(lastJob.created_at) : '16 июл',
+      contDate: lastJob ? fmtDay(lastJob.created_at) : DEMO ? '16 июл' : '—',
       fabSize: doc ? INT_OF(bru, bru) + ' / RU ' + bru : 'M / RU 46',
       fabHeroBg:
         'position:absolute;inset:14px;background:' +
