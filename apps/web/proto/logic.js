@@ -1058,7 +1058,11 @@ class Component extends DCLogic {
       const room = (asRef ? 4 : 6) - (asRef ? this.state.refFiles.length : cur.length);
       const files = Array.from(input.files || []).slice(0, Math.max(0, room));
       if (!files.length) return;
+      // Самый первый файл — с любого входа: панель «Создать техпак» на главной
+      // ведёт сразу на второй шаг, и анкета должна быть заполнена к этому моменту.
+      const firstEver = this._files.length === 0;
       this._files = this._files.concat(files);
+      if (firstEver) this.quickLook(files[0]);
       const rows = files.map((f) => [
         URL.createObjectURL(f),
         f.name,
@@ -1071,9 +1075,6 @@ class Component extends DCLogic {
         ...(asRef ? { refFiles: p.refFiles.concat(files.map((f) => f.name)) } : {}),
       }));
       if (!asRef) this.showToast('Файл добавлен — ' + (cur.length + files.length) + ' из 6');
-      // Первый снимок сразу идёт на быстрый взгляд: к шагу 2 анкета уже
-      // заполнена, человеку остаётся подтвердить.
-      if (!asRef && cur.length === 0 && files[0]) this.quickLook(files[0]);
     };
     input.click();
   }
