@@ -568,6 +568,7 @@ class Component extends DCLogic {
     quickBusy: false,
     hasRender: false,
     docPages: 0,
+    jobFiles: [],
     picks: {
       cat: 'Худи',
       size: 'RU 46 / M',
@@ -1415,6 +1416,14 @@ class Component extends DCLogic {
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
+    if (!DEMO && TOKEN && this.state.curId) {
+      const fid = this.state.curId;
+      apiCall('/jobs/' + fid + '/files')
+        .then((r) => {
+          if (this.state.curId === fid) this.setState({ jobFiles: r.files || [] });
+        })
+        .catch(() => {});
+    }
     // Сколько листов в документе — считаем по самому документу, а не пишем
     // числом в вёрстке: у худи с принтом и у майки без него оно разное.
     if (!DEMO && TOKEN && this.state.curId) {
@@ -2175,7 +2184,13 @@ class Component extends DCLogic {
       ['Размерный ряд', 'XS–XL', 'user'],
       ['Конструктор', 'не назначен', 'lib'],
       ['Производство', 'не выбрано', 'lib'],
-      ['Ревизия', '1.0 · 16 июл', 'user'],
+      [
+        'Ревизия',
+        (doc ? 'v' + (doc.meta && doc.meta.version ? doc.meta.version : '1.0') : '1.0') +
+          ' · ' +
+          docUpdatedVal,
+        'user',
+      ],
     ];
     const info = infoData.map((r, i) => ({
       label: r[0],
@@ -3972,6 +3987,34 @@ class Component extends DCLogic {
       docPages: s.docPages
         ? s.docPages + ' ' + plural(s.docPages, 'лист', 'листа', 'листов')
         : 'первая страница',
+      // Итог под материалами: расход полотна — единственное, что мы считаем.
+      // Цена и норма времени приходят от фабрики по листу на просчёт.
+      // Вторая строка списка выгруженного — реальный файл работы.
+      file2Label: (() => {
+        const f = (s.jobFiles || []).filter((x) => x.name !== 'pack.pdf')[0];
+        return f ? f.label + ' · ' + Math.round(f.size / 1024) + ' КБ' : 'Других файлов пока нет';
+      })(),
+      file2At: (() => {
+        const f = (s.jobFiles || []).filter((x) => x.name !== 'pack.pdf')[0];
+        return f ? fmtWhen(f.at) : '—';
+      })(),
+      bomTotalLabel: (() => {
+        const b = doc && doc.bom;
+        const per = b && b.fabric_consumption_m && b.fabric_consumption_m.value;
+        if (!per) return 'Расход полотна считает фабрика по раскладке';
+        const qty = b.batch_qty;
+        const total = b.batch_consumption_m;
+        return (
+          'Расход основного полотна: ' +
+          String(per).replace('.', ',') +
+          ' м на изделие' +
+          (qty && total ? ' · ' + total + ' м на тираж ' + qty : '')
+        );
+      })(),
+      bomTotalNote:
+        doc && doc.bom && doc.bom.fabric_consumption_m
+          ? 'предварительно — фабрика уточняет по раскладке; цену и норму времени она же называет в просчёте'
+          : 'цену и норму времени называет фабрика в просчёте',
       qtyHint:
         {
           50: 'малый тираж: фурнитуру берём из розничных партий — дороже на единицу',

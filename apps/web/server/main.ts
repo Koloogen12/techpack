@@ -1207,6 +1207,27 @@ const server = createServer(async (req, res) => {
       // Визуализация изделия. Лежит файлом в джобе: раньше она жила только
       // внутри первого PDF как data-URI, и любая правка замера пересобирала
       // документ уже без картинки — молча.
+      // Что уже выгружено по этой работе. Прототип показывал два файла с
+      // датами из макета — 16 и 15 июля; человек видел «скачать снова» для
+      // файлов, которых никогда не было.
+      if (req.method === 'GET' && rest === '/files') {
+        const { statSync } = await import('node:fs');
+        const known: [string, string][] = [
+          ['pack.pdf', 'PDF полный'],
+          ['rfq.pdf', 'Лист на просчёт'],
+          ['flat-front.svg', 'Чертёж · перед'],
+          ['flat-back.svg', 'Чертёж · спинка'],
+          ['render.png', 'Визуализация'],
+        ];
+        const files = known
+          .filter(([name]) => existsSync(join(dir, name)))
+          .map(([name, label]) => {
+            const st = statSync(join(dir, name));
+            return { name, label, size: st.size, at: new Date(st.mtimeMs).toISOString() };
+          });
+        return json(res, 200, { files });
+      }
+
       if (req.method === 'GET' && rest === '/render') {
         const path = join(dir, 'render.png');
         if (!existsSync(path)) return json(res, 404, { error: 'визуализации нет' });

@@ -129,6 +129,10 @@ body=$(curl -s -H "$H" "$BASE/jobs/$ID/preview?frame=1")
 art=$(curl -s -H "$H" $BASE/jobs/$ID/spec | python3 -c "import json,sys; print(json.load(sys.stdin)['spec']['style']['article'])" 2>/dev/null)
 if echo "$body" | grep -q "$art" && ! echo "$body" | grep -q "Молния по асимметрии"; then ok "($art)"; else bad "превью не про этот пак"; fi
 
+step "13g. список выгруженного — реальные файлы работы"
+files=$(curl -s -H "$H" "$BASE/jobs/$ID/files" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d['files']), ','.join(f['name'] for f in d['files'][:3]))" 2>/dev/null)
+case "$files" in 0*|"") bad "файлов не видно: ${files:-нет ответа}";; *) ok "($files)";; esac
+
 step "14. публичная ссылка на пак"
 tok=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/share | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" 2>/dev/null)
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")

@@ -120,7 +120,37 @@ sub(
   1,
 );
 sub('Превью PDF · страница 1 из 9', 'Превью документа · {{ docPages }}', 1);
+
+// Итог под спецификацией материалов. Прототип обещал себестоимость и норму
+// времени — «≈ 1 240 ₽ · работа ≈ 38 мин». Ни цен материалов, ни норм времени
+// у нас нет: в справочнике время операций пусто намеренно, до интервью с
+// технологами. Показываем то, что действительно посчитано — расход полотна
+// на изделие и на тираж, — а цену называет фабрика по листу на просчёт.
+sub(
+  `Материалы на единицу при тираже 100: <span style="font-family:'JetBrains Mono',monospace">≈ 1 240 ₽</span> · работа <span style="font-family:'JetBrains Mono',monospace">≈ 38 мин</span>`,
+  `{{ bomTotalLabel }}`,
+  1,
+);
+sub(
+  'оценка по каталожным ценам — расход фабрика уточняет после раскладки',
+  '{{ bomTotalNote }}',
+  1,
+);
 sub('PDF полный · 9 страниц', 'PDF полный · {{ docPages }}', 1);
+
+// Список выгруженного. Прототип показывал два файла с датами макета —
+// «PDF полный · 16 июл» и «SVG послойный · 15 июл» — и предлагал скачать
+// снова то, чего никогда не было. Теперь строки приходят из файлов работы.
+sub(
+  `<span style="font:400 10.5px/15px Sora,sans-serif">SVG послойный · 4 слоя</span>`,
+  `<span style="font:400 10.5px/15px Sora,sans-serif">{{ file2Label }}</span>`,
+  1,
+);
+sub(
+  `<span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6">15 июл, 18:40</span>`,
+  `<span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6">{{ file2At }}</span>`,
+  1,
+);
 sub(
   `<span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6">16 июл, 07:12</span>`,
   `<span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6">{{ docUpdated }}</span>`,
