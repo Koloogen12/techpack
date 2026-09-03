@@ -97,6 +97,9 @@ export interface Messages {
   node_zone: string;
   node_name: string;
   node_seam: string;
+  /** Легенда к схемам швов под таблицей узлов. */
+  seam_legend_title: string;
+  seam_legend_body: string;
   node_stitch: string;
   node_spi: string;
   node_machine: string;

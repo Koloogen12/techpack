@@ -440,6 +440,15 @@ export class KnowledgeBase {
     return found;
   }
 
+  /**
+   * Шов, если он есть в справочнике. В отличие от seam() не бросает:
+   * документ рисует схему там, где устройство известно, и молча обходится
+   * без неё там, где нет, — код шва всё равно назван в таблице.
+   */
+  seamOrNull(code: string): SeamCode | null {
+    return this.seams.seams.find((s) => s.code === code) ?? null;
+  }
+
   machineParkProfile(id?: string): MachineParkProfile {
     const key = id ?? this.machinePark.default_profile;
     const found = this.machinePark.profiles.find((p) => p.id === key);

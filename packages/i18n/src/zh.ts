@@ -65,6 +65,10 @@ export const ZH: Messages = {
   node_zone: '部位',
   node_name: '工序',
   node_seam: '缝型',
+  seam_legend_title: '缝型示意图 — 剖面。',
+  seam_legend_body:
+    '黑色为面料层与折边，红色为线迹与包缝。示意图表示缝制结构，非比例：缝份数值见右侧栏。' +
+    '结构依据 ISO 4916，具体构型由工艺师在首件样衣上确认。',
   node_stitch: '线迹',
   node_spi: '针距',
   node_machine: '机器',

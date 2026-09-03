@@ -71,6 +71,11 @@ export const EN: Messages = {
   node_zone: 'Zone',
   node_name: 'Operation',
   node_seam: 'Seam',
+  seam_legend_title: 'Seam diagram — cross-section.',
+  seam_legend_body:
+    'Black shows fabric plies and folds, red shows stitch lines and edge overlocking. ' +
+    'The diagram shows how the seam is built, not its scale: the allowance is in the column beside it. ' +
+    'Construction per ISO 4916; the exact configuration is confirmed by the technologist on the first sample.',
   node_stitch: 'Stitch',
   node_spi: 'SPI',
   node_machine: 'Machine',

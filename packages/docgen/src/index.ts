@@ -6,3 +6,4 @@ export * from './layout.js';
 export * from './image.js';
 export * from './rfq.js';
 export * from './pom-csv.js';
+export * from './seam-diagram.js';

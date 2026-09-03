@@ -140,6 +140,42 @@ export const StitchCodesFileSchema = RefBookMetaSchema.extend({
   stitches: z.array(StitchCodeSchema).min(1),
 });
 
+/**
+ * Устройство шва в разрезе.
+ *
+ * Семантика, а не готовая графика: сколько слоёв, какие из них подогнуты и
+ * сколько раз, где идут строчки. Геометрию по этому описанию строит документ —
+ * иначе схему пришлось бы держать картинкой и править её руками при каждой
+ * смене толщины линий или размера листа.
+ */
+export const SeamDiagramSchema = z
+  .object({
+    /** Класс устройства: как слои лежат друг относительно друга. */
+    kind: z.enum([
+      'superimposed',
+      'lapped',
+      'bound',
+      'ornamental',
+      'patch',
+      'edge_fold',
+      'single_ply',
+    ]),
+    /** Сколько слоёв материала участвует, не считая окантовки. */
+    plies: z.number().int().min(1).max(4),
+    /** Подгибы: у какого слоя и сколько раз подогнут край. */
+    folds: z.array(
+      z.object({ ply: z.number().int().min(0).max(3), turns: z.number().int().min(1).max(2) }),
+    ),
+    /** Позиции строчек по ширине схемы, доля от 0 до 1. */
+    stitch_at: z.array(z.number().min(0).max(1)).min(1),
+    /** Что происходит в этом шве — одной фразой для подписи под схемой. */
+    note_ru: z.string().min(1),
+  })
+  .and(VerifiabilitySchema)
+  .superRefine(verifiabilityRefinement);
+
+export type SeamDiagram = z.infer<typeof SeamDiagramSchema>;
+
 /** Шов по ISO 4916 / ГОСТ 12807. */
 export const SeamCodeSchema = z
   .object({
@@ -150,6 +186,8 @@ export const SeamCodeSchema = z
     /** Класс ISO 4916: 1 superimposed … 8 ограниченный с двух сторон. */
     iso_class: z.number().int().min(1).max(8),
     application_ru: z.string().min(1),
+    /** Устройство в разрезе. Нет — схема не рисуется, и это честно. */
+    diagram: SeamDiagramSchema.optional(),
   })
   .and(VerifiabilitySchema)
   .superRefine(verifiabilityRefinement);

@@ -1,5 +1,6 @@
 import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamster/core';
 import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
+import { seamDiagramSvg } from './seam-diagram.js';
 import {
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -1890,6 +1891,7 @@ function artworkCostLine(spec: StyleSpec): string {
 function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
   const c = spec.construction;
   if (!c) return [];
+  const base = kb();
 
   const MACHINE = { ru: MACHINE_LABEL_RU, en: MACHINE_LABEL_EN, zh: MACHINE_LABEL_ZH }[locale];
   const ZONE = { ru: ZONE_LABEL_RU, en: ZONE_LABEL_EN, zh: ZONE_LABEL_ZH }[locale];
@@ -1910,7 +1912,8 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
   const nodeHead =
     `<tr><th>№</th><th>${esc(t.node_zone)}</th><th>${esc(t.node_name)}</th>` +
     (pro
-      ? `<th>${esc(t.node_seam)} / ${esc(t.node_stitch)}</th>` +
+      ? `<th class="dia">${esc(t.node_seam)}</th>` +
+        `<th>${esc(t.node_seam)} / ${esc(t.node_stitch)}</th>` +
         `<th class="num">${esc(t.node_spi)}</th><th>${esc(t.node_machine)}</th>`
       : '') +
     `<th class="num">${esc(t.node_allowance)}</th><th class="mark">●</th></tr>`;
@@ -1938,7 +1941,14 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
             : '') +
           `</td>` +
           (pro
-            ? `<td class="mono">${n.seam_code}/${n.stitch_code}</td>` +
+            ? `<td class="dia">${
+                seamDiagramSvg(base.seamOrNull(n.seam_code)?.diagram, {
+                  stitchCode: n.stitch_code,
+                  machine: n.machine,
+                  widthMm: 22,
+                }) ?? ''
+              }</td>` +
+              `<td class="mono">${n.seam_code}/${n.stitch_code}</td>` +
               `<td class="num mono">${n.spi}</td>` +
               `<td class="note">${esc(machine(n.machine))}</td>`
             : '') +
@@ -1949,7 +1959,17 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
       })
       .join('');
 
-    return `<h2>${esc(t.section_construction)}</h2><table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>`;
+    // Легенда к схемам — один раз, на первом листе конструкции. Без неё
+    // красные штрихи читаются как «здесь что-то важное», а не как строчка.
+    const legend =
+      pro && page === 0
+        ? `<div class="note" style="margin-top:3mm">` +
+          `<b>${esc(t.seam_legend_title)}</b> ${esc(t.seam_legend_body)}</div>`
+        : '';
+    return (
+      `<h2>${esc(t.section_construction)}</h2>` +
+      `<table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>${legend}`
+    );
   });
 
   // Перевод операции едет со снапшотом. Если его там нет (документ собран

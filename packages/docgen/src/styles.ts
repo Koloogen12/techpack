@@ -98,6 +98,11 @@ html, body {
    и в поток не входит, поэтому без запаса содержимое ложится на него. */
 .body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: 9mm; }
 
+/* --- Схема шва в разрезе. Колонка узкая: рисунок читается и в ней. --- */
+th.dia { width: 24mm; }
+td.dia { width: 24mm; padding: 0.6mm 1mm; text-align: center; vertical-align: middle; }
+td.dia svg { display: block; margin: 0 auto; }
+
 /* --- Футер: три части. Seamster живёт здесь, а не в шапке. --- */
 .foot {
   position: absolute;
