@@ -103,3 +103,111 @@ export function sheetBoxes(pixels: SheetPixels): SheetBox[] | null {
 }
 
 const clamp = (v: number): number => Math.min(1, Math.max(0, Math.round(v * 10000) / 10000));
+
+/** Маска изделия на вырезке вида: 1 — вещь (включая линии), 0 — бумага снаружи. */
+export interface GarmentMask {
+  mask: Uint8Array;
+  /** Габарит маски в пикселях; null — вещи на листе не нашлось. */
+  bbox: { x0: number; y0: number; x1: number; y1: number } | null;
+  /** Доля пикселей под маской — сторож от пустых и залитых листов. */
+  coverage: number;
+}
+
+/** Яркость выше — чистая бумага, по ней растекается «снаружи». */
+const PAPER = 235;
+
+/**
+ * Где на вырезке вещь, а где бумага вокруг неё.
+ *
+ * Нужна, чтобы положить на эскиз цвет колорвея или раппорт: заливка идёт
+ * под линии только внутри вещи. Снаружи — всё, куда растекается бумага от
+ * краёв листа; вещь — остальное, включая замкнутые «окна» вроде внутренней
+ * стороны капюшона: они той же ткани. Бумага считается проходимой лишь там,
+ * где чиста вся окрестность 3×3 — так разрывы контура до двух пикселей
+ * не пускают заливку внутрь. Ореол в один пиксель у линий снимается обратно.
+ */
+export function garmentMask(pixels: SheetPixels): GarmentMask {
+  const { width, height, luma } = pixels;
+  const n = width * height;
+  const empty: GarmentMask = { mask: new Uint8Array(n), bbox: null, coverage: 0 };
+  if (width < 3 || height < 3 || luma.length < n) return empty;
+
+  const paper = (x: number, y: number): boolean =>
+    x < 0 || y < 0 || x >= width || y >= height || (luma[y * width + x] ?? 255) >= PAPER;
+  const passable = new Uint8Array(n);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let ok = true;
+      for (let dy = -1; dy <= 1 && ok; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          if (!paper(x + dx, y + dy)) {
+            ok = false;
+            break;
+          }
+      if (ok) passable[y * width + x] = 1;
+    }
+  }
+
+  const outside = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  let head = 0;
+  let tail = 0;
+  const push = (i: number): void => {
+    if (outside[i] || !passable[i]) return;
+    outside[i] = 1;
+    queue[tail++] = i;
+  };
+  for (let x = 0; x < width; x++) {
+    push(x);
+    push((height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y++) {
+    push(y * width);
+    push(y * width + width - 1);
+  }
+  while (head < tail) {
+    const i = queue[head++]!;
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x > 0) push(i - 1);
+    if (x < width - 1) push(i + 1);
+    if (y > 0) push(i - width);
+    if (y < height - 1) push(i + width);
+  }
+  // Ореол: бумага, соседняя с «снаружи», — тоже снаружи, иначе у контура
+  // остаётся окрашенная кайма в пиксель.
+  const halo: number[] = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (outside[i] || !paper(x, y)) continue;
+      if (
+        (x > 0 && outside[i - 1]) ||
+        (x < width - 1 && outside[i + 1]) ||
+        (y > 0 && outside[i - width]) ||
+        (y < height - 1 && outside[i + width])
+      )
+        halo.push(i);
+    }
+  }
+  for (const i of halo) outside[i] = 1;
+
+  const mask = new Uint8Array(n);
+  let count = 0;
+  let x0 = width;
+  let y0 = height;
+  let x1 = -1;
+  let y1 = -1;
+  for (let i = 0; i < n; i++) {
+    if (outside[i]) continue;
+    mask[i] = 1;
+    count++;
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  return { mask, bbox: count ? { x0, y0, x1, y1 } : null, coverage: count / n };
+}

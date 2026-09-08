@@ -38,6 +38,7 @@ import { chromium, type Browser } from 'playwright';
 import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
 import {
   cropImage,
+  fillGarment,
   fitImage,
   renderPdf,
   sheetLuma,
@@ -53,6 +54,7 @@ import {
   sketchFileName,
   sketchMismatch,
   visualize,
+  garmentMask,
   sheetBoxes,
   type ReferenceImage,
   type SheetBox,
@@ -444,7 +446,53 @@ async function readSwatches(
   return { swatches, bytes, notes };
 }
 
-const SKETCH_FILE = /^sketch(-front|-side|-back)?\.(jpg|png)$|^sketch-views\.json$/;
+const SKETCH_FILE =
+  /^sketch(-front|-side|-back)?\.(jpg|png)$|^sketch-views\.json$|^sketch-(colorway-[A-Za-z0-9_-]+|pattern)\.jpg$/;
+
+/** Заливки на эскизе: цвет каждого колорвея и раппорт — на вырезке переда. */
+export interface SketchFills {
+  colorways: Record<string, DocImage>;
+  pattern?: DocImage;
+}
+
+/**
+ * Цвет колорвеев и раппорт — на эскизе, а не на параметрической схеме.
+ *
+ * Маска изделия читается с вырезки переда (`garmentMask`), заливка ложится
+ * под линии только внутри неё. Шаг раппорта приведён к масштабу изделия:
+ * высота маски в пикселях против высоты изделия в сантиметрах из построения
+ * по табелю. Эскиз приближённый, поэтому и шаг приближённый — лист об этом
+ * говорит. Пустая или залитая маска — заливок нет: гадать хуже, чем не красить.
+ */
+async function sketchFills(
+  browser: Browser,
+  front: DocImage,
+  spec: StyleSpec,
+  tileBytes: Uint8Array | null | undefined,
+): Promise<SketchFills | null> {
+  const pixels = await sheetLuma(browser, front.dataUri, 100_000);
+  if (!pixels) return null;
+  const gm = garmentMask(pixels);
+  if (!gm.bbox || gm.coverage < 0.02 || gm.coverage > 0.9) return null;
+  const fills: SketchFills = { colorways: {} };
+  for (const c of spec.bom?.colorways ?? []) {
+    const hex = c.swatch?.hex ?? c.hex_approx ?? null;
+    if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex) || !/^[A-Za-z0-9_-]+$/.test(c.id)) continue;
+    const uri = await fillGarment(browser, front.dataUri, gm.mask, { color: hex });
+    if (uri) fills.colorways[c.id] = { dataUri: uri };
+  }
+  const allover = spec.artwork?.placements.find((a) => a.kind === 'allover');
+  if (tileBytes && allover) {
+    const garmentCm = renderFlatsFromSpec(spec, flatDefaults(spec)).front.viewBox.height;
+    const pxPerCm = (gm.bbox.y1 - gm.bbox.y0 + 1) / Math.max(1, garmentCm);
+    const uri = await fillGarment(browser, front.dataUri, gm.mask, {
+      tile: `data:image/png;base64,${Buffer.from(tileBytes).toString('base64')}`,
+      tilePx: allover.size_cm.width.value * pxPerCm,
+    });
+    if (uri) fills.pattern = { dataUri: uri };
+  }
+  return Object.keys(fills.colorways).length || fills.pattern ? fills : null;
+}
 
 /** Лист, вырезки и границы видов прошлой сборки снимаются разом. */
 function clearSketchFiles(dir: string): void {
@@ -462,9 +510,17 @@ export function writeSketchFiles(
   dir: string,
   checked: { bytes: Uint8Array; mediaType: string },
   cut: { views: Partial<Record<SheetView, DocImage>>; boxes: SheetBox[] } | null,
+  fills: SketchFills | null = null,
 ): void {
   clearSketchFiles(dir);
   writeFileSync(join(dir, sketchFileName(checked.mediaType)), checked.bytes);
+  const writeJpeg = (name: string, image: DocImage): void => {
+    const m = /^data:image\/jpeg;base64,(.+)$/.exec(image.dataUri);
+    if (m) writeFileSync(join(dir, name), Buffer.from(m[1]!, 'base64'));
+  };
+  for (const [id, image] of Object.entries(fills?.colorways ?? {}))
+    writeJpeg(`sketch-colorway-${id}.jpg`, image);
+  if (fills?.pattern) writeJpeg('sketch-pattern.jpg', fills.pattern);
   if (!cut) return;
   // Границы видов — рядом: по ним слой правок ложится на вырезки тем же
   // окном, что и на лист, а кабинет знает, какой вид где на листе.
@@ -504,6 +560,8 @@ export interface RedrawOptions {
   photoPaths: readonly string[];
   cacheDir?: string;
   renderCacheDir?: string;
+  /** Где лежат тайлы раппорта бренда — как у сборки. */
+  tileDir?: string;
   logger?: GenerateOptions['logger'];
 }
 
@@ -544,8 +602,12 @@ export async function redrawSketch(input: RedrawOptions): Promise<RedrawResult> 
     );
     if (!checked.ok) return { ok: false, reason: checked.reason, userMessage: checked.userMessage };
     const cut = await cutSketchViews(browser, checked);
+    const tile = readTile(input.spec, input.tileDir ?? 'brand-library/artwork');
+    const fills = cut?.views.front
+      ? await sketchFills(browser, cut.views.front, input.spec, tile)
+      : null;
     archiveSketch(input.dir);
-    writeSketchFiles(input.dir, checked, cut);
+    writeSketchFiles(input.dir, checked, cut, fills);
     return { ok: true, views: cut ? cut.boxes.map((b) => b.view) : [] };
   } finally {
     await browser.close();
@@ -1005,6 +1067,10 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // в кабинете показывают эту вещь, а не библиотечный силуэт похожей.
   const cut = checked.ok ? await cutSketchViews(browser, checked) : null;
   const sketchViews = cut?.views ?? null;
+  // Цвет колорвеев и раппорт — на этом же эскизе, под линиями переда.
+  const fills = cut?.views.front
+    ? await sketchFills(browser, cut.views.front, spec, tileBytes)
+    : null;
 
   // --- История версий -------------------------------------------------------
   // Прошлая версия НЕ переписывается: спор с фабрикой разрешается сверкой
@@ -1079,6 +1145,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       ...(library ? { libraryFlats: library } : {}),
       ...(sketchViews ? { sketchViews } : {}),
       ...(cut ? { sketchBoxes: cut.boxes } : {}),
+      ...(fills ? { sketchColorways: fills.colorways } : {}),
+      ...(fills?.pattern ? { sketchPattern: fills.pattern } : {}),
     };
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
     // Картинка кладётся файлом рядом с документом: кабинет её показывает,
@@ -1102,7 +1170,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Эскиз тоже кладётся файлом: он рисуется один раз и дальше не меняется.
     // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
     // документа держится именно на хранении, а не на детерминизме модели.
-    if (checked.ok) writeSketchFiles(dirname(options.outPath), checked, cut);
+    if (checked.ok) writeSketchFiles(dirname(options.outPath), checked, cut, fills);
     else {
       clearSketchFiles(dirname(options.outPath));
       if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);

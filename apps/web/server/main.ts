@@ -278,6 +278,19 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
   if (!library && !render && !sketch && photos.length === 0) return null;
   const sketchEdits = sketchEditsOf(dir);
   const sketchBoxes = sketchBoxesOf(dir);
+  // Заливки на эскизе: цвет колорвеев и раппорт — файлы рядом с листом.
+  const sketchColorways: Record<string, DocImage> = {};
+  for (const name of existsSync(dir) ? readdirSync(dir) : []) {
+    const m = /^sketch-colorway-([A-Za-z0-9_-]+)\.jpg$/.exec(name);
+    if (m)
+      sketchColorways[m[1]!] = {
+        dataUri: `data:image/jpeg;base64,${readFileSync(join(dir, name)).toString('base64')}`,
+      };
+  }
+  const patternPath = join(dir, 'sketch-pattern.jpg');
+  const sketchPattern = existsSync(patternPath)
+    ? { dataUri: `data:image/jpeg;base64,${readFileSync(patternPath).toString('base64')}` }
+    : null;
   return {
     ...(library ? { libraryFlats: { [locale]: library } } : {}),
     ...(render ? { render } : {}),
@@ -285,6 +298,8 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
     ...(Object.keys(sketchViews).length ? { sketchViews } : {}),
     ...(sketchBoxes.length ? { sketchBoxes } : {}),
     ...(sketchEdits ? { sketchEdits } : {}),
+    ...(Object.keys(sketchColorways).length ? { sketchColorways } : {}),
+    ...(sketchPattern ? { sketchPattern } : {}),
     ...(photos.length ? { photos } : {}),
   };
 }

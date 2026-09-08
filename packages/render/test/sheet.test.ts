@@ -71,3 +71,58 @@ describe('разрезка листа эскиза на виды', () => {
     }
   });
 });
+
+import { garmentMask } from '../src/index.js';
+
+/** Белый лист с чёрными прямоугольными контурами толщиной 2 px. */
+function outlined(width: number, height: number, rects: [number, number, number, number][]) {
+  const luma = new Uint8Array(width * height).fill(255);
+  const set = (x: number, y: number) => {
+    if (x >= 0 && y >= 0 && x < width && y < height) luma[y * width + x] = 0;
+  };
+  for (const [x0, y0, x1, y1] of rects) {
+    for (let x = x0; x <= x1; x++) for (const y of [y0, y0 + 1, y1 - 1, y1]) set(x, y);
+    for (let y = y0; y <= y1; y++) for (const x of [x0, x0 + 1, x1 - 1, x1]) set(x, y);
+  }
+  return { width, height, luma };
+}
+
+describe('маска изделия на вырезке', () => {
+  const at = (m: Uint8Array, w: number, x: number, y: number): number => m[y * w + x]!;
+
+  it('внутри контура — вещь, снаружи — бумага, линии — вещь', () => {
+    const px = outlined(100, 100, [[20, 20, 80, 80]]);
+    const { mask, bbox, coverage } = garmentMask(px);
+    expect(at(mask, 100, 50, 50)).toBe(1);
+    expect(at(mask, 100, 5, 5)).toBe(0);
+    expect(at(mask, 100, 20, 50)).toBe(1);
+    expect(bbox).toEqual({ x0: 20, y0: 20, x1: 80, y1: 80 });
+    expect(coverage).toBeCloseTo((61 * 61) / 10000, 2);
+  });
+
+  it('замкнутое окно внутри вещи — тоже вещь: внутренняя сторона капюшона той же ткани', () => {
+    const px = outlined(100, 100, [
+      [10, 10, 90, 90],
+      [40, 40, 60, 60],
+    ]);
+    expect(at(garmentMask(px).mask, 100, 50, 50)).toBe(1);
+  });
+
+  it('разрыв контура до двух пикселей заливку внутрь не пускает', () => {
+    const px = outlined(100, 100, [[20, 20, 80, 80]]);
+    for (const y of [20, 21]) for (const x of [49, 50]) px.luma[y * 100 + x] = 255;
+    expect(at(garmentMask(px).mask, 100, 50, 50)).toBe(1);
+  });
+
+  it('у контура нет окрашенной каймы снаружи', () => {
+    const px = outlined(100, 100, [[20, 20, 80, 80]]);
+    const { mask } = garmentMask(px);
+    expect(at(mask, 100, 19, 50)).toBe(0);
+    expect(at(mask, 100, 50, 19)).toBe(0);
+  });
+
+  it('пустой лист — маски нет', () => {
+    const px = { width: 50, height: 50, luma: new Uint8Array(2500).fill(255) };
+    expect(garmentMask(px).bbox).toBeNull();
+  });
+});

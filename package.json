@@ -46,7 +46,8 @@
     "qa:sweep": "tsx golden/qa/sweep.ts",
     "qa:consistency": "tsx golden/qa/consistency.ts",
     "qa:cabinet": "./golden/qa/cabinet.sh",
-    "brand:logo": "tsx brand-kit/logo/build.ts"
+    "brand:logo": "tsx brand-kit/logo/build.ts",
+    "sketches:refresh": "tsx --env-file-if-exists=.env apps/cli/src/sketches-refresh.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

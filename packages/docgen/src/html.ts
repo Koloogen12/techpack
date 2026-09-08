@@ -179,6 +179,18 @@ export interface DocVisuals {
    */
   sketchEdits?: SketchEdits;
   /**
+   * Эскиз переда, залитый цветом колорвея — по идентификатору колорвея.
+   *
+   * Заменяет параметрическую схему в цвете: та была третьим рисунком одной
+   * вещи. Заливка лежит под линиями только внутри маски изделия.
+   */
+  sketchColorways?: Readonly<Record<string, DocImage>>;
+  /**
+   * Эскиз переда с раппортом под линиями. Шаг приведён к масштабу изделия
+   * по высоте из табеля мер; эскиз приближённый — лист об этом говорит.
+   */
+  sketchPattern?: DocImage;
+  /**
    * Тайл раппорта для превью на изделии.
    *
    * Чертёж рисуется в сантиметрах, поэтому шаг здесь РАЗМЕРНО ТОЧЕН: 24 см
@@ -1034,7 +1046,30 @@ function artworkPages(
   // Название полотна рибаны берётся из спецификации, а не пишется словом:
   // если бренд заменит кашкорсе, лист обязан сказать об этом сам.
   const ribName = spec.bom?.lines.find((l) => l.role === 'rib')?.name_ru ?? 'отдельное полотно';
-  if (tile && allover && safeDataUri(tile.dataUri)) {
+  const onSketch = visuals?.sketchPattern && safeDataUri(visuals.sketchPattern.dataUri);
+  if (allover && onSketch) {
+    // Раппорт на эскизе этой вещи, а не на параметрической схеме: тот же
+    // рисунок, что на листе чертежа. Шаг приведён к масштабу по высоте
+    // изделия из табеля — эскиз приближённый, и лист говорит это вслух.
+    pages.push(
+      `<h2>Как раппорт ляжет на изделие</h2>` +
+        `<div class="flat">` +
+        `<figure class="raster"><div class="sheet"><img class="sketch-view" src="${onSketch}" alt=""></div>` +
+        `<figcaption class="ml">Перед</figcaption></figure>` +
+        `</div>` +
+        `<div class="note" style="margin-top:3mm">Шаг раппорта приведён к масштабу изделия ` +
+        `по высоте из табеля мер: ${num(allover.size_cm.width.value)} см на изделии дают ` +
+        `около ${num(allover.size_cm.width.value)} см на рисунке. Эскиз приближённый, ` +
+        `поэтому и шаг здесь с точностью порядка десятой доли — точный шаг задан ` +
+        `в паспорте печати. ` +
+        `<b>Рибаны не печатаются</b>, хотя на эскизе рисунок показан и на них: пояс, ` +
+        `манжеты и бейка кроятся из отдельного полотна (${esc(ribName)}), и при печати ` +
+        `полотна до раскроя рисунок на них не попадает — цвет-компаньон задаёт бренд. ` +
+        `<span class="flag">не для замеров</span> ` +
+        `Раскладка мотивов на готовом изделии зависит от раскроя и совпадёт не в точности: ` +
+        `рисунок непрерывен по полотну, а не по контуру детали.</div>`,
+    );
+  } else if (tile && allover && safeDataUri(tile.dataUri)) {
     const flats = renderFlatsFromSpec(spec, {
       ...flatDefaults(spec),
       layers: ['pattern', 'outline', 'seams', 'stitches'],
@@ -1649,9 +1684,15 @@ function colorwayPages(
       );
     }
 
+    // Порядок: фотореализм → эскиз в цвете → параметрическая схема. Эскиз
+    // в цвете — тот же рисунок, что на листе чертежа, только под линиями
+    // лежит цвет: одна вещь на всех листах.
+    const raster = visuals?.sketchColorways?.[c.id];
     const visual = render
       ? `<div class="frame">${imgTag(render)}</div>`
-      : `<div class="cw-flat">${hex ? flatOf(hex) : tbc('чертёж в цвете — задайте цвет колорвея')}</div>`;
+      : raster
+        ? `<div class="cw-flat cw-raster">${imgTag(raster)}</div>`
+        : `<div class="cw-flat">${hex ? flatOf(hex) : tbc('чертёж в цвете — задайте цвет колорвея')}</div>`;
 
     return (
       `<div class="cw" data-colorway="${esc(c.id)}">` +

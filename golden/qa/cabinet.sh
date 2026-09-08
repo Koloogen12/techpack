@@ -29,7 +29,8 @@ ID=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d '{
   "id":"qa","name":"QA прогон","article":"QA-E2E-001","category":"hoodie",
   "gender":"women","base_size_ru":46,"base_height_cm":170,
   "fit_intent":"oversize","fabric_kind":"knit","size_range":[44,46,48],
-  "machine_park":"base_shop","batch_qty":100
+  "machine_park":"base_shop","batch_qty":100,
+  "colorways":[{"id":"black","name_ru":"Чёрный","hex_approx":"#1A1A1A"},{"id":"ecru","name_ru":"Экрю","hex_approx":"#EFE6D3"}]
 }' $BASE/jobs | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
 [ -n "$ID" ] && ok || { bad "пак не создан"; exit 1; }
 
@@ -257,6 +258,16 @@ if [ "$code" = "200" ]; then
   esac
 else
   ok "(эскиза нет — перерисовывать нечего)"
+fi
+
+step "13t. колорвеи в цвете — на эскизе этой вещи, не на параметрической схеме"
+if [ "$code" = "200" ]; then
+  cw=$(curl -s -H "$H" "$BASE/jobs/$ID/preview" | grep -o 'cw-raster' | wc -l | tr -d ' ')
+  # Два колорвея заданы анкетой — два эскиза в цвете. Схема осталась бы
+  # третьим рисунком одной вещи.
+  [ "${cw:-0}" -ge 2 ] && ok "(эскизов в цвете: $cw)" || bad "колорвеи не легли на эскиз (cw-raster: ${cw:-0})"
+else
+  ok "(эскиза нет — колорвеи на схеме)"
 fi
 
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"

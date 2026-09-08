@@ -167,3 +167,97 @@ export async function cropImage(
     await page.close();
   }
 }
+
+export type GarmentFill = { color: string } | { tile: string; tilePx: number };
+
+/**
+ * Цвет или раппорт под линиями эскиза — только внутри маски изделия.
+ *
+ * Заливка умножается на штрих: чёрные линии остаются чёрными, бумага под
+ * маской становится цветом или узором, снаружи маски ничего не меняется.
+ * Так колорвей и раппорт ложатся на ТОТ ЖЕ рисунок, что и весь документ,
+ * а не на параметрическую схему — третьего худи в паке больше нет.
+ * Раппорт повторяется с шагом `tilePx`: он посчитан снаружи по высоте
+ * изделия из табеля мер, здесь только рисуется.
+ */
+export async function fillGarment(
+  browser: Browser,
+  dataUri: string,
+  mask: Uint8Array,
+  fill: GarmentFill,
+): Promise<string | null> {
+  const page = await browser.newPage();
+  try {
+    const maskB64 = Buffer.from(mask).toString('base64');
+    return await page.evaluate(
+      async ([uri, m64, f]: [string, string, GarmentFill]) => {
+        const img = new Image();
+        img.src = uri;
+        try {
+          await img.decode();
+        } catch {
+          return null;
+        }
+        const W = img.naturalWidth;
+        const H = img.naturalHeight;
+        const bin = atob(m64);
+        if (bin.length !== W * H) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, 0, 0);
+        const base = ctx.getImageData(0, 0, W, H);
+
+        const layer = document.createElement('canvas');
+        layer.width = W;
+        layer.height = H;
+        const lctx = layer.getContext('2d');
+        if (!lctx) return null;
+        if ('color' in f) {
+          lctx.fillStyle = f.color;
+          lctx.fillRect(0, 0, W, H);
+        } else {
+          const tile = new Image();
+          tile.src = f.tile;
+          try {
+            await tile.decode();
+          } catch {
+            return null;
+          }
+          const tw = Math.max(2, Math.round(f.tilePx));
+          const th = Math.max(2, Math.round((f.tilePx * tile.naturalHeight) / tile.naturalWidth));
+          const tc = document.createElement('canvas');
+          tc.width = tw;
+          tc.height = th;
+          const tctx = tc.getContext('2d');
+          if (!tctx) return null;
+          tctx.drawImage(tile, 0, 0, tw, th);
+          const pattern = lctx.createPattern(tc, 'repeat');
+          if (!pattern) return null;
+          lctx.fillStyle = pattern;
+          lctx.fillRect(0, 0, W, H);
+        }
+        const fillData = lctx.getImageData(0, 0, W, H).data;
+        const out = base.data;
+        for (let i = 0; i < W * H; i++) {
+          if (bin.charCodeAt(i) !== 1) continue;
+          const o = i * 4;
+          out[o] = Math.round(((fillData[o] ?? 255) * (out[o] ?? 255)) / 255);
+          out[o + 1] = Math.round(((fillData[o + 1] ?? 255) * (out[o + 1] ?? 255)) / 255);
+          out[o + 2] = Math.round(((fillData[o + 2] ?? 255) * (out[o + 2] ?? 255)) / 255);
+        }
+        ctx.putImageData(base, 0, 0);
+        return canvas.toDataURL('image/jpeg', 0.9);
+      },
+      [dataUri, maskB64, fill] as [string, string, GarmentFill],
+    );
+  } catch {
+    return null;
+  } finally {
+    await page.close();
+  }
+}

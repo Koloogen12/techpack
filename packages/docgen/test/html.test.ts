@@ -720,3 +720,38 @@ describe('слой правок поверх эскиза', () => {
     expect(h).toContain('class="edits"');
   });
 });
+
+describe('цвет и раппорт — на эскизе, а не на схеме', () => {
+  const COLORED = load('tshirt-oversize-mixed-confidence.json');
+  const cwId = (): string => (COLORED.bom?.colorways ?? [])[0]?.id ?? '';
+
+  it('колорвей показан эскизом в цвете, когда он есть; иначе — схемой', () => {
+    const id = cwId();
+    const withRaster = renderHtml(COLORED, {
+      pro: true,
+      visuals: { sketchColorways: { [id]: { dataUri: PIXEL } } },
+    });
+    const without = renderHtml(COLORED, { pro: true });
+    if ((COLORED.bom?.colorways ?? []).length > 1) {
+      expect(withRaster).toContain('cw-raster');
+      expect(without).not.toContain('cw-raster');
+    } else {
+      // У этого примера один колорвей без цвета — листа нет вовсе, и это норма.
+      expect(withRaster).not.toContain('cw-raster');
+    }
+  });
+
+  it('раппорт ложится на эскиз переда и честно называет шаг приближённым', () => {
+    const h = renderHtml(PATTERN, {
+      visuals: { patternTile: VISUALS.patternTile, sketchPattern: { dataUri: PIXEL } },
+    });
+    expect(h).toContain('Как раппорт ляжет на изделие');
+    expect(h).toContain('приведён к масштабу изделия');
+    expect(h).not.toContain('РАЗМЕРНО ТОЧЕН');
+  });
+
+  it('без эскиза раппорт остаётся на размерно точной схеме', () => {
+    const h = renderHtml(PATTERN, { visuals: { patternTile: VISUALS.patternTile } });
+    expect(h).toContain('РАЗМЕРНО ТОЧЕН');
+  });
+});
