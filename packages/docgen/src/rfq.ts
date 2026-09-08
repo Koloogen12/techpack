@@ -51,7 +51,7 @@ export interface RfqOptions {
    * библиотечный, и два документа об одном изделии выглядели бы по-разному.
    * Фабрика замечает такое первой: «а это точно та же вещь?»
    */
-  flat?: { svg: string } | undefined;
+  flat?: { svg: string } | { image: string } | undefined;
   /**
    * Ссылка на полный техпак.
    *
@@ -249,11 +249,17 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
   // листе внутри картинки стояло «ПЕРЕД». Передаём подписи на языке листа —
   // это единственное место, где русское слово пролезало сквозь всю
   // локализацию, потому что жило не в разметке, а в графике.
+  // Вырезка из эскиза, когда она есть; силуэт библиотеки — следом; построение
+  // по спеке — без обоих. Тот же порядок, что у обложки пака.
+  const flat = options.flat;
   const sketch =
-    options.flat?.svg ??
-    renderFlatsFromSpec(spec, {
-      viewLabels: { front: t.view_front, back: t.view_back, side: t.view_side },
-    }).front.svg;
+    flat && 'image' in flat
+      ? `<img src="${flat.image}" alt="">`
+      : flat && 'svg' in flat
+        ? flat.svg
+        : renderFlatsFromSpec(spec, {
+            viewLabels: { front: t.view_front, back: t.view_back, side: t.view_side },
+          }).front.svg;
   const contact = options.contact;
   const highlights = rfqHighlights(spec, locale);
 
@@ -323,6 +329,7 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
   td.v { font-family: Inter, Arial, sans-serif; font-weight: 300; color: #C0392B; }
   .sketch { border: 1px solid #E4E1DC; border-radius: 2mm; padding: 3mm; }
   .sketch svg { width: 100%; height: auto; max-height: 60mm; }
+  .sketch img { width: 100%; height: auto; max-height: 60mm; object-fit: contain; display: block; mix-blend-mode: multiply; }
   .sketch figcaption { margin: 2mm 0 0; font-size: 7pt; letter-spacing: 1.2px; text-transform: uppercase; color: #6B6B67; text-align: center; }
   h2 { font-size: 10pt; margin: 6mm 0 2mm; }
   ul { margin: 0; padding-left: 4.5mm; line-height: 1.5; }

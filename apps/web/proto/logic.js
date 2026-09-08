@@ -578,6 +578,7 @@ class Component extends DCLogic {
     docPages: 0,
     jobFiles: [],
     jobPhotos: [],
+    jobSketchViews: [],
     cmp: false,
     cmpShot: 0,
     picks: {
@@ -1042,6 +1043,17 @@ class Component extends DCLogic {
   }
 
   /**
+   * Есть ли у эскиза вырезанный вид: перед, бок или спинка.
+   *
+   * Вырезки режет генератор из того же листа. Пока их нет, отдельный вид
+   * рисует библиотечный силуэт — похожая вещь, а не эта; с ними чип «Перед»
+   * показывает то же худи, что и «Все виды».
+   */
+  hasSketchView(view) {
+    return (this.state.jobSketchViews || []).indexOf(view) !== -1;
+  }
+
+  /**
    * Снимок заказчика для сравнения с рисунком — под текущий вид.
    *
    * Перед сравнивают с фото переда, спинку — со спинкой; на «все виды»
@@ -1121,7 +1133,7 @@ class Component extends DCLogic {
       {
         bg: tag('right', false),
         label:
-          this.hasSketch() && s.view === 'all'
+          (this.hasSketch() && s.view === 'all') || this.hasSketchView(s.view)
             ? 'Эскиз · по узлам этой вещи'
             : s.silh && s.silh.id
               ? 'Силуэт · библиотека'
@@ -1150,6 +1162,21 @@ class Component extends DCLogic {
         'url("/app/api/jobs/' +
         s.curId +
         '/sketch?t=' +
+        encodeURIComponent(TOKEN || '') +
+        '&n=' +
+        (s.flatNonce || 0) +
+        '")'
+      );
+    }
+    // Отдельный вид — вырезка ТОГО ЖЕ листа, а не библиотечный силуэт:
+    // силуэт рядом с эскизом читался как другое изделие.
+    if (view !== 'all' && s.curId && this.hasSketchView(view)) {
+      return (
+        'url("/app/api/jobs/' +
+        s.curId +
+        '/sketch?view=' +
+        view +
+        '&t=' +
         encodeURIComponent(TOKEN || '') +
         '&n=' +
         (s.flatNonce || 0) +
@@ -1722,6 +1749,8 @@ class Component extends DCLogic {
       silh: null,
       cmp: false,
       cmpShot: 0,
+      // Вид «бок» есть не у каждой работы — у следующей его может не быть.
+      view: 'all',
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
@@ -1731,7 +1760,11 @@ class Component extends DCLogic {
       apiCall('/jobs/' + fid + '/files')
         .then((r) => {
           if (this.state.curId === fid)
-            this.setState({ jobFiles: r.files || [], jobPhotos: r.photos || [] });
+            this.setState({
+              jobFiles: r.files || [],
+              jobPhotos: r.photos || [],
+              jobSketchViews: r.sketch_views || [],
+            });
         })
         .catch(() => {});
     }
@@ -2383,17 +2416,20 @@ class Component extends DCLogic {
         go: () => this.set('gal', id),
       }));
 
-    // Вида «бок» нет: в библиотеке ни одного бокового силуэта, а рисовать
-    // его из ничего значило бы показывать выдумку рядом с чертежом.
+    // «Бок» появляется только когда он вырезан из эскиза: в библиотеке ни
+    // одного бокового силуэта, а рисовать его из ничего значило бы
+    // показывать выдумку рядом с чертежом.
     const views = [
       ['all', 'Все виды'],
       ['front', 'Перед'],
-      ['back', 'Спинка'],
-    ].map(([id, label]) => ({
-      label,
-      style: chip(s.view === id),
-      go: () => this.set('view', id),
-    }));
+    ]
+      .concat(this.hasSketchView('side') ? [['side', 'Бок']] : [])
+      .concat([['back', 'Спинка']])
+      .map(([id, label]) => ({
+        label,
+        style: chip(s.view === id),
+        go: () => this.set('view', id),
+      }));
     // «Сравнить» — не вид, а режим: холст делится пополам, слева снимок
     // заказчика, справа рисунок. Чип стоит в ряду видов, потому что правит
     // тем же холстом; без снимков ему нечего показать — и его нет.
@@ -2441,7 +2477,10 @@ class Component extends DCLogic {
     const silhId = s.silh && s.silh.id;
     // Картинка берётся из единственной точки решения: что показать человеку,
     // знает viewUrl. Бок сюда не попадает — библиотека его не рисует.
-    const libUrl = s.view !== 'side' && (silhId || this.hasSketch()) ? this.viewUrl(s.view) : null;
+    const libUrl =
+      (s.view !== 'side' || this.hasSketchView('side')) && (silhId || this.hasSketch())
+        ? this.viewUrl(s.view)
+        : null;
     const drawingUrl = libUrl
       ? libUrl
       : s.view === 'all'
@@ -3276,7 +3315,7 @@ class Component extends DCLogic {
         ? 'Слева снимок заказчика, справа рисунок: сверяйте узлы — карман, капюшон, манжеты, шнур. Расхождение правится в разделе конструкции, и эскиз перерисуется по узлам; сам снимок не редактируется. Размеры берутся из табеля мер.'
         : !liveOn
           ? 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.'
-          : this.hasSketch() && s.view === 'all'
+          : (this.hasSketch() && s.view === 'all') || this.hasSketchView(s.view)
             ? 'Эскиз построен по узлам этой вещи и меняется вместе с ними: добавьте или снимите узел — он перерисуется. Профиль показывает глубину капюшона и ход бокового шва. Размеры берутся из табеля мер, а не с рисунка.'
             : s.silh && s.silh.id
               ? 'Силуэт взят из библиотеки и вписан в габарит по табелю мер. Правка замера меняет табель и документ, но не пропорции рисунка: размеры берутся из табеля, а не с него.'
@@ -3291,7 +3330,9 @@ class Component extends DCLogic {
                 ? '2 вида · силуэт из библиотеки'
                 : '2 вида · чертёж из спеки'
             : '2 вида · клик по номеру откроет узел'
-          : 'вид: ' + { front: 'перед', side: 'бок', back: 'спинка' }[s.view],
+          : 'вид: ' +
+            { front: 'перед', side: 'бок', back: 'спинка' }[s.view] +
+            (this.hasSketchView(s.view) ? ' · эскиз по узлам этой вещи' : ''),
       pager: secIdx + 1 + ' / ' + SECTIONS.length,
       // У каждого пункта меню своё действие. Раньше все четыре вели в раздел
       // «Экспорт», где карточки нашлись для PDF и SVG, но не для таблицы
@@ -5013,7 +5054,7 @@ class Component extends DCLogic {
             // Иначе человек жмёт «Заменить» и не понимает, почему ничего
             // не произошло.
             (this.hasSketch()
-              ? ' · им нарисованы отдельные виды и векторный исходник; общий вид рисует эскиз'
+              ? ' · им собран векторный исходник для выгрузки; виды рисует эскиз'
               : ' · размеры берутся из табеля мер, а не с рисунка'),
       silhOpen: () =>
         this.setState({

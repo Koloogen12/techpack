@@ -119,13 +119,26 @@ export async function buildRfq(
   // должны выглядеть по-разному.
   const chosen = readJobTemplate(dir);
   const library = chosen.id ? renderJobTemplate(spec, chosen.id, 'ru', 'sketch') : null;
+  // Вид переда — вырезка из эскиза, когда она есть: лист на просчёт и пак
+  // обязаны показывать одну вещь, а не силуэт «похожей». Силуэт остаётся
+  // запасным путём для работ без эскиза (ADR-0010).
+  const sketchFront = (['jpg', 'png'] as const)
+    .map((ext) => join(dir, `sketch-front.${ext}`))
+    .find((path) => existsSync(path));
+  const flat = sketchFront
+    ? {
+        image: `data:${sketchFront.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${readFileSync(sketchFront).toString('base64')}`,
+      }
+    : library
+      ? { svg: library.front.svg }
+      : null;
 
   const rfqOptions: RfqOptions = {
     // Контакта может не быть: лист на просчёт уходит и без него, фабрика
     // тогда отвечает по ссылке. Поэтому поле ставится только когда есть.
     ...(contact ? { contact } : {}),
     ...(sizeRatio ? { sizeRatio } : {}),
-    ...(library ? { flat: { svg: library.front.svg } } : {}),
+    ...(flat ? { flat } : {}),
     ...(options.packLink ? { packLink: options.packLink } : {}),
   };
 

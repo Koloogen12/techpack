@@ -203,6 +203,24 @@ case "$views" in
   *) bad "кабинет не знает ракурсов снимков (${views:-пусто})" ;;
 esac
 
+step "13q. виды чертежа — вырезки одного эскиза, а не другой рисунок"
+sv=$(curl -s -H "$H" "$BASE/jobs/$ID/files" | python3 -c "import json,sys; print(' '.join(json.load(sys.stdin).get('sketch_views',[])))" 2>/dev/null)
+if [ "$code" = "200" ]; then
+  case "$sv" in
+    *front*back*)
+      # Перед и спинка вырезаны из того же листа — обложка обязана стоять
+      # на них, а не на библиотечном силуэте: иначе на одном листе одно
+      # худи, на другом другое, и фабрика спрашивает «а это точно та вещь?»
+      c=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/sketch?view=front")
+      [ "$c" = "200" ] && echo "$body" | grep -q 'class="sketch-view"' \
+        && ok "(виды: $sv · обложка на эскизе)" \
+        || bad "виды эскиза объявлены ($sv), но вид не отдаётся ($c) или обложка собрана не на них" ;;
+    *) bad "эскиз есть, а виды из него не вырезаны (${sv:-пусто}) — обложка и лист на просчёт покажут другую вещь" ;;
+  esac
+else
+  ok "(эскиза нет — виды с силуэта)"
+fi
+
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
 open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)

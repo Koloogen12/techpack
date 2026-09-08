@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { CostLedger, SeamsterError, defined, type Logger } from '@seamster/core';
 import {
@@ -37,8 +37,10 @@ import { CONFLICT_PREFIX } from '@seamster/fit';
 import { chromium, type Browser } from 'playwright';
 import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
 import {
+  cropImage,
   fitImage,
   renderPdf,
+  sheetLuma,
   renderRolePdfs,
   type DocImage,
   type DocVisuals,
@@ -51,6 +53,9 @@ import {
   sketchFileName,
   sketchMismatch,
   visualize,
+  sheetBoxes,
+  type ReferenceImage,
+  type SheetView,
 } from '@seamster/render';
 import { readSwatch } from '@seamster/pattern';
 import type { Locale } from '@seamster/i18n';
@@ -439,6 +444,68 @@ async function readSwatches(
 }
 
 /**
+ * Опорные снимки для эскиза: плоские виды первыми, не больше двух.
+ *
+ * Эскиз рисуется ОТ фотографии, а не по описанию узлов (ADR-0010): иначе
+ * модель рисует «худи с такими узлами», а не эту вещь, и рядом со снимком
+ * рисунок читается как другое изделие. Снимки уменьшаются до размера листа
+ * тем же браузером, что печатает PDF: исходник в шесть мегабайт в запрос
+ * не нужен. Нечитаемый снимок пропускается — эскиз тогда рисуется по узлам,
+ * как раньше.
+ */
+async function sketchReferences(
+  browser: Browser,
+  shots: readonly { path: string; view?: PhotoView }[],
+): Promise<ReferenceImage[]> {
+  const rank = (view?: PhotoView): number =>
+    view === 'front_flat'
+      ? 0
+      : view === 'back_flat'
+        ? 1
+        : view === 'on_form'
+          ? 2
+          : view === 'sketch'
+            ? 4
+            : 3;
+  const picked = [...shots].sort((a, b) => rank(a.view) - rank(b.view)).slice(0, 2);
+  const refs: ReferenceImage[] = [];
+  for (const shot of picked) {
+    try {
+      const photo = readPhoto(shot.path);
+      const raw = `data:${PHOTO_MIME[photo.format]};base64,${Buffer.from(photo.bytes).toString('base64')}`;
+      const fitted = await fitImage(browser, raw);
+      const m = /^data:(image\/[a-z]+);base64,(.+)$/.exec(fitted);
+      if (m) refs.push({ bytes: Buffer.from(m[2]!, 'base64'), mediaType: m[1]! });
+    } catch {
+      /* снимок нечитаем — эскиз рисуется по узлам */
+    }
+  }
+  return refs;
+}
+
+/**
+ * Виды из листа эскиза: перед, профиль, спинка.
+ *
+ * Границы читаются с самого листа по колонкам без линий; не нашлось трёх
+ * или двух полос — лист остаётся целым, и отдельные виды берёт силуэт.
+ */
+async function cutSketchViews(
+  browser: Browser,
+  sketch: { bytes: Uint8Array; mediaType: string },
+): Promise<Partial<Record<SheetView, DocImage>> | null> {
+  const uri = `data:${sketch.mediaType};base64,${Buffer.from(sketch.bytes).toString('base64')}`;
+  const pixels = await sheetLuma(browser, uri);
+  const boxes = pixels ? sheetBoxes(pixels) : null;
+  if (!boxes) return null;
+  const out: Partial<Record<SheetView, DocImage>> = {};
+  for (const box of boxes) {
+    const crop = await cropImage(browser, uri, box);
+    if (crop) out[box.view] = { dataUri: crop };
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
  * Сторож эскиза: рисунок не попадает в документ, пока не сойдётся со спекой.
  *
  * Эскиз рисует модель, а модель ошибается. Сверять её вывод с ней же самой
@@ -787,17 +854,21 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   }
 
   options.onStage?.('render');
-  const [browser, visual, sketch, patternVisual, ...extraVisuals] = await Promise.all([
-    chromium.launch(),
+  // Браузер поднимается первым: он уменьшает снимки для эскиза, режет лист
+  // на виды и потом печатает документ. Остальное ждёт сеть и идёт параллельно.
+  const browser = await chromium.launch();
+  const sketchRefs = options.render === true ? await sketchReferences(browser, shots) : [];
+  const [visual, sketch, patternVisual, ...extraVisuals] = await Promise.all([
     visualize(spec, { ...visualOptions, ...swatchRef(colorways[0]?.id) }),
-    // Технический эскиз — перед и спинка одним листом, по узлам ЭТОГО
-    // изделия. Идёт параллельно с визуализацией: оба вызова ждут сеть,
-    // и последовательно они удвоили бы ожидание.
+    // Технический эскиз — три вида одним листом, ОТ ФОТОГРАФИИ этой вещи
+    // и по её узлам (ADR-0010). Идёт параллельно с визуализацией: оба
+    // вызова ждут сеть, и последовательно они удвоили бы ожидание.
     flatSketch(spec, {
       offline: options.render !== true,
       cache: new FileRenderCache(join(options.renderCacheDir ?? '.cache/render', 'sketch')),
       ...(options.logger ? { logger: options.logger } : {}),
       ledger,
+      ...(sketchRefs.length ? { references: sketchRefs } : {}),
     }),
     // Вторая картинка — то же изделие, но в раппорте. Отдельный вызов,
     // а не вариант первого: у них разные ключи кэша и разная судьба
@@ -821,6 +892,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
   // Эскиз проходит сторожа прежде, чем попасть в документ.
   const checked = await checkSketch(spec, sketch, options, notes);
+  // Виды режутся из ТОГО ЖЕ листа: обложка, лист на просчёт и чип «Перед»
+  // в кабинете показывают эту вещь, а не библиотечный силуэт похожей.
+  const sketchViews = checked.ok ? await cutSketchViews(browser, checked) : null;
 
   // --- История версий -------------------------------------------------------
   // Прошлая версия НЕ переписывается: спор с фабрикой разрешается сверкой
@@ -890,7 +964,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
           }
         : null;
     }
-    const visuals: DocVisuals = { ...built, ...(library ? { libraryFlats: library } : {}) };
+    const visuals: DocVisuals = {
+      ...built,
+      ...(library ? { libraryFlats: library } : {}),
+      ...(sketchViews ? { sketchViews } : {}),
+    };
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
     // Картинка кладётся файлом рядом с документом: кабинет её показывает,
     // а пересборка PDF после правки замера переиспользует, а не теряет.
@@ -913,12 +991,25 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Эскиз тоже кладётся файлом: он рисуется один раз и дальше не меняется.
     // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
     // документа держится именно на хранении, а не на детерминизме модели.
-    if (checked.ok)
+    // Вырезки прошлой сборки снимаются заранее: новый лист мог выйти без
+    // профиля, и старый «бок» рядом с новым передом был бы третьей вещью.
+    for (const view of ['front', 'side', 'back'])
+      for (const ext of ['jpg', 'png'])
+        rmSync(join(dirname(options.outPath), `sketch-${view}.${ext}`), { force: true });
+    if (checked.ok) {
       writeFileSync(
         join(dirname(options.outPath), sketchFileName(checked.mediaType)),
         checked.bytes,
       );
-    else if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);
+      for (const [view, image] of Object.entries(sketchViews ?? {})) {
+        const m = /^data:image\/(jpeg|png);base64,(.+)$/.exec(image.dataUri);
+        if (m)
+          writeFileSync(
+            join(dirname(options.outPath), `sketch-${view}.${m[1] === 'jpeg' ? 'jpg' : 'png'}`),
+            Buffer.from(m[2]!, 'base64'),
+          );
+      }
+    } else if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));

@@ -151,6 +151,15 @@ export interface DocVisuals {
    */
   sketch?: DocImage;
   /**
+   * Виды, вырезанные из эскиза: перед, профиль, спинка.
+   *
+   * Обложка и лист на просчёт показывают ОДИН вид, а эскиз приходит листом.
+   * Раньше сюда шёл библиотечный силуэт — похожая вещь, — и рядом с эскизом
+   * он читался как другое изделие. Вырезки того же листа снимают разнобой:
+   * везде одна и та же рука, один и тот же карман (ADR-0010).
+   */
+  sketchViews?: Partial<Record<'front' | 'side' | 'back', DocImage>>;
+  /**
    * Тайл раппорта для превью на изделии.
    *
    * Чертёж рисуется в сантиметрах, поэтому шаг здесь РАЗМЕРНО ТОЧЕН: 24 см
@@ -180,6 +189,8 @@ export interface DocVisuals {
    */
   colorwayRenders?: Readonly<Record<string, DocImage>>;
 }
+
+type SketchViews = NonNullable<DocVisuals['sketchViews']>;
 
 export interface HtmlOptions {
   /** Какие страницы включить. По умолчанию все. */
@@ -292,7 +303,9 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   // Обложка несёт тот же силуэт, что раздел чертежа: параметрический мастер
   // человеку не показывается, пока есть библиотечный.
   const coverLibrary = options.visuals?.libraryFlats?.[locale] ?? options.visuals?.libraryFlats?.ru;
-  add('cover', t.section_cover, [coverBody(spec, t, locale, coverLibrary)]);
+  add('cover', t.section_cover, [
+    coverBody(spec, t, locale, coverLibrary, options.visuals?.sketchViews),
+  ]);
   // Лист изменений идёт СРАЗУ за обложкой: человек, который уже читал прошлую
   // версию, не станет перечитывать сорок страниц ради двух правок. Без этого
   // листа «версия 2» означает «читайте всё заново», и её просто не читают.
@@ -512,8 +525,9 @@ function coverBody(
   t: Messages,
   locale: Locale,
   library?: LibraryFlatViews,
+  sketchViews?: SketchViews,
 ): string {
-  if (locale !== 'ru') return coverFactory(spec, t, locale, library);
+  if (locale !== 'ru') return coverFactory(spec, t, locale, library, sketchViews);
 
   const passport: [string, string][] = [
     ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
@@ -544,7 +558,15 @@ function coverBody(
     .slice(0, room)
     .map((n) => `<b>${esc(n.label_ru)}.</b> ${esc(n.plain_ru)}`);
 
-  const canvas = coverCanvas(spec, t, library, 'Технический чертёж', 'Перед', 'Спинка');
+  const canvas = coverCanvas(
+    spec,
+    t,
+    library,
+    'Технический чертёж',
+    'Перед',
+    'Спинка',
+    sketchViews,
+  );
 
   return (
     `<div class="cover">` +
@@ -1070,15 +1092,36 @@ function coverCanvas(
   title: string,
   frontLabel: string,
   backLabel: string,
+  sketchViews?: SketchViews,
 ): string {
-  const figures = library
-    ? viewFigure({ ...library.front, geometry: {} }, frontLabel) +
-      (library.back ? viewFigure({ ...library.back, geometry: {} }, backLabel) : '')
-    : (() => {
-        const flats = renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) });
-        return viewFigure(flats.front, frontLabel) + viewFigure(flats.back, backLabel);
-      })();
+  // Порядок тот же, что на листе чертежа: вырезки эскиза → силуэт →
+  // построение. Обложка и лист чертежа обязаны показывать одну вещь.
+  const figures = sketchViews?.front
+    ? rasterFigure(sketchViews.front, frontLabel) +
+      (sketchViews.back ? rasterFigure(sketchViews.back, backLabel) : '')
+    : library
+      ? viewFigure({ ...library.front, geometry: {} }, frontLabel) +
+        (library.back ? viewFigure({ ...library.back, geometry: {} }, backLabel) : '')
+      : (() => {
+          const flats = renderFlatsFromSpec(spec, { ...flatDefaults(spec), ...viewLabels(t) });
+          return viewFigure(flats.front, frontLabel) + viewFigure(flats.back, backLabel);
+        })();
   return `<div class="canvas"><div class="ml">${esc(title)}</div>${figures}</div>`;
+}
+
+/**
+ * Растровый вид на холсте — вырезка из эскиза.
+ *
+ * Без явной доли ширины: у растра нет viewBox, и flex делит холст поровну.
+ * Умножение гасит белый фон вырезки, как у целого листа эскиза.
+ */
+function rasterFigure(image: DocImage, caption: string): string {
+  const src = safeDataUri(image.dataUri);
+  if (!src) return '';
+  return (
+    `<figure class="raster"><img class="sketch-view" src="${src}" alt="">` +
+    `<figcaption class="ml">${esc(caption)}</figcaption></figure>`
+  );
 }
 
 function coverFactory(
@@ -1086,6 +1129,7 @@ function coverFactory(
   t: Messages,
   locale: Locale,
   library?: LibraryFlatViews,
+  sketchViews?: SketchViews,
 ): string {
   const missing = DOC_SECTIONS.filter((x) => !TRANSLATED_SECTIONS.includes(x) && x !== 'cover');
   const label = (x: DocSection): string =>
@@ -1107,7 +1151,7 @@ function coverFactory(
 
   return (
     `<div class="cover">` +
-    coverCanvas(spec, t, library, t.section_flats, t.view_front, t.view_back) +
+    coverCanvas(spec, t, library, t.section_flats, t.view_front, t.view_back, sketchViews) +
     `<div style="display:flex;flex-direction:column;min-height:0">` +
     `<h1${spec.style.name.length > 34 ? ' style="font-size:15pt"' : ''}>` +
     `${esc(spec.style.name)}</h1>` +

@@ -259,6 +259,14 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
   const sketch = found
     ? { dataUri: `data:${found.type};base64,${readFileSync(found.path).toString('base64')}` }
     : null;
+  const sketchViews: Partial<Record<SketchView, DocImage>> = {};
+  for (const view of sketchViewsOf(dir)) {
+    const f = sketchPath(dir, view);
+    if (f)
+      sketchViews[view] = {
+        dataUri: `data:${f.type};base64,${readFileSync(f.path).toString('base64')}`,
+      };
+  }
   // Снимки заказчика — тоже здесь: они стоят на странице внешнего вида
   // и колонкой референса рядом с эскизом. Первый PDF их нёс, а пересборка
   // после правки замера теряла: две сборки — два документа.
@@ -268,6 +276,7 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
     ...(library ? { libraryFlats: { [locale]: library } } : {}),
     ...(render ? { render } : {}),
     ...(sketch ? { sketch } : {}),
+    ...(Object.keys(sketchViews).length ? { sketchViews } : {}),
     ...(photos.length ? { photos } : {}),
   };
 }
@@ -345,15 +354,31 @@ function exportGate(dir: string, spec: StyleSpec) {
   };
 }
 
-function sketchPath(dir: string): { path: string; type: string } | null {
-  for (const [name, type] of [
-    ['sketch.png', 'image/png'],
-    ['sketch.jpg', 'image/jpeg'],
+const SKETCH_VIEWS = ['front', 'side', 'back'] as const;
+type SketchView = (typeof SKETCH_VIEWS)[number];
+
+/** Лист эскиза целиком или один вырезанный из него вид. */
+function sketchPath(dir: string, view?: SketchView): { path: string; type: string } | null {
+  const stem = view ? `sketch-${view}` : 'sketch';
+  for (const [ext, type] of [
+    ['png', 'image/png'],
+    ['jpg', 'image/jpeg'],
   ] as const) {
-    const path = join(dir, name);
+    const path = join(dir, `${stem}.${ext}`);
     if (existsSync(path)) return { path, type };
   }
   return null;
+}
+
+/**
+ * Какие виды вырезаны из эскиза.
+ *
+ * Их показывают порознь кабинет (чип «Перед»), обложка и лист на просчёт —
+ * раньше эти места брали библиотечный силуэт, и рядом с эскизом он читался
+ * как другая вещь (ADR-0010).
+ */
+function sketchViewsOf(dir: string): SketchView[] {
+  return SKETCH_VIEWS.filter((v) => sketchPath(dir, v) !== null);
 }
 
 function jobDir(id: string): string {
@@ -1555,6 +1580,7 @@ const server = createServer(async (req, res) => {
         return json(res, 200, {
           files,
           photos: photoList(dir).map(({ n, view }) => ({ n, view })),
+          sketch_views: sketchViewsOf(dir),
         });
       }
 
@@ -1566,8 +1592,14 @@ const server = createServer(async (req, res) => {
       }
 
       if (req.method === 'GET' && rest === '/sketch') {
-        const found = sketchPath(dir);
-        if (!found) return json(res, 404, { error: 'эскиза нет' });
+        // Отдельный вид — вырезка того же листа: кабинет по чипу «Перед»
+        // показывает эту вещь, а не библиотечный силуэт похожей.
+        const wanted = url.searchParams.get('view');
+        const view = SKETCH_VIEWS.find((v) => v === wanted);
+        if (wanted && !view) return json(res, 400, { error: 'неизвестный вид эскиза' });
+        const found = sketchPath(dir, view);
+        if (!found)
+          return json(res, 404, { error: view ? 'этого вида у эскиза нет' : 'эскиза нет' });
         res.writeHead(200, { 'content-type': found.type, 'cache-control': 'no-cache' });
         return res.end(readFileSync(found.path));
       }

@@ -6,6 +6,7 @@ import {
   DOC_SECTIONS,
   EXPORT_ROLES,
   renderHtml,
+  renderRfqHtml,
   roleProfile,
   type DocSection,
 } from '../src/index.js';
@@ -603,5 +604,37 @@ describe('лист чертежа — чем он нарисован', () => {
       visuals: { sketch: { dataUri: PIXEL }, photos: [{ dataUri: PIXEL }] },
     });
     expect(page).toContain('Снимок заказчика 1');
+  });
+});
+
+describe('обложка и лист на просчёт — тем же рисунком, что лист чертежа', () => {
+  const LIB = {
+    front: { svg: '<svg viewBox="0 0 10 10"><path d="M0 0"/></svg>', viewBox: { width: 10 } },
+    templateId: 'lib-hoodie-01',
+  };
+  const cover = (visuals: object): string =>
+    pagesOf(renderHtml(SPEC, { pro: true, visuals })).find((p) =>
+      p.includes('data-section="cover"'),
+    ) ?? '';
+
+  it('вырезки эскиза стоят на обложке вместо библиотечного силуэта', () => {
+    const page = cover({
+      sketchViews: { front: { dataUri: PIXEL }, back: { dataUri: PIXEL } },
+      libraryFlats: { ru: LIB },
+    });
+    expect(page).toContain('class="sketch-view"');
+    expect(page).not.toContain('<path d="M0 0"/>');
+  });
+
+  it('без вырезок обложка остаётся на силуэте библиотеки', () => {
+    const page = cover({ libraryFlats: { ru: LIB } });
+    expect(page).not.toContain('sketch-view');
+    expect(page).toContain('<path d="M0 0"/>');
+  });
+
+  it('лист на просчёт берёт тот же вид переда, что и пак', () => {
+    const h = renderRfqHtml(SPEC, { flat: { image: PIXEL } });
+    expect(h).toContain('<figure class="sketch"');
+    expect(h).toContain(`<img src="${PIXEL}"`);
   });
 });

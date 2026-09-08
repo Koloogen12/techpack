@@ -227,3 +227,28 @@ describe('длина подола — главный признак цельно
     expect(buildSketchPrompt(HOODIE)).not.toContain('hem falls');
   });
 });
+
+describe('эскиз от фотографии', () => {
+  it('со снимком промпт требует ЭТУ вещь, а не вещь с такими узлами', () => {
+    const p = buildSketchPrompt(HOODIE, { fromPhoto: true });
+    expect(p).toContain('Reference photographs');
+    expect(p).toContain('EXACTLY this garment');
+    expect(p).toContain('add nothing the photographs do not show');
+    // Узлы остаются чек-листом: без них модель теряет карман за складкой.
+    expect(p).toContain('Front shows:');
+    expect(p).toContain('follow the photographs');
+  });
+
+  it('без снимка промпт остаётся описанием по узлам', () => {
+    const p = buildSketchPrompt(HOODIE);
+    expect(p).not.toContain('Reference photographs');
+    expect(p).toContain('THREE views of the SAME');
+  });
+
+  it('лист просится колонками одной ширины с просветом — иначе виды не вырезать', () => {
+    for (const p of [buildSketchPrompt(HOODIE), buildSketchPrompt(HOODIE, { fromPhoto: true })]) {
+      expect(p).toContain('equal-width column');
+      expect(p).toContain('clear white gutter');
+    }
+  });
+});

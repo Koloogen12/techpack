@@ -1,7 +1,7 @@
 import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
 import { CATEGORY_CLASS, CATEGORY_VISUAL_EN, type Category } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
-import { generateImage } from './client.js';
+import { generateImage, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 
 /**
@@ -23,7 +23,7 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * и отвечает на то, чего не видно ни на одном из них: насколько глубок
  * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v3';
+export const SKETCH_PROMPT_VERSION = 'v4';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -76,7 +76,18 @@ const FIT_ENGLISH: Record<string, string> = {
   oversize: 'oversized, wide through the body',
 };
 
-export function buildSketchPrompt(spec: StyleSpec): string {
+export interface SketchPromptOptions {
+  /**
+   * К запросу приложены снимки этой вещи.
+   *
+   * Тогда промпт требует нарисовать ИМЕННО её, а узлы становятся чек-листом:
+   * без снимка модель рисует «худи с такими узлами», и рядом с фотографией
+   * рисунок читается как другое изделие (ADR-0010).
+   */
+  fromPhoto?: boolean;
+}
+
+export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions = {}): string {
   const category = spec.style.category as Category;
   const garment = CATEGORY_VISUAL_EN[category] ?? 'knitted top';
   const fit = FIT_ENGLISH[spec.base.fit_intent] ?? 'regular';
@@ -138,10 +149,29 @@ export function buildSketchPrompt(spec: StyleSpec): string {
     .filter((x): x is string => Boolean(x))
     .filter((x, i, all) => all.indexOf(x) === i);
 
+  // От снимка рисуется ЭТА вещь; по описанию — вещь с такими узлами. Первое
+  // и есть задача эскиза: расхождение с фотографией человек видит сразу,
+  // а расхождение с списком узлов — никогда.
+  const identity = options.fromPhoto
+    ? [
+        'Reference photographs of the actual garment are attached.',
+        `Draw a technical flat sketch sheet of EXACTLY this garment, a ${fit} ${garment}: the same silhouette and proportions, the same sleeve construction and shoulder line, the same hood shape and depth, the same pocket shape and placement, the same rib depth at the cuffs and hem, the same drawcord, hardware and stitching as in the photographs.`,
+        'Do not restyle it: add nothing the photographs do not show and drop nothing they do.',
+        'The sheet shows THREE views of the SAME garment side by side in one row:',
+      ]
+    : [
+        `A technical flat sketch sheet showing THREE views of the SAME ${fit} ${garment}, side by side in one row:`,
+      ];
+
   return [
-    `A technical flat sketch sheet showing THREE views of the SAME ${fit} ${garment}, side by side in one row:`,
-    'front view on the left, side profile view in the middle, back view on the right.',
+    ...identity,
+    // Колонки одной ширины с чистым просветом — не ради красоты: по просвету
+    // лист режется на отдельные виды для обложки и листа на просчёт.
+    'front view on the left, side profile view in the middle, back view on the right, each centred in its own equal-width column, with a clear white gutter between the columns and a common baseline.',
     'All three are the same garment at the same scale: identical body length, identical sleeve length, identical rib depth.',
+    options.fromPhoto
+      ? 'The construction on record is listed below as a checklist; where the photographs disagree with it, follow the photographs.'
+      : '',
     'Front and back are laid flat and symmetrical; the side view is a narrow profile silhouette, roughly a third of the width of the front view, showing the garment from the left side with one sleeve hanging along the body.',
     'Pure black line drawing on plain white background, uniform line weight, no shading, no gradients, no fabric texture, no colour, no fill.',
     'Apparel industry CAD flat: closed outline, seam lines solid, topstitching shown as dashed lines.',
@@ -171,6 +201,11 @@ export interface SketchOptions {
   model?: string;
   /** Работа без обращения к сервису: эскиз берётся только из кэша. */
   offline?: boolean;
+  /**
+   * Снимки этой вещи — модель рисует ОТ них, а не по описанию (ADR-0010).
+   * Входят в ключ кэша: другой снимок при той же спеке — другой рисунок.
+   */
+  references?: readonly ReferenceImage[];
 }
 
 export type SketchResult =
@@ -195,8 +230,13 @@ export async function flatSketch(
   // Эскиз рисуется линиями, и эта модель держит линию ровнее прочих.
   // Цепочка запасных здесь не нужна: без эскиза документ живёт.
   const model = options.model ?? process.env.SEAMSTER_SKETCH_MODEL ?? 'gemini-3-pro-image';
-  const prompt = buildSketchPrompt(spec);
-  const key = renderKey({ prompt: `${SKETCH_PROMPT_VERSION}|${prompt}`, model });
+  const references = options.references ?? [];
+  const prompt = buildSketchPrompt(spec, { fromPhoto: references.length > 0 });
+  const key = renderKey({
+    prompt: `${SKETCH_PROMPT_VERSION}|${prompt}`,
+    model,
+    references: references.map((r) => r.bytes),
+  });
 
   const hit = cache.get(key);
   if (hit) {
@@ -213,6 +253,7 @@ export async function flatSketch(
 
   try {
     const generateOptions: Parameters<typeof generateImage>[1] = { models: [model], logger };
+    if (references.length) generateOptions.references = references;
     if (options.apiKey !== undefined) generateOptions.apiKey = options.apiKey;
     if (options.ledger !== undefined) generateOptions.ledger = options.ledger;
     const image = await generateImage(prompt, generateOptions);
