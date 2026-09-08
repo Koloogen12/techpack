@@ -319,6 +319,55 @@ sub(
   1,
 );
 
+// Журнал списаний — настоящий, с сервера: демо-строки прототипа остаются
+// только в демо-режиме, у живого человека — его генерации, подарки и ошибки.
+sub(
+  'color:#2F7C5A">0</span></div>\n</div>\n</sc-if>\n</div>',
+  `color:#2F7C5A">0</span></div>
+</div>
+</sc-if>
+<sc-if value="{{ ledgerOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-top:1px solid #E4E1DC">
+<div style="padding:8px 15px;font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67;background:rgba(14,14,14,.02);border-bottom:1px solid #EFEDE9">История списаний</div>
+<sc-for list="{{ ledgerRows }}" as="lr" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 15px;border-bottom:1px solid #EFEDE9"><span style="{{ lr.nameStyle }}">{{ lr.name }}</span><span style="font:400 9.7px/14px 'JetBrains Mono',monospace;color:#B0ADA6;flex:none">{{ lr.when }}</span><span style="{{ lr.deltaStyle }}">{{ lr.delta }}</span></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ ledgerEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="border-top:1px solid #E4E1DC;padding:10px 15px;font:400 10.5px/15px Sora,sans-serif;color:#B0ADA6">Списаний пока нет — первая генерация появится здесь.</div>
+</sc-if>
+</div>`,
+  1,
+);
+
+// Блок «Приватность и данные» — под тарифом: факты о хранении, кто видит,
+// куда уходит на обработку, и две кнопки — забрать всё архивом и удалить.
+sub(
+  'На просчёт</span>\n</div>\n</div>\n</div>\n</div>\n</sc-if>',
+  `На просчёт</span>
+</div>
+</div>
+</div>
+<div style="margin-top:12px;border-radius:14px;background:#fff;border:1px solid #E4E1DC;padding:15px;display:grid;grid-template-columns:1fr 1fr;gap:12px 18px">
+<div style="grid-column:1/-1"><span style="font:700 13px/18px Sora,sans-serif">Приватность и данные</span><div style="font:400 11px/16px Sora,sans-serif;color:#6B6B67;margin-top:3px">Что мы храним, кто это видит и как это забрать или удалить.</div></div>
+<sc-for list="{{ privacyRows }}" as="pr" hint-placeholder-count="6">
+<div style="display:flex;gap:9px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:#2F7C5A;flex:none;margin-top:6px"></span><span style="min-width:0"><span style="display:block;font:600 11px/16px Sora,sans-serif">{{ pr.k }}</span><span style="display:block;font:400 10.5px/15px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ pr.v }}</span></span></div>
+</sc-for>
+<div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+<span onClick="{{ privacyExport }}" style="height:31px;border-radius:10px;border:1px solid rgba(14,14,14,.12);background:#fff;display:inline-flex;align-items:center;padding:0 12px;font:600 11.5px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#F8F7F5">Скачать все мои данные</span>
+<span onClick="{{ privacyDelete }}" style="height:31px;border-radius:10px;border:1px solid rgba(192,57,43,.35);background:#fff;color:#C0392B;display:inline-flex;align-items:center;padding:0 12px;font:600 11.5px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FDF1F1">Удалить все данные</span>
+</div>
+</div>
+</div>
+</sc-if>`,
+  1,
+);
+
+// Дата обновления квоты — с сервера, а не «1 сентября» навсегда из прототипа.
+sub('обновится 1 сентября · быстрые действия не тратят генерации', '{{ resetPlanNote }}', 1);
+sub('обновится 1 сентября · ошибки не списываются', '{{ resetMenuNote }}', 1);
+
 // Баланс генераций — одна логика во всех трёх местах (сайдбар-меню, план).
 sub(
   '<span style="font:500 34px/38px \'JetBrains Mono\',monospace">2</span>',

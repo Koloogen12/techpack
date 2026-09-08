@@ -158,6 +158,29 @@ function activeFor(token: string): number {
   return [...queue, ...active].filter((id) => ownerOf(id)?.token === token).length;
 }
 
+/** Имя пака из анкеты — для журнала и уведомлений; без анкеты — идентификатор. */
+function jobName(dir: string): string {
+  try {
+    const a = JSON.parse(readFileSync(join(dir, 'answers.json'), 'utf8')) as { name?: string };
+    return a.name?.trim() || dir.split('/').pop() || 'пак';
+  } catch {
+    return dir.split('/').pop() || 'пак';
+  }
+}
+
+/** Каталоги работ этого человека — по owner.txt. */
+function ownedJobDirs(token: string): string[] {
+  const root = join(DATA, 'jobs');
+  if (!existsSync(root)) return [];
+  return readdirSync(root).filter((id) => {
+    try {
+      return readFileSync(join(root, id, 'owner.txt'), 'utf8').trim() === token;
+    } catch {
+      return false;
+    }
+  });
+}
+
 function photoCount(dir: string): number {
   try {
     return (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[]).length;
@@ -566,7 +589,10 @@ async function pump(): Promise<void> {
     const sec = Math.round((Date.now() - started) / 1000);
     const assumptions = result.spec.meta.assumptions_count ?? 0;
     if (owner) {
-      const view = limits.charge(owner.token, monthlyOf(owner));
+      const view = limits.charge(owner.token, monthlyOf(owner), new Date(), {
+        job: id,
+        name: result.spec.style.name,
+      });
       notes.push(owner.token, {
         title: `Техпак «${result.spec.style.name}» готов`,
         sub: `${sec} с · ${assumptions} ${assumptions === 1 ? 'предположение' : 'предположений'} к подтверждению`,
@@ -589,6 +615,9 @@ async function pump(): Promise<void> {
         : { message: 'Генерация не получилась.', action: 'Повторите — лимит не списан.' };
       setStage(id, 'error');
       if (owner) {
+        // Строка в журнале: «ошибка — не списано». Остаток человек и так видит,
+        // а вот что за сбой ему ничего не стоил — только отсюда.
+        limits.noteFailure(owner.token, { job: id, name: jobName(jobDir(id)) });
         notes.push(owner.token, {
           title: 'Генерация не удалась',
           sub: `${s.error.message} Лимит не списан.`,
@@ -935,7 +964,7 @@ const server = createServer(async (req, res) => {
       referrals.approve(claim.id, token);
       const inviter = invites().find((i) => refCode(i.token) === claim.ref);
       if (inviter) {
-        const view = limits.grant(inviter.token, 1);
+        const view = limits.grant(inviter.token, 1, new Date(), `за приглашение: ${claim.name}`);
         notes.push(inviter.token, {
           title: `Новый участник по вашей ссылке: ${claim.name}`,
           sub: `Начислена генерация · доступно ${view.left}`,
@@ -985,6 +1014,45 @@ const server = createServer(async (req, res) => {
         unread: notes.unread(invite.token),
         ref: refCode(invite.token),
       });
+    }
+
+    // Приватность и данные: забрать всё своё одним архивом.
+    if (req.method === 'GET' && url.pathname === '/app/api/me/export') {
+      const ids = ownedJobDirs(invite.token);
+      const profile = join('profiles', `${invite.token}.json`);
+      const items = ids.map((id) => join('jobs', id));
+      if (existsSync(join(DATA, profile))) items.push(profile);
+      if (items.length === 0)
+        return json(res, 404, { error: 'Данных пока нет — нечего скачивать.' });
+      logEvent(invite.name, 'export_data', { jobs: ids.length });
+      const stamp = new Date().toISOString().slice(0, 10);
+      res.writeHead(200, {
+        'content-type': 'application/gzip',
+        'content-disposition': `attachment; filename="seamster-data-${stamp}.tar.gz"`,
+      });
+      const { spawn } = await import('node:child_process');
+      const tar = spawn('tar', ['-cz', '-C', DATA, ...items]);
+      tar.stdout.pipe(res);
+      tar.on('error', () => res.end());
+      return;
+    }
+
+    // Удалить всё своё: паки, снимки, профиль. Квота остаётся — иначе удаление
+    // становилось бы способом обнулить месячный лимит.
+    if (req.method === 'POST' && url.pathname === '/app/api/me/delete') {
+      const body = await readBody(req, 4096);
+      const { confirm } = body ? (JSON.parse(body.toString('utf8')) as { confirm?: string }) : {};
+      if (confirm !== 'удалить')
+        return json(res, 400, { error: 'Подтвердите удаление словом «удалить».' });
+      const ids = ownedJobDirs(invite.token);
+      for (const id of ids) {
+        rmSync(join(DATA, 'jobs', id), { recursive: true, force: true });
+        statuses.delete(id);
+      }
+      rmSync(join(DATA, 'profiles', `${invite.token}.json`), { force: true });
+      logEvent(invite.name, 'delete_all', { jobs: ids.length });
+      tgNotify(`🗑 Удалил все данные — ${invite.name}`, [`${invite.org}`, `паков: ${ids.length}`]);
+      return json(res, 200, { ok: true, deleted: ids.length });
     }
 
     // Уведомления бренду: живут файлом, поэтому переживают рестарт и

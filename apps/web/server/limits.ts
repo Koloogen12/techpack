@@ -30,6 +30,20 @@ export const MAX_ACTIVE = 1;
 /** Запусков в час на инвайт — потолок против перебора ссылки скриптом. */
 export const MAX_PER_HOUR = 6;
 
+/** Строка журнала списаний: что списано, подарено или не списано за ошибку. */
+export interface LedgerEntry {
+  at: string;
+  kind: 'generation' | 'failed' | 'credit';
+  /** −1 списание, +N подарок, 0 — ошибка, за которую не списано. */
+  delta: number;
+  job?: string;
+  name?: string;
+  note?: string;
+}
+
+/** Строк журнала в файле — хватает на несколько месяцев работы. */
+const LEDGER_MAX = 60;
+
 export interface LimitState {
   /** Календарный месяц квоты, YYYY-MM. */
   month: string;
@@ -39,6 +53,11 @@ export interface LimitState {
   credits: number;
   /** Времена успешных запусков, ISO. Хвост старше часа отбрасывается. */
   starts: string[];
+  /**
+   * Журнал списаний — новые сверху. Живёт через смену месяца: человек
+   * должен видеть, за что ушла каждая генерация, а не только остаток.
+   */
+  ledger: LedgerEntry[];
 }
 
 export interface LimitView {
@@ -48,6 +67,8 @@ export interface LimitView {
   left: number;
   /** Первое число следующего месяца — «обновится 1 сентября» в интерфейсе. */
   resets_at: string;
+  /** Последние строки журнала, новые сверху. */
+  ledger: LedgerEntry[];
 }
 
 function monthKey(now: Date): string {
@@ -65,7 +86,7 @@ export class Limits {
 
   private read(token: string, now = new Date()): LimitState {
     const path = this.path(token);
-    const empty: LimitState = { month: monthKey(now), used: 0, credits: 0, starts: [] };
+    const empty: LimitState = { month: monthKey(now), used: 0, credits: 0, starts: [], ledger: [] };
     if (!existsSync(path)) return empty;
     try {
       const raw = JSON.parse(readFileSync(path, 'utf8')) as Partial<LimitState>;
@@ -74,6 +95,12 @@ export class Limits {
         used: Number(raw.used) || 0,
         credits: Number(raw.credits) || 0,
         starts: Array.isArray(raw.starts) ? raw.starts : [],
+        ledger: Array.isArray(raw.ledger)
+          ? raw.ledger.filter(
+              (e): e is LedgerEntry =>
+                !!e && typeof e.at === 'string' && typeof e.delta === 'number',
+            )
+          : [],
       };
       // Месяц сменился: квота обнуляется, подарки остаются.
       if (state.month !== monthKey(now)) {
@@ -105,7 +132,19 @@ export class Limits {
       credits: state.credits,
       left,
       resets_at: resets,
+      ledger: state.ledger.slice(0, 30),
     };
+  }
+
+  private log(state: LimitState, entry: LedgerEntry): void {
+    state.ledger = [entry, ...state.ledger].slice(0, LEDGER_MAX);
+  }
+
+  /** Ошибка генерации — строка «не списано»: человек видит, что квота цела. */
+  noteFailure(token: string, entry: { job: string; name: string }, now = new Date()): void {
+    const state = this.read(token, now);
+    this.log(state, { at: now.toISOString(), kind: 'failed', delta: 0, ...entry });
+    this.write(token, state);
   }
 
   /**
@@ -161,18 +200,30 @@ export class Limits {
    * Списать одну генерацию. Вызывается ТОЛЬКО после успешной сборки пака.
    * Сначала тратится месячная квота, потом подаренные.
    */
-  charge(token: string, monthly = FREE_PER_MONTH, now = new Date()): LimitView {
+  charge(
+    token: string,
+    monthly = FREE_PER_MONTH,
+    now = new Date(),
+    entry?: { job: string; name: string },
+  ): LimitView {
     const state = this.read(token, now);
     if (state.used < monthly) state.used += 1;
     else if (state.credits > 0) state.credits -= 1;
+    this.log(state, { at: now.toISOString(), kind: 'generation', delta: -1, ...(entry ?? {}) });
     this.write(token, state);
     return this.view(token, monthly, now);
   }
 
   /** Начислить подаренные генерации (реферальная программа). */
-  grant(token: string, count: number, now = new Date()): LimitView {
+  grant(token: string, count: number, now = new Date(), note?: string): LimitView {
     const state = this.read(token, now);
     state.credits += count;
+    this.log(state, {
+      at: now.toISOString(),
+      kind: 'credit',
+      delta: count,
+      ...(note ? { note } : {}),
+    });
     this.write(token, state);
     return this.view(token, FREE_PER_MONTH, now);
   }

@@ -66,6 +66,27 @@ const apiCall = async (path, init) => {
   return b;
 };
 
+/** «1 октября» из YYYY-MM-DD сервера; без даты — «в следующем месяце». */
+const resetDateRu = (iso) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return 'в следующем месяце';
+  const months = [
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
+  ];
+  return Number(m[3]) + ' ' + months[Number(m[2]) - 1];
+};
+
 const track = (type, payload) => {
   if (!TOKEN) return;
   fetch('/app/api/events', {
@@ -584,6 +605,8 @@ class Component extends DCLogic {
     editOn: false,
     redrawBusy: false,
     sketchVersions: 0,
+    genSketch: false,
+    genRender: false,
     cmp: false,
     cmpShot: 0,
     picks: {
@@ -863,6 +886,24 @@ class Component extends DCLogic {
             return;
           }
           this.setState({ genStep: order[st.stage] ?? 0, genSecs: secs, genStages: st.history });
+          // Живое ожидание: эскиз и визуализация ложатся на карточки, как
+          // только появятся файлы, а не после «Готово». Проверка — HEAD,
+          // без байтов картинки.
+          if ((order[st.stage] ?? 0) >= 3 && TOKEN) {
+            for (const [key, path] of [
+              ['genSketch', '/sketch'],
+              ['genRender', '/render'],
+            ]) {
+              if (this.state[key]) continue;
+              fetch('/app/api/jobs/' + id + path + '?t=' + encodeURIComponent(TOKEN), {
+                method: 'HEAD',
+              })
+                .then((r) => {
+                  if (r.ok && this.state.curId === id) this.setState({ [key]: true });
+                })
+                .catch(() => {});
+            }
+          }
           if (st.stage === 'done') {
             clearInterval(this._pl);
             this.setState({ genDone: true, genStep: 5 });
@@ -2010,7 +2051,15 @@ class Component extends DCLogic {
     clearInterval(this._g);
     clearInterval(this._gs);
     const t0 = Date.now();
-    this.setState({ genStep: 0, genDone: false, genErr: false, genSecs: 0, genPanel: true });
+    this.setState({
+      genStep: 0,
+      genDone: false,
+      genErr: false,
+      genSecs: 0,
+      genPanel: true,
+      genSketch: false,
+      genRender: false,
+    });
     this._gs = setInterval(
       () => this.setState({ genSecs: Math.floor((Date.now() - t0) / 1000) }),
       1000,
@@ -2544,7 +2593,8 @@ class Component extends DCLogic {
         img: 'assets/flat-alt.png',
         b: liveOn
           ? this.hasSketch()
-            ? '3 вида · эскиз по узлам этой вещи'
+            ? '3 вида · эскиз по узлам этой вещи' +
+              (s.sketchVersions ? ' · версий: ' + (s.sketchVersions + 1) : '')
             : s.silh && s.silh.id
               ? '2 вида · силуэт из библиотеки'
               : '2 вида · чертёж из спеки'
@@ -3440,6 +3490,85 @@ class Component extends DCLogic {
       balShort: lim.left + '/' + lim.limit,
       packCount: String(packs.length),
       planBig: String(lim.left),
+      resetPlanNote:
+        'обновится ' + resetDateRu(lim.resets_at) + ' · быстрые действия не тратят генерации',
+      resetMenuNote: 'обновится ' + resetDateRu(lim.resets_at) + ' · ошибки не списываются',
+      // Журнал списаний — с сервера, строка на каждую генерацию, подарок
+      // и ошибку. Ошибка стоит в журнале нулём: человек видит, что квота цела.
+      ledgerRows: (lim.ledger || []).map((e) => {
+        const failed = e.kind === 'failed';
+        const credit = e.kind === 'credit';
+        return {
+          name: credit
+            ? 'Подарена генерация' + (e.note ? ' · ' + e.note : '')
+            : failed
+              ? 'Ошибка генерации — не списано' + (e.name ? ' · ' + e.name : '')
+              : e.name || 'Техпак',
+          nameStyle:
+            'font:400 11px/16px Sora,sans-serif;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' +
+            (failed ? ';color:#6B6B67' : ''),
+          when: fmtDay(e.at),
+          delta: e.delta > 0 ? '+' + e.delta : e.delta < 0 ? String(e.delta) : '0',
+          deltaStyle:
+            "font:500 10.5px/15px 'JetBrains Mono',monospace" +
+            (e.delta >= 0 ? ';color:#2F7C5A' : ''),
+        };
+      }),
+      ledgerOn: !DEMO && !!(lim.ledger && lim.ledger.length),
+      ledgerEmpty: !DEMO && !(lim.ledger && lim.ledger.length),
+      // Приватность и данные — факты, а не обещания: что храним, кто видит,
+      // куда уходит на обработку, как забрать и удалить.
+      privacyRows: [
+        {
+          k: 'Что храним',
+          v: 'Снимки, анкету, спецификацию, чертежи и PDF ваших паков, правки рисунка, профиль бренда.',
+        },
+        {
+          k: 'Кто видит',
+          v: 'Вы и те, кому вы отправили ссылку на пак или лист на просчёт. Администратор сервиса — для поддержки и просчёта на фабриках.',
+        },
+        {
+          k: 'Куда уходит на обработку',
+          v: 'Снимки уходят в модели разбора и рисования (Anthropic, Google Gemini через CometAPI) только на время обработки. Для обучения моделей мы их не передаём.',
+        },
+        {
+          k: 'Где лежит',
+          v: 'Сервер в Германии (Hetzner, Фалькенштайн). Ежедневная резервная копия на том же сервере.',
+        },
+        {
+          k: 'Удаление',
+          v: 'Удаление пака стирает его файлы сразу. Кнопка ниже удаляет все ваши данные; месячный лимит генераций при этом не обнуляется.',
+        },
+        {
+          k: 'Права',
+          v: 'Техпак, эскиз и правки — ваши. Мы не публикуем их и не используем в примерах без вашего согласия.',
+        },
+      ],
+      privacyExport: () => {
+        if (!TOKEN) return this.showToast('В демо-режиме данных нет');
+        location.href = '/app/api/me/export?t=' + encodeURIComponent(TOKEN);
+        track('export_data', null);
+      },
+      privacyDelete: () => {
+        if (!TOKEN) return this.showToast('В демо-режиме данных нет');
+        if (
+          !window.confirm(
+            'Удалить все ваши паки, снимки и профиль? Восстановить их будет нельзя. Месячный лимит генераций останется как есть.',
+          )
+        )
+          return;
+        apiCall('/me/delete', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ confirm: 'удалить' }),
+        })
+          .then((r) => {
+            this.showToast('Удалено паков: ' + (r.deleted || 0));
+            this.setState({ curId: null, screen: 'home', jobs: [], jobFiles: [] });
+            this.refreshJobs();
+          })
+          .catch((e) => this.showToast(e.message || 'Не удалось удалить'));
+      },
       balSlash: lim.used + ' / ' + lim.limit,
       balBarStyle:
         'display:block;width:' +
@@ -3840,12 +3969,21 @@ class Component extends DCLogic {
           -5,
         ],
         [
-          'Технический чертёж',
-          (TOKEN && s.curId && this.thumbUrl(s.curId)) || 'assets/flat-alt.png',
+          'Технический эскиз',
+          s.genSketch && TOKEN && s.curId
+            ? 'url("/app/api/jobs/' + s.curId + '/sketch?t=' + encodeURIComponent(TOKEN) + '")'
+            : (TOKEN && s.curId && this.thumbUrl(s.curId)) || 'assets/flat-alt.png',
           2,
           3,
         ],
-        ['Рендер в 3 видах', 'assets/thumb.jpg', 4, -2],
+        [
+          'Визуализация',
+          s.genRender && TOKEN && s.curId
+            ? 'url("/app/api/jobs/' + s.curId + '/render?t=' + encodeURIComponent(TOKEN) + '")'
+            : 'assets/thumb.jpg',
+          4,
+          -2,
+        ],
       ]
         .filter((c) => s.genStep >= c[2])
         .map(([label, img, _at, rot], i) => ({

@@ -270,6 +270,14 @@ else
   ok "(эскиза нет — колорвеи на схеме)"
 fi
 
+step "13u. журнал списаний: генерация записана строкой, данные забираются архивом"
+led=$(curl -s -H "$H" "$BASE/me" | python3 -c "import json,sys; L=json.load(sys.stdin).get('limits',{}).get('ledger',[]); e=[x for x in L if x.get('job')=='$ID']; print((e[0]['kind']+':'+str(e[0]['delta'])) if e else 'none')" 2>/dev/null)
+exp=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' -H "$H" "$BASE/me/export")
+case "$led|$exp" in
+  generation:-1\|200*gzip*) ok "(строка −1 за пак, архив отдан)" ;;
+  *) bad "журнал: $led · архив: $exp" ;;
+esac
+
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
 open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)
