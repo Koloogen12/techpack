@@ -579,6 +579,9 @@ class Component extends DCLogic {
     jobFiles: [],
     jobPhotos: [],
     jobSketchViews: [],
+    jobSketchBoxes: [],
+    sketchEdits: null,
+    editOn: false,
     cmp: false,
     cmpShot: 0,
     picks: {
@@ -1054,6 +1057,89 @@ class Component extends DCLogic {
   }
 
   /**
+   * Слой правок как картинка поверх рисунка: для листа целиком или для
+   * вырезки вида тем же окном, что резало вид. Ложится вторым фоном в тот
+   * же прямоугольник, что и рисунок, — одинаковое соотношение сторон даёт
+   * совпадение без единого пересчёта координат.
+   */
+  editsOverlayUrl(view) {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    if (!s.sketchEdits || !s.sketchEdits.strokes || !s.sketchEdits.strokes.length) return null;
+    if (!E || !E.editsDataUri || !this.hasSketch()) return null;
+    if (view === 'all') return E.editsDataUri(s.sketchEdits);
+    if (!this.hasSketchView(view)) return null;
+    const box = (s.jobSketchBoxes || []).find((b) => b.view === view);
+    return box ? E.editsDataUri(s.sketchEdits, { box }) : null;
+  }
+
+  /**
+   * Редактор правок открывается на листе целиком: правки живут в долях
+   * листа, а вырезки видов — только окна на него.
+   */
+  startEdit() {
+    const s = this.state;
+    if (!s.curId || !this.hasSketch()) return;
+    this.setState({ editOn: true, cmp: false, view: 'all' });
+    setTimeout(() => this.mountEditor(), 60);
+  }
+
+  mountEditor() {
+    const host = document.getElementById('ske-host');
+    const E = window.SeamsterEngine;
+    const s = this.state;
+    if (!host || !E || !E.mountSketchEditor || this._ske || !s.curId) return;
+    const id = s.curId;
+    const url =
+      '/app/api/jobs/' +
+      id +
+      '/sketch?t=' +
+      encodeURIComponent(TOKEN || '') +
+      '&n=' +
+      (s.flatNonce || 0);
+    // Размер листа в пикселях — с самой картинки: в нём измеряются толщины
+    // штрихов, а сервер его не хранит.
+    const img = document.createElement('img');
+    img.onload = () => {
+      if (this.state.curId !== id || !this.state.editOn || this._ske) return;
+      const host2 = document.getElementById('ske-host');
+      if (!host2) return;
+      this._ske = E.mountSketchEditor({
+        host: host2,
+        imageUrl: url,
+        sheet: { w: img.naturalWidth, h: img.naturalHeight },
+        edits: this.state.sketchEdits,
+        onSave: (edits) =>
+          apiCall('/jobs/' + id + '/sketch-edits', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(edits),
+          })
+            .then((r) => {
+              this.setState({ sketchEdits: r.edits || edits });
+              this.showToast('Правки рисунка сохранены — документ обновлён');
+              track('sketch_edits', { id, strokes: edits.strokes.length });
+            })
+            .catch((e) => {
+              this.showToast(e.message || 'Не удалось сохранить правки');
+              throw e;
+            }),
+        onClose: () => this.unmountEditor(),
+      });
+    };
+    img.onerror = () => this.unmountEditor();
+    img.src = url;
+  }
+
+  unmountEditor() {
+    if (this._ske) {
+      this._ske.destroy();
+      this._ske = null;
+    }
+    if (this.state.editOn) this.setState({ editOn: false });
+  }
+
+  /**
    * Снимок заказчика для сравнения с рисунком — под текущий вид.
    *
    * Перед сравнивают с фото переда, спинку — со спинкой; на «все виды»
@@ -1142,6 +1228,13 @@ class Component extends DCLogic {
       },
     ];
     if (drawingUrl) shots.splice(1, 0, { bg: pane('right', drawingUrl), label: '', go: noop });
+    const ov = drawingUrl ? this.editsOverlayUrl(s.view) : null;
+    if (ov)
+      shots.splice(2, 0, {
+        bg: pane('right', 'url("' + ov + '")') + ';pointer-events:none',
+        label: '',
+        go: noop,
+      });
     return shots;
   }
 
@@ -1741,6 +1834,7 @@ class Component extends DCLogic {
 
   openDoc(section) {
     clearTimeout(this._dl);
+    this.unmountEditor();
     this.setState({
       screen: 'doc',
       section: section || 'cover',
@@ -1751,6 +1845,7 @@ class Component extends DCLogic {
       cmpShot: 0,
       // Вид «бок» есть не у каждой работы — у следующей его может не быть.
       view: 'all',
+      sketchEdits: null,
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
@@ -1764,7 +1859,18 @@ class Component extends DCLogic {
               jobFiles: r.files || [],
               jobPhotos: r.photos || [],
               jobSketchViews: r.sketch_views || [],
+              jobSketchBoxes: r.sketch_boxes || [],
             });
+        })
+        .catch(() => {});
+    }
+    // Слой правок эскиза — вектор поверх растра; кабинет и документ рисуют
+    // его одним кодом (SeamsterEngine.editsDataUri = docgen editsToSvg).
+    if (!DEMO && TOKEN && this.state.curId) {
+      const eid = this.state.curId;
+      apiCall('/jobs/' + eid + '/sketch-edits')
+        .then((r) => {
+          if (this.state.curId === eid) this.setState({ sketchEdits: r.edits || null });
         })
         .catch(() => {});
     }
@@ -2439,6 +2545,14 @@ class Component extends DCLogic {
         style: chip(s.cmp) + ';margin-left:6px',
         go: () => this.setState((p) => ({ cmp: !p.cmp, cmpShot: 0 })),
       });
+    // Правки — слой поверх эскиза, открывается на листе целиком. Пока
+    // редактор открыт, чип не нужен: у редактора свои «Сохранить» и «Отмена».
+    if (liveOn && this.hasSketch() && !s.editOn)
+      views.push({
+        label: 'Править рисунок',
+        style: chip(false) + ';margin-left:6px',
+        go: () => this.startEdit(),
+      });
     const flatVB =
       { all: '0 0 560 300', front: '16 8 190 288', side: '230 8 120 288', back: '356 8 200 288' }[
         s.view
@@ -2502,6 +2616,17 @@ class Component extends DCLogic {
             label: '',
             go: noShot,
           }));
+    // Слой правок — вторым фоном в тот же прямоугольник, что рисунок.
+    const editsUrl = liveOn && !cmpPhoto && drawingUrl ? this.editsOverlayUrl(s.view) : null;
+    if (editsUrl)
+      liveShots.push({
+        bg:
+          'position:absolute;inset:16px 16px 36px;background:url("' +
+          editsUrl +
+          '") 50% 50%/contain no-repeat;pointer-events:none',
+        label: '',
+        go: noShot,
+      });
     const calloutPos =
       s.view === 'side'
         ? [['2', 272, 140]]
@@ -3306,6 +3431,7 @@ class Component extends DCLogic {
       calloutsOn: s.layers.callouts && !liveOn,
       liveFlatOn: liveOn,
       liveFlatOff: !liveOn,
+      editOn: !!s.editOn,
       liveShots,
       // Подсказка под холстом называет, что можно сделать С ЭТОЙ картинкой.
       // Перестройка по замеру и клик по номеру — свойства параметрического

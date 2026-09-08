@@ -51,7 +51,7 @@ export interface RfqOptions {
    * библиотечный, и два документа об одном изделии выглядели бы по-разному.
    * Фабрика замечает такое первой: «а это точно та же вещь?»
    */
-  flat?: { svg: string } | { image: string } | undefined;
+  flat?: { svg: string } | { image: string; overlay?: string } | undefined;
   /**
    * Ссылка на полный техпак.
    *
@@ -254,7 +254,7 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
   const flat = options.flat;
   const sketch =
     flat && 'image' in flat
-      ? `<img src="${flat.image}" alt="">`
+      ? `<div class="sheet"><img src="${flat.image}" alt="">${flat.overlay ?? ''}</div>`
       : flat && 'svg' in flat
         ? flat.svg
         : renderFlatsFromSpec(spec, {
@@ -330,6 +330,9 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
   .sketch { border: 1px solid #E4E1DC; border-radius: 2mm; padding: 3mm; }
   .sketch svg { width: 100%; height: auto; max-height: 60mm; }
   .sketch img { width: 100%; height: auto; max-height: 60mm; object-fit: contain; display: block; mix-blend-mode: multiply; }
+  .sketch .sheet { position: relative; display: block; line-height: 0; }
+  .sketch .edits { position: absolute; inset: 0; pointer-events: none; }
+  .sketch .edits svg { width: 100%; height: 100%; display: block; }
   .sketch figcaption { margin: 2mm 0 0; font-size: 7pt; letter-spacing: 1.2px; text-transform: uppercase; color: #6B6B67; text-align: center; }
   h2 { font-size: 10pt; margin: 6mm 0 2mm; }
   ul { margin: 0; padding-left: 4.5mm; line-height: 1.5; }

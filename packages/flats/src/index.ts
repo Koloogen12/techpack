@@ -4,3 +4,4 @@ export * from './render.js';
 export * from './side.js';
 export * from './defaults.js';
 export * from './lines.js';
+export * from './edits.js';

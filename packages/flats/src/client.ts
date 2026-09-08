@@ -11,3 +11,4 @@ export * from './paths.js';
 export * from './svg.js';
 export * from './side.js';
 export * from './render.js';
+export * from './edits.js';

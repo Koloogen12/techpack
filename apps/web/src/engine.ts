@@ -9,15 +9,26 @@
  * Живой чертёж пересобирается на каждое нажатие клавиши в замерах — сеть
  * в этой петле недопустима, вся геометрия считается здесь, в браузере.
  */
-import { measurementsFrom, renderFlat } from '@seamster/flats/client';
+import { editsDataUri, editsToSvg, measurementsFrom, renderFlat } from '@seamster/flats/client';
+import { mountSketchEditor } from './sketch-editor.js';
 
 declare global {
   interface Window {
     SeamsterEngine: {
       measurementsFrom: typeof measurementsFrom;
       renderFlat: typeof renderFlat;
+      /** Слой правок эскиза: тот же SVG, что печатает документ. */
+      editsToSvg: typeof editsToSvg;
+      editsDataUri: typeof editsDataUri;
+      mountSketchEditor: typeof mountSketchEditor;
     };
   }
 }
 
-window.SeamsterEngine = { measurementsFrom, renderFlat };
+window.SeamsterEngine = {
+  measurementsFrom,
+  renderFlat,
+  editsToSvg,
+  editsDataUri,
+  mountSketchEditor,
+};

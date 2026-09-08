@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderRfqPdf, rfqText, type RfqOptions } from '@seamster/docgen';
+import { editsToSvg, parseSketchEdits } from '@seamster/flats';
 import type { Locale } from '@seamster/i18n';
 import type { StyleSpec } from '@seamster/stylespec';
 import { readJobTemplate, renderJobTemplate } from './templates.js';
@@ -125,9 +126,28 @@ export async function buildRfq(
   const sketchFront = (['jpg', 'png'] as const)
     .map((ext) => join(dir, `sketch-front.${ext}`))
     .find((path) => existsSync(path));
+  // Слой правок человека — тем же окном переда, что и на обложке пака.
+  const overlay = (() => {
+    try {
+      const edits = parseSketchEdits(
+        JSON.parse(readFileSync(join(dir, 'sketch-edits.json'), 'utf8')),
+      );
+      const boxes = (
+        JSON.parse(readFileSync(join(dir, 'sketch-views.json'), 'utf8')) as {
+          boxes?: { view: string; x0: number; y0: number; x1: number; y1: number }[];
+        }
+      ).boxes;
+      const box = boxes?.find((b) => b.view === 'front');
+      if (!box || edits.strokes.length === 0) return '';
+      return `<div class="edits">${editsToSvg(edits, { box })}</div>`;
+    } catch {
+      return '';
+    }
+  })();
   const flat = sketchFront
     ? {
         image: `data:${sketchFront.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${readFileSync(sketchFront).toString('base64')}`,
+        ...(overlay ? { overlay } : {}),
       }
     : library
       ? { svg: library.front.svg }

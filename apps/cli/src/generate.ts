@@ -55,6 +55,7 @@ import {
   visualize,
   sheetBoxes,
   type ReferenceImage,
+  type SheetBox,
   type SheetView,
 } from '@seamster/render';
 import { readSwatch } from '@seamster/pattern';
@@ -492,17 +493,17 @@ async function sketchReferences(
 async function cutSketchViews(
   browser: Browser,
   sketch: { bytes: Uint8Array; mediaType: string },
-): Promise<Partial<Record<SheetView, DocImage>> | null> {
+): Promise<{ views: Partial<Record<SheetView, DocImage>>; boxes: SheetBox[] } | null> {
   const uri = `data:${sketch.mediaType};base64,${Buffer.from(sketch.bytes).toString('base64')}`;
   const pixels = await sheetLuma(browser, uri);
   const boxes = pixels ? sheetBoxes(pixels) : null;
   if (!boxes) return null;
-  const out: Partial<Record<SheetView, DocImage>> = {};
+  const views: Partial<Record<SheetView, DocImage>> = {};
   for (const box of boxes) {
     const crop = await cropImage(browser, uri, box);
-    if (crop) out[box.view] = { dataUri: crop };
+    if (crop) views[box.view] = { dataUri: crop };
   }
-  return Object.keys(out).length ? out : null;
+  return Object.keys(views).length ? { views, boxes } : null;
 }
 
 /**
@@ -894,7 +895,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   const checked = await checkSketch(spec, sketch, options, notes);
   // Виды режутся из ТОГО ЖЕ листа: обложка, лист на просчёт и чип «Перед»
   // в кабинете показывают эту вещь, а не библиотечный силуэт похожей.
-  const sketchViews = checked.ok ? await cutSketchViews(browser, checked) : null;
+  const cut = checked.ok ? await cutSketchViews(browser, checked) : null;
+  const sketchViews = cut?.views ?? null;
 
   // --- История версий -------------------------------------------------------
   // Прошлая версия НЕ переписывается: спор с фабрикой разрешается сверкой
@@ -968,6 +970,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       ...built,
       ...(library ? { libraryFlats: library } : {}),
       ...(sketchViews ? { sketchViews } : {}),
+      ...(cut ? { sketchBoxes: cut.boxes } : {}),
     };
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
     // Картинка кладётся файлом рядом с документом: кабинет её показывает,
@@ -996,11 +999,19 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     for (const view of ['front', 'side', 'back'])
       for (const ext of ['jpg', 'png'])
         rmSync(join(dirname(options.outPath), `sketch-${view}.${ext}`), { force: true });
+    rmSync(join(dirname(options.outPath), 'sketch-views.json'), { force: true });
     if (checked.ok) {
       writeFileSync(
         join(dirname(options.outPath), sketchFileName(checked.mediaType)),
         checked.bytes,
       );
+      // Границы видов — рядом: по ним слой правок ложится на вырезки тем же
+      // окном, что и на лист, а кабинет знает, какой вид где на листе.
+      if (cut)
+        writeFileSync(
+          join(dirname(options.outPath), 'sketch-views.json'),
+          JSON.stringify({ boxes: cut.boxes }, null, 2),
+        );
       for (const [view, image] of Object.entries(sketchViews ?? {})) {
         const m = /^data:image\/(jpeg|png);base64,(.+)$/.exec(image.dataUri);
         if (m)

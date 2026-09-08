@@ -1,5 +1,5 @@
 import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamster/core';
-import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
+import { editsToSvg, flatDefaults, renderFlatsFromSpec, type SketchEdits } from '@seamster/flats';
 import { seamDiagramSvg } from './seam-diagram.js';
 import {
   CATEGORY_LABEL_RU,
@@ -160,6 +160,25 @@ export interface DocVisuals {
    */
   sketchViews?: Partial<Record<'front' | 'side' | 'back', DocImage>>;
   /**
+   * Границы видов на листе эскиза в долях — те же, что резали вырезки.
+   * По ним слой правок ложится на вырезку тем же окном, что на лист.
+   */
+  sketchBoxes?: readonly {
+    view: 'front' | 'side' | 'back';
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  }[];
+  /**
+   * Слой правок человека поверх эскиза — вектор в долях листа.
+   *
+   * Печатается SVG поверх растра: и на листе чертежа, и на вырезках
+   * обложки. Ничего не запекается в картинку, поэтому документ и кабинет
+   * показывают правки одним и тем же кодом (ADR-0010, разбор референса).
+   */
+  sketchEdits?: SketchEdits;
+  /**
    * Тайл раппорта для превью на изделии.
    *
    * Чертёж рисуется в сантиметрах, поэтому шаг здесь РАЗМЕРНО ТОЧЕН: 24 см
@@ -191,6 +210,19 @@ export interface DocVisuals {
 }
 
 type SketchViews = NonNullable<DocVisuals['sketchViews']>;
+type SketchBoxes = NonNullable<DocVisuals['sketchBoxes']>;
+
+/** Слой правок для целого листа или для одной вырезки — тем же окном, что резали. */
+function editsOverlay(
+  edits: SketchEdits | undefined,
+  boxes: SketchBoxes | undefined,
+  view?: 'front' | 'side' | 'back',
+): string {
+  if (!edits || edits.strokes.length === 0) return '';
+  const box = view ? boxes?.find((b) => b.view === view) : undefined;
+  if (view && !box) return '';
+  return `<div class="edits">${editsToSvg(edits, box ? { box } : {})}</div>`;
+}
 
 export interface HtmlOptions {
   /** Какие страницы включить. По умолчанию все. */
@@ -304,7 +336,15 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   // человеку не показывается, пока есть библиотечный.
   const coverLibrary = options.visuals?.libraryFlats?.[locale] ?? options.visuals?.libraryFlats?.ru;
   add('cover', t.section_cover, [
-    coverBody(spec, t, locale, coverLibrary, options.visuals?.sketchViews),
+    coverBody(
+      spec,
+      t,
+      locale,
+      coverLibrary,
+      options.visuals?.sketchViews,
+      options.visuals?.sketchEdits,
+      options.visuals?.sketchBoxes,
+    ),
   ]);
   // Лист изменений идёт СРАЗУ за обложкой: человек, который уже читал прошлую
   // версию, не станет перечитывать сорок страниц ради двух правок. Без этого
@@ -330,7 +370,13 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     const sketch = options.visuals?.sketch;
     add('flats', t.section_flats, [
       sketch
-        ? sketchFlatsBody(sketch, referencePhotos(options.visuals), library, t)
+        ? sketchFlatsBody(
+            sketch,
+            referencePhotos(options.visuals),
+            library,
+            t,
+            editsOverlay(options.visuals?.sketchEdits, options.visuals?.sketchBoxes),
+          )
         : library
           ? libraryFlatsBody(library, t, locale)
           : flatsBody(
@@ -526,8 +572,11 @@ function coverBody(
   locale: Locale,
   library?: LibraryFlatViews,
   sketchViews?: SketchViews,
+  sketchEdits?: SketchEdits,
+  sketchBoxes?: SketchBoxes,
 ): string {
-  if (locale !== 'ru') return coverFactory(spec, t, locale, library, sketchViews);
+  if (locale !== 'ru')
+    return coverFactory(spec, t, locale, library, sketchViews, sketchEdits, sketchBoxes);
 
   const passport: [string, string][] = [
     ['Категория', CATEGORY_LABEL_RU[spec.style.category as Category]],
@@ -566,6 +615,8 @@ function coverBody(
     'Перед',
     'Спинка',
     sketchViews,
+    sketchEdits,
+    sketchBoxes,
   );
 
   return (
@@ -1093,12 +1144,16 @@ function coverCanvas(
   frontLabel: string,
   backLabel: string,
   sketchViews?: SketchViews,
+  sketchEdits?: SketchEdits,
+  sketchBoxes?: SketchBoxes,
 ): string {
   // Порядок тот же, что на листе чертежа: вырезки эскиза → силуэт →
   // построение. Обложка и лист чертежа обязаны показывать одну вещь.
   const figures = sketchViews?.front
-    ? rasterFigure(sketchViews.front, frontLabel) +
-      (sketchViews.back ? rasterFigure(sketchViews.back, backLabel) : '')
+    ? rasterFigure(sketchViews.front, frontLabel, editsOverlay(sketchEdits, sketchBoxes, 'front')) +
+      (sketchViews.back
+        ? rasterFigure(sketchViews.back, backLabel, editsOverlay(sketchEdits, sketchBoxes, 'back'))
+        : '')
     : library
       ? viewFigure({ ...library.front, geometry: {} }, frontLabel) +
         (library.back ? viewFigure({ ...library.back, geometry: {} }, backLabel) : '')
@@ -1115,11 +1170,11 @@ function coverCanvas(
  * Без явной доли ширины: у растра нет viewBox, и flex делит холст поровну.
  * Умножение гасит белый фон вырезки, как у целого листа эскиза.
  */
-function rasterFigure(image: DocImage, caption: string): string {
+function rasterFigure(image: DocImage, caption: string, overlay = ''): string {
   const src = safeDataUri(image.dataUri);
   if (!src) return '';
   return (
-    `<figure class="raster"><img class="sketch-view" src="${src}" alt="">` +
+    `<figure class="raster"><div class="sheet"><img class="sketch-view" src="${src}" alt="">${overlay}</div>` +
     `<figcaption class="ml">${esc(caption)}</figcaption></figure>`
   );
 }
@@ -1130,6 +1185,8 @@ function coverFactory(
   locale: Locale,
   library?: LibraryFlatViews,
   sketchViews?: SketchViews,
+  sketchEdits?: SketchEdits,
+  sketchBoxes?: SketchBoxes,
 ): string {
   const missing = DOC_SECTIONS.filter((x) => !TRANSLATED_SECTIONS.includes(x) && x !== 'cover');
   const label = (x: DocSection): string =>
@@ -1151,7 +1208,17 @@ function coverFactory(
 
   return (
     `<div class="cover">` +
-    coverCanvas(spec, t, library, t.section_flats, t.view_front, t.view_back, sketchViews) +
+    coverCanvas(
+      spec,
+      t,
+      library,
+      t.section_flats,
+      t.view_front,
+      t.view_back,
+      sketchViews,
+      sketchEdits,
+      sketchBoxes,
+    ) +
     `<div style="display:flex;flex-direction:column;min-height:0">` +
     `<h1${spec.style.name.length > 34 ? ' style="font-size:15pt"' : ''}>` +
     `${esc(spec.style.name)}</h1>` +
@@ -1741,6 +1808,7 @@ function sketchFlatsBody(
   photos: readonly DocImage[],
   library: LibraryFlatViews | undefined,
   t: Messages,
+  overlay = '',
 ): string {
   // Референс стоит В ТОМ ЖЕ холсте, а не на соседней странице: эскиз рисует
   // модель, и ошибиться она может в узле. Расхождение видно за секунду только
@@ -1755,7 +1823,7 @@ function sketchFlatsBody(
     `<div class="canvas sketch${reference ? ' with-reference' : ''}">` +
     `<div class="ml">${esc(t.flats_label)}</div>` +
     `<div class="sketch-row">` +
-    `<img class="sketch" src="${sketch.dataUri}" alt="">` +
+    `<div class="sheet"><img class="sketch" src="${sketch.dataUri}" alt="">${overlay}</div>` +
     reference +
     `</div>` +
     `</div>` +

@@ -221,6 +221,24 @@ else
   ok "(эскиза нет — виды с силуэта)"
 fi
 
+step "13r. слой правок: вектор поверх эскиза, печатается везде, мусор отклоняется"
+if [ "$code" = "200" ]; then
+  put=$(curl -s -X PUT -H "$H" -H 'content-type: application/json' -d '{"version":1,"sheet":{"w":1792,"h":592},"strokes":[{"id":"qa1","kind":"line","preset":"lockstitch","width":4,"points":[{"x":0.1,"y":0.4},{"x":0.3,"y":0.45,"cx":0.2,"cy":0.3}]}]}' "$BASE/jobs/$ID/sketch-edits" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('edits',{}).get('strokes',[])))" 2>/dev/null)
+  doc=$(curl -s -H "$H" "$BASE/jobs/$ID/preview")
+  n=$(echo "$doc" | grep -o 'class="edits"' | wc -l | tr -d ' ')
+  bad_put=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "$H" -H 'content-type: application/json' -d '{"version":1,"sheet":{"w":10,"h":10},"strokes":[{"id":"x","kind":"line","preset":"satin","width":4,"points":[{"x":0,"y":0}]}]}' "$BASE/jobs/$ID/sketch-edits")
+  # Лист чертежа плюс вырезки переда и спинки на обложке: правка человека
+  # печатается везде, где стоит рисунок, — иначе на одном листе она есть,
+  # а на другом та же вещь без неё.
+  if [ "${put:-0}" = "1" ] && [ "${n:-0}" -ge 3 ] && [ "$bad_put" = "400" ]; then
+    ok "(слой сохранён, в документе $n раз, мусор отклонён)"
+  else
+    bad "слой правок: сохранено=${put:-?}, в документе=${n:-0} (нужно ≥3), мусор=$bad_put"
+  fi
+else
+  ok "(эскиза нет — править нечего)"
+fi
+
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
 open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)

@@ -638,3 +638,85 @@ describe('обложка и лист на просчёт — тем же рис�
     expect(h).toContain(`<img src="${PIXEL}"`);
   });
 });
+
+describe('слой правок поверх эскиза', () => {
+  const EDITS = {
+    version: 1 as const,
+    sheet: { w: 1000, h: 400 },
+    strokes: [
+      {
+        id: 'a',
+        kind: 'line' as const,
+        preset: 'lockstitch' as const,
+        width: 4,
+        points: [
+          { x: 0.1, y: 0.5 },
+          { x: 0.3, y: 0.5 },
+        ],
+      },
+    ],
+  };
+  const BOXES = [
+    { view: 'front' as const, x0: 0, y0: 0, x1: 0.4, y1: 1 },
+    { view: 'back' as const, x0: 0.6, y0: 0, x1: 1, y1: 1 },
+  ];
+
+  it('лист чертежа печатает правки SVG поверх растра тем же кодом, что кабинет', () => {
+    const page =
+      pagesOf(
+        renderHtml(SPEC, {
+          pro: true,
+          visuals: { sketch: { dataUri: PIXEL }, sketchEdits: EDITS },
+        }),
+      ).find((p) => p.includes('data-section="flats"')) ?? '';
+    expect(page).toContain('class="edits"');
+    expect(page).toContain('stroke-dasharray="12 8"');
+    expect(page).toContain('viewBox="0 0 1000 400"');
+  });
+
+  it('вырезка обложки получает то же окно, что резало вид — координаты не пересчитываются', () => {
+    const cover =
+      pagesOf(
+        renderHtml(SPEC, {
+          pro: true,
+          visuals: {
+            sketchViews: { front: { dataUri: PIXEL }, back: { dataUri: PIXEL } },
+            sketchBoxes: BOXES,
+            sketchEdits: EDITS,
+          },
+        }),
+      ).find((p) => p.includes('data-section="cover"')) ?? '';
+    expect(cover).toContain('viewBox="0 0 400 400"');
+    expect(cover).toContain('viewBox="600 0 400 400"');
+  });
+
+  it('без границ видов слой на вырезки не ложится: гадать окно нельзя', () => {
+    const cover =
+      pagesOf(
+        renderHtml(SPEC, {
+          pro: true,
+          visuals: { sketchViews: { front: { dataUri: PIXEL } }, sketchEdits: EDITS },
+        }),
+      ).find((p) => p.includes('data-section="cover"')) ?? '';
+    expect(cover).not.toContain('class="edits"');
+  });
+
+  it('пустой слой ничего не печатает', () => {
+    const page =
+      pagesOf(
+        renderHtml(SPEC, {
+          pro: true,
+          visuals: { sketch: { dataUri: PIXEL }, sketchEdits: { ...EDITS, strokes: [] } },
+        }),
+      ).find((p) => p.includes('data-section="flats"')) ?? '';
+    expect(page).not.toContain('class="edits"');
+  });
+
+  it('лист на просчёт несёт слой правок на виде переда', () => {
+    const h = renderRfqHtml(SPEC, {
+      flat: { image: PIXEL, overlay: '<div class="edits"><svg></svg></div>' },
+    });
+    expect(h).toContain('<div class="sheet"><img src="');
+    expect(h).toContain('class="edits"');
+  });
+});

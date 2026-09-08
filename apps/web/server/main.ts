@@ -30,7 +30,7 @@ import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { isSeamsterError } from '@seamster/core';
 import { applyDecision, editMeasurement, openDecisions } from '@seamster/fit';
-import { flatDefaults } from '@seamster/flats';
+import { flatDefaults, parseSketchEdits, type SketchEdits } from '@seamster/flats';
 import { kb } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
 import type { DocImage, DocVisuals } from '@seamster/docgen';
@@ -272,11 +272,15 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
   // после правки замера теряла: две сборки — два документа.
   const photos = jobPhotos(dir, locale);
   if (!library && !render && !sketch && photos.length === 0) return null;
+  const sketchEdits = sketchEditsOf(dir);
+  const sketchBoxes = sketchBoxesOf(dir);
   return {
     ...(library ? { libraryFlats: { [locale]: library } } : {}),
     ...(render ? { render } : {}),
     ...(sketch ? { sketch } : {}),
     ...(Object.keys(sketchViews).length ? { sketchViews } : {}),
+    ...(sketchBoxes.length ? { sketchBoxes } : {}),
+    ...(sketchEdits ? { sketchEdits } : {}),
     ...(photos.length ? { photos } : {}),
   };
 }
@@ -368,6 +372,68 @@ function sketchPath(dir: string, view?: SketchView): { path: string; type: strin
     if (existsSync(path)) return { path, type };
   }
   return null;
+}
+
+/** Границы видов на листе эскиза — их пишет генератор рядом с вырезками. */
+function sketchBoxesOf(
+  dir: string,
+): { view: SketchView; x0: number; y0: number; x1: number; y1: number }[] {
+  try {
+    const raw = JSON.parse(readFileSync(join(dir, 'sketch-views.json'), 'utf8')) as {
+      boxes?: { view: SketchView; x0: number; y0: number; x1: number; y1: number }[];
+    };
+    return raw.boxes ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Слой правок поверх эскиза и его история.
+ *
+ * Правки — вектор в долях листа, а не запечённые пиксели (ADR-0010 и разбор
+ * референса): их можно снять и подвинуть в любой момент. Каждое сохранение
+ * кладёт прошлую версию в историю, откуда её можно вернуть.
+ */
+function sketchEditsOf(dir: string): SketchEdits | null {
+  try {
+    return parseSketchEdits(JSON.parse(readFileSync(join(dir, 'sketch-edits.json'), 'utf8')));
+  } catch {
+    return null;
+  }
+}
+
+const EDITS_HISTORY_MAX = 20;
+
+function editsHistoryOf(dir: string): { saved_at: string; strokes: number }[] {
+  try {
+    const raw = JSON.parse(readFileSync(join(dir, 'sketch-edits.history.json'), 'utf8')) as {
+      saved_at: string;
+      edits: SketchEdits;
+    }[];
+    return raw.map((h) => ({ saved_at: h.saved_at, strokes: h.edits.strokes.length }));
+  } catch {
+    return [];
+  }
+}
+
+function saveSketchEdits(dir: string, edits: SketchEdits): SketchEdits {
+  const path = join(dir, 'sketch-edits.json');
+  const histPath = join(dir, 'sketch-edits.history.json');
+  const previous = sketchEditsOf(dir);
+  if (previous) {
+    let hist: { saved_at: string; edits: SketchEdits }[] = [];
+    try {
+      hist = JSON.parse(readFileSync(histPath, 'utf8')) as typeof hist;
+    } catch {
+      hist = [];
+    }
+    hist.unshift({ saved_at: previous.saved_at ?? new Date().toISOString(), edits: previous });
+    writeFileSync(histPath, JSON.stringify(hist.slice(0, EDITS_HISTORY_MAX)));
+  }
+  const stamped: SketchEdits = { ...edits, saved_at: new Date().toISOString() };
+  writeFileSync(path, JSON.stringify(stamped));
+  return stamped;
 }
 
 /**
@@ -1581,6 +1647,8 @@ const server = createServer(async (req, res) => {
           files,
           photos: photoList(dir).map(({ n, view }) => ({ n, view })),
           sketch_views: sketchViewsOf(dir),
+          sketch_boxes: sketchBoxesOf(dir),
+          sketch_edits: sketchEditsOf(dir)?.saved_at ?? null,
         });
       }
 
@@ -1589,6 +1657,44 @@ const server = createServer(async (req, res) => {
         if (!existsSync(path)) return json(res, 404, { error: 'визуализации нет' });
         res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache' });
         return res.end(readFileSync(path));
+      }
+
+      // Слой правок поверх эскиза: вектор, история, откат.
+      if (rest === '/sketch-edits') {
+        if (req.method === 'GET')
+          return json(res, 200, { edits: sketchEditsOf(dir), history: editsHistoryOf(dir) });
+        if (req.method === 'PUT') {
+          if (!sketchPath(dir)) return json(res, 404, { error: 'у этой работы нет эскиза' });
+          const body = await readBody(req, 2 * 1024 * 1024);
+          if (!body) return json(res, 413, { error: 'слишком большой слой правок' });
+          let edits: SketchEdits;
+          try {
+            edits = parseSketchEdits(JSON.parse(body.toString('utf8')));
+          } catch (e) {
+            return json(res, 400, { error: e instanceof Error ? e.message : 'слой не разобран' });
+          }
+          const saved = saveSketchEdits(dir, edits);
+          logEvent(invite.name, 'sketch_edits', { id, strokes: saved.strokes.length });
+          return json(res, 200, { ok: true, edits: saved, history: editsHistoryOf(dir) });
+        }
+      }
+      if (req.method === 'POST' && rest === '/sketch-edits/rollback') {
+        const body = await readBody(req, 4096);
+        const { index } = body
+          ? (JSON.parse(body.toString('utf8')) as { index?: number })
+          : { index: undefined };
+        let hist: { saved_at: string; edits: SketchEdits }[] = [];
+        try {
+          hist = JSON.parse(
+            readFileSync(join(dir, 'sketch-edits.history.json'), 'utf8'),
+          ) as typeof hist;
+        } catch {
+          hist = [];
+        }
+        const target = typeof index === 'number' ? hist[index] : undefined;
+        if (!target) return json(res, 404, { error: 'такой версии правок нет' });
+        const saved = saveSketchEdits(dir, target.edits);
+        return json(res, 200, { ok: true, edits: saved, history: editsHistoryOf(dir) });
       }
 
       if (req.method === 'GET' && rest === '/sketch') {

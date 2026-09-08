@@ -394,7 +394,10 @@ sub(
 // Демо-SVG прототипа остаётся нетронутым и показывается, пока спеки нет.
 sub(
   '<svg viewBox="{{ flatVB }}" preserveAspectRatio="xMidYMid meet" style="{{ flatSvgStyle }}">',
-  '<sc-if value="{{ liveFlatOn }}" hint-placeholder-val="{{ false }}">\n' +
+  // Редактор правок монтируется в этот контейнер поверх холста: разметка
+  // его не знает, движок (engine.js) рисует внутри сам.
+  '<sc-if value="{{ editOn }}" hint-placeholder-val="{{ false }}"><div id="ske-host" style="position:absolute;inset:0;z-index:5"></div></sc-if>\n' +
+    '<sc-if value="{{ liveFlatOn }}" hint-placeholder-val="{{ false }}">\n' +
     '<sc-for list="{{ liveShots }}" as="lf" hint-placeholder-count="3"><span onClick="{{ lf.go }}" style="{{ lf.bg }}">{{ lf.label }}</span></sc-for>\n' +
     '</sc-if>\n' +
     '<sc-if value="{{ liveFlatOff }}" hint-placeholder-val="{{ true }}">\n' +

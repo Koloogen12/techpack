@@ -233,6 +233,12 @@ table.plain td.k { width: 34mm; color: var(--secondary); font-size: 7.6pt; paddi
 .canvas.sketch .sketch-row { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 6mm; }
 .canvas img.sketch { max-height: 122mm; width: auto; max-width: 100%; mix-blend-mode: multiply; }
 .canvas img.sketch-view { max-height: 118mm; width: auto; max-width: 100%; mix-blend-mode: multiply; }
+/* Слой правок ложится на картинку тем же прямоугольником: обёртка обтягивает
+   растр, SVG растянут на неё целиком и с тем же соотношением сторон. */
+.sheet { position: relative; display: inline-block; line-height: 0; max-width: 100%; }
+.canvas.sketch.with-reference .sketch-row .sheet { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; }
+.sheet .edits { position: absolute; inset: 0; pointer-events: none; }
+.sheet .edits svg { width: 100%; height: 100%; display: block; }
 /* Референс — колонка справа от эскиза, в том же холсте. Эскиз остаётся
    героем листа: у колонки одна шестая ширины и два кадра, перед и спинка.
    Снимок — фотография, а не линии: без multiply и на бумаге, а не на
