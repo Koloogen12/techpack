@@ -607,6 +607,28 @@ sub(
 );
 subAll('Sora,', 'Manrope,Sora,', 480);
 
+// Полутона веса: кикеры 700 → 650. Manrope переменный, и 650 даёт иерархию
+// без смены кегля — референс живёт на 520/650/690, хендофф грузил 400/600/700.
+subAll('font:700 8.3px', 'font:650 8.3px', 8);
+subAll('font:700 9.2px', 'font:650 9.2px', 2);
+
+// Переходы на ховерах. Рантайм прототипа применяет style-hover сменой
+// инлайн-стиля без перехода, и всё щёлкает. Каждому элементу с style-hover
+// дописывается transition на фон, цвет, рамку и тень — токен --sf-dur-fast.
+// Стили-биндинги ({{ … }}) и элементы со своим transition не трогаем.
+{
+  let n = 0;
+  tpl = tpl.replace(/style="([^"]*)"(\s+style-hover=)/g, (m, style, tail) => {
+    if (style.includes('{{') || style.includes('transition')) return m;
+    n++;
+    const sep = style.trim().endsWith(';') || style.trim() === '' ? '' : ';';
+    return `style="${style}${sep}transition:background .12s ease,color .12s ease,border-color .12s ease,box-shadow .12s ease,opacity .12s ease"${tail}`;
+  });
+  if (n < 90)
+    throw new Error(`переходы на ховерах: ожидалось не меньше 90 элементов, найдено ${n}`);
+  replaced += n;
+}
+
 const logic = readFileSync(join(webRoot, 'proto', 'logic.js'), 'utf8');
 if (!logic.includes('class Component extends DCLogic')) {
   throw new Error('proto/logic.js обязан определять class Component extends DCLogic');
