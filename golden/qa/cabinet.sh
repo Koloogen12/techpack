@@ -239,6 +239,26 @@ else
   ok "(эскиза нет — править нечего)"
 fi
 
+step "13s. перерисовка эскиза: новый лист, прошлый в истории, откат возвращает"
+if [ "$code" = "200" ]; then
+  rd=$(curl -s -X POST -H "$H" "$BASE/jobs/$ID/sketch/redraw")
+  rok=$(echo "$rd" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if d.get('ok') else 'no:'+str(d.get('error','')))" 2>/dev/null)
+  case "$rok" in
+    yes)
+      hist=$(curl -s -H "$H" "$BASE/jobs/$ID/sketch/history" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('history',[])))" 2>/dev/null)
+      at=$(curl -s -H "$H" "$BASE/jobs/$ID/sketch/history" | python3 -c "import json,sys; h=json.load(sys.stdin).get('history',[]); print(h[0]['at'] if h else '')" 2>/dev/null)
+      rb=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d "{\"at\":\"$at\"}" "$BASE/jobs/$ID/sketch/rollback" | python3 -c "import json,sys; print(json.load(sys.stdin).get('ok'))" 2>/dev/null)
+      # Откат возвращает прошлый лист, а новый уходит в историю: версий не убывает.
+      [ "${hist:-0}" -ge 1 ] && [ "$rb" = "True" ] \
+        && ok "(перерисован, версий в истории: $hist, откат прошёл)" \
+        || bad "перерисовка: история=${hist:-0}, откат=$rb" ;;
+    no:*) ok "(сторож не принял новый лист: ${rok#no:} — прошлый оставлен)" ;;
+    *) bad "перерисовка не ответила: $rd" ;;
+  esac
+else
+  ok "(эскиза нет — перерисовывать нечего)"
+fi
+
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
 open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)

@@ -210,6 +210,12 @@ export interface SketchOptions {
    * Входят в ключ кэша: другой снимок при той же спеке — другой рисунок.
    */
   references?: readonly ReferenceImage[];
+  /**
+   * Соль ключа кэша — для «перерисовать ещё раз» при той же спеке и тех же
+   * снимках. Без неё повторный запрос вернул бы из кэша тот же лист:
+   * бесплатно, но бессмысленно для человека, который просит другой вариант.
+   */
+  nonce?: string;
 }
 
 export type SketchResult =
@@ -237,7 +243,7 @@ export async function flatSketch(
   const references = options.references ?? [];
   const prompt = buildSketchPrompt(spec, { fromPhoto: references.length > 0 });
   const key = renderKey({
-    prompt: `${SKETCH_PROMPT_VERSION}|${prompt}`,
+    prompt: `${SKETCH_PROMPT_VERSION}|${prompt}${options.nonce ? `|${options.nonce}` : ''}`,
     model,
     references: references.map((r) => r.bytes),
   });

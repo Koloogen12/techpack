@@ -582,6 +582,8 @@ class Component extends DCLogic {
     jobSketchBoxes: [],
     sketchEdits: null,
     editOn: false,
+    redrawBusy: false,
+    sketchVersions: 0,
     cmp: false,
     cmpShot: 0,
     picks: {
@@ -1137,6 +1139,85 @@ class Component extends DCLogic {
       this._ske = null;
     }
     if (this.state.editOn) this.setState({ editOn: false });
+  }
+
+  /** Список файлов работы заново — после перерисовки или отката рисунка. */
+  reloadFiles(id) {
+    apiCall('/jobs/' + id + '/files')
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this.setState({
+          jobFiles: r.files || [],
+          jobPhotos: r.photos || [],
+          jobSketchViews: r.sketch_views || [],
+          jobSketchBoxes: r.sketch_boxes || [],
+          sketchVersions: r.sketch_versions || 0,
+          flatNonce: Date.now(),
+        });
+      })
+      .catch(() => {});
+  }
+
+  /**
+   * Перерисовать эскиз по текущим снимкам и узлам.
+   *
+   * Прошлый лист уходит в историю, слой правок остаётся: он в долях листа,
+   * но новый лист может лечь иначе — тост зовёт проверить. Отказ сторожа
+   * оставляет прошлый лист, и об этом говорится словами, а не молчанием.
+   */
+  redrawSketch() {
+    const s = this.state;
+    if (!s.curId || s.redrawBusy) return;
+    const id = s.curId;
+    this.setState({ redrawBusy: true });
+    apiCall('/jobs/' + id + '/sketch/redraw', { method: 'POST' })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        if (!r.ok) {
+          this.showToast(r.error || 'Эскиз не перерисовался — прошлый рисунок оставлен');
+          return;
+        }
+        const hadEdits = !!(
+          this.state.sketchEdits &&
+          this.state.sketchEdits.strokes &&
+          this.state.sketchEdits.strokes.length
+        );
+        this.reloadFiles(id);
+        this.showToast(
+          hadEdits
+            ? 'Эскиз перерисован. Правки остались слоем — проверьте их поверх нового листа'
+            : 'Эскиз перерисован по фото и узлам',
+        );
+        track('sketch_redraw', { id });
+      })
+      .catch((e) => this.showToast(e.message || 'Эскиз не перерисовался'))
+      .then(() => {
+        if (this.state.curId === id) this.setState({ redrawBusy: false });
+      });
+  }
+
+  /** Вернуть прошлый лист из истории; текущий уходит в историю на его место. */
+  restoreSketch() {
+    const s = this.state;
+    if (!s.curId || s.redrawBusy) return;
+    const id = s.curId;
+    apiCall('/jobs/' + id + '/sketch/history')
+      .then((h) => {
+        const last = (h.history || [])[0];
+        if (!last) throw new Error('Прошлых версий рисунка нет');
+        return apiCall('/jobs/' + id + '/sketch/rollback', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ at: last.at }),
+        });
+      })
+      .then(() => {
+        if (this.state.curId !== id) return;
+        this.reloadFiles(id);
+        this.showToast('Вернули прошлый рисунок — текущий ушёл в историю');
+        track('sketch_rollback', { id });
+      })
+      .catch((e) => this.showToast(e.message || 'Не удалось вернуть рисунок'));
   }
 
   /**
@@ -1860,6 +1941,7 @@ class Component extends DCLogic {
               jobPhotos: r.photos || [],
               jobSketchViews: r.sketch_views || [],
               jobSketchBoxes: r.sketch_boxes || [],
+              sketchVersions: r.sketch_versions || 0,
             });
         })
         .catch(() => {});
@@ -5170,6 +5252,20 @@ class Component extends DCLogic {
         s.screen === 'doc' &&
         s.section === 'flats' &&
         !!(s.silh && (s.silh.id || (s.silh.candidates || []).length)),
+      // Полоса эскиза под холстом: откуда рисунок, сколько версий, правок,
+      // и две кнопки — вернуть прошлый лист и перерисовать по фото.
+      sketchBarOn: liveOn && this.hasSketch(),
+      sketchNote: s.redrawBusy
+        ? 'Перерисовываем эскиз по фото и узлам — около минуты. Прошлый лист останется в истории.'
+        : 'Эскиз нарисован по фото и узлам этой вещи' +
+          (s.sketchVersions ? ' · версий: ' + (s.sketchVersions + 1) : '') +
+          (s.sketchEdits && s.sketchEdits.strokes && s.sketchEdits.strokes.length
+            ? ' · правок: ' + s.sketchEdits.strokes.length
+            : ''),
+      sketchCanRestore: !s.redrawBusy && s.sketchVersions > 0,
+      sketchRestore: () => this.restoreSketch(),
+      sketchRedraw: () => this.redrawSketch(),
+      sketchRedrawLabel: s.redrawBusy ? 'Перерисовываем…' : 'Перерисовать по фото',
       silhNote: !s.silh
         ? ''
         : !s.silh.id

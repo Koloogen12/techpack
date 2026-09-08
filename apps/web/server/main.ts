@@ -25,6 +25,8 @@ import {
   readdirSync,
   writeFileSync,
   statSync,
+  renameSync,
+  rmSync,
 } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
@@ -35,7 +37,7 @@ import { kb } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
 import type { DocImage, DocVisuals } from '@seamster/docgen';
 import { messages } from '@seamster/i18n';
-import { generate } from '../../cli/src/generate.js';
+import { archiveSketch, generate, redrawSketch } from '../../cli/src/generate.js';
 import { parseAnswers } from '../../cli/src/answers.js';
 import { FREE_PER_MONTH, Limits } from './limits.js';
 import { Notifications } from './notify.js';
@@ -66,6 +68,8 @@ const MAX_PHOTO = 12 * 1024 * 1024;
 /** Адрес, по которому кабинет виден снаружи — из него собираются ссылки. */
 const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN ?? 'https://seamster.pro';
 const MAX_PHOTOS = 6;
+/** Перерисовка эскиза — платный вызов модели; чаще минуты её не зовут. */
+const redrawAt = new Map<string, number>();
 
 mkdirSync(join(DATA, 'jobs'), { recursive: true });
 
@@ -434,6 +438,35 @@ function saveSketchEdits(dir: string, edits: SketchEdits): SketchEdits {
   const stamped: SketchEdits = { ...edits, saved_at: new Date().toISOString() };
   writeFileSync(path, JSON.stringify(stamped));
   return stamped;
+}
+
+/** Версии листа эскиза: перерисовки уходят в историю, откуда возвращаются. */
+function sketchHistoryOf(dir: string): { at: string; views: SketchView[] }[] {
+  const root = join(dir, 'sketch-history');
+  if (!existsSync(root)) return [];
+  return readdirSync(root)
+    .sort()
+    .reverse()
+    .map((name) => ({
+      at: name,
+      views: SKETCH_VIEWS.filter(
+        (v) =>
+          existsSync(join(root, name, `sketch-${v}.jpg`)) ||
+          existsSync(join(root, name, `sketch-${v}.png`)),
+      ),
+    }));
+}
+
+/** Вернуть лист из истории; текущий уходит в историю на его место. */
+function restoreSketch(dir: string, at: string): boolean {
+  if (!/^[0-9TZ-]{10,40}$/.test(at)) return false;
+  const src = join(dir, 'sketch-history', at);
+  if (!existsSync(src)) return false;
+  const names = readdirSync(src);
+  archiveSketch(dir);
+  for (const n of names) renameSync(join(src, n), join(dir, n));
+  rmSync(src, { recursive: true, force: true });
+  return true;
 }
 
 /**
@@ -1649,6 +1682,7 @@ const server = createServer(async (req, res) => {
           sketch_views: sketchViewsOf(dir),
           sketch_boxes: sketchBoxesOf(dir),
           sketch_edits: sketchEditsOf(dir)?.saved_at ?? null,
+          sketch_versions: sketchHistoryOf(dir).length,
         });
       }
 
@@ -1657,6 +1691,54 @@ const server = createServer(async (req, res) => {
         if (!existsSync(path)) return json(res, 404, { error: 'визуализации нет' });
         res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-cache' });
         return res.end(readFileSync(path));
+      }
+
+      // Перерисовка эскиза по текущим снимкам и узлам. Долгий вызов — до
+      // минуты, — поэтому чаще минуты на одну работу его не пускаем.
+      if (req.method === 'POST' && rest === '/sketch/redraw') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const photos = photoList(dir);
+        if (photos.length === 0)
+          return json(res, 400, {
+            error: 'Без снимка эскиз не перерисовать.',
+            action: 'Добавьте фотографию изделия.',
+          });
+        if (Date.now() - (redrawAt.get(id) ?? 0) < 60_000)
+          return json(res, 429, {
+            error: 'Эскиз только что перерисовывали.',
+            action: 'Подождите минуту и попробуйте снова.',
+          });
+        redrawAt.set(id, Date.now());
+        const result = await redrawSketch({
+          dir,
+          spec,
+          photoPaths: photos.map((p) => join(dir, p.name)),
+          cacheDir: join(DATA, 'cache', 'vision'),
+          renderCacheDir: join(DATA, 'cache', 'render'),
+        });
+        logEvent(invite.name, 'sketch_redraw', {
+          id,
+          ok: result.ok,
+          ...(result.ok ? {} : { reason: result.reason }),
+        });
+        if (!result.ok)
+          return json(res, 200, {
+            ok: false,
+            error: result.userMessage,
+            action: 'Прошлый рисунок оставлен. Уточните узлы или снимки и попробуйте снова.',
+          });
+        return json(res, 200, { ok: true, views: result.views, history: sketchHistoryOf(dir) });
+      }
+      if (req.method === 'GET' && rest === '/sketch/history')
+        return json(res, 200, { history: sketchHistoryOf(dir) });
+      if (req.method === 'POST' && rest === '/sketch/rollback') {
+        const body = await readBody(req, 4096);
+        const { at } = body ? (JSON.parse(body.toString('utf8')) as { at?: string }) : {};
+        if (typeof at !== 'string' || !restoreSketch(dir, at))
+          return json(res, 404, { error: 'такой версии рисунка нет' });
+        logEvent(invite.name, 'sketch_rollback', { id, at });
+        return json(res, 200, { ok: true, history: sketchHistoryOf(dir) });
       }
 
       // Слой правок поверх эскиза: вектор, история, откат.
@@ -1810,7 +1892,15 @@ const server = createServer(async (req, res) => {
         // правка замера или замена силуэта обязаны устаревить их все разом.
         const mtime = (name: string): number =>
           existsSync(join(dir, name)) ? statSync(join(dir, name)).mtimeMs : 0;
-        const sourceM = Math.max(mtime('spec.json'), mtime('template.json'));
+        // Перерисованный эскиз и слой правок тоже устаревают PDF: документ
+        // обязан печатать тот рисунок, что человек видит в кабинете.
+        const sourceM = Math.max(
+          mtime('spec.json'),
+          mtime('template.json'),
+          mtime('sketch.jpg'),
+          mtime('sketch.png'),
+          mtime('sketch-edits.json'),
+        );
         if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < sourceM) {
           const { renderPdf, roleProfile } = await import('@seamster/docgen');
           const profile = role ? roleProfile(role) : null;

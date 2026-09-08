@@ -500,6 +500,25 @@ sub(
   1,
 );
 
+// Полоса эскиза — над полосой силуэта: рисунок этой вещи первичен, силуэт
+// остался источником векторного исходника. Кнопки: вернуть прошлый лист
+// из истории и перерисовать по фото и узлам.
+sub(
+  '<sc-if value="{{ silhOn }}" hint-placeholder-val="{{ false }}">',
+  `<sc-if value="{{ sketchBarOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-top:1px solid #E4E1DC;padding:10px 13px;display:flex;align-items:center;gap:9px">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B6B67" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+<span style="flex:1;min-width:0;font:400 10.5px/16px Sora,sans-serif;color:#6B6B67">{{ sketchNote }}</span>
+<sc-if value="{{ sketchCanRestore }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ sketchRestore }}" style="flex:none;height:27px;border-radius:8px;border:1px solid transparent;background:transparent;display:flex;align-items:center;padding:0 9px;font:600 10px/14px Sora,sans-serif;color:#6B6B67;cursor:pointer;white-space:nowrap" style-hover="background:rgba(14,14,14,.06);color:#0E0E0E">Вернуть прошлый</span>
+</sc-if>
+<span onClick="{{ sketchRedraw }}" style="flex:none;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:#F8F7F5;border-color:rgba(14,14,14,.18)">{{ sketchRedrawLabel }}</span>
+</div>
+</sc-if>
+<sc-if value="{{ silhOn }}" hint-placeholder-val="{{ false }}">`,
+  1,
+);
+
 // Подсказка под холстом обязана описывать ТУ картинку, что на экране.
 // Она обещала перестройку по замеру и клик по номеру — это правда про
 // параметрический чертёж и неправда про эскиз и покупной силуэт: у них

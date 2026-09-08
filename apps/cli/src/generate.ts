@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, mkdirSync, writeFileSync, rmSync, readdirSync, renameSync } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import { CostLedger, SeamsterError, defined, type Logger } from '@seamster/core';
 import {
@@ -444,6 +444,114 @@ async function readSwatches(
   return { swatches, bytes, notes };
 }
 
+const SKETCH_FILE = /^sketch(-front|-side|-back)?\.(jpg|png)$|^sketch-views\.json$/;
+
+/** Лист, вырезки и границы видов прошлой сборки снимаются разом. */
+function clearSketchFiles(dir: string): void {
+  for (const name of readdirSync(dir))
+    if (SKETCH_FILE.test(name)) rmSync(join(dir, name), { force: true });
+}
+
+/**
+ * Файлы эскиза рядом с документом: лист, вырезки видов, границы видов.
+ *
+ * Прошлые вырезки снимаются заранее: новый лист мог выйти без профиля,
+ * и старый «бок» рядом с новым передом был бы третьей вещью.
+ */
+export function writeSketchFiles(
+  dir: string,
+  checked: { bytes: Uint8Array; mediaType: string },
+  cut: { views: Partial<Record<SheetView, DocImage>>; boxes: SheetBox[] } | null,
+): void {
+  clearSketchFiles(dir);
+  writeFileSync(join(dir, sketchFileName(checked.mediaType)), checked.bytes);
+  if (!cut) return;
+  // Границы видов — рядом: по ним слой правок ложится на вырезки тем же
+  // окном, что и на лист, а кабинет знает, какой вид где на листе.
+  writeFileSync(join(dir, 'sketch-views.json'), JSON.stringify({ boxes: cut.boxes }, null, 2));
+  for (const [view, image] of Object.entries(cut.views)) {
+    const m = /^data:image\/(jpeg|png);base64,(.+)$/.exec(image.dataUri);
+    if (m)
+      writeFileSync(
+        join(dir, `sketch-${view}.${m[1] === 'jpeg' ? 'jpg' : 'png'}`),
+        Buffer.from(m[2]!, 'base64'),
+      );
+  }
+}
+
+export const SKETCH_HISTORY_MAX = 10;
+
+/**
+ * Прошлый лист уходит в историю, а не в корзину: перерисовка — версия,
+ * к которой можно вернуться. Хранятся последние десять.
+ */
+export function archiveSketch(dir: string): string | null {
+  const names = readdirSync(dir).filter((n) => SKETCH_FILE.test(n));
+  if (names.length === 0) return null;
+  const at = new Date().toISOString().replace(/[:.]/g, '-');
+  const target = join(dir, 'sketch-history', at);
+  mkdirSync(target, { recursive: true });
+  for (const n of names) renameSync(join(dir, n), join(target, n));
+  const all = readdirSync(join(dir, 'sketch-history')).sort();
+  for (const old of all.slice(0, Math.max(0, all.length - SKETCH_HISTORY_MAX)))
+    rmSync(join(dir, 'sketch-history', old), { recursive: true, force: true });
+  return at;
+}
+
+export interface RedrawOptions {
+  dir: string;
+  spec: StyleSpec;
+  photoPaths: readonly string[];
+  cacheDir?: string;
+  renderCacheDir?: string;
+  logger?: GenerateOptions['logger'];
+}
+
+export type RedrawResult =
+  { ok: true; views: SheetView[] } | { ok: false; reason: string; userMessage: string };
+
+/**
+ * Перерисовать эскиз по текущим снимкам и узлам — без пересборки документа.
+ *
+ * Тот же путь, что при сборке: снимки первыми, узлы чек-листом, сторож,
+ * разрезка на виды. Отличие одно — соль в ключе кэша: человек просит другой
+ * вариант, и вернуть ему из кэша тот же лист значило бы ничего не сделать.
+ * Прошлый лист уходит в историю до записи нового; отказ сторожа оставляет
+ * прошлый лист на месте.
+ */
+export async function redrawSketch(input: RedrawOptions): Promise<RedrawResult> {
+  const browser = await chromium.launch();
+  try {
+    const shots = input.photoPaths.map(parsePhotoArg);
+    const references = await sketchReferences(browser, shots);
+    const sketch = await flatSketch(input.spec, {
+      offline: false,
+      cache: new FileRenderCache(join(input.renderCacheDir ?? '.cache/render', 'sketch')),
+      ...(input.logger ? { logger: input.logger } : {}),
+      ledger: new CostLedger(),
+      ...(references.length ? { references } : {}),
+      nonce: new Date().toISOString(),
+    });
+    if (!sketch.ok) return { ok: false, reason: sketch.reason, userMessage: sketch.userMessage };
+    const checked = await checkSketch(
+      input.spec,
+      sketch,
+      {
+        ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
+        ...(input.logger ? { logger: input.logger } : {}),
+      },
+      [],
+    );
+    if (!checked.ok) return { ok: false, reason: checked.reason, userMessage: checked.userMessage };
+    const cut = await cutSketchViews(browser, checked);
+    archiveSketch(input.dir);
+    writeSketchFiles(input.dir, checked, cut);
+    return { ok: true, views: cut ? cut.boxes.map((b) => b.view) : [] };
+  } finally {
+    await browser.close();
+  }
+}
+
 /**
  * Опорные снимки для эскиза: плоские виды первыми, не больше двух.
  *
@@ -524,7 +632,7 @@ async function cutSketchViews(
 async function checkSketch(
   spec: StyleSpec,
   sketch: Awaited<ReturnType<typeof flatSketch>>,
-  options: GenerateOptions,
+  options: Pick<GenerateOptions, 'cacheDir' | 'logger'>,
   notes: string[],
 ): Promise<Awaited<ReturnType<typeof flatSketch>>> {
   if (!sketch.ok) return sketch;
@@ -994,33 +1102,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Эскиз тоже кладётся файлом: он рисуется один раз и дальше не меняется.
     // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
     // документа держится именно на хранении, а не на детерминизме модели.
-    // Вырезки прошлой сборки снимаются заранее: новый лист мог выйти без
-    // профиля, и старый «бок» рядом с новым передом был бы третьей вещью.
-    for (const view of ['front', 'side', 'back'])
-      for (const ext of ['jpg', 'png'])
-        rmSync(join(dirname(options.outPath), `sketch-${view}.${ext}`), { force: true });
-    rmSync(join(dirname(options.outPath), 'sketch-views.json'), { force: true });
-    if (checked.ok) {
-      writeFileSync(
-        join(dirname(options.outPath), sketchFileName(checked.mediaType)),
-        checked.bytes,
-      );
-      // Границы видов — рядом: по ним слой правок ложится на вырезки тем же
-      // окном, что и на лист, а кабинет знает, какой вид где на листе.
-      if (cut)
-        writeFileSync(
-          join(dirname(options.outPath), 'sketch-views.json'),
-          JSON.stringify({ boxes: cut.boxes }, null, 2),
-        );
-      for (const [view, image] of Object.entries(sketchViews ?? {})) {
-        const m = /^data:image\/(jpeg|png);base64,(.+)$/.exec(image.dataUri);
-        if (m)
-          writeFileSync(
-            join(dirname(options.outPath), `sketch-${view}.${m[1] === 'jpeg' ? 'jpg' : 'png'}`),
-            Buffer.from(m[2]!, 'base64'),
-          );
-      }
-    } else if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);
+    if (checked.ok) writeSketchFiles(dirname(options.outPath), checked, cut);
+    else {
+      clearSketchFiles(dirname(options.outPath));
+      if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);
+    }
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));
