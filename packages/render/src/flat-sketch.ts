@@ -168,6 +168,10 @@ export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions 
     // Колонки одной ширины с чистым просветом — не ради красоты: по просвету
     // лист режется на отдельные виды для обложки и листа на просчёт.
     'front view on the left, side profile view in the middle, back view on the right, each centred in its own equal-width column, with a clear white gutter between the columns and a common baseline.',
+    // Лист альбомный и заполнен по высоте: на квадратном листе три вида
+    // ложатся узкой полосой посередине, и в каждом виде остаётся по
+    // четыреста пикселей — для обложки PDF этого мало.
+    'The sheet is landscape, about three times wider than tall, and the three views fill its full height with only a small margin; no empty space above or below the garments.',
     'All three are the same garment at the same scale: identical body length, identical sleeve length, identical rib depth.',
     options.fromPhoto
       ? 'The construction on record is listed below as a checklist; where the photographs disagree with it, follow the photographs.'
