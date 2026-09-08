@@ -99,6 +99,10 @@ export const ZH: Messages = {
     '此款式图依据本技术包的工艺节点绘制:前片、侧面与后片为同一件衣服,采用同一比例。侧面显示平面视图看不到的部分:帽深、侧缝走向、落肩量。图中比例为近似值——尺寸唯一以尺寸表为准。图纸与工艺章节不一致时,以工艺章节为准。',
   flats_sketch_source: '款式图 · 依据本技术包工艺节点绘制',
   flats_library_source: '款式库轮廓 · 原始矢量文件随本技术包提供',
+  flats_reference_label: '参考 · 客户照片',
+  flats_reference_note:
+    '客户照片并列放置以便核对:款式图的工艺节点须与照片一致——口袋、帽子、袖口、抽绳。若有出入,应修正工艺章节而非图纸:款式图将按节点重绘。不得从照片量取尺寸。',
+  reference_photo: '客户照片',
   to_be_confirmed: '待确认',
 
   form_kicker: '测量表 · Seamster',

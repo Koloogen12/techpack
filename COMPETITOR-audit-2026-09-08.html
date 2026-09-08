@@ -1,0 +1,565 @@
+<title>Аудит SpecForm OS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#F1F2F4; --surface:#FFFFFF; --surface-2:#E9EBEF; --ink:#171A1F; --muted:#5B6470; --line:#D6DAE0;
+    --us:#0E7C6B; --us-soft:#DCEFEA; --them:#9A6B2F; --them-soft:#F2E8D8;
+    --crit:#B8322A; --crit-soft:#F6E1DE; --warn:#A96F14; --warn-soft:#F7ECD3; --ok:#2F7D4A; --ok-soft:#DFEEE2;
+    --display:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+    --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15181D; --surface:#1D2127; --surface-2:#242931; --ink:#E8EAED; --muted:#9AA3AE; --line:#2F353E;
+      --us:#3FB89F; --us-soft:#183A34; --them:#C9964F; --them-soft:#3A2E1C;
+      --crit:#E0665A; --crit-soft:#3E211E; --warn:#D9A441; --warn-soft:#3B2E14; --ok:#5FB77A; --ok-soft:#1E3526;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15181D; --surface:#1D2127; --surface-2:#242931; --ink:#E8EAED; --muted:#9AA3AE; --line:#2F353E;
+    --us:#3FB89F; --us-soft:#183A34; --them:#C9964F; --them-soft:#3A2E1C;
+    --crit:#E0665A; --crit-soft:#3E211E; --warn:#D9A441; --warn-soft:#3B2E14; --ok:#5FB77A; --ok-soft:#1E3526;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px 96px}
+  header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+  header.top .wrap{display:flex;gap:20px;align-items:center;padding:12px 24px;flex-wrap:wrap}
+  header.top .brand{font:800 15px/1 var(--display);letter-spacing:.02em}
+  header.top nav{display:flex;gap:4px;flex-wrap:wrap}
+  header.top nav a{font:500 13px/1 var(--body);color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:6px}
+  header.top nav a:hover,header.top nav a:focus-visible{color:var(--ink);background:var(--surface-2);outline:none}
+  .hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  h1{font:800 clamp(34px,5vw,52px)/1.05 var(--display);letter-spacing:-.02em;margin:14px 0 18px;text-wrap:balance;max-width:20ch}
+  .lede{max-width:66ch;font-size:18px;color:var(--ink)}
+  .meta{display:flex;gap:28px;flex-wrap:wrap;margin-top:22px;font-size:13px;color:var(--muted)}
+  .meta b{color:var(--ink);font-weight:600}
+  section{padding:44px 0 8px}
+  h2{font:700 clamp(24px,3vw,32px)/1.15 var(--display);letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance}
+  h3{font:700 19px/1.3 var(--display);margin:32px 0 10px}
+  h4{font:600 15px/1.35 var(--body);margin:22px 0 6px;color:var(--ink)}
+  p{max-width:70ch;margin:0 0 14px}
+  ul{max-width:70ch;padding-left:22px;margin:0 0 14px}
+  li{margin:4px 0}
+  strong{font-weight:600}
+  .verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:8px 0 8px}
+  .verdict .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 16px}
+  .verdict .card .k{font:500 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+  .verdict .card p{font-size:15px;margin:0}
+  .card.us .k{color:var(--us)} .card.them .k{color:var(--them)} .card.crit .k{color:var(--crit)}
+  .callout{max-width:70ch;border-left:3px solid var(--us);background:var(--surface);padding:14px 18px;border-radius:0 8px 8px 0;margin:18px 0 6px}
+  .callout p:last-child{margin-bottom:0}
+  .econ{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:6px 0 18px}
+  .econ .tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .econ .n{font:700 26px/1.1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .econ .l{font-size:13px;color:var(--muted);margin-top:4px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:8px 0 14px}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+  th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+  thead th{font:500 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);position:sticky;top:0}
+  tbody tr:last-child td{border-bottom:0}
+  td.grp{background:var(--surface-2);font:700 13px/1.3 var(--display);letter-spacing:.01em}
+  .chip{display:inline-block;font:500 12px/1 var(--mono);padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .chip.us{background:var(--us-soft);color:var(--us)} .chip.them{background:var(--them-soft);color:var(--them)}
+  .chip.even{background:var(--surface-2);color:var(--muted)}
+  .chip.crit{background:var(--crit-soft);color:var(--crit)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.ok{background:var(--ok-soft);color:var(--ok)}
+  .tiers{display:grid;gap:18px;margin-top:6px}
+  .tier{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+  .tier .t{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}
+  .tier .t h3{margin:0}
+  .tier .t .when{font:500 12px/1 var(--mono);color:var(--muted);letter-spacing:.04em}
+  .tier ol{padding-left:22px;margin:0}
+  .tier li{margin:8px 0}
+  .tier li .why{display:block;color:var(--muted);font-size:14px}
+  .moat{columns:2;column-gap:32px;max-width:none}
+  .moat li{break-inside:avoid;margin:6px 0}
+  .bugs{padding-left:22px}
+  .bugs li{margin:6px 0}
+  details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 20px;margin:12px 0}
+  details>summary{cursor:pointer;padding:14px 0;font:700 16px/1.3 var(--display);list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details>summary::after{content:"+";font:500 20px/1 var(--mono);color:var(--muted)}
+  details[open]>summary::after{content:"–"}
+  details>summary:focus-visible{outline:2px solid var(--us);outline-offset:4px;border-radius:4px}
+  details .body{padding:0 0 18px;border-top:1px solid var(--line)}
+  details .body h3{font-size:17px;margin-top:22px}
+  details .body h4{margin-top:18px}
+  details .body p,details .body ul{max-width:80ch}
+  details .body .take{border-left:3px solid var(--us);padding-left:12px;color:var(--ink)}
+  details .body li.take{list-style:none;margin-left:-22px;padding-left:34px;position:relative}
+  code{font:400 .92em var(--mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+  .foot{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);max-width:70ch}
+  @media (max-width:860px){
+    .verdict{grid-template-columns:1fr} .econ{grid-template-columns:repeat(2,1fr)} .moat{columns:1}
+  }
+  @media (prefers-reduced-motion:no-preference){ details>summary{transition:color .15s} }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">SEAMSTER · разведка</div>
+    <nav>
+      <a href="#verdict">Итог</a>
+      <a href="#econ">Экономика</a>
+      <a href="#matrix">Матрица</a>
+      <a href="#take">Что забрать</a>
+      <a href="#moat">Наш ров</a>
+      <a href="#bugs">Что сломано</a>
+      <a href="#live">Живой прогон</a>
+      <a href="#protocol">Протокол</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Два прохода · specform.pro · 8 сентября 2026</div>
+    <h1>Аудит SpecForm OS</h1>
+    <p class="lede">Прошёл продукт конкурента двумя живыми аккаунтами: главный экран, готовый пак по всем девяти разделам, экспорт, каждое меню, четыре быстрых действия, тарифы, кредиты, база знаний — и <strong>полную генерацию пака с нуля на нашем голден-фото худи</strong>, от загрузки до PDF. Ниже — вердикт, цифры, матрица против нашей беты, что забирать, и полный протокол по экранам.</p>
+    <div class="meta">
+      <span>Аккаунты: <b>два free</b> (30 и 80 кредитов)</span>
+      <span>Экранов снято: <b>~90</b></span>
+      <span>Кредитов потрачено: <b>50</b> — один полный пак; два быстрых действия возвращены, третье встало в очередь</span>
+      <span>Следы: пак «Test Brand – Hoodie QA» на втором аккаунте; 3 мусорных пака на первом</span>
+    </div>
+  </div>
+
+  <section id="verdict">
+    <h2>Итог: разрыв не там, где кажется</h2>
+    <div class="verdict">
+      <div class="card us">
+        <div class="k">Ядро — техпак</div>
+        <p>Мы глубже, и сильно. У них <strong>табель мер пустой</strong>: точки замера человек ставит сам кликами по чертежу на сетке 10 см, значения «снимаются» с сетки. Ни допусков, ни градации, ни техпоследовательности, ни схем швов, ни деталей кроя, ни маркировки, ни RFQ. Их PDF — 8 полупустых страниц. Наш — 18–22 листа.</p>
+      </div>
+      <div class="card them">
+        <div class="k">Оболочка — продукт</div>
+        <p>Они впереди. Правка картинок на месте с версиями и откатом, <strong>очередь открытых решений</strong> с кнопками «подтвердить / переписать / убрать», оценка готовности к фабрике одним числом, перевод на 10+ языков, примерка на модели, перекраска по описанию ткани, сравнение с референсом, галерея активов, прозрачные кредиты, блок приватности, база знаний на 109 статей.</p>
+      </div>
+      <div class="card crit">
+        <div class="k">Устойчивость</div>
+        <p>Полный пак на нашем голден-фото худи <strong>собрался за 5 минут</strong> — флэт и рендер приличные. Но быстрое действие «Technical Drawing» на тех же фото утром <strong>упало дважды</strong> («hit a snag»), а вечером встало в <strong>очередь на 35 минут</strong> — free-план троттлится. Бесплатный ручной пак не открывается. Review не увидел загруженную спинку и введённые детали; оценка готовности считается не по содержимому.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <p><strong>Мы проигрываем в ощущении продукта, а не в техпаке.</strong> Живой прогон это подтвердил: их свежий пак на наше худи — три узла без кодов, семь строк BOM, пустой табель и 7 страниц PDF; наш на то же фото — 14 узлов со схемами, 24 точки с допусками и градацией, маркировка, 18–22 листа. Их сильные места — это интерфейс вокруг картинки и вокруг решений человека, а не производственные данные. Это чинится быстрее, чем их дыра в ядре: чтобы догнать нас по табелю, им нужно перепроектировать модель данных; чтобы догнать их по оболочке, нам нужно несколько недель на экраны, которые уже опираются на данные, которые у нас есть.</p>
+    </div>
+  </section>
+
+  <section id="econ">
+    <h2>Экономика: кредит как единица</h2>
+    <div class="econ">
+      <div class="tile"><div class="n">50</div><div class="l">кредитов за полный пак, при любой модели (6–10 мин / 3–5 / 2–4)</div></div>
+      <div class="tile"><div class="n">$2</div><div class="l">пак по подписке Early Access: $40 за 1 000 кредитов</div></div>
+      <div class="tile"><div class="n">$10</div><div class="l">пак на разовых кредитах: 100 за $20</div></div>
+      <div class="tile"><div class="n">10 · 5</div><div class="l">быстрое действие (флэт, 3D, принт, примерка) · правка картинки или AI-подсказка</div></div>
+    </div>
+    <p>Стартовый бонус — 100 кредитов, то есть два пака; у нас три пака в месяц бесплатно. Их же формула на лендинге: «500 кредитов = 10 первых паков <em>или</em> 5–6 доработанных стилей» — доработка одного стиля съедает около 40 кредитов сверх генерации. Планы: Early Access $40 (£30), Student $16 (скоро), Customisable от $25 (скоро); Studio обещает командные места и <strong>обучение на блоках и стандартах бренда</strong>. Возвраты за провалы честные — оба моих списания вернулись в тот же миг.</p>
+    <p>Что это даёт нам: ценовой якорь <strong>$2–10 за пак</strong> с пустым табелем. Наш документ с замерами, допусками и маркировкой объективно дороже — и это надо сказать в прайсе, а не в сноске.</p>
+  </section>
+
+  <section id="matrix">
+    <h2>Матрица: они против нашей беты</h2>
+    <p>Строка — одна возможность, как она есть сегодня. «Ровно» — паритет по сути, не по деталям.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:26%">Возможность</th><th style="width:32%">SpecForm OS</th><th style="width:32%">Seamster (бета)</th><th>Кто</th></tr></thead>
+        <tbody>
+          <tr><td class="grp" colspan="4">Вход</td></tr>
+          <tr><td>Вход в задачу</td><td>Только фото (до 4); бренд, сезон, размер, категория, ткань спрашиваются <strong>во время</strong> генерации («Fill in while your pack generates») — но Review их не видит и пишет «Brand, base size… are TBC»</td><td>Фото первым + быстрый взгляд заполняет анкету из 5 вопросов (категория, пол, размер/рост, посадка, ряд)</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Подсказка «хорошее фото»</td><td>Модалка с четырьмя примерами (перед, спинка, деталь манжеты, деталь ярлыка) и правилами</td><td>Подсказка про лист А4 для масштаба; примеров кадров нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Демо без своего фото</td><td>«Try a sample garment»</td><td>«Посмотреть готовый пример»</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td>Отказ на плохом входе</td><td>«Hit a snag», кредит возвращён, что именно не так — не сказано</td><td>Категорийный гейт с объяснением; сторож эскиза называет причину словами</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td class="grp" colspan="4">Чертёж и картинки</td></tr>
+          <tr><td>Технический флэт</td><td>Растр, 3 вида (перед, бок, спинка), CAD-качество; трассировка в SVG четырьмя режимами, вектор заметно грубее растра</td><td>Растр, 3 вида, по узлам спеки, со сторожем; библиотечный вектор запасным; SVG-исходник силуэта в выгрузке</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td>Правка картинки на месте</td><td>Draw &amp; Erase, перегенерация области (5 кредитов), логотип на актив; каждая правка — версия с откатом</td><td>Нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Версии картинки</td><td>Пейджер Version 1 / 2 / …, удаление версии</td><td>Один эскиз, одна визуализация</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Фотореалистичный рендер</td><td>3 вида; «Sync to tech» — синхронизация с чертежом за 5 кредитов</td><td>Из спеки автоматически; до трёх колорвеев без доплаты</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td>Сравнение с референсом</td><td>Compare: фото ↔ любой актив бок о бок</td><td>Фото лежит в паке, рядом с эскизом не показывается</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Примерка на модели</td><td>Virtual Fitting: пол, возраст, тело, посадка (10+ кредитов)</td><td>Нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Перекраска по описанию</td><td>Swatches + «washed indigo denim» → Apply (5 кредитов)</td><td>Колорвеи из спеки, образцы полотна брендом</td><td><span class="chip them">они</span></td></tr>
+          <tr><td class="grp" colspan="4">Замеры</td></tr>
+          <tr><td>Табель мер</td><td><strong>Пустой.</strong> «No measurement points yet. Click the drawing to add one»</td><td>18–24 точки, якорь масштаба, диапазоны, «измерен по А4 / назначен» на обложке</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Допуски</td><td>Появляются только у точки, поставленной вручную: ±0.5 на всё</td><td>ГОСТ 23193 по классам, правила приёмки парных деталей</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Градация</td><td>Только для ручных точек: одно правило «+2 на размер» для любой точки (XS 53.5 … XL 61.5)</td><td>Правила градации по ключам, ряд по размерам</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Своя точка замера</td><td>Клик по двум точкам → линия «A», значение с сетки («1 square = 9 cm», масштаб назначен категорией), имя из словаря на 80+ точек по шести классам изделий</td><td>Нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Единицы</td><td>CM / IN</td><td>Только см</td><td><span class="chip them">они</span></td></tr>
+          <tr><td class="grp" colspan="4">Конструкция и материалы</td></tr>
+          <tr><td>Узлы</td><td>Свободный текст; на жакете — с кодом стежка ISO и дублями, на худи — <strong>3 строки без кодов</strong></td><td>Из справочника: стежок + шов ISO 4915/4916, машина, схема шва в разрезе</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Техпоследовательность</td><td>Нет</td><td>Есть, ru/en/zh</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Детали кроя</td><td>Нет</td><td>Лист деталей</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Спецификация</td><td>Компонент, состав, цвет, <strong>Pantone</strong>, оценка расхода, картинка; в PDF ещё GSM, код поставщика, заметки; себестоимость «в 2027»</td><td>Материалы по ролям, расход по формуле с пометкой, колорвеи, матрица артикулов; Pantone и GSM нет</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td>Маркировка</td><td>Нет</td><td>ТР ТС 017, символы ухода, гейт на реквизиты</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td class="grp" colspan="4">Проверка и выпуск</td></tr>
+          <tr><td>Уверенность</td><td>Два состояния: красное «AI-suggested» / чёрное подтверждено; [TBC] в PDF</td><td>Пять уровней на каждом значении с легендой на каждом листе</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Очередь решений</td><td><strong>Review &amp; Open Decisions</strong>: конфликты, допущения, предложения, «нужен ваш ввод», подтверждённое — с ✓ ✎ 🗑 на каждой карточке</td><td>Предположения разбросаны по документу треугольниками; гейт экспорта только по маркировке</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Оценка готовности</td><td>Factory readiness 7.5/10 (жакет) и 4.5/10 (худи) + «следующий пробел» — оба раза не про содержимое: «BOM пуст» при семи строках, «5 замеров» при пустом табеле</td><td>Готов / не готов + список пробелов маркировки</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Экспорт</td><td>Tech pack PDF (7–8 страниц), Measurement sheet; PDF за подписку; SVG; press/influencer layout с 6 сентября</td><td>Полный PDF, роли ОТК / раскрой / снабжение, RFQ, таблица замеров xlsx, SVG</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>Языки документа</td><td>10+ через Translate (zh, ja, ko, hi, bn, tr, vi, it, fr, pt…)</td><td>ru, en, zh</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Ссылка фабрике</td><td>Copy link — SOON</td><td>Публичная ссылка с гейтом готовности</td><td><span class="chip us">мы</span></td></tr>
+          <tr><td>История версий</td><td>Журнал ревизий: REV / DATE / BY / CHANGE, полуручной, откат обещан</td><td>Версии спеки с диффом по точкам; автора и свободной строки нет</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td class="grp" colspan="4">Вокруг</td></tr>
+          <tr><td>Активы бренда</td><td>Галерея: логотипы, принты, референсы, переиспользование между паками</td><td>Профиль бренда (юрлицо, страна, знак) — один раз</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td>Кредиты и списания</td><td>Баланс, журнал операций с возвратами, цена на каждой кнопке</td><td>Квота «осталось N», журнала нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Приватность</td><td>Блок Privacy &amp; Data: не обучаемся на ваших дизайнах, доступ только автоматики, удаление, IP 100% ваш, DPA</td><td>Нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>База знаний</td><td>109 публичных статей с AI-поиском, полный доступ по подписке</td><td>Глубже по ГОСТ и ТР ТС, но заперта в репозитории</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Ассистент</td><td>Mochi: Design / Support, с картинками</td><td>Нет</td><td><span class="chip them">они</span></td></tr>
+          <tr><td>Рефералка</td><td>50 кредитов за платного друга, дашборд</td><td>Есть, паками</td><td><span class="chip even">ровно</span></td></tr>
+          <tr><td>Категории</td><td>Любые (жакет из вельвета прошёл), но без данных под ними</td><td>Семь трикотажных + платье, с данными; реестр открыт</td><td><span class="chip even">ровно</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="take">
+    <h2>Что забрать — по очереди</h2>
+    <p>Порядок по отношению эффекта к стоимости. Первый ярус опирается на данные, которые у нас уже есть, — это в основном экраны.</p>
+    <div class="tiers">
+      <div class="tier">
+        <div class="t"><h3>Первый ярус</h3><span class="when">до конца сентября</span></div>
+        <ol>
+          <li><strong>Очередь открытых решений.</strong> Один экран: конфликты, допущения, «нужен ваш ввод», подтверждённое; на каждой карточке ✓ / переписать / убрать. <span class="why">У нас предположения уже размечены пятью уровнями — не хватает места, где их проходят списком. Это же становится гейтом экспорта шире маркировки.</span></li>
+          <li><strong>Референс рядом с результатом.</strong> Фото ↔ эскиз на экране чертежа и в документе. <span class="why">Именно так ловится «на входе худи, на выходе свитер» глазами за секунду.</span></li>
+          <li><strong>Готовность к фабрике одним числом</strong> + «следующий пробел». <span class="why">У нас `readiness` считает только реквизиты; расширить на замеры, узлы, фото спинки.</span></li>
+          <li><strong>Журнал списаний.</strong> Что, когда, сколько, возвращено ли. <span class="why">Прозрачность квоты — доверие; сейчас у нас только «осталось N».</span></li>
+          <li><strong>Блок «Приватность и данные»</strong> в кабинете и на лендинге, по их структуре: обучение, доступ людей, удаление, права. <span class="why">Первый вопрос бренда про AI — «вы учитесь на моих вещах?». У нас ответа нет нигде.</span></li>
+          <li><strong>Версии картинок.</strong> Хранить каждую перегенерацию эскиза и визуализации, листать, удалять. <span class="why">Хранение уже есть файлами; нужен пейджер и кнопка «перерисовать».</span></li>
+          <li><strong>Занятое ожидание.</strong> Пока идёт сборка — показывать, что уже известно, и просить недостающее для маркировки; за курсором — живой маркер процесса. <span class="why">У них 6–10 минут ожидания превращены в анкету и микроанимацию; у нас 1–2 минуты пустые.</span></li>
+        </ol>
+      </div>
+      <div class="tier">
+        <div class="t"><h3>Второй ярус</h3><span class="when">октябрь</span></div>
+        <ol start="7">
+          <li><strong>Правка эскиза на месте:</strong> перегенерация выделенной области, потом перо. <span class="why">Их самая «ВАУ»-функция; у нас модель уже умеет inpainting через тот же клиент.</span></li>
+          <li><strong>Языки фабрик:</strong> добавить vi, tr, bn, hi, pt — по списку стран, куда реально уходят заказы Данила. <span class="why">Механизм локалей готов, нужны строки и проверка носителем.</span></li>
+          <li><strong>Своя точка замера кликом по чертежу</strong> — как дополнение к табелю, не замена. <span class="why">Даёт бренду добавить нестандартную точку без нас.</span></li>
+          <li><strong>Pantone и GSM</strong> в спецификации; CM / IN в табеле. <span class="why">Фабрика говорит на Pantone; дюймы нужны для США.</span></li>
+          <li><strong>Галерея активов бренда</strong> с переиспользованием логотипов и принтов. </li>
+        </ol>
+      </div>
+      <div class="tier">
+        <div class="t"><h3>Третий ярус</h3><span class="when">позиционирование</span></div>
+        <ol start="12">
+          <li><strong>Публичная база знаний из нашего kb</strong>: допуски ГОСТ, маркировка ТР ТС, схемы швов, техпоследовательности. <span class="why">SEO, доверие, повод для подписки — их 109 статей это ровно то, что у нас лежит в knowledge-base/*.md.</span></li>
+          <li><strong>Примерка на модели и перекраска</strong> — по спросу. <span class="why">Маркетинговые, не производственные; заводить, когда попросят три клиента.</span></li>
+          <li><strong>Коллекции и вкладки паков.</strong></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="moat">
+    <h2>Наш ров — что у них отсутствует</h2>
+    <p>Это не просто «у нас больше листов». Каждая строка — данные, которых нет в их модели, а не экран, который можно дорисовать.</p>
+    <ul class="moat">
+      <li>Табель мер из 18–24 точек с якорем масштаба и честной строкой «измерен по А4 / назначен»</li>
+      <li>Допуски по ГОСТ 23193 по классам и правила приёмки парных деталей</li>
+      <li>Градация по правилам, а не пустая таблица</li>
+      <li>Узлы из справочника: код стежка и код шва, машина, схема шва в разрезе</li>
+      <li>Техпоследовательность на трёх языках</li>
+      <li>Лист деталей кроя</li>
+      <li>Маркировка по ТР ТС 017 с символами ухода и гейтом на реквизиты</li>
+      <li>RFQ фабрике на трёх языках и ролевые выгрузки: ОТК, раскрой, снабжение</li>
+      <li>Публичная ссылка с гейтом — у них «Copy link: SOON»</li>
+      <li>Версии спеки с диффом по точкам</li>
+      <li>Пять уровней уверенности значения с легендой на каждом листе</li>
+      <li>Анкета из пяти вопросов, заполненная быстрым взглядом за 6 секунд</li>
+      <li>Сторож эскиза, который называет расхождение словами, — вместо «hit a snag»</li>
+      <li>Реестр изделий с данными под каждой категорией; платье уже внутри</li>
+      <li>Расход полотна по формуле с пометкой «уточняется раскладкой»</li>
+      <li>Прогон на нашем голден-фото: у нас документ, у них два отказа</li>
+    </ul>
+  </section>
+
+  <section id="bugs">
+    <h2>Что у них сломано или не сделано</h2>
+    <ol class="bugs">
+      <li>«Create manually» создаёт пак, панель зависает в «QUEUING… 50 / Creating…».</li>
+      <li>Ручной пак не открывается — «LOADING DRAFT…» бесконечно. Бесплатный путь из таблицы тарифов не работает.</li>
+      <li>Regenerate после провала создаёт новый пак, старый экран зависает на «Restarting…».</li>
+      <li>Отказ генерации на фронтальном фото целого изделия на ровном фоне — без диагностики.</li>
+      <li>Construction: дубли строк (Center Front Placket ×2, Chest Flap Pocket ×2).</li>
+      <li>«Only 5 measurements» в оценке готовности при пустой таблице замеров.</li>
+      <li>«Measure guide» в Measurements выбрасывает на главную.</li>
+      <li>«93 статьи» в аккаунте, «109» в библиотеке.</li>
+      <li>Регенерация: на странице кредитов 10, в журнале списано 5.</li>
+      <li>Review, Copy link — SOON; Costing — «в начале 2027».</li>
+      <li>Review не видит второе фото: «Back view is not provided» при загруженной спинке; не видит введённых деталей: «Brand, base size… are TBC» при заполненной шапке.</li>
+      <li>«RECOMMENDED» в словаре точек для худи — «Lingerie / swim / strappy tops».</li>
+      <li>Free-план: быстрые действия после полного прогона встают в очередь «на ~35 минут».</li>
+      <li>Стартовый бонус разный: 100 кредитов в августе, 80 в сентябре.</li>
+    </ol>
+  </section>
+
+  <section id="live">
+    <h2>Живой прогон: наше худи через их полный пайплайн</h2>
+    <p>Второй аккаунт, 80 кредитов, те же два фото (перед и спинка), модель «Most accurate». Старт → пак за <strong>5 минут</strong>: ANALYSING → GENERATING → COMPOSING, к 2:30 на экране веером ложатся референсы, технический флэт и 3-view рендер. Пока идёт сборка — панель «Fill in while your pack generates» (бренд, сезон, размер, категория, ткань), за курсором плавает маркер «RUNNING PIPELINE…».</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:22%">Раздел</th><th style="width:39%">Их пак «Hoodie QA»</th><th>Наш пак на то же фото</th></tr></thead>
+        <tbody>
+          <tr><td>Флэт</td><td>Три вида, кенгуру, шнур, рибана, дроп-плечо — ровня нашему эскизу v3</td><td>Три вида по узлам спеки со сторожем</td></tr>
+          <tr><td>Конструкция</td><td><strong>3 строки</strong> свободным текстом, без кодов, без картинок</td><td>14 узлов: код стежка и шва, машина, схема в разрезе, техпоследовательность ru/en/zh</td></tr>
+          <tr><td>Спецификация</td><td>7 строк: футер 2.2 м, рибана 0.25 м, шнур 1.8 м, люверсы, три ярлыка; Pantone 2587 C на всё синее, [TBC] на фурнитуре</td><td>Материалы по ролям, расход по формуле с пометкой, колорвеи, матрица артикулов</td></tr>
+          <tr><td>Табель мер</td><td><strong>Пусто.</strong> Точку ставишь сам: два клика → 57.3 см с сетки «9 см на клетку», градация +2/размер, допуск ±0.5</td><td>24 точки, якорь по А4, допуски ГОСТ, градация по правилам</td></tr>
+          <tr><td>Маркировка</td><td>Нет</td><td>ТР ТС 017, символы ухода, гейт</td></tr>
+          <tr><td>Review</td><td>15 решений; два ложных: «нет спинки» (спинка загружена), «бренд и размер TBC» (введены)</td><td>Предположения на значениях, гейт по маркировке</td></tr>
+          <tr><td>Готовность</td><td>4.5 / 10, «BOM пуст» — при семи строках</td><td>Готов / не готов по реквизитам</td></tr>
+          <tr><td>PDF</td><td>7 страниц; скачивание — по подписке</td><td>18–22 листа, роли, RFQ</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Что после прогона: быстрое действие «Technical Drawing» на тех же фото — «free generations are queued, next slot in about 35 min». В аккаунте — «Founding 100»: значок навсегда, приватный Discord, 100 кредитов за реферала, голосование за фичи, лента «What's new» с релизами каждые 1–3 дня.</p>
+  </section>
+
+  <section id="protocol">
+    <h2>Полный протокол прохода</h2>
+    <p>Всё, что видел, по экранам: кнопки, тексты, состояния, цены. Стрелкой «→» помечены выводы и то, что забирать.</p>
+    <details open>
+      <summary>Развернуть протокол · 14 разделов</summary>
+      <div class="body">
+<p>Метод: живой аккаунт Данила, Chrome, каждый экран — скриншот + дерево доступности.</p>
+<p>Фиксируется всё: кнопки, поля, состояния, тексты, ограничения, что за деньги.</p>
+<h3>0. Главный экран (/)</h3>
+<p><strong>Верхняя плашка:</strong> «Get priority access when you subscribe to Beta Plans!» + кнопка Upgrade → /subscription.</p>
+<p><strong>Сайдбар:</strong> Workspace · «Total: 0 Collections, 1 Pack» · Quick Actions (раскрываемый, счётчик 1 — внутри «Repeat Print Maker» с зелёной точкой) · Collections (0) · Recent packs (1: «Trucker Jacket», превью перед/спинка, зелёная точка = готов) · внизу кнопка UPGRADE и e-mail пользователя (кнопка — меню).</p>
+<p><strong>Герой:</strong> «From concept to production, with clarity.» · «Hi, &lt;имя&gt;, welcome back.» · «Choose the fastest route for this garment. Quick actions stay inside the same draft, so you can continue into the full tech-pack workflow later.» — ключевая идея: быстрые действия НЕ отдельные инструменты, а входы в тот же черновик.</p>
+<p><strong>CTA:</strong> CREATE TECH PACK.</p>
+<p><strong>Quick actions (4):</strong> Create Technical Drawing · Create 3D Renders · Repeat Print Maker · Virtual Fitting.</p>
+<p><strong>Правая вертикальная панель (6 иконок):</strong> New Tech Pack · Technical Drawing · 3D render · Repeat print maker · Virtual fitting · Open gallery (отделена чертой).</p>
+<p><strong>Mochi</strong> — «Chat with Mochi, your fashion assistant» — плавающий аватар справа внизу.</p>
+<p>Наблюдение: у нас кабинет — порт того же прототипа, экран визуально почти идентичен. Разница будет в глубине.</p>
+<h3>1. Галерея (Open gallery)</h3>
+<p>Модалка с двумя вкладками: <strong>Gallery</strong> («SpecForm-generated assets, by type») — группы TECH PACKS (1) и PRINT DESIGNS (1), карточки с датой; <strong>My Uploads</strong> («Your own logos, prints and references — reuse them in any pack», кнопка Upload, счётчик 0). Сортировка: Last edited / Newest first / Oldest first.</p>
+<p class="take">→ Идея: единое хранилище активов бренда (логотипы, принты, референсы), переиспользуемое между паками. У нас — нет.</p>
+<h3>2. Экран пака (/?pack=&lt;uuid&gt;) — Trucker Jacket</h3>
+<p><strong>Вкладки окна:</strong> Home · «Trucker Jacket · Style B3BA…» (закрываемая) · New tech pack. Паки открываются как вкладки браузера внутри приложения.</p>
+<p><strong>Шапка:</strong> CURRENT TECH PACK · имя · бейдж COMPLETED · «Style B3BA2B3E-BEDE… · Version 1.0 · Updated 25 Aug, 05:15» · пейджер разделов «1 / 9» со стрелками · тумблер «Preview mode (read-only)» (замочек) · Translate · Export · «…» Pack actions.</p>
+<p><strong>Левый вертикальный навигатор:</strong> 9 tab'ов-чёрточек = 9 разделов документа.</p>
+<p><strong>Шапка документа (редактируемые поля):</strong> «+ LOGO» (Add brand logo) · BRAND · STYLE NO. · FABRIC · DATE · SEASON · DESCRIPTION · SAMPLE SIZE · заголовок TECHNICAL PACKAGE.</p>
+<ul>
+<li>Поля от AI подписаны «(AI-suggested — edit to confirm)» и показаны <strong>красным</strong> (Fabric «Corduroy / Ribbed Cot», Date 2026-08-25, Description «Jacket», Sample Size «M»). Пустые — BRAND, STYLE NO., SEASON. → У них два состояния (AI / человек), у нас пять уровней уверенности. Но их «красное = не подтверждено» читается мгновенно.</li>
+</ul>
+<p><strong>Раздел 1 — вкладки:</strong> TECH ILLUSTRATION · 3D RENDERS · SVG · VIRTUAL FITTING · COLOURWAY · COMPARE (оранжевый, выделен).</p>
+<p><strong>Панель над картинкой:</strong> «(?) Watch tutorial: Edit tools» · EDIT ▾ · REPLACE · GALLERY · Download.</p>
+<p><strong>Картинка:</strong> три вида — перед, <strong>бок</strong>, спинка. Вельветовый тракер-жакет: воротник, кокетки, нагрудные карманы с клапанами, пуговицы, манжеты. Качество — уровень CAD-флэта, сопоставимо с нашим новым эскизом.</p>
+<p><strong>Версии картинки:</strong> внизу пейджер «Version 1 / Version 2» со стрелками и «Delete this image». → Перегенерации хранятся версиями, можно листать и удалять. У нас — один эскиз.</p>
+<p><strong>Page settings</strong> — отдельная кнопка.</p>
+<h4>2.1 Меню пака и картинки</h4>
+<p><strong>«…» More actions (в шапке пака):</strong> поле «Search coming soon» · Review (SOON) · Copy link (SOON) · Rename pack · Lock edits (тумблер) · Revision history · Move to trash.</p>
+<p>  → «Review» и «Copy link» — заявлены, не сделаны. Шаринг по ссылке у них ещё НЕТ (у нас есть). Revision history — есть отдельный экран, надо проверить, что внутри.</p>
+<p><strong>Меню пака в сайдбаре (⋮):</strong> Open · Rename · Add to ▸ (в коллекцию) · Duplicate (серый, недоступен) · Delete.</p>
+<p><strong>Translate:</strong> тултип «Translate the whole workspace for your factory». Список языков (прокручиваемый): Chinese, Japanese, Korean, Hindi, Bengali, Turkish, Vietnamese, Italiano, Français, Português… → Перевод ВСЕГО рабочего пространства, не только документа. Языков ≥10, ориентир на фабрики Азии (хинди, бенгали, вьетнамский, турецкий — производственные страны). У нас: ru/en/zh.</p>
+<p><strong>Export:</strong> тултип «Export the tech pack». Два пункта: <strong>Tech pack PDF</strong> · <strong>Measurement sheet</strong>. → Только PDF и лист замеров. Ролевых выгрузок (ОТК / раскрой / снабжение) нет. RFQ нет.</p>
+<p><strong>EDIT ▾ над картинкой</strong> раскрывает панель инструментов: <strong>Draw &amp; Erase</strong> («Open pen &amp; eraser tool (free)») · <strong>Regenerate</strong> («Open regenerate area tool (5 credits)») · <strong>Add Logo</strong> («Place a logo on this asset (free)»). Подпись: «Pick a tool to edit this asset in place. Every edit saves as a new version you can roll back.»</p>
+<p>  → Ключевое: правка картинки НА МЕСТЕ — рисовать/стирать пером, перегенерировать выделенную ОБЛАСТЬ (inpainting за 5 кредитов), ставить логотип. Каждая правка — новая версия с откатом. У нас этого нет вообще.</p>
+<p><strong>REPLACE</strong> — заменить картинку (своей?). <strong>GALLERY</strong> — выбрать из галереи. <strong>Download</strong> — скачать картинку.</p>
+<p><strong>Цены в UI:</strong> прямо в тултипах — «free» / «5 credits». Прозрачность стоимости на каждой кнопке.</p>
+<h4>2.2 Структура документа — 9 разделов (левый навигатор, раскрывается по hover)</h4>
+<p>01 Cover — Style + visuals · 02 Construction — Make details · 03 BOM — Materials · 04 Measurements — POM + grade · 05 Graphics &amp; Prints — Artwork uploads · 06 Colourway — Colour + fabric variants · 07 Artwork — Generated assets · 08 Review — Confirm details · 09 PDF Tech Pack — Preview.</p>
+<p>Шапка документа (бренд/артикул/ткань/дата/сезон/описание/размер) повторяется на каждом разделе. Внизу каждого — «Autosaves as you edit». Сайдбар показывает тариф: FREE PLAN.</p>
+<h4>2.3 Раздел 02 Construction</h4>
+<p>«+ ADD CALLOUT ROW». Таблица: # · CALLOUT / FEATURE · DETAILS · STITCH · IMAGE · 🗑. 11 строк для тракер-жакета: Center Front Placket, Front &amp; Back Yoke Seams, Chest Flap Pockets, Collar Construction, Sleeve Cuff &amp; Placket, Waistband Finish, Center Front Placket (ДУБЛЬ), Chest Flap Pocket (ДУБЛЬ), Collar Edge, Panel Topstitching, Sleeve Cuff (ДУБЛЬ по смыслу).</p>
+<p>Колонка STITCH — код ISO (301, 304, 401) с мини-пиктограммой стежка; у одной строки пусто. Колонка IMAGE — слот под картинку узла (пустой). Details — свободный текст («Double-needle topstitched flat-felled seam», «1/4" topstitch around collar perimeter…»).</p>
+<p class="take">→ У них: узлы = свободный текст + ISO-код стежка, генерируются с дублями, без машины, без кода шва (ISO 4916), без техпоследовательности, без нормы времени. У нас: узлы из справочника, коды стежка И шва, машина, схема шва в разрезе, техпоследовательность на трёх языках. Здесь мы глубже — но у них есть слот под картинку узла и добавление строки руками.</p>
+<h4>2.4 Раздел 03 BOM</h4>
+<p>«+ ADD BOM ROW» · «SUPPLIER» (отдельная кнопка — видимо, поля поставщика). Таблица: # · COMPONENT · MATERIAL / FIBER (две строки: описание + состав) · COLOR · PANTONE (селектор с квадратиком цвета) · EST USAGE · IMAGE · 🗑.</p>
+<p>Строки: Fabric — 100% Cotton heavy brushed moleskin, Blue, PANTONE 2587 C, 1.8 m · Contrast Fabric — 12-wale fine corduroy, Brown, PANTONE 126 C, 0.3 m · Pocketing — twill, Brown, 126 C, 0.4 m · Interfacing — woven fusible, [TBC], [TBC], 0.6 m · Buttons — engraved metal tack/shank, [TBC], 12 pcs · Size Label — woven, White, PANTONE 434 C, 1 pcs. Оранжевые точки у строк — метка AI.</p>
+<p>Внизу «COST PER GARMENT — Costing coming in early 2027».</p>
+<p class="take">→ <strong>EST USAGE появился</strong> (в июле расход не считали). Оценки правдоподобные (1.8 м основной ткани на жакет). [TBC] — их способ пометить неизвестное. Pantone у каждой строки — у нас цвета есть, Pantone нет. Себестоимость — обещают в 2027. Артикулов/поставщиков в строках нет (кнопка SUPPLIER отдельно). Ниток, упаковки, care label — в списке нет.</p>
+<h4>2.5 Раздел 04 Measurements — ГЛАВНАЯ НАХОДКА</h4>
+<p>MEASUREMENT DRAWING: чертёж (те же 3 вида) на <strong>сетке 10 см</strong> («SCALE 1 square = 10 cm · Auto-Set For Jackets &amp; Coats · Tap To Adjust»), тумблер Grid, зум −/100%/+/Fit. Кнопки: <strong>+ Add POM</strong> · Edit POM · тумблер Show all POM · Measure guide · How to use. Подсказка: «Add POM: click two points — value auto-fills from the grid. Override in the table if needed.»</p>
+<p>SAMPLE SIZE CHART (переключатель CM / IN): POINT OF MEASURE · VALUE · UNIT — <strong>«No measurement points yet. Click the drawing to add one.»</strong></p>
+<p>SIZE GRADING: POM · BASE · XS · S · M · L · XL · RULES · TOLERANCE — <strong>«ADD MEASUREMENT POINTS TO CREATE SIZE GRADING ROWS.»</strong></p>
+<p class="take">→ <strong>Табель мер у них НЕ генерируется.</strong> Человек сам ставит точки кликами по чертежу, сантиметры «снимаются» с сетки, масштаб которой назначен категорией («Auto-Set for Jackets &amp; Coats»). Ни одного замера, ни допуска, ни градации в готовом паке нет. Это подтверждает июльский разбор («вы, как конструктор, корректируете всё сами»), но теперь честнее: не подставляют дефолт, а оставляют пусто. Наши 24 точки с якорем масштаба, допусками по ГОСТ и градацией — это ров, и он стал шире.</p>
+<p class="take">→ Что забрать: <strong>интерактивная постановка POM на чертеже</strong> как способ добавить СВОЮ точку и как визуализация «где мерить» (у нас выноски на зоны, у них — линия между двумя точками). Переключатель CM/IN. Ряд XS–XL с колонками RULES и TOLERANCE — структура та же, что у нас, но пустая.</p>
+<h4>2.6 Раздел 05 Graphics &amp; Prints</h4>
+<p>«SELECT FROM GALLERY» · «UPLOAD ARTWORK» · карточки загруженных/выбранных принтов (здесь — принт из Repeat Print Maker, с корзиной). Только хранилище картинок: ни зоны нанесения, ни размера, ни техники печати. У нас — раскладка нанесения в см и паспорт печати.</p>
+<h4>2.7 Раздел 06 Colourway</h4>
+<p>«1 colourway — each can carry its own fabric + BOM detail for the factory.» · «+ ADD COLOURWAY» (тултип: «Add an empty colourway slot and upload your own image») · «+ NEW COLOURWAY» (генерация). Карточка: цветной рендер 3 вида (View larger) · имя (Colourway 1) · <strong>Suggest with AI</strong> · FABRIC / MATERIAL (placeholder «e.g. 100% Cotton 12oz denim») · SUPPLIER («Mill / supplier») · PANTONE («19-4024 TCX») · NOTES (раскрывается) · Delete colourway.</p>
+<p class="take">→ Колорвей — карточка с тремя полями и картинкой; BOM-на-цвет обещан текстом, но структуры под него не видно (одна строка ткани на колорвей). Suggest with AI — заполнение полей моделью. Свой колорвей можно завести пустым и загрузить своё изображение.</p>
+<h4>2.8 Раздел 07 Artwork</h4>
+<p>Четыре карточки-актива с «OPEN ASSET →»: TECHNICAL ILLUSTRATION · 3D RENDER (цветной, 3 вида) · TECHNICAL LINE SVG (векторная трассировка, линии тоньше и рванее, чем растр) · MEASUREMENT PLATE (чертёж на сетке). Раздел-склад: всё сгенерированное лежит здесь.</p>
+<h4>2.9 Раздел 08 Review &amp; Open Decisions — САМОЕ СИЛЬНОЕ У НИХ</h4>
+<p><strong>PACK COMPLETION 4/6</strong> — шкала: Technical flat ✓ · Photoreal render ✓ · Measurement page ✓ · Technical line SVG ✓ · Tech-pack PDF ○ · Validated ○.</p>
+<p><strong>«19 open decisions to confirm or replace before you export.»</strong> «Confirmed details appear on the exported tech pack. Reject a detail to type the correct wording, which replaces it on the pack.» У каждой карточки три кнопки: ✓ подтвердить · ✎ переписать · 🗑 убрать. Пять групп:</p>
+<ul>
+<li><strong>CONFLICTS TO RESOLVE (2)</strong> — «The AI found something ambiguous — decide and confirm, or remove.» Примеры: «Confirm whether the collar is intended as corduroy, rib knit, or self-fabric with decorative stitching.» · «Confirm if the jacket is unlined or lined.»</li>
+<li><strong>PROPOSED ASSUMPTIONS (1)</strong> — «Assumed to fill a gap. Confirm to accept, remove to reject.» «Assumed heavy woven cotton denim or twill for main shell fabric.»</li>
+<li><strong>SUGGESTED PROPOSALS (6)</strong> — «Optional ideas. Confirm the ones you want, remove the rest.» «Specify 8-wale 100% cotton corduroy for the collar» · «Add back waistband adjuster tabs if traditional trucker styling is desired» · «Specify antique brass, copper, or matte silver hardware finish…» · «Two vertical welt hand pockets on lower front panels» · «Single-welt pocket bags…» · «Assumed unlined jacket construction…»</li>
+<li><strong>NEEDS YOUR INPUT (10)</strong> — «Details the pack still needs before factory release.» Список честный и профессиональный: нет вида спинки на входе · нет вида изнанки (подкладка, мешковины) · не даны качество/вес/состав ткани · фурнитура не подтверждена · <strong>«Target sizing chart and base size are not specified»</strong> · количество карманов · «Specific seam, stitch, reinforcement, and edge-finishing specifications require technical confirmation before factory release» · <strong>Digital Product Passport / QR label для ЕС</strong> · «Label placement, packaging specification, and grading rules remain placeholder-level» · спинка и внутренняя конструкция не подтверждены по одному фронтальному фото.</li>
+<li><strong>CONFIRMED (5)</strong> — то, что модель видит уверенно: «6 front shank buttons shown on the vertical placket and waistband», «Distinct horizontal forearm seam on the sleeve» и т.д.</li>
+</ul>
+<p><strong>NOTES &amp; AMENDMENTS:</strong> General notes · Design amendments · Make amendments · Trim amendments — четыре свободных поля.</p>
+<p class="take">→ Это их ответ на «не помечаем уверенность» из июля: теперь помечают, и лучше, чем мы. Мы помечаем уверенность ЗНАЧЕНИЯ (пять уровней на числе). Они помечают уверенность РЕШЕНИЯ и превращают её в очередь задач с тремя действиями. Человек проходит список, а не таблицу. Наши «предположения» (красные треугольники) разбросаны по документу и не собраны в одно место с кнопкой «подтвердить». <strong>Забрать обязательно.</strong></p>
+<p class="take">→ Сами формулировки — готовый чек-лист того, что фабрика спросит: подкладка, фурнитура, размерная сетка, DPP/QR для ЕС, упаковка, градация.</p>
+<h4>2.10 Раздел 09 PDF Tech Pack — пейволл</h4>
+<p>При входе: модалка «<strong>Your tech pack is complete</strong>. Preview every page right here for free. Subscribe to download the full PDF and keep building your next pack.» Блок <strong>FACTORY READINESS 7.5 / 10</strong> с полосой и «Next gap: Only 5 measurements — add key POMs for your garment type». Кнопки: Not now · View plans. Под модалкой — превью страниц PDF, кнопки Refresh · Download PDF.</p>
+<p class="take">→ <strong>Free-план: превью бесплатно, скачивание PDF — по подписке.</strong> Оценка готовности к фабрике одним числом + «следующий пробел» — сильный мотиватор и апселл одновременно. Противоречие: «Only 5 measurements», а таблица замеров пуста — score считается не по тому, что показано.</p>
+<h4>2.11 PDF-превью (после «Not now») — 8 страниц</h4>
+<p>Шапка каждой страницы: [TBC] (бренд) · BRAND [TBC] · STYLE NAME Trucker Jacket · STYLE # [TBC] · SEASON [TBC] · BASE SIZE M · заголовок раздела справа. Футер: «SpecForm OS — generator output · [TBC] / [TBC] · Page N of 8». Кнопки: Refresh · Download PDF (заблокирован тарифом). Пока строится — «BUILDING YOUR TECH PACK…».</p>
+<ul>
+<li><strong>Overview</strong> — флэт 3 вида + карточка: Category Jacket · Silhouette Straight/Boxy · Fit Regular Fit · Designer &lt;имя&gt; · абзац описания · «KEY VISIBLE CONSTRUCTION FEATURES» (6 пунктов текстом).</li>
+<li><strong>Technical flat</strong> — крупно.</li>
+<li><strong>Rendered technical overview — colour</strong> — 3D-рендер 3 вида.</li>
+<li><strong>BOM</strong> — колонок больше, чем в UI: ITEM · CATEGORY · DESCRIPTION · FIBER/MATERIAL · <strong>WEIGHT/GSM</strong> (380, 210, 150, 80) · COLOR/PANTONE · <strong>SUPPLIER CODE</strong> · CONSUMPTION · NOTES. Фурнитура с размерами (17 mm (27L), 45×25 mm). Полстраницы пустые.</li>
+<li><strong>Construction details</strong> — DETAIL TYPE · CONSTRUCTION DETAIL.</li>
+<li><strong>Measurement annotation &amp; grading</strong> — чертёж, замеров нет.</li>
+<li><strong>Graphics &amp; Prints</strong> — принт маленькой картинкой, полстраницы пусто.</li>
+<li><strong>Colourway — colour &amp; fabric variants</strong> — карточка колорвея.</li>
+</ul>
+<p class="take">→ Нет: маркировки, символов ухода, техпоследовательности, схем швов, листа деталей кроя, градации, допусков, RFQ. [TBC] везде, где человек не заполнил. Вёрстка чистая, но полупустые страницы. У нас 18–22 листа с тем, чего у них нет.</p>
+<h4>2.12 Вкладки обложки (раздел 01)</h4>
+<p><strong>3D RENDERS:</strong> EDIT ▾ · REPLACE · GALLERY · (?) «Watch tutorial: Sync the 3D render to your technical drawing» · <strong>SYNC TO TECH ▾</strong> (тултип: «Sync the 3D render to a technical drawing version (5 credits)») · Download. Рендер фотореалистичный, 3 вида, синий вельвет с коричневым воротником, есть версии.</p>
+<p class="take">→ Связь «рендер ↔ чертёж» есть, но ручная и платная: после правки чертежа рендер надо синхронизировать за 5 кредитов. У нас визуализация строится из спеки автоматически.</p>
+<p><strong>SVG:</strong> режимы <strong>SMART · CLEAN · DETAILED · CUSTOM</strong> · Download. Вектор — трассировка растра: линии заметно грубее и рванее, чем на растровом флэте (воротник, кокетка). Подтверждает июльский вывод: «SVG Control» = крутилки векторизации.</p>
+<p><strong>VIRTUAL FITTING:</strong> кнопка <strong>FIT ▾</strong> → панель «Configure the fit and model to continue. Choose model, body and fit in the pill below, then Confirm.» MODEL: Women · Men · Neutral · Modest · AGE: Adult · Teen · Baby · BODY: Slim · Straight · Curve · Plus · FIT: Regular · Loose · Tight · Oversized. → Генерация фото изделия на модели с выбором типажа. У нас — нет. Маркетинговая, не производственная функция, но «ВАУ» для бренда.</p>
+<p><strong>COLOURWAY (вкладка обложки):</strong> SWATCHES ▾ · ADD COLOURWAY · Download · переключатель «3D render / Technical drawing». Панель: YOUR SWATCHES (пусто, +) · FABRIC LIBRARY (8 образцов: чёрный, белый, деним, олива, горчица, синий, серый меланж, бордо) · поле «e.g. washed indigo denim, sage wool melton» · <strong>Apply · 5 credits</strong>. Версии картинки. → Перекраска рендера по текстовому описанию ткани, 5 кредитов за вариант. У нас колорвеи — из спеки, до трёх рендеров бесплатно для пользователя.</p>
+<p><strong>COMPARE:</strong> «Compare two assets side by side» — REFERENCE (исходное фото: синий вельветовый жакет) ↔ TECH ILLUSTRATION, у обеих панелей выпадающий выбор актива. → Сравнение входа и выхода глазами — простой и сильный приём против «на входе худи, на выходе свитер». У нас фото лежит в паке, но рядом с эскизом не показывается.</p>
+<p><strong>GENERAL INFORMATION</strong> (ниже на обложке): CATEGORY Jacket · SILHOUETTE «Classic Trucker / Denim Style Jacket» · FIT TYPE · BASE SIZE · SIZE RANGE · DESIGNER · SUPPLIER · REVISION.</p>
+<h4>2.13 Журнал ревизий (Revision history) и режимы</h4>
+<p>Отдельный экран: «ADD REVISION» · «Regenerated and corrected drawings are logged as versions: roll back to any of them.» Таблица REV · DATE · BY · CHANGE, все ячейки редактируемые, «Remove row». Записи: «v2.1-initial · 2026-08-25 · — · Initial editable draft created by» и «v2 · 26/08/2026 · you · Created colourway: sage green». → Журнал полуручной: система пишет часть событий (создание колорвея), человек дописывает. Кнопки «откатить» в таблице нет, хотя текст её обещает. У нас — версии спеки с диффом по точкам, но без имени автора и без свободной строки «что изменилось».</p>
+<p><strong>Preview mode (read-only)</strong> — тумблер-замок в шапке; <strong>Lock edits</strong> — тот же смысл в меню «…».</p>
+<h3>3. Создание техпака (CREATE TECH PACK) — правая панель</h3>
+<p><strong>FULL WORKFLOW · Upload reference images.</strong> «Upload references and build the complete editable pack: visuals, BOM, measurements, construction, callout, and PDF.»</p>
+<ul>
+<li>REFERENCES 0/4 · «Photo example» → модалка «What a good upload looks like»: «One garment, plain background, even lighting. Best results from a full front and back, plus a few close-ups of key details. More photos isn't better — mixing garments or busy backgrounds confuses the model.» Четыре примера: Front — full garment · Back — full garment · Detail — cuff &amp; buttons · Detail — label &amp; trim.</li>
+<li>Дропзона «Drop garment images · UP TO 4 · PNG JPG WEBP · MAX 10MB EACH» (+ отдельные инпуты «Take a photo», «Choose from photo library» — мобильные).</li>
+<li>«No photo? Try a sample garment» — демо без своего фото.</li>
+<li>Tip: «for the most accurate result, upload the front, back and a close-up detail shot».</li>
+<li>Дисклеймер: «AI-generated outputs are drafts for reference only. Always review and verify before use in production.»</li>
+<li><strong>IMAGE MODEL:</strong> Most accurate ~6–10 min «Best garment fidelity» · Good quality ~3–5 min «Much quicker» · Quick draft ~2–4 min «Lower fidelity». <strong>Цена одна — 50 кредитов</strong> при любой модели.</li>
+<li><strong>CREATE TECH PACK · 50 credits</strong> · «Create manually →» («Create an empty tech pack workspace to fill in by hand — no AI, no credits»).</li>
+<li><strong>Никаких вопросов на входе</strong> (категория/ткань/цвет/размер/посадка) — только фото. В июле спрашивали тип/ткань/цвет; убрали. Отсюда «Target sizing chart and base size are not specified» в Review — они просто не спрашивают. У нас анкета из 5 вопросов + быстрый взгляд, который её заполняет.</li>
+<li>Загрузил 2 фото худи → превью в панели, кнопка активна. Нажал → <strong>«Not enough credits. This run needs 50 credits and you have 30. Top up to keep generating.» Cancel / Buy credits.</strong> Полный путь на free-плане с 30 кредитами недоступен; покупать не стал.</li>
+<li>«Create manually» создал пак «85899E09» (пустой), но панель осталась в состоянии «QUEUING… 50 / Creating…» ещё несколько секунд — баг состояния кнопки.</li>
+</ul>
+<h3>4. Quick actions — панели</h3>
+<p>Все четыре — та же панель загрузки (0/4 фото, Photo example, sample garment, tip, дисклеймер, выбор модели), отличаются текстом и ценой:</p>
+<ul>
+<li><strong>Technical Drawing</strong> — «generate a clean technical flat with SVG. You can continue into a full tech pack from the result.» · ~10–20 sec · <strong>10+ credits</strong>.</li>
+<li><strong>3D Renders</strong> — «generate 3-view visual renders» · ~10–20 sec · <strong>10 credits</strong>.</li>
+<li><strong>Repeat Print Maker</strong> — при первом открытии обучающее видео 0:20. «Upload a print reference (a drawing, artwork, or garment with a print) and get a seamless, 1:1 repeat-tileable print you can drop straight into your artwork.» Дропзона «ARTWORK, A DRAWING, OR A GARMENT WITH A CLEAR PRINT · FLAT &amp; EVENLY LIT WORKS BEST». «Repeat size and Pantone colours are now set on the finished tile, after it generates.» · <strong>MAKE REPEAT PRINT · 10 credits</strong>.</li>
+<li><strong>Virtual Fitting</strong> — панель (см. ниже).</li>
+</ul>
+<p class="take">→ Экономика: free-план 80 кредитов = 1 полный пак + 3 быстрых действия. Правки картинки 5 кредитов. Всё оцифровано на кнопках.</p>
+<h3>5. Mochi — ассистент</h3>
+<p>Плавающий чат «Mochi · Fashion assistant · design support». Вкладки <strong>Design / Support</strong>. Поле «Ask about your garment, pack, or construction…», кнопки: прикрепить изображение, камера, Send. → Тот самый AI-консультант из июльского разбора, теперь с двумя ролями (дизайн / поддержка).</p>
+<h3>6. Меню профиля</h3>
+<p>e-mail · FREE PLAN · <strong>CREDITS 30 / 80</strong> (полоса) · «Low balance — top up or subscribe to keep generating.» · <strong>Refer &amp; earn — Get 50 credits per friend</strong> · Buy credits · Manage subscription · <strong>Production Knowledge</strong> · Account · Language (English) · Sign out.</p>
+<p class="take">→ Реферальная механика — та же, что у нас (мы даём паки, они — кредиты). «Production Knowledge» — отдельный раздел, проверить.</p>
+<h4>4.1 Virtual Fitting — панель</h4>
+<p>«Upload a garment reference and see it worn by a model in front, side and back views. Choose the model and fit below.» MODEL: Women · Men · Neutral · Modest · AGE: Adult · Teen · Baby · BODY: Slim · Straight · Curve · Plus · FIT: Regular · Loose · Tight · Oversized · «Or fit an existing project →» · CREATE VIRTUAL FITTING · <strong>10+ credits</strong>.</p>
+<h3>7. Живой прогон: Technical Drawing на нашем голден-фото худи (hoodie-front.png + hoodie-back.png)</h3>
+<ul>
+<li>Нажал CREATE TECHNICAL DRAWING (10 кредитов). Кнопка → «QUEUING… 10 / Creating…». В сайдбаре появился пак 66980A87 с таймером «4s elapsed» и оранжевой точкой.</li>
+<li>Экран прогресса: шкала <strong>ANALYSING → DRAWING → VECTORISING</strong>, проценты (5% на 4 с, 40% на 14 с), подпись «TECHNICAL DRAWING QUICK ACTION», карусель референсов (REFERENCE 1 / 2) с зумом −/100%/+/Fit, строка статуса «Reading silhouette, seams, closures, and visible garment details», «This quick action can continue into the full tech-pack workflow later», таймер «0:14 elapsed», кнопка CANCEL. В DOM заготовлен экран отмены: «Cancelled — This drawing run was stopped. Your reference images are still available.»</li>
+<li><strong>Результат через ~30 с: ОТКАЗ.</strong> «This run hit a snag. Couldn't generate a technical flat from this reference. Try uploading a clearer, front-facing garment image with the full garment visible.» · «✓ Your credit was refunded» · Regenerate. Пак остался в списке с красной точкой.</li>
+</ul>
+<p class="take">→ На том же фото наш пайплайн собирает документ целиком (это наш QA-набор). У них — отказ без объяснения, что именно не так (фото фронтальное, изделие целиком, ровный фон). Честный возврат кредита — да; диагностики — нет.</p>
+<ul>
+<li><strong>Regenerate</strong> → создал ещё один пак (A1603761), тоже с красной точкой — второй отказ подряд на тех же фото. Экран первого пака завис на кнопке «Restarting…» (&gt;40 с), в новый не перешёл. Итого: <strong>устойчивый отказ на нашем голден-фото худи</strong> + два мёртвых пака в списке.</li>
+</ul>
+<h3>8. Тарифы (/subscription)</h3>
+<p>Заголовок: «During Beta, Early Access is the plan to pick — choose your monthly credits below. Student Access and the Customisable public plan arrive with Public Access. Prefer a one-off top-up instead? → Buy a one-off credit pack».</p>
+<p><strong>Early Access (BETA):</strong> Monthly / Annual (1 month free) · валюты £ GBP / $ USD / € EUR / AED · <strong>$40/мес = 1 000 кредитов</strong> (варианты: 500 — $20, 1 000 — $40, 3 000 — $105). «Charged in USD at checkout. GBP list price £30.» Включает: «Up to 20 first-pass tech packs / month · ≈100 technical drawings or 3D renders · Full access — flats, 3-view renders, BOM, POM &amp; callouts · Edit measurements, materials &amp; technical fields · PDF tech-pack + editable SVG export · <strong>Observed vs inferred labelling on every output</strong> · Buy credit top-ups anytime · Priority Beta support for failed runs &amp; exports · Early access to new features + feature voting · Cancel or change monthly».</p>
+<p><strong>Student Access (COMING SOON):</strong> $16/мес, 300 кредитов, до 6 паков, академическая верификация.</p>
+<p><strong>Customisable Plan (COMING SOON):</strong> от $25/мес, 500/1 000/2 000/3 000 кредитов.</p>
+<p><strong>Таблица сравнения:</strong> Free — только Manual tech-pack template + Pay as you go. Beta/Starter/Pro/Studio — AI flats, 3-view renders, Measurement annotation &amp; POM, <strong>Editable graded size charts</strong>, BOM &amp; construction-detail drafts, Quick Actions, PDF, SVG, Observed vs inferred labelling, monthly credits. Pro/Studio: Priority queue. Beta/Studio: <strong>Custom export templates (branded layouts)</strong>. Studio: <strong>Team seats</strong>, <strong>Custom dataset training (your blocks &amp; make standards)</strong>.</p>
+<p><strong>Бенефиты:</strong> Production Knowledge library (exclusive, платные) · IP ownership · Commercial rights · Free-entry offer: up to 2 first-pass packs · Referral: 50 кредитов за платного реферала (Beta) / 30 · Beta community, feature voting, changelog credit, 20% off first Public Access year.</p>
+<p>Сноска: «A tech pack run spends 50 credits; the Free plan and one-off top-up packs are pay-as-you-go on top of any monthly allowance.»</p>
+<p class="take">→ <strong>Единица экономики: 50 кредитов = $2 за полный пак на Early Access</strong> ($40/1 000 × 50). Quick action — $0.40. Правка картинки — $0.20. Мы: 3 пака бесплатно в месяц, цены не объявлены.</p>
+<p class="take">→ Дорожная карта в тарифе: branded export templates, team seats, <strong>обучение на блоках и стандартах бренда</strong> (Studio). «Observed vs inferred labelling» вынесено в продающий пункт — они продают то, что мы называем уверенностью.</p>
+<h4>8.1 Кредиты (/credits)</h4>
+<p>«A tech pack run spends 50 credits; an AI suggestion (BOM, costing) 5; a regeneration 10. Buy a one-off pack below, or subscribe for a monthly allowance that works out cheaper per pack.» CURRENT BALANCE 30 · «≈ 0 TECH PACKS».</p>
+<p><strong>Разовые пакеты:</strong> 100 кредитов (≈2 пака) — <strong>$20</strong> · 250 (≈5) — $40 · 500 (≈10) — $75 · 1 000 (≈20) — $130. Валюты GBP/USD/EUR/AED, «GBP list price £15».</p>
+<p><strong>CREDIT HISTORY</strong> (журнал с датой, операцией, ±кредитов): 22.08 «public grant +100» (стартовый бонус) · 25.08 «Tech pack run −50» · 26.08 два «Quick action −10» · сегодня «Quick action −10 / Refund — failed run +10», «Quick action −5 / Refund — failed run +5».</p>
+<p class="take">→ Стартовый бонус 100 кредитов = 2 пака. Регенерация в журнале списала 5, а не заявленные 10. Возвраты за провалы честные, баланс Данила не изменился (30). У нас журнала списаний для пользователя нет — есть только квота «осталось N».</p>
+<p class="take">→ Розница: <strong>$10 за полный пак</strong> на разовых кредитах, $2 — по подписке. Это ценовой якорь для нашего прайса.</p>
+<h3>9. Языки интерфейса</h3>
+<p>Combobox: English · 中文 · Italiano · Français. (Перевод документа — отдельная функция, ≥10 языков.)</p>
+<h3>10. Production Knowledge (/knowledge) — публичная база знаний</h3>
+<p>«Factory-grade apparel knowledge, in SpecForm's voice. 109 original reference articles across textiles, merchandising, the cutting room, production, IE &amp; Lean, trims and trade finance. Previews are open to everyone; full articles and the data visuals unlock for SpecForm members.»</p>
+<p>Разделы: Textile 6 · Merchandising 13 · <strong>Cutting Room 30</strong> · Production 9 · Dyeing &amp; Finishing 8 · Quality &amp; Testing 6 · Sustainability 1 · IE &amp; Lean 11 · Trims 6 · Commercial 12 · Reference 7. Поиск «Ask anything about production…» с подсказками («What is marker efficiency?», «How does AQL inspection work?», «Which dye suits polyester?»). У статей метка «Visual» (есть инфографика).</p>
+<p>Темы, прямо пересекающиеся с нашим документом: «Building a Garment Measurement Spec: POM, Tolerances and Grading», «Garment Size Grading Rules», «Stitch Classes and Types», «Types of Seams: The Six ASTM Seam Classes», «Thread Consumption Equations by Stitch Type», «Care Label Symbols», «Garment Labels», «AQL Inspection», «Colour Fastness», «From Lab Dip to Bulk», «Garment Sample Types: From Proto to TOP», «Cost Sheet» ×3, «CM Calculation».</p>
+<p>Страница публичная (шапка «Create free account»), футер «© 2026 SpecForm OS · morchen@specform.uk» — компания в UK.</p>
+<p class="take">→ Это контент-маркетинг + SEO + обучение пользователя + повод для подписки. Судя по оглавлению, источник — классический учебник по швейному производству (Bangladesh Bank в статье про L/C, формулы в дюймах и «per dozen»). Наша база знаний (kb/data + knowledge-base/*.md) глубже по нормам РФ/ГОСТ, но заперта в репозитории. <strong>Забрать идею публичной библиотеки</strong>: у нас есть материал на десятки статей (допуски по ГОСТ, маркировка ТР ТС 017, схемы швов, техпоследовательности).</p>
+<h3>11. Аккаунт (/account) и About</h3>
+<p><strong>PROFILE:</strong> email · Sign-in method (google) · Credits · User ID.</p>
+<p><strong>EVENTS:</strong> «Live Demo &amp; AMA · Wednesday 9 September · 14:00 to 15:30» — Details / Join. → Живые демо для бета-пользователей, прямо в аккаунте.</p>
+<p><strong>APPEARANCE:</strong> Font — Sora / Serif / System · Interface size — Compact / Regular / Large («Scales the whole interface»).</p>
+<p><strong>REFER &amp; EARN:</strong> «When a friend signs up and buys a plan or credit pack, you get 50 credits.» Ссылка + COPY LINK + шаринг в X / WhatsApp / LinkedIn / email · дашборд: Signed up / Paid / Credits earned · «Referral dashboard →».</p>
+<p><strong>Production Knowledge:</strong> «93 factory-grade apparel articles. Full access with any plan.» (на самой странице библиотеки — 109; расходится).</p>
+<p><strong>PRIVACY &amp; DATA</strong> (сильный блок): «Your designs — Never used for AI training · Human access — Automated systems only · File deletion — Active: immediate · Backups: 30 days · IP ownership — 100% yours upon generation · AI model improvement — Opt out via email» · Privacy Policy · Terms of Service · DPA.</p>
+<p class="take">→ Прямые ответы на страхи бренда (утечка дизайна, обучение на моих вещах, кто видит файлы). У нас этого блока нет ни в кабинете, ни на лендинге. <strong>Забрать дословно как структуру.</strong></p>
+<p><strong>About:</strong> «Beta · $20/mo · Billed monthly · GBP £15 · 500 credits — up to 10 first-pass packs or ~5–6 revised styles · Beta pricing locked in for founding subscribers · JOIN BETA PROGRAM». → Их же формула: 500 кредитов ≈ 10 паков ИЛИ 5–6 доработанных стилей — то есть один стиль с правками съедает ~90 кредитов.</p>
+<h3>12. Ручной пак («Create manually») — не открывается</h3>
+<p>Пак 85899E09 создан, в списке с зелёной точкой, но при открытии — «LOADING DRAFT…» бесконечно (&gt;10 с, два захода). Бесплатный ручной путь, который рекламирует таблица тарифов («Manual tech-pack template ✓ на Free»), на деле не работает.</p>
+<h3>13. Баги и шероховатости, замеченные по пути</h3>
+<ul>
+<li>«Create manually» → панель зависает в «QUEUING… 50 / Creating…».</li>
+<li>Ручной пак не загружается («LOADING DRAFT…»).</li>
+<li>Regenerate после провала → создаёт новый пак, но экран старого зависает на «Restarting…».</li>
+<li>Отказ генерации без диагностики («hit a snag») на фото, которое у нас проходит.</li>
+<li>Construction: дубли строк (Center Front Placket ×2, Chest Flap Pocket ×2).</li>
+<li>«Only 5 measurements» в оценке готовности при пустой таблице замеров.</li>
+<li>Кнопка «Measure guide» в Measurements выбрасывает на главную.</li>
+<li>«93 статьи» в аккаунте vs «109» в библиотеке.</li>
+<li>Регенерация: на странице кредитов «10», в журнале списано 5.</li>
+<li>Review / Copy link / Costing — заявлены как SOON; Costing «в начале 2027».</li>
+</ul>
+<h3>14. Второй проход, 8 сентября вечером — аккаунт с 80 кредитами (ivanovnakoska0@gmail.com, FREE PLAN)</h3>
+<h4>14.1 Полный пак: старт и экран генерации</h4>
+<ul>
+<li>Загрузил те же два фото худи, модель «Most accurate ~6–10 min», CREATE TECH PACK · 50. Пак 035EDEAA появился в сайдбаре с таймером «1s elapsed» и оранжевой точкой; превью в сайдбаре обновляется вживую: пусто → одно фото → два.</li>
+<li>Экран прогресса: шкала <strong>ANALYSING → GENERATING → COMPOSING</strong>, проценты (0% на 2 с, 6% на 22 с, 42% на 52 с, 49% на 1:22), «TECH PACK WORKFLOW», кнопка «+ ADD DETAILS WHILE YOU WAIT», карусель референсов с зумом, таймер, CANCEL. Строки статуса меняются: «Separating garment evidence from styling noise», «Keeping reference images alive while views are generated», «You can add garment details while this run continues».</li>
+<li><strong>Вопросы задаются ВО ВРЕМЯ генерации, а не до.</strong> Правая панель «ADD DETAILS — Fill in while your pack generates. These details attach to this run and carry into the editable pack»: BRAND (placeholder Supreme) · STYLE NAME (Satin Anorak) · SEASON (FW 2026) · BASE SIZE (UK 12) · CATEGORY (Outerwear) · MATERIALS (optional — leave blank and SpecForm OS suggests suitable materials): MAIN FABRIC (e.g. 100% silk) · LINING (e.g. viscose) · TRIMS (e.g. YKK zip, horn) · CONFIRM DETAILS → · STOP.</li>
+</ul>
+<p>  → Умный ход против ожидания: 6–10 минут человек не смотрит на шкалу, а заполняет анкету. У нас анкета до старта, и быстрый взгляд заполняет её за 6 секунд — но ожидание 1–2 минуты у нас пустое. Забрать: пока идёт сборка — показывать, что уже известно, и просить недостающее (страна, знак, юрлицо для маркировки).</p>
+<ul>
+<li><strong>Ховер-анимация во время генерации:</strong> за курсором по всему экрану прогресса плавает маркер — логотип «S» с подписью «RUNNING PIPELINE…»; карточка референса слегка едет за мышью (параллакс). Это «курсор-компаньон» процесса: ощущение, что система жива, пока ждёшь. Дёшево, заметно, забирается.</li>
+<li><strong>На тех же фото худи полный пайплайн ПРОШЁЛ</strong>: к 2:30 (58%) на экране прогресса веером легли четыре карточки — REFERENCE 1, REFERENCE 2, <strong>TECHNICAL DRAWING</strong> (три вида: перед, бок, спинка, с кенгуру и шнуром) и <strong>3-VIEW RENDER</strong> (фотореалистичный, синий худи). Утренние два отказа — это быстрое действие «Technical Drawing», а не полный пак: разные пайплайны, разная устойчивость. 71% на 3:00, статус «Checking silhouette, trims, closures, and measurement cues».</li>
+<li>Заполнил детали во время генерации: Brand «Test Brand», Style «Hoodie QA», Season FW 2026, Base size M, Category Hoodie, Main fabric «100% cotton brushed fleece 320 gsm» → CONFIRM DETAILS.</li>
+</ul>
+<h4>14.2 Готовый пак «Hoodie QA» (035EDEAA) — ~5 минут, COMPLETED</h4>
+<ul>
+<li>После завершения — тост Mochi «How did that turn out? Your tech pack is ready. How happy are you with the result? It helps me get better. Tap a star» (пять звёзд). → Оценка результата сразу после генерации, встроенная в ассистента.</li>
+<li><strong>Обложка:</strong> шапка взяла мои детали (Brand «Test Brand», Season FW 2026, Description «Hoodie», Sample size M — чёрным), от AI — Fabric «Fleece» и дата (красным). Флэт — три вида: перед с кенгуру и шнуром, профиль с краем кармана и шнуром, спинка. Качество — ровня нашему эскизу v3; линии чуть тоньше, рибана штриховкой, дроп-плечо читается.</li>
+<li><strong>Construction:</strong> всего <strong>3 строки</strong> — Hood Seam Finish · Coverstitch; Hood Drawcord Channel Finish · Single needle topstitch; Kangaroo Pocket Attachment · Double needle topstitch. Колонки STITCH и IMAGE пустые (у тракер-жакета были ISO-коды — здесь нет). У нас на худи 14 узлов с кодами стежка и шва, машиной и схемой.</li>
+<li><strong>BOM:</strong> 7 строк — Main fabric «Cotton Brushed Fleece», Dusty Blue, PANTONE 2587 C, 2.2 m · Rib knit for cuffs and hem 0.25 m · Hood drawcord «Flat braided cotton cord» 1.8 m · Eyelets «Metal Eyelet» Silver-toned 2 pcs · Main label woven 1 pc · Care/Content label printed satin 1 pc · Size label 1 pc. Pantone один и тот же на всё синее; [TBC] на фурнитуре и ярлыках. Costing — «early 2027».</li>
+<li><strong>Measurements — снова пусто:</strong> «No measurement points yet». Сетка «1 square = 9 cm · Auto-Set For Tops» (у жакета было 10 см).</li>
+<li><strong>Поставил точку сам</strong> (Add POM → «Click two points to add a new measurement line» → два клика по груди): появилась красная пунктирная линия «A», в таблице строка «A · Point of measure ▾ · 57.3 · cm», в градации — <strong>BASE 57.5 · XS 53.5 · S 55.5 · M 57.5 · L 59.5 · XL 61.5 · RULES +2 · TOLERANCE ±0.5</strong>.</li>
+</ul>
+<p>  → Значит градация и допуск у них ЕСТЬ, но только для точек, которые человек поставил руками, и с одним правилом «+2 на размер» и одним допуском «±0.5» на всё. Значение 57.3 — это ширина рисунка в клетках сетки, масштаб которой назначен категорией, а не измерен по фото. Наш якорь по А4 — измерение; их «Auto-set for Tops» — назначение.</p>
+<ul>
+<li><strong>Библиотека имён точек</strong> (выпадашка «Point of measure»): группы RECOMMENDED · LINGERIE / SWIM / STRAPPY TOPS (12) · OUTERWEAR / JACKETS / COATS (16: Across chest/bust «1cm below armhole», Across shoulder «shoulder point to shoulder point», Body length «HPS or CB to hem», Center back length, Sleeve length, Bicep, Armhole depth, Cuff opening, Hem width, Sweep, Collar dimensions, Placket width, Pocket placement, Pocket opening) · TOPS / SHIRTS / KNITWEAR (14) · TROUSERS / BOTTOMS (13: Waist, High hip, Hip, Front rise, Back rise, Inseam, Outseam, Thigh, Knee, Leg opening, Waistband height…) · DRESSES / SKIRTS (14) · DETAILS / PLACEMENT (12: Pocket placement, Button spacing, Zip length, Label/Logo/Artwork/Embroidery placement). Только имена — без кодов, без «как мерить», без допусков по точке. <strong>Баг:</strong> для худи «RECOMMENDED» показал группу «Lingerie / swim / strappy tops».</li>
+</ul>
+<p>  → У них полный словарь имён на все классы изделий (низ, платья, верхняя одежда) — это список, а не данные. У нас — данные на 8 категорий. Словарь имён забрать как чек-лист для наших POM-шаблонов низа и платьев.</p>
+<ul>
+<li><strong>Review для худи:</strong> 15 открытых решений — Proposed assumptions 1 («standard pullover hoodie, medium-weight fleece knit…»), Suggested proposals 6, Needs your input 8, Confirmed 10 (пять «Detail close-up: …» — шнур, люверс, манжета, пояс, строчка кармана). Pack completion 5/6 (Validated ✓, PDF ○).</li>
+</ul>
+<p>  → <strong>Две ошибки разбора:</strong> «Request a back view of the garment» и «Back view of the garment is not provided» — при том, что спинка загружена вторым фото и лежит на экране как REFERENCE 2; «Brand name, style number, season, base size… are TBC» — при том, что я ввёл их в форме деталей, и они стоят в шапке. Review не видит ни второго фото, ни введённых деталей.</p>
+<ul>
+<li><strong>PDF / Factory readiness: 4.5 / 10</strong>, «Next gap: BOM is empty — add at least fabric, lining, and key trims» — при семи строках в BOM. У жакета было «Only 5 measurements» при пустом табеле. Оценка готовности считается не по тому, что в паке.</li>
+<li><strong>PDF худи — 7 страниц</strong> (футер «Page 2 of 7», «Test Brand / FW 2026»): обложка с флэтом, флэт крупно, цветной рендер, BOM, конструкция, чертёж замеров (с моей единственной точкой A), колорвей/принты.</li>
+</ul>
+<h4>14.3 Быстрое действие «Technical Drawing» на аккаунте с кредитами</h4>
+<ul>
+<li>Панель открылась ПОВЕРХ готового пака и сама подхватила его референсы (2/4 — те же два фото). Модель «Most accurate ~1–2 min», кнопка «CREATE TECHNICAL DRAWING · 10+».</li>
+<li>Нажал → «QUEUING… 10» → через ~20 с красная плашка: <strong>«We're experiencing high demand right now: free generations are queued. Your next slot opens in about 35 min. Upgrade for priority generation and skip the queue. Buy credits →»</strong>. Кнопка вернулась в исходное состояние, пак в Quick Actions не появился, кредиты не списаны.</li>
+</ul>
+<p>  → На free-плане быстрые действия <strong>ограничены очередью со слотами ~35 минут</strong> после полного прогона; «Priority generation queue» из таблицы тарифов — это оно. Утренние «hit a snag» на другом аккаунте — отдельная поломка, не очередь. Ждать 35 минут не стал.</p>
+<h4>14.4 Кредиты и аккаунт после прогона</h4>
+<ul>
+<li>Журнал: «08.09 20:12 public grant +80» → «20:18 Tech pack run −50» → баланс <strong>30</strong>. Очередь быстрого действия не списала ничего. Стартовый бонус на новом аккаунте — 80 (у августовского было 100).</li>
+<li><strong>FOUNDING MEMBER</strong> (это и есть «members»): блок «FOUNDING 100 · CHARTER · Founding Member», «Beta pricing locked · 100 credits per referral · priority support · feature voting · private Discord», кнопка <strong>Join Private Discord</strong>. «Your badge is yours for good, but priority support and voting need an active subscription. Reactivate your plan to use them again.» → Когорта первых ста: значок навсегда, привилегии — пока платишь. Реферал для основателей — 100 кредитов вместо 50.</li>
+<li><strong>What's new</strong> — лента изменений прямо в аккаунте: 30 Aug «Founding 100 hub» · 30 Aug «Multi-currency checkout» (USD/EUR/AED) · 31 Aug «Sharper repeat prints» (точнее тайлы и Pantone) · 6 Sept «Cleaner PDF exports» (страницы замеров разбиваются правильно, <strong>отдельный press/influencer export layout</strong>) · 6 Sept «Your brand logo on exported tech packs» · 7 Sept «Faster image loading» (CDN). → Релизы раз в 1–3 дня, публично. У нас коммиты чаще, но снаружи их не видно.</li>
+<li><strong>Feature voting + ROADMAP:</strong> «Propose features and vote on what the cohort wants next. Top-voted ideas move onto the roadmap». Planned — пусто; Shipped — «Custom Tech Pack Pages + Image Uploads» (+3), «right and left moving toggle bar!» (+0); «No open suggestions yet — be the first».</li>
+</ul>
+      </div>
+    </details>
+  </section>
+
+  <div class="foot">Метод: два живых аккаунта в Chrome, каждый экран — скриншот и дерево доступности. Полный пак запущен один раз (50 кредитов) на втором аккаунте; быстрый флэт на первом падал дважды с возвратом, на втором встал в очередь. Июльский разбор по ответам их консультанта — <code>COMPETITOR-full-analysis.md</code> в репозитории; этот проход его подтверждает и дополняет.</div>
+</div>

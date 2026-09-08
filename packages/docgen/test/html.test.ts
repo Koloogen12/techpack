@@ -571,4 +571,37 @@ describe('лист чертежа — чем он нарисован', () => {
     expect(page).toContain('верен раздел конструкции');
     expect(page).toContain('единственный источник размеров табель мер');
   });
+
+  it('снимки заказчика ложатся рядом с эскизом — расхождение в узле видно за секунду', () => {
+    const page = flatsPage({
+      visuals: {
+        sketch: { dataUri: PIXEL },
+        photos: [
+          { dataUri: PIXEL, label: 'Перед' },
+          { dataUri: PIXEL, label: 'Спинка' },
+          { dataUri: PIXEL, label: 'Изнанка' },
+        ],
+      },
+    });
+    expect(page).toContain('class="reference"');
+    expect(page).toContain('Референс · снимки заказчика');
+    expect(page).toContain('Перед');
+    expect(page).toContain('Спинка');
+    // Третьему кадру места на листе нет — он остаётся на странице внешнего вида.
+    expect(page).not.toContain('Изнанка');
+    expect(page).toContain('Размеры со снимков не снимаются');
+  });
+
+  it('без снимков колонки референса нет — пустая рамка хуже её отсутствия', () => {
+    const page = flatsPage({ visuals: { sketch: { dataUri: PIXEL } } });
+    expect(page).not.toContain('class="reference"');
+    expect(page).not.toContain('Референс');
+  });
+
+  it('снимок без объявленного ракурса подписан честно, а не выдуманным видом', () => {
+    const page = flatsPage({
+      visuals: { sketch: { dataUri: PIXEL }, photos: [{ dataUri: PIXEL }] },
+    });
+    expect(page).toContain('Снимок заказчика 1');
+  });
 });

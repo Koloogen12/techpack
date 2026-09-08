@@ -230,7 +230,37 @@ table.plain td.k { width: 34mm; color: var(--secondary); font-size: 7.6pt; paddi
    на капюшон. Отступом её не отодвинуть — картинка тянется под неё. */
 .canvas.sketch { flex-direction: column; align-items: stretch; gap: 4mm; }
 .canvas.sketch > .ml { position: static; }
-.canvas img.sketch { max-height: 122mm; width: auto; mix-blend-mode: multiply; }
+.canvas.sketch .sketch-row { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 6mm; }
+.canvas img.sketch { max-height: 122mm; width: auto; max-width: 100%; mix-blend-mode: multiply; }
+/* Референс — колонка справа от эскиза, в том же холсте. Эскиз остаётся
+   героем листа: у колонки одна шестая ширины и два кадра, перед и спинка.
+   Снимок — фотография, а не линии: без multiply и на бумаге, а не на
+   холсте, иначе тёмная вещь тонет в подложке. */
+.canvas.sketch.with-reference .sketch-row img.sketch { flex: 1 1 0; min-width: 0; object-fit: contain; }
+.canvas.sketch .reference {
+  flex: none;
+  width: 46mm;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  padding-left: 5mm;
+  border-left: 0.5pt solid var(--hairline);
+}
+.canvas.sketch .reference > .ml { position: static; }
+.canvas.sketch .reference figure { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; text-align: left; }
+.canvas.sketch .reference .frame {
+  flex: 1;
+  min-height: 0;
+  border: 0.5pt solid var(--hairline);
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.canvas.sketch .reference .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: 0; }
+.canvas.sketch .reference figcaption { margin-top: 1.5mm; font-size: 7pt; color: var(--secondary); }
 
 .note { font-size: 7.6pt; color: var(--secondary); line-height: 1.45; }
 .note.warn { color: var(--data-red); }

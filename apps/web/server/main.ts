@@ -24,6 +24,7 @@ import {
   readFileSync,
   readdirSync,
   writeFileSync,
+  statSync,
 } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
@@ -32,7 +33,8 @@ import { applyDecision, editMeasurement, openDecisions } from '@seamster/fit';
 import { flatDefaults } from '@seamster/flats';
 import { kb } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
-import type { DocVisuals } from '@seamster/docgen';
+import type { DocImage, DocVisuals } from '@seamster/docgen';
+import { messages } from '@seamster/i18n';
 import { generate } from '../../cli/src/generate.js';
 import { parseAnswers } from '../../cli/src/answers.js';
 import { FREE_PER_MONTH, Limits } from './limits.js';
@@ -160,6 +162,72 @@ function photoCount(dir: string): number {
   }
 }
 
+/** Снимки работы по порядку загрузки — с номером и объявленным ракурсом. */
+function photoList(dir: string): { n: number; name: string; view: string | null }[] {
+  try {
+    return (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[]).map(
+      (name, i) => ({ n: i + 1, name, view: /^photo-\d+-(.+)\.[a-z]+$/.exec(name)?.[1] ?? null }),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function mimeByName(name: string): string {
+  const ext = name.split('.').pop() ?? 'jpg';
+  return ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+}
+
+/** Копия снимка в размере листа — её кладёт генератор рядом с документом. */
+function referencePath(dir: string, n: number): { path: string; type: string } | null {
+  for (const ext of ['jpg', 'png', 'webp'] as const) {
+    const path = join(dir, `reference-${n}.${ext}`);
+    if (existsSync(path)) return { path, type: mimeByName(path) };
+  }
+  return null;
+}
+
+/** Исходник тяжелее этого на лист не идёт: предпросмотр открывался бы минуту. */
+const MAX_INLINE_PHOTO = 1.5 * 1024 * 1024;
+
+/**
+ * Снимки заказчика для документа.
+ *
+ * Исходник с телефона весит пять мегабайт и в base64 попал бы в КАЖДЫЙ
+ * предпросмотр: кабинет открывает документ — и тянет двадцать. Поэтому
+ * берутся копии в размере листа, снятые при сборке; старым работам без
+ * копий достаётся исходник, если он не тяжелее полутора мегабайт, иначе
+ * снимок на лист не идёт.
+ *
+ * Плоские виды — первыми: колонка референса на листе чертежа берёт два
+ * первых, и это должны быть перед и спинка, а не деталь горловины. Подписи
+ * на языке комплекта — фабрика читает «Back», а не «Спинка».
+ */
+function jobPhotos(dir: string, locale: 'ru' | 'en' | 'zh'): DocImage[] {
+  const t = messages(locale);
+  const label: Record<string, string> = { front_flat: t.view_front, back_flat: t.view_back };
+  const rank = (view: string | null): number =>
+    view === 'front_flat' ? 0 : view === 'back_flat' ? 1 : 2;
+  return photoList(dir)
+    .sort((a, b) => rank(a.view) - rank(b.view) || a.n - b.n)
+    .slice(0, 3)
+    .flatMap((p) => {
+      const original = join(dir, p.name);
+      const found =
+        referencePath(dir, p.n) ??
+        (existsSync(original) && statSync(original).size <= MAX_INLINE_PHOTO
+          ? { path: original, type: mimeByName(p.name) }
+          : null);
+      if (!found) return [];
+      return [
+        {
+          dataUri: `data:${found.type};base64,${readFileSync(found.path).toString('base64')}`,
+          label: label[p.view ?? ''] ?? `${t.reference_photo} ${p.n}`,
+        },
+      ];
+    });
+}
+
 /**
  * Файл эскиза работы — с типом, а не с угаданным расширением.
  *
@@ -191,11 +259,16 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
   const sketch = found
     ? { dataUri: `data:${found.type};base64,${readFileSync(found.path).toString('base64')}` }
     : null;
-  if (!library && !render && !sketch) return null;
+  // Снимки заказчика — тоже здесь: они стоят на странице внешнего вида
+  // и колонкой референса рядом с эскизом. Первый PDF их нёс, а пересборка
+  // после правки замера теряла: две сборки — два документа.
+  const photos = jobPhotos(dir, locale);
+  if (!library && !render && !sketch && photos.length === 0) return null;
   return {
     ...(library ? { libraryFlats: { [locale]: library } } : {}),
     ...(render ? { render } : {}),
     ...(sketch ? { sketch } : {}),
+    ...(photos.length ? { photos } : {}),
   };
 }
 
@@ -211,13 +284,9 @@ function decisionsOf(dir: string, spec: StyleSpec) {
   const status = existsSync(join(dir, 'status.json'))
     ? (JSON.parse(readFileSync(join(dir, 'status.json'), 'utf8')) as JobStatus)
     : null;
-  const photoViews = (
-    existsSync(join(dir, 'photos.json'))
-      ? (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[])
-      : []
-  )
-    .map((f) => /^photo-\d+-(.+)\.[a-z]+$/.exec(f)?.[1])
-    .filter((v): v is string => Boolean(v));
+  const photoViews = photoList(dir)
+    .map((p) => p.view)
+    .filter((v): v is string => v !== null);
   return openDecisions(spec, {
     notes: status?.notes ?? [],
     resolved: resolvedDecisions(dir),
@@ -1273,10 +1342,8 @@ const server = createServer(async (req, res) => {
         const list = JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[];
         const name = list[Number(photoMatch[1]) - 1];
         if (!name) return json(res, 404, { error: 'нет такого фото' });
-        const ext = name.split('.').pop() ?? 'jpg';
         res.writeHead(200, {
-          'content-type':
-            ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg',
+          'content-type': mimeByName(name),
           'cache-control': 'private, max-age=86400',
         });
         return res.end(readFileSync(join(dir, name)));
@@ -1468,7 +1535,6 @@ const server = createServer(async (req, res) => {
       }
 
       if (req.method === 'GET' && rest === '/files') {
-        const { statSync } = await import('node:fs');
         const known: [string, string][] = [
           ['pack.pdf', 'PDF полный'],
           ['rfq.pdf', 'Лист на просчёт'],
@@ -1484,7 +1550,12 @@ const server = createServer(async (req, res) => {
             const st = statSync(join(dir, name));
             return { name, label, size: st.size, at: new Date(st.mtimeMs).toISOString() };
           });
-        return json(res, 200, { files });
+        // Снимки — отдельным списком: это не выгрузки, а вход. Кабинету
+        // нужны их номера и ракурсы, чтобы поставить нужный рядом с рисунком.
+        return json(res, 200, {
+          files,
+          photos: photoList(dir).map(({ n, view }) => ({ n, view })),
+        });
       }
 
       if (req.method === 'GET' && rest === '/render') {
@@ -1556,7 +1627,6 @@ const server = createServer(async (req, res) => {
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
         const path = join(dir, rfqLocale ? `rfq-${rfqLocale}.pdf` : 'rfq.pdf');
-        const { statSync } = await import('node:fs');
         const fresh =
           existsSync(path) &&
           statSync(path).mtimeMs >= statSync(join(dir, 'spec.json')).mtimeMs &&
@@ -1600,7 +1670,6 @@ const server = createServer(async (req, res) => {
         const pdfPath = join(dir, variant === 'full-ru' ? 'pack.pdf' : `pack-${variant}.pdf`);
         // Свежесть — по времени спеки И силуэта: вариантов несколько, а
         // правка замера или замена силуэта обязаны устаревить их все разом.
-        const { statSync } = await import('node:fs');
         const mtime = (name: string): number =>
           existsSync(join(dir, name)) ? statSync(join(dir, name)).mtimeMs : 0;
         const sourceM = Math.max(mtime('spec.json'), mtime('template.json'));

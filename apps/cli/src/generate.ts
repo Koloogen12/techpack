@@ -899,6 +899,17 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
       if (base64)
         writeFileSync(join(dirname(options.outPath), 'render.png'), Buffer.from(base64, 'base64'));
     }
+    // Снимки заказчика в размере листа — тоже рядом с документом. Кабинет
+    // собирает предпросмотр и выгрузки без исходников по пять мегабайт
+    // и без браузера под рукой: уменьшенные копии кладутся один раз, здесь.
+    (built.photos ?? []).forEach((photo, i) => {
+      const m = /^data:image\/(png|jpeg|webp);base64,(.+)$/.exec(photo.dataUri);
+      if (!m) return;
+      writeFileSync(
+        join(dirname(options.outPath), `reference-${i + 1}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`),
+        Buffer.from(m[2]!, 'base64'),
+      );
+    });
     // Эскиз тоже кладётся файлом: он рисуется один раз и дальше не меняется.
     // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
     // документа держится именно на хранении, а не на детерминизме модели.

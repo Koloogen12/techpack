@@ -317,7 +317,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     const sketch = options.visuals?.sketch;
     add('flats', t.section_flats, [
       sketch
-        ? sketchFlatsBody(sketch, library, t)
+        ? sketchFlatsBody(sketch, referencePhotos(options.visuals), library, t)
         : library
           ? libraryFlatsBody(library, t, locale)
           : flatsBody(
@@ -1694,20 +1694,49 @@ function flatsBody(
  */
 function sketchFlatsBody(
   sketch: DocImage,
+  photos: readonly DocImage[],
   library: LibraryFlatViews | undefined,
   t: Messages,
 ): string {
+  // Референс стоит В ТОМ ЖЕ холсте, а не на соседней странице: эскиз рисует
+  // модель, и ошибиться она может в узле. Расхождение видно за секунду только
+  // когда снимок и рисунок лежат рядом — порознь его не замечает никто.
+  const reference = photos.length
+    ? `<aside class="reference">` +
+      `<div class="ml">${esc(t.flats_reference_label)}</div>` +
+      photos.map((p, i) => frame(p, p.label ?? `${t.reference_photo} ${i + 1}`)).join('') +
+      `</aside>`
+    : '';
   return (
-    `<div class="canvas sketch">` +
+    `<div class="canvas sketch${reference ? ' with-reference' : ''}">` +
     `<div class="ml">${esc(t.flats_label)}</div>` +
+    `<div class="sketch-row">` +
     `<img class="sketch" src="${sketch.dataUri}" alt="">` +
+    reference +
+    `</div>` +
     `</div>` +
     `<div class="note" style="margin-top:3mm">${esc(t.flats_sketch_note)}</div>` +
+    (reference
+      ? `<div class="note" style="margin-top:1mm">${esc(t.flats_reference_note)}</div>`
+      : '') +
     `<div class="note" style="margin-top:1mm;opacity:.65">` +
     `${esc(t.flats_sketch_source)}` +
     (library ? ` · ${esc(t.flats_library_source)}: ${esc(library.templateId)}` : '') +
     `</div>`
   );
+}
+
+/**
+ * Снимки заказчика для листа чертежа — не больше двух.
+ *
+ * Лист альбомный, и эскиз на нём — герой: три вида в ширину. Колонка
+ * референса берёт у него шестую часть ширины и вмещает два кадра — перед
+ * и спинку. Третий снимок (деталь, изнанка) сюда не ложится и остаётся на
+ * странице внешнего вида. Порядок — как передали: сервер ставит плоские
+ * виды первыми.
+ */
+function referencePhotos(visuals?: DocVisuals): DocImage[] {
+  return (visuals?.photos ?? []).filter((p) => safeDataUri(p.dataUri)).slice(0, 2);
 }
 
 function libraryFlatsBody(library: LibraryFlatViews, t: Messages, locale: Locale): string {

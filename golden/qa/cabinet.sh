@@ -187,6 +187,22 @@ case "$code" in
   *) bad "sketch отдал $code" ;;
 esac
 
+step "13p. референс рядом с эскизом: кабинет знает ракурсы, лист несёт снимки"
+views=$(curl -s -H "$H" "$BASE/jobs/$ID/files" | python3 -c "import json,sys; d=json.load(sys.stdin); print(' '.join(str(p.get('view')) for p in d.get('photos',[])))" 2>/dev/null)
+case "$views" in
+  *front_flat*)
+    if [ "$code" = "200" ]; then
+      # Эскиз есть — снимок обязан стоять рядом с ним в том же холсте: порознь
+      # расхождение в узле (карман, шнур, манжета) не замечает никто.
+      echo "$body" | grep -q 'class="reference"' && echo "$body" | grep -q "Референс · снимки заказчика" \
+        && ok "(ракурсы: $views · колонка референса на листе)" \
+        || bad "снимки есть, а на листе чертежа колонки референса нет"
+    else
+      ok "(ракурсы: $views · эскиза нет — сверять нечего)"
+    fi ;;
+  *) bad "кабинет не знает ракурсов снимков (${views:-пусто})" ;;
+esac
+
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
 open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)

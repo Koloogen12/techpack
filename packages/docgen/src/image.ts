@@ -17,6 +17,9 @@ import type { Browser } from 'playwright';
 /** Длинная сторона после уменьшения. 1600 px ≈ 200 dpi на половине листа A4. */
 export const MAX_IMAGE_PX = 1600;
 
+/** Data-URI длиннее этого пережимается в JPEG даже без уменьшения (≈600 КБ). */
+const HEAVY_URI = 800_000;
+
 export async function fitImage(
   browser: Browser,
   dataUri: string,
@@ -25,7 +28,7 @@ export async function fitImage(
   const page = await browser.newPage();
   try {
     return await page.evaluate(
-      async ([uri, limit]: [string, number]) => {
+      async ([uri, limit, HEAVY_URI]: [string, number, number]) => {
         const img = new Image();
         img.src = uri;
         try {
@@ -36,7 +39,10 @@ export async function fitImage(
         }
 
         const side = Math.max(img.naturalWidth, img.naturalHeight);
-        if (side <= limit) return uri;
+        // Небольшой по пикселям, но тяжёлый по байтам снимок — PNG-24 с
+        // фотографией — тоже пережимается: шесть мегабайт на 1000 px
+        // печатаются в те же точки, что и триста килобайт JPEG.
+        if (side <= limit && uri.length <= HEAVY_URI) return uri;
 
         const scale = limit / side;
         const canvas = document.createElement('canvas');
@@ -50,7 +56,7 @@ export async function fitImage(
         // JPEG, а не PNG: это фотография, и PNG на ней экономит ноль.
         return canvas.toDataURL('image/jpeg', 0.82);
       },
-      [dataUri, maxPx] as [string, number],
+      [dataUri, maxPx, HEAVY_URI] as [string, number, number],
     );
   } catch {
     return dataUri;

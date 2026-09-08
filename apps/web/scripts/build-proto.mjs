@@ -49,6 +49,20 @@ const sub = (from, to, times) => {
   replaced += n;
 };
 
+// Глобальная замена — ровно для одного случая: стека шрифтов. Он повторяется
+// в полутысяче инлайн-стилей, и требовать точного числа значило бы ломать
+// сборку на каждой правке прототипа. Нижняя граница ловит другое: если стек
+// переименуют, замена молча не сработает — и сборка обязана упасть.
+const subAll = (from, to, atLeast) => {
+  const parts = tpl.split(from);
+  const n = parts.length - 1;
+  if (n < atLeast) {
+    throw new Error(`замена «${from}»: ожидалось не меньше ${atLeast}, нашлось ${n}`);
+  }
+  tpl = parts.join(to);
+  replaced += n;
+};
+
 // Ребрендинг — разрешён хендоффом (README, D8). Прототип нёс рабочее название
 // текстом, а рядом — заглушечную иконку из двух линий. Оба места получают
 // настоящий знак: словесный вместо текста, монограмма внутрь готовой плашки.
@@ -381,7 +395,7 @@ sub(
 sub(
   '<svg viewBox="{{ flatVB }}" preserveAspectRatio="xMidYMid meet" style="{{ flatSvgStyle }}">',
   '<sc-if value="{{ liveFlatOn }}" hint-placeholder-val="{{ false }}">\n' +
-    '<sc-for list="{{ liveShots }}" as="lf" hint-placeholder-count="3"><span style="{{ lf.bg }}"></span></sc-for>\n' +
+    '<sc-for list="{{ liveShots }}" as="lf" hint-placeholder-count="3"><span onClick="{{ lf.go }}" style="{{ lf.bg }}">{{ lf.label }}</span></sc-for>\n' +
     '</sc-if>\n' +
     '<sc-if value="{{ liveFlatOff }}" hint-placeholder-val="{{ true }}">\n' +
     '<svg viewBox="{{ flatVB }}" preserveAspectRatio="xMidYMid meet" style="{{ flatSvgStyle }}">',
@@ -558,6 +572,19 @@ sub(
 
 // ------------------------------------------------------------------- логика
 
+// Шрифты — последней подстановкой, чтобы накрыть и стили, добавленные выше.
+// У Sora нет кириллицы: русский текст кабинета браузер рисовал системной
+// заглушкой — отсюда «плоско и дёшево» при той же палитре, что у референса.
+// Manrope — геометрический гротеск с кириллицей и переменным весом, встаёт
+// первым в стек; Sora остаётся для латиницы. Источник — токен --sf-font-ui
+// в packages/ui/tokens.css; здесь только зеркало для инлайн-стилей прототипа.
+sub(
+  'family=Sora:wght@400;600;700&family=Inter:wght@300;400&family=JetBrains+Mono:wght@400;500&display=swap',
+  'family=Manrope:wght@200..800&family=Sora:wght@400;600;700&family=Inter:wght@300;400&family=JetBrains+Mono:wght@400;500&display=swap',
+  1,
+);
+subAll('Sora,', 'Manrope,Sora,', 480);
+
 const logic = readFileSync(join(webRoot, 'proto', 'logic.js'), 'utf8');
 if (!logic.includes('class Component extends DCLogic')) {
   throw new Error('proto/logic.js обязан определять class Component extends DCLogic');
@@ -582,6 +609,7 @@ const page = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="./favicon.svg">
+<link rel="stylesheet" href="./tokens.css">
 <title>Seamster</title>
 <script src="./react.js"></script>
 <script src="./react-dom.js"></script>
@@ -600,6 +628,9 @@ ${logic}
 mkdirSync(dist, { recursive: true });
 writeFileSync(join(dist, 'index.html'), page);
 copyFileSync(join(handoff, 'support.js'), join(dist, 'support.js'));
+// Дизайн-токены — из packages/ui одним файлом: кабинет и новые компоненты
+// берут цвета, шрифты и тайминги оттуда, а не из литералов.
+copyFileSync(join(repoRoot, 'packages', 'ui', 'tokens.css'), join(dist, 'tokens.css'));
 // UMD-сборки React 18 лежат в пакетах, но не экспортируются — берём по пути.
 const pkgDir = (name) => dirname(require.resolve(name + '/package.json'));
 copyFileSync(join(pkgDir('react'), 'umd', 'react.production.min.js'), join(dist, 'react.js'));

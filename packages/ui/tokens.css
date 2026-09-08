@@ -1,0 +1,385 @@
+/*
+ * Seamster · дизайн-токены.
+ *
+ * Единственный источник значений для кабинета, документа-превью и всех новых
+ * компонентов (DEV-PLAN, решение D1 от 25.08.2026: «токены выносим в
+ * packages/ui один раз, хардкод в компонентах запрещён»).
+ *
+ * Откуда значения: design_handoff_seamster/README.md (палитра, геометрия,
+ * анимации) + замеры вычисленных стилей референса 08.09.2026 (слои поверхностей,
+ * статусные плашки, промежуточные веса шрифта, длительности переходов).
+ * Что НЕ взято у референса: их SVG-иконки, логотип-маска, ассеты и тексты.
+ * Иконки — Lucide (ISC), шрифты — Google Fonts (OFL).
+ *
+ * Правило системы: один цвет — одно значение. Цвет никогда не декоративен.
+ * Устройство файла: примитивы → семантика → шкалы → компонентные классы.
+ */
+
+:root {
+  /* ------------------------------------------------------------ поверхности */
+  --sf-bg: #f4f2ef; /* канвас приложения (ivory) */
+  --sf-paper: #ffffff; /* документ, карточки, панели */
+  --sf-paper-2: #f8f7f5; /* вторичная поверхность: шапки блоков, полосы */
+  --sf-canvas: #fbfaf8; /* холст чертежа в документе */
+  --sf-chrome: rgba(14, 14, 14, 0.94); /* тёмная планка вкладок над документом */
+  --sf-frost: rgba(255, 255, 255, 0.76); /* стекло: панели над картинкой */
+  --sf-frost-strong: rgba(255, 255, 255, 0.92); /* плашки на холсте */
+  --sf-frost-blur: blur(10px);
+  --sf-glass-border: rgba(14, 14, 14, 0.08);
+  --sf-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8); /* блик по верхней кромке */
+
+  /* ---------------------------------------------------------------- чернила */
+  --sf-ink: #0e0e0e;
+  --sf-ink-2: #5a5a56; /* третичный: моно-подписи, коды, отмена */
+  --sf-secondary: #6b6b67; /* вторичный текст, кикеры */
+  --sf-muted: #8a8a86; /* плейсхолдеры, неактивное */
+  --sf-lib-grey: #b0ada6; /* «типовое значение» */
+  --sf-ink-a03: rgba(14, 14, 14, 0.03);
+  --sf-ink-a04: rgba(14, 14, 14, 0.04); /* шапки блоков */
+  --sf-ink-a06: rgba(14, 14, 14, 0.06); /* ховер белых кнопок */
+  --sf-ink-a08: rgba(14, 14, 14, 0.08);
+  --sf-ink-a10: rgba(14, 14, 14, 0.1);
+  --sf-ink-a12: rgba(14, 14, 14, 0.12); /* границы чипов */
+  --sf-ink-a14: rgba(14, 14, 14, 0.14); /* граница активного чипа, трек скролла */
+  --sf-ink-a18: rgba(14, 14, 14, 0.18);
+
+  /* ------------------------------------------------------------------ линии */
+  --sf-hairline: #e4e1dc; /* границы блоков */
+  --sf-hairline-row: #efede9; /* строки таблиц */
+  --sf-hairline-soft: #eae7e2; /* внутренние разделители */
+  --sf-hairline-strong: #c8c4bc; /* активные поля, рамки-акценты */
+
+  /* -------------------------------------------------------------- семантика */
+  --sf-data-red: #c0392b; /* данные изделия · предположение · ошибка */
+  --sf-data-red-ring: rgba(192, 57, 43, 0.16);
+  --sf-confirm: #2f7c5a; /* указано вами · подтверждено · готово */
+  --sf-confirm-deep: #0d4f2b;
+  --sf-confirm-bg: rgba(228, 247, 239, 0.76);
+  --sf-confirm-border: rgba(41, 117, 82, 0.18);
+  --sf-cta-green: #1f8a4c; /* зелёная CTA: «отправить на просчёт», промо */
+  --sf-promo-bg: #d9f2e3;
+  --sf-promo-border: #9fd8b6;
+  /* статусы процесса: тон текста + тон плашки */
+  --sf-status-done: #2a6649;
+  --sf-status-done-bg: #edf5f0;
+  --sf-status-prog: #1a4a7a;
+  --sf-status-prog-bg: #edf2fa;
+  --sf-status-review: #7a6a2a;
+  --sf-status-review-bg: #fbf7ea;
+  --sf-status-blocked: #7a2a2a;
+  --sf-status-blocked-bg: #fdf1f1;
+  /* уверенность значений — те же четыре цвета, что в документе */
+  --sf-conf-user: var(--sf-confirm);
+  --sf-conf-photo: var(--sf-ink);
+  --sf-conf-lib: var(--sf-lib-grey);
+  --sf-conf-guess: var(--sf-data-red);
+
+  /* ----------------------------------------------------------------- шрифты */
+  /* Sora без кириллицы: русский текст падал в системный шрифт-заглушку.
+     Manrope — геометрический гротеск с кириллицей того же характера и
+     переменным весом 200–800; Sora остаётся в цепочке для латиницы. */
+  --sf-font-ui: Manrope, Sora, -apple-system, 'Segoe UI', sans-serif;
+  --sf-font-display: Sora, Manrope, sans-serif; /* латинские заголовки, набор логотипа */
+  --sf-font-data: Inter, Manrope, sans-serif; /* значения данных, вес 300 */
+  --sf-font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
+  /* шкала: font-shorthand + трекинг отдельно (в shorthand его нет) */
+  --sf-text-kicker: 650 9px/12px var(--sf-font-ui);
+  --sf-track-kicker: 1.2px; /* uppercase */
+  --sf-text-label: 600 10px/14px var(--sf-font-ui);
+  --sf-track-label: 0.8px; /* uppercase: чипы, кнопки-иконки */
+  --sf-text-caption: 400 10.5px/16px var(--sf-font-ui);
+  --sf-text-body: 400 12px/18px var(--sf-font-ui);
+  --sf-text-body-md: 500 12px/18px var(--sf-font-ui);
+  --sf-text-body-lg: 400 13px/20px var(--sf-font-ui);
+  --sf-text-title: 700 15.5px/22px var(--sf-font-ui);
+  --sf-text-doc-title: 690 18px/23px var(--sf-font-ui);
+  --sf-text-hero: 700 44px/1.12 var(--sf-font-ui);
+  --sf-track-hero: -1px;
+  --sf-text-data: 300 12px/18px var(--sf-font-data);
+  --sf-text-mono: 400 10px/14px var(--sf-font-mono);
+  --sf-text-mono-md: 500 10.5px/15px var(--sf-font-mono);
+  --sf-nums: tabular-nums;
+
+  /* -------------------------------------------------------------- геометрия */
+  --sf-radius-xs: 8px; /* чипы, плашки */
+  --sf-radius-sm: 10px; /* блоки документа, кнопки */
+  --sf-radius-md: 14px; /* карточка документа */
+  --sf-radius-lg: 18px; /* сайдбар, крупные панели */
+  --sf-radius-pill: 999px;
+  --sf-space-1: 2px;
+  --sf-space-2: 4px;
+  --sf-space-3: 6px;
+  --sf-space-4: 8px;
+  --sf-space-5: 10px;
+  --sf-space-6: 12px;
+  --sf-space-7: 16px;
+  --sf-space-8: 24px;
+  --sf-space-9: 32px;
+  --sf-control: 28px; /* высота чипа/иконки-кнопки */
+  --sf-control-lg: 34px; /* кнопка тулбара */
+  --sf-header: 52px;
+  --sf-sidebar: 300px;
+  --sf-rail: 69px;
+
+  /* ------------------------------------------------------------------- слои */
+  --sf-shadow-hair: 0 1px 2px rgba(14, 14, 14, 0.06); /* активный чип */
+  --sf-shadow-soft: 0 10px 28px rgba(14, 14, 14, 0.08); /* карточка на канвасе */
+  --sf-shadow-panel: 0 18px 50px rgba(14, 14, 14, 0.11), 0 2px 10px rgba(14, 14, 14, 0.05);
+  --sf-shadow-doc: 0 20px 48px rgba(14, 14, 14, 0.1), 0 4px 14px rgba(14, 14, 14, 0.06);
+  --sf-shadow-menu: 0 18px 44px rgba(0, 0, 0, 0.18);
+  --sf-shadow-float: 0 16px 42px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --sf-shadow-dark: 0 10px 30px rgba(0, 0, 0, 0.18); /* тёмная планка, тосты */
+
+  /* --------------------------------------------------------------- движение */
+  --sf-dur-fast: 120ms; /* цвет, фон, прозрачность */
+  --sf-dur: 160ms; /* трансформ, чипы, тумблеры */
+  --sf-dur-slow: 220ms; /* появление панелей */
+  --sf-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* ----------------------------------------------------------------- канвас */
+  --sf-dot-grid: radial-gradient(rgba(14, 14, 14, 0.075) 1px, transparent 1.2px);
+  --sf-dot-grid-size: 26px 26px;
+  --sf-dot-grid-offset: 13px 13px;
+
+  /* ----------------------------------------------------------------- иконки */
+  --sf-icon: 14px; /* в чипах и подписях */
+  --sf-icon-lg: 16px; /* в кнопках */
+  --sf-icon-stroke: 1.8;
+}
+
+/* ================================================================ компоненты
+   Небольшой набор: то, из чего собираются новые экраны. Классы, а не
+   литералы — чтобы ховер, фокус и переходы были одинаковыми везде. */
+
+.sf-kicker {
+  font: var(--sf-text-kicker);
+  letter-spacing: var(--sf-track-kicker);
+  text-transform: uppercase;
+  color: var(--sf-secondary);
+}
+
+.sf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sf-space-3);
+  height: var(--sf-control);
+  padding: 0 11px;
+  border-radius: var(--sf-radius-xs);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sf-secondary);
+  font: var(--sf-text-label);
+  letter-spacing: var(--sf-track-label);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--sf-dur-fast) var(--sf-ease),
+    color var(--sf-dur-fast) var(--sf-ease),
+    box-shadow var(--sf-dur-fast) var(--sf-ease);
+}
+.sf-chip:hover {
+  background: var(--sf-ink-a06);
+  color: var(--sf-ink);
+}
+.sf-chip[aria-pressed='true'],
+.sf-chip.is-on {
+  background: var(--sf-paper);
+  border-color: var(--sf-ink-a14);
+  color: var(--sf-ink);
+  box-shadow: var(--sf-shadow-hair);
+}
+.sf-chip--ink.is-on {
+  background: var(--sf-ink);
+  border-color: var(--sf-ink);
+  color: var(--sf-paper);
+}
+
+.sf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--sf-radius-pill);
+  border: 1px solid var(--sf-hairline);
+  background: var(--sf-paper-2);
+  color: var(--sf-ink-2);
+  font: 650 10px/12px var(--sf-font-ui);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sf-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.sf-badge--done {
+  color: var(--sf-status-done);
+  background: var(--sf-status-done-bg);
+  border-color: var(--sf-confirm-border);
+}
+.sf-badge--prog {
+  color: var(--sf-status-prog);
+  background: var(--sf-status-prog-bg);
+  border-color: rgba(26, 74, 122, 0.18);
+}
+.sf-badge--review {
+  color: var(--sf-status-review);
+  background: var(--sf-status-review-bg);
+  border-color: rgba(122, 106, 42, 0.2);
+}
+.sf-badge--blocked {
+  color: var(--sf-status-blocked);
+  background: var(--sf-status-blocked-bg);
+  border-color: rgba(122, 42, 42, 0.18);
+}
+.sf-badge--guess {
+  color: var(--sf-data-red);
+  background: #fdf1f1;
+  border-color: var(--sf-data-red-ring);
+}
+
+.sf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sf-space-3);
+  height: var(--sf-control-lg);
+  padding: 0 14px;
+  border-radius: var(--sf-radius-sm);
+  border: 1px solid var(--sf-ink-a12);
+  background: var(--sf-paper);
+  color: var(--sf-ink);
+  font: var(--sf-text-body-md);
+  cursor: pointer;
+  transition:
+    background var(--sf-dur-fast) var(--sf-ease),
+    border-color var(--sf-dur-fast) var(--sf-ease),
+    transform var(--sf-dur) var(--sf-ease);
+}
+.sf-btn:hover {
+  background: var(--sf-paper-2);
+  border-color: var(--sf-ink-a18);
+}
+.sf-btn:active {
+  transform: translateY(1px);
+}
+.sf-btn--ink {
+  background: var(--sf-ink);
+  border-color: var(--sf-ink);
+  color: var(--sf-paper);
+}
+.sf-btn--ink:hover {
+  background: #262626;
+  border-color: #262626;
+}
+.sf-btn--cta {
+  background: var(--sf-cta-green);
+  border-color: var(--sf-cta-green);
+  color: var(--sf-paper);
+}
+.sf-btn--icon {
+  width: var(--sf-control-lg);
+  padding: 0;
+}
+
+.sf-card {
+  background: var(--sf-paper);
+  border: 1px solid var(--sf-hairline);
+  border-radius: var(--sf-radius-sm);
+}
+.sf-card--raised {
+  border-radius: var(--sf-radius-md);
+  border-color: var(--sf-glass-border);
+  box-shadow: var(--sf-shadow-doc);
+}
+.sf-card__head {
+  min-height: 36px;
+  padding: 6px 13px;
+  background: var(--sf-ink-a04);
+  border-bottom: 1px solid var(--sf-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sf-space-6);
+}
+
+.sf-frost {
+  background: var(--sf-frost);
+  -webkit-backdrop-filter: var(--sf-frost-blur);
+  backdrop-filter: var(--sf-frost-blur);
+  border: 1px solid var(--sf-glass-border);
+  box-shadow: var(--sf-shadow-float);
+}
+
+/* плашка над картинкой: подпись вида, «сравнение», номер снимка */
+.sf-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--sf-radius-xs);
+  background: var(--sf-frost-strong);
+  border: 1px solid var(--sf-hairline);
+  font: var(--sf-text-label);
+  letter-spacing: var(--sf-track-label);
+  text-transform: uppercase;
+  color: var(--sf-secondary);
+  white-space: nowrap;
+}
+
+.sf-chrome {
+  background: var(--sf-chrome);
+  color: var(--sf-paper);
+  border-radius: var(--sf-radius-md) var(--sf-radius-md) 0 0;
+  box-shadow: var(--sf-shadow-dark);
+}
+
+.sf-dotgrid {
+  background-color: var(--sf-bg);
+  background-image: var(--sf-dot-grid);
+  background-size: var(--sf-dot-grid-size);
+  background-position: var(--sf-dot-grid-offset);
+}
+
+.sf-num {
+  font-variant-numeric: var(--sf-nums);
+}
+
+@keyframes sf-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sf-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sf-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-chip,
+  .sf-btn {
+    transition: none;
+  }
+}

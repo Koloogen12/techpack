@@ -1,0 +1,13 @@
+{
+  "name": "@seamster/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Дизайн-токены Seamster: единственный источник цветов, шрифтов, геометрии и движения для кабинета и новых компонентов.",
+  "files": [
+    "tokens.css",
+    "DESIGN-SYSTEM.md"
+  ],
+  "exports": {
+    "./tokens.css": "./tokens.css"
+  }
+}

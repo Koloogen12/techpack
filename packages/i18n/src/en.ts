@@ -107,6 +107,10 @@ export const EN: Messages = {
     'The flat is drawn from the construction nodes of this specification: front, side profile and back are the same garment, at one shared scale. The profile shows what neither flat view can: hood depth, the run of the side seam, how far the shoulder seam drops. Proportions on it are approximate — the size chart is the only source of dimensions. Where the drawing disagrees with the construction section, the construction section governs.',
   flats_sketch_source: 'Technical flat · drawn from the construction nodes of this spec',
   flats_library_source: 'Library silhouette · the source vector ships with this pack',
+  flats_reference_label: 'Reference · customer photos',
+  flats_reference_note:
+    'The customer photos sit alongside for checking: the flat must match them node for node — pocket, hood, cuffs, drawcord. A mismatch is a reason to correct the construction section, not the drawing: the flat is redrawn from the nodes. No dimension is read off the photos.',
+  reference_photo: 'Customer photo',
   to_be_confirmed: 'to be confirmed',
 
   form_kicker: 'Measurement Sheet · Seamster',

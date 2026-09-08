@@ -577,6 +577,9 @@ class Component extends DCLogic {
     hasRender: false,
     docPages: 0,
     jobFiles: [],
+    jobPhotos: [],
+    cmp: false,
+    cmpShot: 0,
     picks: {
       cat: 'Худи',
       size: 'RU 46 / M',
@@ -1036,6 +1039,98 @@ class Component extends DCLogic {
    */
   hasSketch() {
     return (this.state.jobFiles || []).some((f) => f.name.indexOf('sketch.') === 0);
+  }
+
+  /**
+   * Снимок заказчика для сравнения с рисунком — под текущий вид.
+   *
+   * Перед сравнивают с фото переда, спинку — со спинкой; на «все виды»
+   * идёт первый снимок, а подпись листает остальные. Ракурс объявлен при
+   * загрузке, живёт в имени файла и приезжает списком вместе с файлами.
+   */
+  cmpPhoto() {
+    const s = this.state;
+    const list = s.jobPhotos || [];
+    if (!list.length) return null;
+    if (s.cmpShot > 0) return list[(s.cmpShot - 1) % list.length];
+    const want = { front: 'front_flat', back: 'back_flat' }[s.view];
+    return list.find((p) => want && p.view === want) || list[0];
+  }
+
+  /**
+   * Холст пополам: слева снимок заказчика, справа рисунок.
+   *
+   * Обе половины — те же слои-фоны, что и одиночный рисунок: разметка холста
+   * не меняется, меняется список слоёв. Подписи стоят внизу каждой половины
+   * и говорят, что перед глазами; подпись снимка листает кадры, когда их
+   * больше одного. Цвета и шрифты — токенами: это первый компонент, собранный
+   * на дизайн-системе, а не на литералах прототипа.
+   */
+  compareShots(photo, drawingUrl) {
+    const s = this.state;
+    const list = s.jobPhotos || [];
+    const VIEW_RU = {
+      front_flat: 'перед',
+      back_flat: 'спинка',
+      detail_neck: 'горловина',
+      detail_hem: 'низ',
+      detail_sleeve: 'рукав',
+      inside_out: 'изнанка',
+      on_form: 'на модели',
+      sketch: 'эскиз',
+    };
+    const pane = (side, url) =>
+      'position:absolute;top:16px;bottom:36px;' +
+      side +
+      ':16px;width:calc(50% - 24px);background:' +
+      url +
+      ' 50% 50%/contain no-repeat';
+    // Правая плашка стоит от середины, а не от правого края: там уже живёт
+    // пилюля зума, и две плашки в одном углу читаются как одна сломанная.
+    const tag = (side, live) =>
+      'position:absolute;bottom:12px;' +
+      (side === 'left' ? 'left:12px;' : 'left:calc(50% + 12px);') +
+      'padding:4px 9px;border-radius:var(--sf-radius-xs,8px);' +
+      'background:var(--sf-frost-strong,rgba(255,255,255,.92));' +
+      'border:1px solid var(--sf-hairline,#E4E1DC);' +
+      'font:var(--sf-text-label,600 10px/14px Sora,sans-serif);letter-spacing:var(--sf-track-label,.8px);' +
+      'text-transform:uppercase;color:var(--sf-secondary,#6B6B67);white-space:nowrap;' +
+      (live ? 'cursor:pointer;transition:background var(--sf-dur-fast,120ms) ease' : '');
+    const noop = () => {};
+    const many = list.length > 1;
+    const shots = [
+      { bg: pane('left', 'url(' + PHOTO_URL(s.curId, photo.n) + ')'), label: '', go: noop },
+      {
+        bg: 'position:absolute;top:16px;bottom:36px;left:50%;width:1px;background:var(--sf-hairline,#E4E1DC)',
+        label: '',
+        go: noop,
+      },
+      {
+        bg: tag('left', many),
+        label:
+          'Референс · ' +
+          (VIEW_RU[photo.view] || 'снимок ' + photo.n) +
+          (many ? ' · ' + photo.n + '/' + list.length + ' ›' : ''),
+        go: many
+          ? () =>
+              this.setState((p) => ({
+                cmpShot: ((p.cmpShot > 0 ? p.cmpShot : photo.n) % list.length) + 1,
+              }))
+          : noop,
+      },
+      {
+        bg: tag('right', false),
+        label:
+          this.hasSketch() && s.view === 'all'
+            ? 'Эскиз · по узлам этой вещи'
+            : s.silh && s.silh.id
+              ? 'Силуэт · библиотека'
+              : 'Чертёж · по табелю мер',
+        go: noop,
+      },
+    ];
+    if (drawingUrl) shots.splice(1, 0, { bg: pane('right', drawingUrl), label: '', go: noop });
+    return shots;
   }
 
   /**
@@ -1625,6 +1720,8 @@ class Component extends DCLogic {
       docLoading: true,
       toolMode: null,
       silh: null,
+      cmp: false,
+      cmpShot: 0,
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
@@ -1633,7 +1730,8 @@ class Component extends DCLogic {
       const fid = this.state.curId;
       apiCall('/jobs/' + fid + '/files')
         .then((r) => {
-          if (this.state.curId === fid) this.setState({ jobFiles: r.files || [] });
+          if (this.state.curId === fid)
+            this.setState({ jobFiles: r.files || [], jobPhotos: r.photos || [] });
         })
         .catch(() => {});
     }
@@ -2296,6 +2394,15 @@ class Component extends DCLogic {
       style: chip(s.view === id),
       go: () => this.set('view', id),
     }));
+    // «Сравнить» — не вид, а режим: холст делится пополам, слева снимок
+    // заказчика, справа рисунок. Чип стоит в ряду видов, потому что правит
+    // тем же холстом; без снимков ему нечего показать — и его нет.
+    if (liveOn && (s.jobPhotos || []).length)
+      views.push({
+        label: 'Сравнить с фото',
+        style: chip(s.cmp) + ';margin-left:6px',
+        go: () => this.setState((p) => ({ cmp: !p.cmp, cmpShot: 0 })),
+      });
     const flatVB =
       { all: '0 0 560 300', front: '16 8 190 288', side: '230 8 120 288', back: '356 8 200 288' }[
         s.view
@@ -2335,22 +2442,27 @@ class Component extends DCLogic {
     // Картинка берётся из единственной точки решения: что показать человеку,
     // знает viewUrl. Бок сюда не попадает — библиотека его не рисует.
     const libUrl = s.view !== 'side' && (silhId || this.hasSketch()) ? this.viewUrl(s.view) : null;
-    const liveShots = liveOn
-      ? (libUrl
-          ? [libUrl]
-          : s.view === 'all'
-            ? [this.flatAllUrl(engLayers)]
-            : [this.flatUrl(s.view, engLayers)]
-        )
-          .filter(Boolean)
-          .map((u) => ({
+    const drawingUrl = libUrl
+      ? libUrl
+      : s.view === 'all'
+        ? this.flatAllUrl(engLayers)
+        : this.flatUrl(s.view, engLayers);
+    const cmpPhoto = liveOn && s.cmp ? this.cmpPhoto() : null;
+    const cmpOn = !!cmpPhoto;
+    const noShot = () => {};
+    const liveShots = !liveOn
+      ? []
+      : cmpPhoto
+        ? this.compareShots(cmpPhoto, drawingUrl)
+        : [drawingUrl].filter(Boolean).map((u) => ({
             bg:
               'position:absolute;inset:16px 16px 36px;background:' +
               u +
               ' 50% 50%/contain no-repeat' +
               (s.flashSel ? ';animation:sfpulse .7s ease' : ''),
-          }))
-      : [];
+            label: '',
+            go: noShot,
+          }));
     const calloutPos =
       s.view === 'side'
         ? [['2', 272, 140]]
@@ -3160,15 +3272,18 @@ class Component extends DCLogic {
       // Перестройка по замеру и клик по номеру — свойства параметрического
       // чертежа; ни у эскиза, ни у покупного силуэта их нет, и обещать их
       // значит звать человека тыкать в места, где ничего не откроется.
-      flatHint: !liveOn
-        ? 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.'
-        : this.hasSketch() && s.view === 'all'
-          ? 'Эскиз построен по узлам этой вещи и меняется вместе с ними: добавьте или снимите узел — он перерисуется. Профиль показывает глубину капюшона и ход бокового шва. Размеры берутся из табеля мер, а не с рисунка.'
-          : s.silh && s.silh.id
-            ? 'Силуэт взят из библиотеки и вписан в габарит по табелю мер. Правка замера меняет табель и документ, но не пропорции рисунка: размеры берутся из табеля, а не с него.'
-            : 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.',
-      viewBadge:
-        s.view === 'all'
+      flatHint: cmpOn
+        ? 'Слева снимок заказчика, справа рисунок: сверяйте узлы — карман, капюшон, манжеты, шнур. Расхождение правится в разделе конструкции, и эскиз перерисуется по узлам; сам снимок не редактируется. Размеры берутся из табеля мер.'
+        : !liveOn
+          ? 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.'
+          : this.hasSketch() && s.view === 'all'
+            ? 'Эскиз построен по узлам этой вещи и меняется вместе с ними: добавьте или снимите узел — он перерисуется. Профиль показывает глубину капюшона и ход бокового шва. Размеры берутся из табеля мер, а не с рисунка.'
+            : s.silh && s.silh.id
+              ? 'Силуэт взят из библиотеки и вписан в габарит по табелю мер. Правка замера меняет табель и документ, но не пропорции рисунка: размеры берутся из табеля, а не с него.'
+              : 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.',
+      viewBadge: cmpOn
+        ? 'сравнение · снимок ↔ рисунок'
+        : s.view === 'all'
           ? liveOn
             ? this.hasSketch()
               ? '3 вида · эскиз по узлам этой вещи'
