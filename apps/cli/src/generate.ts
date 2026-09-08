@@ -33,6 +33,7 @@ import {
   type VisionReport,
 } from '@seamster/vision';
 import { PHOTO_VIEWS, type PhotoView } from '@seamster/kb';
+import { CONFLICT_PREFIX } from '@seamster/fit';
 import { chromium, type Browser } from 'playwright';
 import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
 import {
@@ -470,7 +471,7 @@ async function checkSketch(
     });
     if (!why) return sketch;
     options.logger?.warn('эскиз: не сошёлся со спекой', { why });
-    notes.push(`Технический эскиз не принят: ${why}. Лист чертежа собран на библиотечном силуэте.`);
+    notes.push(`${CONFLICT_PREFIX.sketch} ${why}. Лист чертежа собран на библиотечном силуэте.`);
     return {
       ok: false,
       reason: 'mismatch',
@@ -1026,7 +1027,7 @@ function reconcile(answers: Answers, report: VisionReport, base: KnowledgeBase):
     report.category.confidence !== 'low'
   ) {
     notes.push(
-      `Расхождение по категории: вы указали «${label(answers.category)}», а на фото ` +
+      `${CONFLICT_PREFIX.category} вы указали «${label(answers.category)}», а на фото ` +
         `похоже на «${label(report.category.value)}» (уверенность ${report.category.confidence}). ` +
         `Документ собран по вашему ответу. Если ошиблись — поменяйте категорию и повторите: ` +
         `набор точек измерения и узлов у категорий разный.`,
@@ -1035,14 +1036,14 @@ function reconcile(answers: Answers, report: VisionReport, base: KnowledgeBase):
 
   if (!report.fabric.is_knit && answers.fabric_kind === 'knit') {
     notes.push(
-      'Расхождение по материалу: вы указали трикотаж, а на фото похоже на ткань. ' +
+      `${CONFLICT_PREFIX.fabric} вы указали трикотаж, а на фото похоже на ткань. ` +
         'От этого зависят допуски, узлы обработки и градация — проверьте по образцу.',
     );
   }
 
   if (report.silhouette.value !== answers.fit_intent && report.silhouette.confidence === 'high') {
     notes.push(
-      `Расхождение по посадке: вы указали «${FIT_INTENT_LABEL_RU[answers.fit_intent]}», ` +
+      `${CONFLICT_PREFIX.fit} вы указали «${FIT_INTENT_LABEL_RU[answers.fit_intent]}», ` +
         `а на фото читается «${FIT_INTENT_LABEL_RU[report.silhouette.value]}». Посадка задаёт ` +
         `прибавку и ширину всего изделия — если правы вы, ничего делать не нужно.`,
     );

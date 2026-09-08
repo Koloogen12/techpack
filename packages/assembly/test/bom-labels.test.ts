@@ -29,12 +29,25 @@ describe('спецификация материалов', () => {
     expect(codes[0]).toBe('F-01');
   });
 
-  it('состав и плотность всегда предположение — с фото они не определяются', () => {
-    for (const line of result.lines) {
+  it('состав и плотность полотна — предположение: с фото они не определяются', () => {
+    const fabric = result.lines.filter((l) => ['shell', 'rib', 'interlining'].includes(l.role));
+    expect(fabric.length).toBeGreaterThan(0);
+    for (const line of fabric) {
       expect(line.composition.confidence).toBe('assumption');
       if (line.gsm) expect(line.gsm.confidence).toBe('assumption');
     }
-    expect(countBomAssumptions(result.lines)).toBe(result.lines.length);
+    expect(countBomAssumptions(result.lines)).toBe(fabric.length);
+  });
+
+  it('нитки, фурнитура, ярлыки и упаковка — типовые артикулы, а не предположения', () => {
+    // Иначе очередь решений получает дюжину одинаковых строк «подтвердить
+    // у поставщика полотна» про люверсы и пакеты — и тонет в них.
+    const trims = result.lines.filter((l) => !['shell', 'rib', 'interlining'].includes(l.role));
+    expect(trims.length).toBeGreaterThan(0);
+    for (const line of trims) {
+      expect(line.composition.confidence).toBe('default_from_base');
+      expect(line.composition.note).toContain('типовой артикул');
+    }
   });
 
   it('артикул поставщика не выдумывается — его заполняет бренд или фабрика', () => {

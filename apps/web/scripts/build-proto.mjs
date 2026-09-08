@@ -500,6 +500,62 @@ sub(
   1,
 );
 
+// Раздел «Решения» — очередь открытых решений одним списком. В прототипе
+// его нет: предположения там жили красными точками в таблице замеров.
+// Разметка собрана из плашки предположений с обложки (та же карточка,
+// та же чёрная кнопка) и полосы готовности — новых визуальных слов нет.
+sub(
+  '<sc-if value="{{ secVers }}" hint-placeholder-val="{{ false }}">',
+  `<sc-if value="{{ secReview }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:13px">
+<div style="border-radius:10px;border:1px solid #E4E1DC;background:#fff;padding:13px 15px;display:flex;align-items:center;gap:13px;flex-wrap:wrap">
+<span style="flex:1;min-width:220px">
+<span style="display:block;font:600 12px/18px Sora,sans-serif">{{ revHead }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ revSub }}</span>
+</span>
+<span style="display:flex;align-items:center;gap:8px">
+<span style="font:600 10px/20px Sora,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#6B6B67">Готовность</span>
+<span style="width:110px;height:5px;border-radius:99px;background:rgba(14,14,14,.07);overflow:hidden"><span style="{{ revBarStyle }}"></span></span>
+<span style="font:500 10.5px/15px 'JetBrains Mono',monospace">{{ revScore }}</span>
+</span>
+</div>
+<sc-if value="{{ revEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid rgba(47,124,90,.25);background:rgba(47,124,90,.05);padding:13px 15px;font:400 11.5px/17px Sora,sans-serif;color:#5A5A56">Всё, что требовало вашего слова, сказано. Расхождений нет, реквизиты заполнены, предположения подтверждены — документ можно отдавать фабрике.</div>
+</sc-if>
+<sc-for list="{{ revItems }}" as="it" hint-placeholder-count="5">
+<div style="{{ it.cardStyle }}">
+<span onClick="{{ it.go }}" style="{{ it.kindStyle }}">{{ it.kindLabel }}</span>
+<span style="flex:1;min-width:0">
+<span style="display:block;font:600 12px/18px Sora,sans-serif">{{ it.title }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ it.detail }}</span>
+<span style="{{ it.editStyle }}">
+<input value="{{ it.editVal }}" onInput="{{ it.onEdit }}" style="width:120px;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.18);padding:0 9px;font:500 11px/15px 'JetBrains Mono',monospace;color:#0E0E0E;background:#fff;outline:none">
+<span style="font:400 10.5px/15px Sora,sans-serif;color:#6B6B67">{{ it.editUnit }}</span>
+<span onClick="{{ it.save }}" style="height:27px;border-radius:8px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer">Сохранить</span>
+<span onClick="{{ it.cancelEdit }}" style="font:600 10px/14px Sora,sans-serif;color:#6B6B67;cursor:pointer">Отмена</span>
+</span>
+</span>
+<span style="display:flex;gap:6px;flex:none;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+<span onClick="{{ it.confirm }}" style="{{ it.confirmStyle }}" style-hover="background:#242424">{{ it.confirmLabel }}</span>
+<span onClick="{{ it.edit }}" style="{{ it.editBtnStyle }}" style-hover="background:#FAF9F7">Исправить</span>
+<span onClick="{{ it.dismiss }}" style="{{ it.dismissStyle }}" style-hover="background:#FAF9F7">{{ it.dismissLabel }}</span>
+</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ secVers }}" hint-placeholder-val="{{ false }}">`,
+  1,
+);
+
+// Кнопка на плашке обложки ведёт в очередь, когда очередь есть.
+sub(
+  'style-hover="background:#242424">Показать в замерах</span>',
+  'style-hover="background:#242424">{{ guessBannerAction }}</span>',
+  1,
+);
+
 // ------------------------------------------------------------------- логика
 
 const logic = readFileSync(join(webRoot, 'proto', 'logic.js'), 'utf8');

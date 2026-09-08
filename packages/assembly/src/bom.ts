@@ -210,6 +210,11 @@ function resolveShell(
   return recognized.id;
 }
 
+/** Роли, чей состав — свойство полотна, а не артикула. */
+function isFabric(role: MaterialRole): boolean {
+  return role === 'shell' || role === 'rib' || role === 'interlining';
+}
+
 function buildLine(material: Material, role: MaterialRole, code: string, input: BomInput): BomLine {
   const source = `kb:materials#${material.id}`;
   const isShellFromPhoto =
@@ -224,19 +229,35 @@ function buildLine(material: Material, role: MaterialRole, code: string, input: 
     name_zh: material.name_zh,
     composition_en: material.composition_default_en,
     composition_zh: material.composition_default_zh,
-    // Состав с фото не определяется никогда — даже когда полотно опознано.
-    composition: assume(
-      material.composition_default_ru,
-      `${source}.composition`,
-      'состав по фото не определяется — подтвердить у поставщика полотна',
-    ),
-    gsm: material.gsm
+    // Состав ПОЛОТНА с фото не определяется никогда — даже когда полотно
+    // опознано по фактуре: 92/8 от 95/5 глазами не отличить. Это честное
+    // предположение, и его подтверждает поставщик полотна.
+    //
+    // Нитки, фурнитура, ярлыки и упаковка — другое дело. Их «состав» — это
+    // типовой артикул из справочника, а не догадка о вещи на фото; бренд
+    // либо принимает типовой, либо вписывает свой. Помечать его
+    // предположением значило бы поставить в очередь на подтверждение
+    // двенадцать одинаковых строк и утопить в них два настоящих вопроса.
+    composition: isFabric(role)
       ? assume(
-          material.gsm.default,
-          `${source}.gsm`,
-          `плотность по фото не определяется. Типовой диапазон ${material.gsm.min}–` +
-            `${material.gsm.max} г/м² — подтвердить у поставщика`,
+          material.composition_default_ru,
+          `${source}.composition`,
+          'состав по фото не определяется — подтвердить у поставщика полотна',
         )
+      : fromBase(
+          material.composition_default_ru,
+          `${source}.composition`,
+          'типовой артикул — замените своим, если он есть',
+        ),
+    gsm: material.gsm
+      ? isFabric(role)
+        ? assume(
+            material.gsm.default,
+            `${source}.gsm`,
+            `плотность по фото не определяется. Типовой диапазон ${material.gsm.min}–` +
+              `${material.gsm.max} г/м² — подтвердить у поставщика`,
+          )
+        : fromBase(material.gsm.default, `${source}.gsm`, 'типовая плотность артикула')
       : null,
     // У фурнитуры место установки конкретное — «два люверса в кулиску
     // капюшона». Общая формулировка роли здесь бесполезна: закройщик

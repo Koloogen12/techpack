@@ -187,6 +187,34 @@ case "$code" in
   *) bad "sketch отдал $code" ;;
 esac
 
+step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
+q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
+open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)
+first=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); a=[x for x in d['decisions'] if x['kind']=='assumption' and 'confirm' in x['actions']]; print(a[0]['id'] if a else '')" 2>/dev/null)
+if [ -z "$first" ]; then
+  bad "в очереди нет ни одного предположения с подтверждением (открытых: ${open0:-?})"
+else
+  r=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d "{\"id\":\"$first\",\"action\":\"confirm\"}" "$BASE/jobs/$ID/decisions")
+  open1=$(echo "$r" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)
+  score=$(echo "$r" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['score'])" 2>/dev/null)
+  if [ "${open1:-0}" -eq $(( open0 - 1 )) ]; then ok "($first: $open0 → $open1 · готовность $score/10)"; else bad "подтверждение не убрало решение: $open0 → ${open1:-?}"; fi
+fi
+
+step "13o. очередь и документ говорят одно: подтверждённое стало «указано вами»"
+code=$(echo "$first" | sed 's/^[a-z]*://')
+conf=$(curl -s -H "$H" $BASE/jobs/$ID/spec | python3 -c "
+import json,sys; s=json.load(sys.stdin)['spec']; c='$code'
+for p in s['measurements']['points']:
+    if p['code']==c: print(p['base']['confidence']); break
+else:
+    for n in (s.get('construction') or {}).get('nodes',[]):
+        if n['node_id']==c: print(n['presence']['confidence']); break
+    else:
+        for l in (s.get('bom') or {}).get('lines',[]):
+            if l['code']==c: print(l['composition']['confidence']); break
+" 2>/dev/null)
+[ "$conf" = "user_input" ] && ok "($code)" || bad "после подтверждения уверенность «$conf», а не user_input"
+
 step "13l. документ говорит, как задан масштаб"
 body=$(curl -s -H "$H" "$BASE/jobs/$ID/preview")
 if echo "$body" | grep -q "Масштаб задан размером" || echo "$body" | grep -q "Масштаб измерен"; then ok; else bad "о масштабе не сказано ничего"; fi

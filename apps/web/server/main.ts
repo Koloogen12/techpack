@@ -28,7 +28,7 @@ import {
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { isSeamsterError } from '@seamster/core';
-import { editMeasurement } from '@seamster/fit';
+import { applyDecision, editMeasurement, openDecisions } from '@seamster/fit';
 import { flatDefaults } from '@seamster/flats';
 import { kb } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
@@ -196,6 +196,83 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
     ...(library ? { libraryFlats: { [locale]: library } } : {}),
     ...(render ? { render } : {}),
     ...(sketch ? { sketch } : {}),
+  };
+}
+
+/**
+ * Очередь открытых решений работы.
+ *
+ * Собирается из спеки и того, чего спека не хранит: примечаний сборки
+ * (расхождения фото и анкеты), ракурсов присланных фото и списка решений,
+ * снятых с повестки человеком. Последний живёт файлом рядом со спекой —
+ * это единственное, что нельзя вывести заново.
+ */
+function decisionsOf(dir: string, spec: StyleSpec) {
+  const status = existsSync(join(dir, 'status.json'))
+    ? (JSON.parse(readFileSync(join(dir, 'status.json'), 'utf8')) as JobStatus)
+    : null;
+  const photoViews = (
+    existsSync(join(dir, 'photos.json'))
+      ? (JSON.parse(readFileSync(join(dir, 'photos.json'), 'utf8')) as string[])
+      : []
+  )
+    .map((f) => /^photo-\d+-(.+)\.[a-z]+$/.exec(f)?.[1])
+    .filter((v): v is string => Boolean(v));
+  return openDecisions(spec, {
+    notes: status?.notes ?? [],
+    resolved: resolvedDecisions(dir),
+    photoViews,
+  });
+}
+
+function resolvedDecisions(dir: string): string[] {
+  const path = join(dir, 'decisions.json');
+  if (!existsSync(path)) return [];
+  try {
+    return (JSON.parse(readFileSync(path, 'utf8')) as { resolved: { id: string }[] }).resolved.map(
+      (r) => r.id,
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Гейт наружу: ссылка фабрике и просчёт.
+ *
+ * Держат две вещи: пустые реквизиты маркировки (партию нельзя продать) и
+ * неснятые расхождения фото с анкетой (документ может описывать не ту
+ * вещь). Предположения не держат — они помечены в документе и фабрика
+ * видит их как ориентир; требовать подтвердить каждое до отправки значило
+ * бы поставить гейт, который нельзя пройти по фотографии.
+ */
+function exportGate(dir: string, spec: StyleSpec) {
+  const { summary, decisions } = decisionsOf(dir, spec);
+  if (summary.ready) return null;
+  const gaps = decisions
+    .filter((d) => d.blocking && d.kind === 'needs_input')
+    .map((d) => ({
+      id: d.id.replace(/^input:/, ''),
+      label_ru: d.title_ru,
+      action_ru: d.detail_ru,
+    }));
+  const conflicts = decisions.filter((d) => d.blocking && d.kind === 'conflict');
+  const parts: string[] = [];
+  if (gaps.length)
+    parts.push(
+      `не заполнено ${gaps.length} ${gaps.length === 1 ? 'обязательный реквизит' : 'обязательных реквизита'} маркировки`,
+    );
+  if (conflicts.length)
+    parts.push(
+      `не снято ${conflicts.length} ${conflicts.length === 1 ? 'расхождение' : 'расхождения'} фото с анкетой`,
+    );
+  return {
+    error: `Документ не готов к отправке: ${parts.join(' и ')}.`,
+    action: conflicts.length
+      ? 'Откройте очередь решений и снимите расхождения — это одна кнопка на каждое.'
+      : 'Заполните профиль бренда — это одна форма, и она нужна один раз.',
+    gaps,
+    decisions: conflicts.map((d) => d.id),
   };
 }
 
@@ -987,17 +1064,14 @@ const server = createServer(async (req, res) => {
         // Просчёт уходит фабрикам от имени бренда — тот же гейт, что у ссылки.
         const quoteSpec = specOf(id);
         if (quoteSpec) {
-          const { readiness } = await import('@seamster/docgen');
-          const state = readiness(quoteSpec);
-          if (!state.ready) {
-            logEvent(invite.name, 'quote_blocked', { id, gaps: state.gaps.map((g) => g.id) });
-            return json(res, 409, {
-              error: `Документ не готов к отправке: не заполнено ${state.gaps.length} ${
-                state.gaps.length === 1 ? 'обязательный реквизит' : 'обязательных реквизита'
-              } маркировки.`,
-              action: 'Заполните профиль бренда — это одна форма, и она нужна один раз.',
-              gaps: state.gaps,
+          const held = exportGate(dir, quoteSpec);
+          if (held) {
+            logEvent(invite.name, 'quote_blocked', {
+              id,
+              gaps: held.gaps.map((g) => g.id),
+              decisions: held.decisions,
             });
+            return json(res, 409, held);
           }
         }
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
@@ -1246,17 +1320,14 @@ const server = createServer(async (req, res) => {
         // нельзя продать в ЕАЭС: наружу такой документ не выпускаем.
         const shareSpec = specOf(id);
         if (shareSpec) {
-          const { readiness } = await import('@seamster/docgen');
-          const state = readiness(shareSpec);
-          if (!state.ready) {
-            logEvent(invite.name, 'share_blocked', { id, gaps: state.gaps.map((g) => g.id) });
-            return json(res, 409, {
-              error: `Документ не готов к отправке: не заполнено ${state.gaps.length} ${
-                state.gaps.length === 1 ? 'обязательный реквизит' : 'обязательных реквизита'
-              } маркировки.`,
-              action: 'Заполните профиль бренда — это одна форма, и она нужна один раз.',
-              gaps: state.gaps,
+          const held = exportGate(dir, shareSpec);
+          if (held) {
+            logEvent(invite.name, 'share_blocked', {
+              id,
+              gaps: held.gaps.map((g) => g.id),
+              decisions: held.decisions,
             });
+            return json(res, 409, held);
           }
         }
         const path = join(dir, 'share.txt');
@@ -1319,6 +1390,81 @@ const server = createServer(async (req, res) => {
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
         const { readiness } = await import('@seamster/docgen');
         return json(res, 200, readiness(spec));
+      }
+
+      // Очередь открытых решений: всё, что требует слова человека, одним
+      // списком с тремя действиями. Считается заново на каждый запрос —
+      // это проекция спеки, и хранить её значило бы дать ей разойтись.
+      if (req.method === 'GET' && rest === '/decisions') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        return json(res, 200, decisionsOf(dir, spec));
+      }
+
+      if (req.method === 'POST' && rest === '/decisions') {
+        const body = await readBody(req, 4096);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const {
+          id: decisionId,
+          action,
+          value,
+        } = JSON.parse(body.toString('utf8')) as {
+          id: string;
+          action: 'confirm' | 'edit' | 'dismiss';
+          value?: string | number;
+        };
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        if (!['confirm', 'edit', 'dismiss'].includes(action))
+          return json(res, 400, { error: 'неизвестное действие' });
+        // Действие сверяется с тем, что очередь ПРЕДЛОЖИЛА для этого решения:
+        // «подтвердить» масштаб, у которого есть только «оставлю как есть»,
+        // снял бы его с повестки под чужим именем, и журнал соврал бы.
+        const offered = decisionsOf(dir, spec).decisions.find((d) => d.id === decisionId);
+        if (!offered) return json(res, 404, { error: 'такого решения в очереди нет' });
+        if (!offered.actions.includes(action))
+          return json(res, 422, {
+            error: `для «${offered.title_ru}» доступно: ${offered.actions.join(', ') || 'только профиль бренда'}`,
+          });
+        const result = applyDecision(spec, decisionId, action, value);
+        if (result.rejected) {
+          logEvent(invite.name, 'decision_rejected', {
+            id,
+            decision: decisionId,
+            action,
+            reason: result.rejected,
+          });
+          return json(res, 422, { error: result.rejected });
+        }
+        if (result.resolved) {
+          // Снятое с повестки в спеке не выразить — запоминаем рядом с ней.
+          const path = join(dir, 'decisions.json');
+          const current = existsSync(path)
+            ? (JSON.parse(readFileSync(path, 'utf8')) as {
+                resolved: { id: string; action: string; at: string }[];
+              })
+            : { resolved: [] };
+          if (!current.resolved.some((r) => r.id === result.resolved))
+            current.resolved.push({ id: result.resolved, action, at: new Date().toISOString() });
+          writeFileSync(path, JSON.stringify(current, null, 2));
+        } else if (result.spec !== spec) {
+          writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
+          // PDF устарел: следующая выгрузка пересоберёт его из новой спеки.
+          writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        }
+        logEvent(invite.name, 'decision', {
+          id,
+          decision: decisionId,
+          action,
+          changed: result.changed_ru,
+        });
+        // Спека отдаётся той же формой, что и после правки замера: кабинет
+        // кладёт её в кэш и перерисовывает таблицу тем же кодом.
+        return json(res, 200, {
+          ...decisionsOf(dir, result.spec),
+          changed_ru: result.changed_ru,
+          ...(result.spec !== spec ? (specPayload(result.spec) as object) : {}),
+        });
       }
 
       if (req.method === 'GET' && rest === '/files') {

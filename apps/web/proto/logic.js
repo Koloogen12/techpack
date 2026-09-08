@@ -210,6 +210,7 @@ const SECTIONS = [
   { id: 'bom', label: 'Материалы', sub: 'BOM, колорвеи' },
   { id: 'nodes', label: 'Конструкция', sub: 'узлы и операции' },
   { id: 'labels', label: 'Ярлыки', sub: 'маркировка и SKU' },
+  { id: 'review', label: 'Решения', sub: 'подтвердить и закрыть' },
   { id: 'vers', label: 'Версии', sub: 'примерки образцов' },
   { id: 'export', label: 'Экспорт', sub: 'PDF, SVG, фабрики' },
 ];
@@ -523,6 +524,9 @@ class Component extends DCLogic {
     twCh: 0,
     pro: null,
     onlyGuess: false,
+    decisions: null,
+    revEdit: null,
+    revEditVal: '',
     railHov: false,
     railPin: false,
     exportOpen: false,
@@ -791,6 +795,9 @@ class Component extends DCLogic {
       undoStack: [],
       sel: null,
       onlyGuess: false,
+      decisions: null,
+      revEdit: null,
+      revEditVal: '',
       shareTok: null,
       ...(p ? { curSpec: p.spec, curDefaults: p.flat_defaults } : {}),
     }));
@@ -857,6 +864,53 @@ class Component extends DCLogic {
         .catch(() => {});
     tick();
     this._pl = setInterval(tick, 2500);
+  }
+
+  /**
+   * Очередь открытых решений пака.
+   *
+   * Тихо: без токена или до сборки очереди нет, и раздел покажет пустое
+   * состояние. Считается сервером заново на каждый запрос — это проекция
+   * спеки, и кэшировать её в кабинете значило бы дать ей разойтись.
+   */
+  loadDecisions(id) {
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/decisions')
+      .then((r) => {
+        if (this.state.curId === id) this.setState({ decisions: r });
+      })
+      .catch(() => {});
+  }
+
+  /**
+   * Применить решение: подтвердить, исправить, убрать.
+   *
+   * Ответ сервера уже содержит пересчитанную очередь и, если спека
+   * изменилась, саму спеку — кабинет обновляет обе разом, чтобы табель
+   * и очередь не показывали разное.
+   */
+  decide(decisionId, action, value) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    const body = { id: decisionId, action };
+    if (value !== undefined) body.value = value;
+    apiCall('/jobs/' + id + '/decisions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        const next = { decisions: r, revEdit: null, revEditVal: '' };
+        if (r.spec) {
+          this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+          next.curSpec = r.spec;
+          next.flatNonce = Date.now();
+        }
+        this.setState(next);
+        this.showToast(r.changed_ru ? 'Готово: ' + r.changed_ru : 'Решение принято');
+      })
+      .catch((e) => this.showToast('Не принято: ' + e.message));
   }
 
   /**
@@ -1454,6 +1508,115 @@ class Component extends DCLogic {
     this._t = setTimeout(() => this.setState({ toast: null, toastAct: null }), act ? 4000 : 2200);
   }
 
+  /**
+   * Раздел «Решения»: очередь одним списком, три действия на каждом.
+   *
+   * Карточка повторяет плашку предположений с обложки: тот же радиус, тот же
+   * кегль, та же чёрная кнопка. Новых визуальных слов раздел не вводит —
+   * он собирает то, что уже разбросано по документу.
+   */
+  reviewBindings() {
+    const s = this.state;
+    const d = s.decisions;
+    const KIND = {
+      conflict: ['Расхождение', '#C0392B', 'rgba(192,57,43,.09)'],
+      needs_input: ['Нужен ввод', '#B7791F', 'rgba(183,121,31,.1)'],
+      assumption: ['Предположение', '#6B6B67', 'rgba(14,14,14,.05)'],
+      confirmed: ['Подтверждено', '#2F7C5A', 'rgba(47,124,90,.1)'],
+    };
+    const btn = (on, dark) =>
+      (on ? 'display:flex' : 'display:none') +
+      ';align-items:center;height:27px;border-radius:8px;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap;' +
+      (dark
+        ? 'background:#0E0E0E;color:#fff'
+        : 'background:#fff;border:1px solid rgba(14,14,14,.12);color:#0E0E0E');
+    const order = { conflict: 0, needs_input: 1, assumption: 2, confirmed: 3 };
+    const items = d
+      ? d.decisions
+          .slice()
+          .sort((a, b) => order[a.kind] - order[b.kind])
+          .map((it) => {
+            const k = KIND[it.kind] || KIND.assumption;
+            const editing = s.revEdit === it.id;
+            const has = (a) => it.actions.indexOf(a) >= 0;
+            return {
+              title: it.title_ru,
+              detail: it.detail_ru,
+              kindLabel: k[0],
+              kindStyle:
+                'flex:none;height:22px;border-radius:7px;padding:0 8px;display:flex;align-items:center;font:600 9.5px/14px Sora,sans-serif;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;color:' +
+                k[1] +
+                ';background:' +
+                k[2],
+              cardStyle:
+                'border-radius:10px;border:1px solid ' +
+                (it.blocking ? 'rgba(192,57,43,.22)' : '#E4E1DC') +
+                ';background:' +
+                (it.blocking ? 'rgba(192,57,43,.035)' : '#fff') +
+                ';padding:12px 15px;display:flex;align-items:flex-start;gap:13px',
+              go: () => this.setState({ section: it.section, screen: 'doc' }),
+              confirmStyle: btn(has('confirm'), true),
+              confirmLabel: it.kind === 'conflict' ? 'Оставить как есть' : 'Подтвердить',
+              confirm: () => this.decide(it.id, 'confirm'),
+              editBtnStyle: btn(has('edit') && !editing, false),
+              edit: () =>
+                this.setState({
+                  revEdit: it.id,
+                  revEditVal: it.value ? String(it.value.current) : '',
+                }),
+              dismissStyle: btn(has('dismiss'), false),
+              dismissLabel: it.kind === 'needs_input' ? 'Оставлю как есть' : 'Убрать',
+              dismiss: () => this.decide(it.id, 'dismiss'),
+              editStyle:
+                (editing ? 'display:flex' : 'display:none') +
+                ';gap:8px;align-items:center;margin-top:8px',
+              editVal: editing ? s.revEditVal : '',
+              editUnit: it.value && it.value.unit ? it.value.unit : '',
+              onEdit: (e) => this.setState({ revEditVal: e.target.value }),
+              save: () => {
+                const raw = String(this.state.revEditVal).trim();
+                const num = parseFloat(raw.replace(',', '.'));
+                this.decide(it.id, 'edit', it.value && it.value.unit === 'см' ? num : raw);
+              },
+              cancelEdit: () => this.setState({ revEdit: null, revEditVal: '' }),
+            };
+          })
+      : [];
+    const sum = d ? d.summary : null;
+    const score = sum ? sum.score : 0;
+    return {
+      revItems: items,
+      revEmpty: !!d && d.decisions.length === 0,
+      revLoading: !d,
+      revHead: sum
+        ? sum.open === 0
+          ? 'Открытых решений нет — документ готов к отправке'
+          : sum.open +
+            ' ' +
+            plural(sum.open, 'открытое решение', 'открытых решения', 'открытых решений') +
+            (sum.blocking
+              ? ' · ' +
+                sum.blocking +
+                ' ' +
+                plural(sum.blocking, 'держит', 'держат', 'держат') +
+                ' отправку'
+              : '')
+        : 'Очередь собирается…',
+      revSub: sum
+        ? sum.next_ru
+          ? 'Следующее: ' + sum.next_ru + '. Подтверждённое уходит в документ как «указано вами».'
+          : 'Подтверждено значений: ' + sum.confirmed + '. Все предположения сняты.'
+        : '',
+      revScore: (score % 1 === 0 ? score.toFixed(0) : score.toFixed(1)) + ' / 10',
+      revBarStyle:
+        'display:block;height:100%;border-radius:99px;background:' +
+        (score >= 8 ? '#2F7C5A' : score >= 5 ? '#B7791F' : '#C0392B') +
+        ';width:' +
+        Math.round(score * 10) +
+        '%',
+    };
+  }
+
   openDoc(section) {
     clearTimeout(this._dl);
     this.setState({
@@ -1465,6 +1628,7 @@ class Component extends DCLogic {
     });
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
+    this.loadDecisions(this.state.curId);
     if (!DEMO && TOKEN && this.state.curId) {
       const fid = this.state.curId;
       apiCall('/jobs/' + fid + '/files')
@@ -3113,17 +3277,42 @@ class Component extends DCLogic {
         );
         this.showToast('Файл добавлен — ' + (cur.length + 1) + ' из 6');
       },
-      hasGuesses: guessCount > 0,
-      noGuesses: guessCount === 0,
-      guessBanner:
-        guessCount + ' ' + this.plural(guessCount) + ' — предположения, подтвердите их по образцу',
+      hasGuesses: s.decisions ? s.decisions.summary.open > 0 : guessCount > 0,
+      noGuesses: s.decisions ? s.decisions.summary.open === 0 : guessCount === 0,
+      // Очередь решений шире предположений: в ней и расхождения фото с
+      // анкетой, и пробелы маркировки. Пока она не загрузилась — старый
+      // счётчик, чтобы обложка не мигала пустотой.
+      guessBanner: s.decisions
+        ? s.decisions.summary.open +
+          ' ' +
+          plural(
+            s.decisions.summary.open,
+            'открытое решение',
+            'открытых решения',
+            'открытых решений',
+          ) +
+          (s.decisions.summary.blocking
+            ? ' — ' +
+              s.decisions.summary.blocking +
+              ' ' +
+              plural(s.decisions.summary.blocking, 'держит', 'держат', 'держат') +
+              ' отправку фабрике'
+            : ' — отправке ничего не мешает')
+        : guessCount +
+          ' ' +
+          this.plural(guessCount) +
+          ' — предположения, подтвердите их по образцу',
+      guessBannerAction: s.decisions ? 'Открыть решения' : 'Показать в замерах',
       guessLabel: s.onlyGuess ? 'Показаны только они' : 'Предположения: ' + guessCount,
       guessBtnStyle:
         'height:31px;border-radius:10px;display:flex;align-items:center;gap:6px;padding:0 11px;cursor:pointer;' +
         (s.onlyGuess
           ? 'background:#C0392B;border:1px solid #C0392B;color:#fff'
           : 'background:#fff;border:1px solid rgba(192,57,43,.28);color:#C0392B'),
-      toggleGuess: () => this.setState({ onlyGuess: !s.onlyGuess, section: 'pom', screen: 'doc' }),
+      toggleGuess: () =>
+        s.decisions
+          ? this.setState({ section: 'review', screen: 'doc' })
+          : this.setState({ onlyGuess: !s.onlyGuess, section: 'pom', screen: 'doc' }),
       proTrackStyle:
         'width:30px;height:18px;border-radius:999px;position:relative;transition:background .16s ease;flex:none;background:' +
         (pro ? '#0E0E0E' : 'rgba(14,14,14,.14)'),
@@ -4160,6 +4349,8 @@ class Component extends DCLogic {
         'display:flex;align-items:center;gap:9px;padding:11px 10px;border-radius:12px;cursor:pointer;' +
         (s.screen === 'plan' ? 'background:rgba(14,14,14,.055)' : ''),
       secLabels: s.screen === 'doc' && !s.docLoading && s.section === 'labels',
+      secReview: s.screen === 'doc' && !s.docLoading && s.section === 'review',
+      ...this.reviewBindings(),
       secVers: s.screen === 'doc' && !s.docLoading && s.section === 'vers',
       skuRows: (doc && doc.base && (doc.base.size_range || []).length
         ? doc.base.size_range.map((ru) => INT_OF(ru, bru))
@@ -4912,12 +5103,21 @@ class Component extends DCLogic {
             'ok',
             'pom',
           ],
-          [
-            guessCount + ' предположений',
-            'подтвердить по образцу',
-            guessCount > 0 ? 'warn' : 'ok',
-            'pom',
-          ],
+          this.state.decisions
+            ? [
+                this.state.decisions.summary.open + ' открытых решений',
+                this.state.decisions.summary.blocking
+                  ? this.state.decisions.summary.blocking + ' держат отправку'
+                  : 'отправке ничего не мешает',
+                this.state.decisions.summary.open ? 'warn' : 'ok',
+                'review',
+              ]
+            : [
+                guessCount + ' предположений',
+                'подтвердить по образцу',
+                guessCount > 0 ? 'warn' : 'ok',
+                'pom',
+              ],
           [
             'Материалы (BOM)',
             spec.bom
@@ -4941,12 +5141,21 @@ class Component extends DCLogic {
       : [
           ['Чертёж построен', '3 вида, слои', 'ok', 'flats'],
           ['Замеры и градация', '10 точек · XS–XL', 'ok', 'pom'],
-          [
-            guessCount + ' предположений',
-            'подтвердить по образцу',
-            guessCount > 0 ? 'warn' : 'ok',
-            'pom',
-          ],
+          this.state.decisions
+            ? [
+                this.state.decisions.summary.open + ' открытых решений',
+                this.state.decisions.summary.blocking
+                  ? this.state.decisions.summary.blocking + ' держат отправку'
+                  : 'отправке ничего не мешает',
+                this.state.decisions.summary.open ? 'warn' : 'ok',
+                'review',
+              ]
+            : [
+                guessCount + ' предположений',
+                'подтвердить по образцу',
+                guessCount > 0 ? 'warn' : 'ok',
+                'pom',
+              ],
           [
             'Материалы (BOM)',
             9 +
