@@ -600,9 +600,12 @@ sub(
 // Manrope — геометрический гротеск с кириллицей и переменным весом, встаёт
 // первым в стек; Sora остаётся для латиницы. Источник — токен --sf-font-ui
 // в packages/ui/tokens.css; здесь только зеркало для инлайн-стилей прототипа.
+// Шрифты — свои файлы, а не Google Fonts: у части пользователей он медленный
+// или закрыт, и тогда весь кабинет падал в системный шрифт. Ссылка прототипа
+// снимается, dist/fonts.css подключается из <head>.
 sub(
-  'family=Sora:wght@400;600;700&family=Inter:wght@300;400&family=JetBrains+Mono:wght@400;500&display=swap',
-  'family=Manrope:wght@200..800&family=Sora:wght@400;600;700&family=Inter:wght@300;400&family=JetBrains+Mono:wght@400;500&display=swap',
+  '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@300;400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">',
+  '',
   1,
 );
 subAll('Sora,', 'Manrope,Sora,', 480);
@@ -653,6 +656,7 @@ const page = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="./favicon.svg">
+<link rel="stylesheet" href="./fonts.css">
 <link rel="stylesheet" href="./tokens.css">
 <title>Seamster</title>
 <script src="./react.js"></script>
@@ -675,6 +679,9 @@ copyFileSync(join(handoff, 'support.js'), join(dist, 'support.js'));
 // Дизайн-токены — из packages/ui одним файлом: кабинет и новые компоненты
 // берут цвета, шрифты и тайминги оттуда, а не из литералов.
 copyFileSync(join(repoRoot, 'packages', 'ui', 'tokens.css'), join(dist, 'tokens.css'));
+// Шрифты — файлами рядом с кабинетом (OFL), см. packages/ui/fonts.css.
+copyFileSync(join(repoRoot, 'packages', 'ui', 'fonts.css'), join(dist, 'fonts.css'));
+cpSync(join(repoRoot, 'packages', 'ui', 'fonts'), join(dist, 'fonts'), { recursive: true });
 // UMD-сборки React 18 лежат в пакетах, но не экспортируются — берём по пути.
 const pkgDir = (name) => dirname(require.resolve(name + '/package.json'));
 copyFileSync(join(pkgDir('react'), 'umd', 'react.production.min.js'), join(dist, 'react.js'));

@@ -13,6 +13,7 @@ import {
 } from '@seamster/kb';
 import { messages, type Locale } from '@seamster/i18n';
 import type { StyleSpec } from '@seamster/stylespec';
+import { docFontFaces } from './fonts.js';
 
 /**
  * Лист на просчёт (RFQ).
@@ -315,10 +316,10 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
 
   return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8">
 <title>${esc(t.rfq_kicker)} — ${esc(spec.style.article)}</title>
-<style>
+<style>${docFontFaces()}
   @page { size: A4 portrait; margin: 14mm 12mm; }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: Sora, "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif; color: #0E0E0E; font-size: 9.5pt; }
+  body { margin: 0; font-family: Manrope, Sora, "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif; color: #0E0E0E; font-size: 9.5pt; }
   .kicker { font-size: 7.4pt; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 700; color: #6B6B67; }
   h1 { font-size: 17pt; font-weight: 700; margin: 1mm 0 1mm; letter-spacing: -0.3px; }
   .head { border-bottom: 1px solid #E4E1DC; padding-bottom: 3mm; margin-bottom: 5mm; }

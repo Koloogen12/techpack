@@ -8,3 +8,4 @@ export * from './rfq.js';
 export * from './pom-csv.js';
 export * from './seam-diagram.js';
 export * from './readiness.js';
+export * from './fonts.js';

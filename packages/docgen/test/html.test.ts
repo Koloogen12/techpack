@@ -755,3 +755,20 @@ describe('цвет и раппорт — на эскизе, а не на схе�
     expect(h).toContain('РАЗМЕРНО ТОЧЕН');
   });
 });
+
+describe('шрифты документа', () => {
+  it('вшиты в HTML: PDF печатается в образе без системных шрифтов бренда', () => {
+    const h = renderHtml(SPEC);
+    expect(h).toContain("font-family: 'Manrope'");
+    expect(h).toContain('data:font/woff2;base64,');
+    // Кириллица — в Manrope: у Sora её нет, и русский лист падал в заглушку.
+    expect(h).toContain('font-family: Manrope, Sora');
+    expect(h).not.toContain('url(./fonts/');
+  });
+
+  it('лист на просчёт несёт те же шрифты', () => {
+    const h = renderRfqHtml(SPEC, {});
+    expect(h).toContain("font-family: 'Manrope'");
+    expect(h).toContain('font-family: Manrope, Sora');
+  });
+});

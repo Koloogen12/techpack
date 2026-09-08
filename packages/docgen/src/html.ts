@@ -29,6 +29,7 @@ import type { StyleSpec } from '@seamster/stylespec';
 import type { SpecDiff } from '@seamster/versions';
 import { messages, type Locale, type Messages } from '@seamster/i18n';
 import { DOC_CSS } from './styles.js';
+import { docFontFaces } from './fonts.js';
 
 /**
  * Рендер техпака в HTML. Дальше он превращается в PDF тем же движком,
@@ -428,7 +429,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
   return (
     `<!doctype html><html lang="ru"><head><meta charset="utf-8">` +
     `<title>${esc(spec.style.name)} — ${esc(spec.style.article)}</title>` +
-    `<style>${DOC_CSS}</style></head><body>${html}</body></html>`
+    `<style>${docFontFaces()}${DOC_CSS}</style></head><body>${html}</body></html>`
   );
 }
 

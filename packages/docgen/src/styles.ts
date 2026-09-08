@@ -16,17 +16,20 @@
  * Документ печатается на A4 в альбомной ориентации.
  */
 export const DOC_CSS = `
+/* Палитра документа = токены кабинета (packages/ui/tokens.css): предпросмотр
+   в кабинете и печатный лист обязаны быть одним цветом. Синий статуса «по
+   фото» — из статусной шкалы токенов, а не отдельный акцент. */
 :root {
-  --ink: #161616;
+  --ink: #0E0E0E;
   --paper: #FFFFFF;
-  --secondary: #8A8A85;
-  --hairline: #E3E1DC;
-  --bar: #111111;
+  --secondary: #6B6B67;
+  --hairline: #E4E1DC;
+  --bar: #0E0E0E;
   --canvas: #FBFAF8;
-  --data-red: #B3261E;
-  --confirm-green: #0D6E5F;
-  --photo-blue: #4A6CF7;
-  --lib-grey: #8A8A85;
+  --data-red: #C0392B;
+  --confirm-green: #2F7C5A;
+  --photo-blue: #1A4A7A;
+  --lib-grey: #B0ADA6;
 }
 
 @page { size: A4 landscape; margin: 0; }
@@ -38,7 +41,7 @@ html, body {
   padding: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: Sora, "Helvetica Neue", Arial, sans-serif;
+  font-family: Manrope, Sora, "Helvetica Neue", Arial, sans-serif;
   font-size: 9pt;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;

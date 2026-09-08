@@ -2118,7 +2118,7 @@ class Component extends DCLogic {
       : BOM_GUESS;
     const guessCount = pomGuessLeft + bomGuessN;
 
-    const pomRows = POM.filter((r) => !s.onlyGuess || this.kindOf(r) === 'guess').map((r) => {
+    const pomRows = POM.filter((r) => !s.onlyGuess || this.kindOf(r) === 'guess').map((r, i) => {
       const code = r[0];
       const kind = this.kindOf(r);
       const isSel = s.sel === code;
@@ -2173,7 +2173,9 @@ class Component extends DCLogic {
           ';align-items:center;min-height:' +
           rowH +
           'px;border-bottom:1px solid #EFEDE9;cursor:pointer;background:' +
-          (isSel ? 'rgba(14,14,14,.03)' : 'transparent'),
+          // Зебра: глаз держит строку на длинной таблице замеров. Выбранная
+          // строка темнее зебры, чтобы читалась и на чётной, и на нечётной.
+          (isSel ? 'rgba(14,14,14,.04)' : i % 2 ? '#FAF9F7' : 'transparent'),
         inputStyle:
           'width:62px;text-align:right;padding:4px 6px;border-radius:7px;border:1px solid transparent;background:transparent;cursor:text;' +
           'font:300 12px/18px Inter,sans-serif;color:#C0392B;font-variant-numeric:tabular-nums' +
@@ -2368,7 +2370,7 @@ class Component extends DCLogic {
     const bomAll = bomSrc.concat(
       s.bomExtra.length ? [['g', 'Добавлено из библиотеки']].concat(s.bomExtra) : [],
     );
-    const bom = bomAll.map((r) => {
+    const bom = bomAll.map((r, i) => {
       if (r[0] === 'g')
         return {
           isGroup: true,
@@ -2394,7 +2396,8 @@ class Component extends DCLogic {
         rowStyle:
           'display:grid;grid-template-columns:66px 1.5fr 1.4fr 96px 84px 150px;align-items:center;min-height:' +
           rowH +
-          'px;border-bottom:1px solid #EFEDE9',
+          'px;border-bottom:1px solid #EFEDE9' +
+          (i % 2 ? ';background:#FAF9F7' : ''),
       };
     });
     const libBase = [
