@@ -12,7 +12,7 @@ import type { StyleSpec } from '@seamster/stylespec';
  * Версия входит в ключ кэша: правка текста ниже меняет ключ и требует
  * пересборки визуализаций.
  */
-export const RENDER_PROMPT_VERSION = 'v2';
+export const RENDER_PROMPT_VERSION = 'v3';
 
 const FIT_ENGLISH: Record<string, string> = {
   fitted: 'close-fitting, following the body with minimal ease',
@@ -135,6 +135,27 @@ export function buildRenderPrompt(
 
   const garment = categoryVisual(category, spec.base.fabric_kind);
 
+  // Дизайн-признаки — часть спеки, и потому часть картинки.
+  //
+  // Реестр узлов описывает технологию: как обработана горловина, чем подшит
+  // низ. Он не знает ни рукава-жиго, ни клиньев юбки, ни кокетки — это
+  // дизайн, и он живёт в отдельном разделе спеки. Пока эта строка сюда не
+  // попадала, визуализация тканого платья с подиума выходила гладким прямым
+  // платьем при том, что на техническом рисунке того же пака стояли буфы и
+  // рельефы: два изображения одной вещи расходились на глазах у заказчика.
+  //
+  // Это не послабление ADR-0005, а его исполнение: картинка обязана быть
+  // проекцией ВСЕЙ спеки, а не той её половины, что описывает швы. Признаки
+  // с низкой уверенностью не идут — рисовать то, в чём мы не уверены сами,
+  // значит выдавать догадку за описание.
+  const defining = (spec.design?.features ?? [])
+    .filter((f) => f.certainty !== 'low')
+    .map((f) => f.en);
+  const design = defining.length
+    ? `What gives this garment its shape, beyond the plain construction: ${defining.join('; ')}. ` +
+      `These are the features that define it — draw them clearly.`
+    : '';
+
   // Масштаб мотива задаётся ОТНОШЕНИЕМ к ширине груди, а не сантиметрами:
   // модель не знает, сколько на её картинке сантиметров, но прекрасно
   // понимает «мотив повторяется примерно трижды по ширине груди».
@@ -153,6 +174,7 @@ export function buildRenderPrompt(
     `A single ${garment} shown on an invisible mannequin — a ghost-mannequin product photograph, front view, with the garment holding its worn shape and no person, head, hands or stand visible.`,
     '',
     `The garment is ${fabric}, coloured ${colour}. The cut is ${fit}.`,
+    design,
     details.length
       ? `Visible construction: ${details.join(', ')}.`
       : 'Construction is plain, with no visible trims.',

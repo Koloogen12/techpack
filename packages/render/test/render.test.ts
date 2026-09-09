@@ -97,6 +97,54 @@ describe('промпт — проекция спеки', () => {
   });
 });
 
+describe('дизайн-признаки попадают и в визуализацию', () => {
+  // Пока эта строка не доехала до промпта, визуализация тканого платья
+  // с подиума выходила гладким прямым платьем при том, что на техническом
+  // рисунке того же пака стояли рукава-жиго и рельефы. Два изображения одной
+  // вещи расходились на глазах у заказчика.
+  const withDesign = (): StyleSpec => ({
+    ...TSHIRT,
+    design: {
+      features: [
+        {
+          zone: 'sleeve',
+          ru: 'рукав жиго',
+          en: 'leg-of-mutton sleeve with gathered puff cap',
+          certainty: 'high',
+          confidence: 'estimated_from_photo',
+          source: 'vision:design#sleeve',
+        },
+        {
+          zone: 'skirt',
+          ru: 'клинья?',
+          en: 'maybe godet panels',
+          certainty: 'low',
+          confidence: 'estimated_from_photo',
+          source: 'vision:design#skirt',
+        },
+      ],
+    },
+  });
+
+  it('уверенный признак попадает в промпт, сомнительный — нет', () => {
+    const p = buildRenderPrompt(withDesign());
+    expect(p).toContain('leg-of-mutton sleeve with gathered puff cap');
+    expect(p).toContain('define it');
+    expect(p).not.toContain('godet');
+  });
+
+  it('у вещи без признаков промпт не изменился — кэш старых паков жив', () => {
+    expect(buildRenderPrompt(TSHIRT)).not.toContain('gives this garment its shape');
+  });
+
+  it('признак меняет ключ кэша: это другая картинка, а не та же', () => {
+    const model = 'gpt-image-2.5-flare';
+    expect(renderKey({ prompt: buildRenderPrompt(withDesign()), model })).not.toBe(
+      renderKey({ prompt: buildRenderPrompt(TSHIRT), model }),
+    );
+  });
+});
+
 describe('ключ кэша', () => {
   it('одинаковый промпт и модель дают одинаковый ключ', () => {
     const a = renderKey({ prompt: 'x', model: 'm' });
