@@ -2262,6 +2262,17 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
     `<th class="num">${esc(t.node_allowance)}</th><th class="mark">●</th></tr>`;
 
   const nodeChunks = chunk(c.nodes, ROWS_PER_PAGE.nodes);
+  // Дизайн-признаки встают под последнюю таблицу узлов, пока там есть место:
+  // строка узла — две строки текста, признак — одна-две. Полный лист узлов
+  // плюс десять признаков не вмещался на 28 px (голден-замер), поэтому при
+  // тесноте блок уходит на свой лист, а не наползает на подвал.
+  const featureCount = spec.design?.features.length ?? 0;
+  const lastRows = nodeChunks[nodeChunks.length - 1]?.length ?? 0;
+  const designInline = featureCount > 0 && lastRows * 2 + featureCount <= 20;
+  const designPages =
+    featureCount > 0 && !designInline
+      ? [`<h2>${esc(t.section_construction)}</h2>${designBlock(spec, t, locale)}`]
+      : [];
   const nodePages = nodeChunks.map((nodes, page) => {
     const rows = nodes
       .map((n, i) => {
@@ -2316,7 +2327,7 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
       // Дизайн-признаки — под последней таблицей узлов, а не отдельным
       // листом: их обычно три-пять строк, и читать их надо рядом с узлами —
       // конструктор лекал сверяет одно с другим.
-      (page === nodeChunks.length - 1 ? designBlock(spec, t, locale) : '')
+      (designInline && page === nodeChunks.length - 1 ? designBlock(spec, t, locale) : '')
     );
   });
 
@@ -2325,7 +2336,7 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
   // читается фабрикой хуже, чем её отсутствие.
   const translated =
     locale === 'ru' || c.sequence.every((s) => (locale === 'en' ? s.operation_en : s.operation_zh));
-  if (!translated) return nodePages;
+  if (!translated) return [...nodePages, ...designPages];
 
   const operation = (s: (typeof c.sequence)[number]): string =>
     locale === 'en'
@@ -2364,7 +2375,7 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
     );
   });
 
-  return [...nodePages, ...seqPages];
+  return [...nodePages, ...designPages, ...seqPages];
 }
 
 // ---------------------------------------------------------------- маркировка

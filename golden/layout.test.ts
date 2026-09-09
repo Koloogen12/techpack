@@ -47,6 +47,36 @@ describe('страницы вмещают своё содержимое', () => 
     60_000,
   );
 
+  it('дизайн-признаки под полной таблицей узлов не переполняют лист', async () => {
+    // Блок идёт на последний лист узлов. У худи листов два и последний полон;
+    // десять признаков с длинными формулировками обязаны уместиться под ним
+    // или уйти на свой лист — но не наложиться на подвал.
+    const long = (zone: 'sleeve' | 'bodice' | 'skirt' | 'waist' | 'hem') => ({
+      zone,
+      en: 'exaggerated leg-of-mutton sleeve with heavily gathered puff cap and fitted forearm',
+      ru: 'объёмный рукав жиго со сборкой по окату и узким предплечьем, как на снимке',
+      confidence: 'medium' as const,
+    });
+    const { spec } = buildStyleSpec({
+      ...SCENARIOS[0]!.input,
+      category: 'hoodie',
+      design_features: [
+        ...(['sleeve', 'bodice', 'skirt', 'waist', 'hem'] as const).map(long),
+        ...(['sleeve', 'bodice', 'skirt', 'waist', 'hem'] as const).map((z) => ({
+          ...long(z),
+          en: `${long(z).en} — second`,
+        })),
+      ],
+    });
+    expect(spec.design?.features).toHaveLength(10);
+    for (const pro of [true, false]) {
+      const report = await checkLayout(spec, { pro, browser });
+      expect(
+        report.overflows.map((o) => `лист ${o.index + 1} (${o.section}): +${o.overflowPx}px`),
+      ).toEqual([]);
+    }
+  }, 120_000);
+
   it('в обычном режиме тоже', async () => {
     const { spec } = buildStyleSpec(SCENARIOS[0]!.input);
     const report = await checkLayout(spec, { pro: false, browser });
