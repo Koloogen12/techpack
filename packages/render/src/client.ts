@@ -49,6 +49,27 @@ export interface ImageClientOptions {
   ledger?: CostLedger;
   /** Таймаут одного вызова, мс. Генерация картинки идёт десятки секунд. */
   timeoutMs?: number;
+  /**
+   * Размер и качество — для моделей семейства gpt-image (Images API).
+   * Gemini через чат-проход их не принимает и молча игнорирует.
+   */
+  size?: string;
+  quality?: 'low' | 'medium' | 'high' | 'auto';
+}
+
+/** Модели OpenAI Images: другой транспорт — multipart и images/edits. */
+export function isImagesApiModel(model: string): boolean {
+  return model.startsWith('gpt-image');
+}
+
+/** Достаёт картинку из ответа Images API: base64 в data[0].b64_json. */
+export function extractImagesApi(
+  payload: unknown,
+): { bytes: Uint8Array; mediaType: string } | null {
+  const item = (payload as { data?: { b64_json?: unknown }[] })?.data?.[0];
+  const b64 = item?.b64_json;
+  if (typeof b64 !== 'string' || b64.length === 0) return null;
+  return { bytes: Buffer.from(b64, 'base64'), mediaType: 'image/png' };
 }
 
 export interface GeneratedImage {
@@ -204,6 +225,55 @@ export async function generateImage(
   );
 }
 
+/**
+ * Запрос к Images API (gpt-image-*): с опорными снимками — images/edits
+ * multipart, без них — images/generations JSON. Ответ приходит base64, а не
+ * markdown-ссылкой, как у Gemini через чат-проход.
+ */
+async function imagesApiRequest(
+  prompt: string,
+  model: string,
+  ctx: { apiKey: string; baseUrl: string; options: ImageClientOptions },
+): Promise<Response> {
+  const { apiKey, baseUrl, options } = ctx;
+  const signal = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const refs = options.references ?? [];
+  if (refs.length === 0) {
+    return fetch(`${baseUrl}/images/generations`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt,
+        n: 1,
+        ...(options.size ? { size: options.size } : {}),
+        ...(options.quality ? { quality: options.quality } : {}),
+      }),
+      signal,
+    });
+  }
+  const form = new FormData();
+  form.append('model', model);
+  form.append('prompt', prompt);
+  form.append('n', '1');
+  if (options.size) form.append('size', options.size);
+  if (options.quality) form.append('quality', options.quality);
+  refs.forEach((r, i) => {
+    const ext = r.mediaType === 'image/png' ? 'png' : r.mediaType === 'image/webp' ? 'webp' : 'jpg';
+    form.append(
+      'image[]',
+      new Blob([Buffer.from(r.bytes)], { type: r.mediaType }),
+      `ref-${i + 1}.${ext}`,
+    );
+  });
+  return fetch(`${baseUrl}/images/edits`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+    signal,
+  });
+}
+
 interface Attempt {
   image: { bytes: Uint8Array; mediaType: string } | null;
   error: SeamsterError | null;
@@ -220,33 +290,35 @@ async function callOnce(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: options.references?.length
-              ? [
-                  ...options.references.map((r) => ({
-                    type: 'image_url' as const,
-                    image_url: {
-                      url: `data:${r.mediaType};base64,${Buffer.from(r.bytes).toString('base64')}`,
-                    },
-                  })),
-                  { type: 'text' as const, text: prompt },
-                ]
-              : prompt,
+    response = isImagesApiModel(model)
+      ? await imagesApiRequest(prompt, model, ctx)
+      : await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
           },
-        ],
-      }),
-      signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-    });
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'user',
+                content: options.references?.length
+                  ? [
+                      ...options.references.map((r) => ({
+                        type: 'image_url' as const,
+                        image_url: {
+                          url: `data:${r.mediaType};base64,${Buffer.from(r.bytes).toString('base64')}`,
+                        },
+                      })),
+                      { type: 'text' as const, text: prompt },
+                    ]
+                  : prompt,
+              },
+            ],
+          }),
+          signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+        });
   } catch (cause) {
     return {
       image: null,
@@ -302,7 +374,7 @@ async function callOnce(
       }),
     };
   }
-  const image = extractImage(payload);
+  const image = isImagesApiModel(model) ? extractImagesApi(payload) : extractImage(payload);
   if (image) return { image, error: null, retryable: false, reason: '' };
 
   // Ответ 200 БЕЗ картинки — это и есть блокировка по safety, увиденная

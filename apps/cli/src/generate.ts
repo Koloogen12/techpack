@@ -56,6 +56,7 @@ import {
   visualize,
   garmentMask,
   sheetBoxes,
+  sketchModels,
   type ReferenceImage,
   type SheetBox,
   type SheetView,
@@ -582,24 +583,15 @@ export async function redrawSketch(input: RedrawOptions): Promise<RedrawResult> 
   try {
     const shots = input.photoPaths.map(parsePhotoArg);
     const references = await sketchReferences(browser, shots);
-    const sketch = await flatSketch(input.spec, {
+    const { checked } = await drawSketch(input.spec, {
       offline: false,
       cache: new FileRenderCache(join(input.renderCacheDir ?? '.cache/render', 'sketch')),
       ...(input.logger ? { logger: input.logger } : {}),
       ledger: new CostLedger(),
-      ...(references.length ? { references } : {}),
+      references,
       nonce: new Date().toISOString(),
+      ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
     });
-    if (!sketch.ok) return { ok: false, reason: sketch.reason, userMessage: sketch.userMessage };
-    const checked = await checkSketch(
-      input.spec,
-      sketch,
-      {
-        ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
-        ...(input.logger ? { logger: input.logger } : {}),
-      },
-      [],
-    );
     if (!checked.ok) return { ok: false, reason: checked.reason, userMessage: checked.userMessage };
     const cut = await cutSketchViews(browser, checked);
     const tile = readTile(input.spec, input.tileDir ?? 'brand-library/artwork');
@@ -674,6 +666,68 @@ async function cutSketchViews(
     if (crop) views[box.view] = { dataUri: crop };
   }
   return Object.keys(views).length ? { views, boxes } : null;
+}
+
+/**
+ * Эскиз цепочкой моделей: следующая модель зовётся не только когда сервис
+ * отказал, но и когда лист нарисован и НЕ принят сторожем. Раньше отказ
+ * сторожа оставлял пак без эскиза, хотя запасная модель могла справиться.
+ * Возвращает первый принятый лист или последний отказ — и одну строку
+ * примечания со всеми причинами, если не справилась ни одна.
+ */
+async function drawSketch(
+  spec: StyleSpec,
+  input: {
+    offline: boolean;
+    cache: FileRenderCache;
+    logger?: GenerateOptions['logger'];
+    ledger: CostLedger;
+    references: readonly ReferenceImage[];
+    cacheDir?: string;
+    nonce?: string;
+  },
+): Promise<{ checked: Awaited<ReturnType<typeof flatSketch>>; note: string }> {
+  const reasons: string[] = [];
+  let last: Awaited<ReturnType<typeof flatSketch>> = {
+    ok: false,
+    reason: 'no_model',
+    userMessage: 'Модели эскиза не заданы.',
+  };
+  for (const model of sketchModels()) {
+    const sketch = await flatSketch(spec, {
+      model,
+      offline: input.offline,
+      cache: input.cache,
+      ...(input.logger ? { logger: input.logger } : {}),
+      ledger: input.ledger,
+      ...(input.references.length ? { references: input.references } : {}),
+      ...(input.nonce ? { nonce: input.nonce } : {}),
+    });
+    if (!sketch.ok) {
+      last = sketch;
+      reasons.push(`${model} — ${sketch.userMessage}`);
+      // Без сети следующая модель тоже не поможет: кэш один на всех.
+      if (input.offline) break;
+      continue;
+    }
+    const checked = await checkSketch(
+      spec,
+      sketch,
+      {
+        ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
+        ...(input.logger ? { logger: input.logger } : {}),
+      },
+      [],
+    );
+    if (checked.ok) return { checked, note: '' };
+    last = checked;
+    reasons.push(`${model} — ${checked.userMessage}`);
+    input.logger?.warn('эскиз: лист не принят, пробуем следующую модель', { model });
+  }
+  return {
+    checked: last,
+    note: `Технический эскиз: ${reasons.join('; ')}. Лист чертежа собран на библиотечном силуэте.`,
+  };
 }
 
 /**
@@ -1029,17 +1083,19 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // на виды и потом печатает документ. Остальное ждёт сеть и идёт параллельно.
   const browser = await chromium.launch();
   const sketchRefs = options.render === true ? await sketchReferences(browser, shots) : [];
-  const [visual, sketch, patternVisual, ...extraVisuals] = await Promise.all([
+  const [visual, drawn, patternVisual, ...extraVisuals] = await Promise.all([
     visualize(spec, { ...visualOptions, ...swatchRef(colorways[0]?.id) }),
     // Технический эскиз — три вида одним листом, ОТ ФОТОГРАФИИ этой вещи
-    // и по её узлам (ADR-0010). Идёт параллельно с визуализацией: оба
-    // вызова ждут сеть, и последовательно они удвоили бы ожидание.
-    flatSketch(spec, {
+    // и по её узлам (ADR-0010), цепочкой моделей до первого листа, который
+    // принял сторож. Идёт параллельно с визуализацией: оба вызова ждут
+    // сеть, и последовательно они удвоили бы ожидание.
+    drawSketch(spec, {
       offline: options.render !== true,
       cache: new FileRenderCache(join(options.renderCacheDir ?? '.cache/render', 'sketch')),
       ...(options.logger ? { logger: options.logger } : {}),
       ledger,
-      ...(sketchRefs.length ? { references: sketchRefs } : {}),
+      references: sketchRefs,
+      ...(options.cacheDir ? { cacheDir: options.cacheDir } : {}),
     }),
     // Вторая картинка — то же изделие, но в раппорте. Отдельный вызов,
     // а не вариант первого: у них разные ключи кэша и разная судьба
@@ -1061,8 +1117,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
 
   const colorwayVisuals = new Map(extraColorways.map((c, i) => [c.id, extraVisuals[i]!]));
 
-  // Эскиз проходит сторожа прежде, чем попасть в документ.
-  const checked = await checkSketch(spec, sketch, options, notes);
+  // Эскиз уже прошёл сторожа внутри цепочки; отказ всех моделей — словами.
+  const checked = drawn.checked;
+  if (!checked.ok && options.render === true) notes.push(drawn.note);
   // Виды режутся из ТОГО ЖЕ листа: обложка, лист на просчёт и чип «Перед»
   // в кабинете показывают эту вещь, а не библиотечный силуэт похожей.
   const cut = checked.ok ? await cutSketchViews(browser, checked) : null;
@@ -1171,10 +1228,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
     // документа держится именно на хранении, а не на детерминизме модели.
     if (checked.ok) writeSketchFiles(dirname(options.outPath), checked, cut, fills);
-    else {
-      clearSketchFiles(dirname(options.outPath));
-      if (options.render === true) notes.push(`Технический эскиз: ${checked.userMessage}`);
-    }
+    else clearSketchFiles(dirname(options.outPath));
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));

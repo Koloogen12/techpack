@@ -1,7 +1,7 @@
 import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
 import { CATEGORY_CLASS, CATEGORY_VISUAL_EN, type Category } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
-import { generateImage, type ReferenceImage } from './client.js';
+import { generateImage, isImagesApiModel, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 
 /**
@@ -218,6 +218,35 @@ export interface SketchOptions {
   nonce?: string;
 }
 
+/**
+ * Цепочка моделей эскиза — по порядку, пока сторож не примет лист.
+ *
+ * Впереди gpt-image-2.5-flare: линия ближе к профессиональному CAD-флэту и
+ * лист выходит вдвое быстрее (замер 09.09.2026 на трёх паках). Gemini —
+ * запасной: на паке с расходящимися фото и анкетой он держался узлов, а
+ * Flare дорисовал капюшон, которого нет ни там, ни там, — и сторож это
+ * поймал. Цепочка нужна ровно для такого: отказ сторожа у одной модели
+ * не должен оставлять пак без эскиза, если другая справляется.
+ *
+ * SEAMSTER_SKETCH_MODELS задаёт всю цепочку, SEAMSTER_SKETCH_MODEL — только
+ * голову (запасные остаются).
+ */
+export const DEFAULT_SKETCH_MODELS = ['gpt-image-2.5-flare', 'gemini-3-pro-image'] as const;
+
+export function sketchModels(): readonly string[] {
+  const list = (process.env.SEAMSTER_SKETCH_MODELS ?? '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  if (list.length) return list;
+  const head = process.env.SEAMSTER_SKETCH_MODEL;
+  if (head) return [head, ...DEFAULT_SKETCH_MODELS.filter((m) => m !== head)];
+  return DEFAULT_SKETCH_MODELS;
+}
+
+/** Лист альбомный 3:2: три вида в ряд, вырезкам хватает пикселей. */
+export const SKETCH_SHEET_SIZE = '1536x1024';
+
 export type SketchResult =
   | { ok: true; bytes: Uint8Array; mediaType: string; model: string; cached: boolean }
   | { ok: false; reason: string; userMessage: string };
@@ -239,7 +268,7 @@ export async function flatSketch(
   const cache = options.cache ?? sketchCache;
   // Эскиз рисуется линиями, и эта модель держит линию ровнее прочих.
   // Цепочка запасных здесь не нужна: без эскиза документ живёт.
-  const model = options.model ?? process.env.SEAMSTER_SKETCH_MODEL ?? 'gemini-3-pro-image';
+  const model = options.model ?? sketchModels()[0]!;
   const references = options.references ?? [];
   const prompt = buildSketchPrompt(spec, { fromPhoto: references.length > 0 });
   const key = renderKey({
@@ -264,6 +293,10 @@ export async function flatSketch(
   try {
     const generateOptions: Parameters<typeof generateImage>[1] = { models: [model], logger };
     if (references.length) generateOptions.references = references;
+    if (isImagesApiModel(model)) {
+      generateOptions.size = SKETCH_SHEET_SIZE;
+      generateOptions.quality = 'high';
+    }
     if (options.apiKey !== undefined) generateOptions.apiKey = options.apiKey;
     if (options.ledger !== undefined) generateOptions.ledger = options.ledger;
     const image = await generateImage(prompt, generateOptions);

@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
 import type { StyleSpec } from '@seamster/stylespec';
 import {
+  DEFAULT_SKETCH_MODELS,
+  extractImagesApi,
+  isImagesApiModel,
+  sketchModels,
   buildSketchPrompt,
   sketchFileName,
   sketchFingerprint,
@@ -250,5 +254,34 @@ describe('эскиз от фотографии', () => {
       expect(p).toContain('equal-width column');
       expect(p).toContain('clear white gutter');
     }
+  });
+});
+
+describe('цепочка моделей эскиза', () => {
+  it('по умолчанию впереди gpt-image-2.5-flare, запасной — Gemini', () => {
+    const saved = { a: process.env.SEAMSTER_SKETCH_MODELS, b: process.env.SEAMSTER_SKETCH_MODEL };
+    delete process.env.SEAMSTER_SKETCH_MODELS;
+    delete process.env.SEAMSTER_SKETCH_MODEL;
+    expect(sketchModels()).toEqual([...DEFAULT_SKETCH_MODELS]);
+    process.env.SEAMSTER_SKETCH_MODEL = 'gemini-3-pro-image';
+    // Явная голова не отменяет запасных: они остаются следом.
+    expect(sketchModels()).toEqual(['gemini-3-pro-image', 'gpt-image-2.5-flare']);
+    process.env.SEAMSTER_SKETCH_MODELS = ' a , b ';
+    expect(sketchModels()).toEqual(['a', 'b']);
+    if (saved.a === undefined) delete process.env.SEAMSTER_SKETCH_MODELS;
+    else process.env.SEAMSTER_SKETCH_MODELS = saved.a;
+    if (saved.b === undefined) delete process.env.SEAMSTER_SKETCH_MODEL;
+    else process.env.SEAMSTER_SKETCH_MODEL = saved.b;
+  });
+
+  it('gpt-image идёт через Images API, ответ — base64 в data[0]', () => {
+    expect(isImagesApiModel('gpt-image-2.5-flare')).toBe(true);
+    expect(isImagesApiModel('gemini-3-pro-image')).toBe(false);
+    const png = Buffer.from([137, 80, 78, 71]).toString('base64');
+    const got = extractImagesApi({ data: [{ b64_json: png }] });
+    expect(got?.mediaType).toBe('image/png');
+    expect([...(got?.bytes ?? [])]).toEqual([137, 80, 78, 71]);
+    expect(extractImagesApi({ data: [{ url: 'https://x' }] })).toBeNull();
+    expect(extractImagesApi({})).toBeNull();
   });
 });
