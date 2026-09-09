@@ -23,7 +23,7 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * и отвечает на то, чего не видно ни на одном из них: насколько глубок
  * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v4';
+export const SKETCH_PROMPT_VERSION = 'v5';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -152,10 +152,30 @@ export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions 
   // От снимка рисуется ЭТА вещь; по описанию — вещь с такими узлами. Первое
   // и есть задача эскиза: расхождение с фотографией человек видит сразу,
   // а расхождение с списком узлов — никогда.
+  //
+  // «Тот же капюшон» просится только там, где капюшон есть. Первая версия
+  // фразы была написана под худи и по категориям не менялась — и Images-
+  // модель, следуя ей буквально, дорисовывала платью капюшон, карман кенгуру
+  // и шнур: два отказа сторожа подряд на платьях 09.09.2026. Перечисляются
+  // только узлы, которые в спеке есть; общее — силуэт, горловина, рукав,
+  // фурнитура и строчки — всегда.
+  const ids = nodes.map((n) => n.node_id);
+  const anyOf = (re: RegExp): boolean => ids.some((id) => re.test(id));
+  const same = [
+    'the same silhouette and proportions',
+    'the same neckline',
+    'the same sleeve construction and shoulder line',
+    ...(anyOf(/^hood_/) ? ['the same hood shape and depth'] : []),
+    ...(anyOf(/pocket/) ? ['the same pocket shape and placement'] : []),
+    ...(anyOf(/rib/) ? ['the same rib depth at the trims'] : []),
+    ...(anyOf(/drawcord/) ? ['the same drawcord'] : []),
+    ...(CATEGORY_CLASS[category] === 'whole' ? ['the same waist and skirt shape'] : []),
+    'the same hardware and stitching',
+  ];
   const identity = options.fromPhoto
     ? [
         'Reference photographs of the actual garment are attached.',
-        `Draw a technical flat sketch sheet of EXACTLY this garment, a ${fit} ${garment}: the same silhouette and proportions, the same sleeve construction and shoulder line, the same hood shape and depth, the same pocket shape and placement, the same rib depth at the cuffs and hem, the same drawcord, hardware and stitching as in the photographs.`,
+        `Draw a technical flat sketch sheet of EXACTLY this garment, a ${fit} ${garment}: ${same.join(', ')} as in the photographs.`,
         'Do not restyle it: add nothing the photographs do not show and drop nothing they do.',
         'The sheet shows THREE views of the SAME garment side by side in one row:',
       ]

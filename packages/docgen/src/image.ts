@@ -44,7 +44,10 @@ export async function fitImage(
         // печатаются в те же точки, что и триста килобайт JPEG.
         if (side <= limit && uri.length <= HEAVY_URI) return uri;
 
-        const scale = limit / side;
+        // Тяжёлый, но небольшой снимок пережимается в СВОИХ пикселях:
+        // растягивать 1536 px до лимита значит добавить вес и не добавить
+        // ни одной детали.
+        const scale = Math.min(1, limit / side);
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(img.naturalWidth * scale);
         canvas.height = Math.round(img.naturalHeight * scale);

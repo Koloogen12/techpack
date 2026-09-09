@@ -243,6 +243,23 @@ describe('эскиз от фотографии', () => {
     expect(p).toContain('follow the photographs');
   });
 
+  it('«тот же капюшон» просится только у вещи с капюшоном', () => {
+    // Фраза была написана под худи и по категориям не менялась: Images-модель
+    // исполняла её буквально и дорисовывала платью капюшон с карманом кенгуру.
+    const hoodie = buildSketchPrompt(HOODIE, { fromPhoto: true });
+    expect(hoodie).toContain('the same hood shape and depth');
+    expect(hoodie).toContain('the same pocket shape and placement');
+    expect(hoodie).toContain('the same drawcord');
+
+    const dress = buildSketchPrompt(spec({ category: 'dress' }), { fromPhoto: true });
+    expect(dress).not.toContain('hood shape');
+    expect(dress).not.toContain('pocket shape');
+    expect(dress).not.toContain('the same drawcord');
+    expect(dress).toContain('the same neckline');
+    expect(dress).toContain('the same waist and skirt shape');
+    expect(dress).toContain('the same hardware and stitching');
+  });
+
   it('без снимка промпт остаётся описанием по узлам', () => {
     const p = buildSketchPrompt(HOODIE);
     expect(p).not.toContain('Reference photographs');
