@@ -230,11 +230,10 @@ describe('визуализация не ломает документ', () => {
   it('картинка из ответа кладётся в кэш и второй вызов уже бесплатный', async () => {
     vi.stubEnv('COMETAPI_KEY', 'test-key');
     const png = Buffer.from([137, 80, 78, 71]).toString('base64');
-    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      Response.json({
-        choices: [{ message: { content: `Готово!\n\n![image](data:image/png;base64,${png})` } }],
-      }),
-    );
+    // Голова цепочки ходит в Images API, и ответ у него другой формы.
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => Response.json({ data: [{ b64_json: png }] }));
 
     const cache = new MemoryRenderCache();
     const first = await visualize(TSHIRT, { cache });
@@ -245,6 +244,60 @@ describe('визуализация не ломает документ', () => {
     expect(second.ok).toBe(true);
     if (second.ok) expect(second.image.cached).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+});
+
+describe('голова цепочки — Images API', () => {
+  const PNG = Buffer.from([137, 80, 78, 71]).toString('base64');
+  const imagesOk = (): Response => Response.json({ data: [{ b64_json: PNG }] });
+  const chatOk = (): Response =>
+    Response.json({ choices: [{ message: { content: `![](data:image/png;base64,${PNG})` } }] });
+
+  it('по умолчанию первым идёт Flare, Gemini остаётся запасной', () => {
+    // A/B 09.09.2026: Flare рисует перечисленные в спеке узлы, Gemini их
+    // пропускает. Но Images API тоже умеет отказывать — цепочка остаётся.
+    vi.stubEnv('SEAMSTER_IMAGE_MODELS', '');
+    vi.stubEnv('SEAMSTER_IMAGE_MODEL', '');
+    const chain = defaultImageModels();
+    expect(chain[0]).toBe('gpt-image-2.5-flare');
+    expect(chain).toContain('gemini-3-pro-image');
+  });
+
+  it('Images-модели уходит холст 2:3 с качеством high и промпт про 2:3', async () => {
+    vi.stubEnv('COMETAPI_KEY', 'test-key');
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => imagesOk());
+    const result = await visualize(TSHIRT, { cache: new MemoryRenderCache() });
+    expect(result.ok).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toContain('/images/generations');
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    expect(body.model).toBe('gpt-image-2.5-flare');
+    expect(body.size).toBe('1024x1536');
+    expect(body.quality).toBe('high');
+    expect(String(body.prompt)).toContain('2:3 aspect ratio');
+    expect(String(body.prompt)).not.toContain('4:5');
+    spy.mockRestore();
+  });
+
+  it('промпт для Gemini не изменился: 4:5 по умолчанию, и ключи кэша старых паков живы', () => {
+    expect(buildRenderPrompt(TSHIRT)).toContain('4:5 aspect ratio');
+    expect(buildRenderPrompt(TSHIRT, { aspect: '2:3' })).toContain('2:3 aspect ratio');
+    expect(buildRenderPrompt(TSHIRT, { aspect: '4:5' })).toBe(buildRenderPrompt(TSHIRT));
+  });
+
+  it('отказ Images API подхватывает Gemini тем же вызовом', async () => {
+    vi.stubEnv('COMETAPI_KEY', 'test-key');
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async (url) =>
+        String(url).includes('/images/') ? Response.json({ data: [] }) : chatOk(),
+      );
+    const result = await visualize(TSHIRT, { cache: new MemoryRenderCache() });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.image.model).toBe('gemini-3-pro-image');
+    expect(spy).toHaveBeenCalledTimes(2);
     spy.mockRestore();
   });
 });

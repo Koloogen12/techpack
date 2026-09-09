@@ -62,6 +62,14 @@ export interface RenderPromptOptions {
    */
   patternRepeatCm?: number | undefined;
   /**
+   * Пропорции кадра. У Images API холст 1024×1536 (2:3) и своего 4:5 нет:
+   * промпт обязан просить то, что модель может отдать, иначе она рисует
+   * поля внутри холста. Gemini пропорции берёт из слов, и ей нужен 4:5 —
+   * колонка документа под него свёрстана. По умолчанию 4:5, чтобы промпт,
+   * а с ним и ключ кэша, для Gemini не изменился.
+   */
+  aspect?: '4:5' | '2:3';
+  /**
    * К запросу приложен образец полотна этого колорвея.
    *
    * Меняет формулировку цвета: вместо названия и приблизительного hex модель
@@ -152,7 +160,7 @@ export function buildRenderPrompt(
     // Запрет на рисунок снимается, когда рисунок и есть предмет съёмки:
     // иначе две строки промпта спорят друг с другом, и модель выбирает
     // ту, что ближе к концу.
-    'Vertical portrait format, 4:5 aspect ratio. The garment fills most of the frame with a small even margin on all sides. Commercial apparel product photography, neutral colour balance, no props, no text, no logos, no branding.' +
+    `Vertical portrait format, ${options.aspect ?? '4:5'} aspect ratio. The garment fills most of the frame with a small even margin on all sides. Commercial apparel product photography, neutral colour balance, no props, no text, no logos, no branding.` +
       (pattern ? '' : ' No pattern or print on the fabric.'),
   ]
     .filter(Boolean)

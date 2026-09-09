@@ -822,7 +822,10 @@ async function buildVisuals(
   }
 
   return {
-    ...(visual.ok ? { render: { dataUri: visual.image.dataUri } } : {}),
+    // Images API отдаёт PNG по два мегабайта. В документ и в пак идёт одна
+    // пережатая копия: картинка «не для замеров», полный размер ей не нужен,
+    // а кабинет и выгрузки читают этот файл десятки раз.
+    ...(visual.ok ? { render: { dataUri: await fitImage(browser, visual.image.dataUri) } } : {}),
     ...(sketch.ok
       ? {
           sketch: {
@@ -1208,8 +1211,8 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     if (!visual.ok && options.render === true) notes.push(`Визуализация: ${visual.userMessage}`);
     // Картинка кладётся файлом рядом с документом: кабинет её показывает,
     // а пересборка PDF после правки замера переиспользует, а не теряет.
-    if (visual.ok) {
-      const base64 = visual.image.dataUri.split(',')[1];
+    if (visual.ok && built.render) {
+      const base64 = built.render.dataUri.split(',')[1];
       if (base64)
         writeFileSync(join(dirname(options.outPath), 'render.png'), Buffer.from(base64, 'base64'));
     }

@@ -1,7 +1,12 @@
 import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
 import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
-import { defaultImageModels, generateImage, type ReferenceImage } from './client.js';
+import {
+  defaultImageModels,
+  generateImage,
+  isImagesApiModel,
+  type ReferenceImage,
+} from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
 import { buildRenderPrompt, type RenderPromptOptions } from './prompt.js';
 
@@ -62,6 +67,13 @@ export type VisualizeResult =
 
 const sharedCache = new MemoryRenderCache();
 
+/**
+ * Холст Images API для «Внешнего вида»: портрет 2:3, ближайший к колонке
+ * документа из трёх доступных размеров. Ставится только Images-моделям —
+ * Gemini размер из промпта берёт словами.
+ */
+export const RENDER_SIZE = '1024x1536';
+
 export async function visualize(
   spec: StyleSpec,
   options: VisualizeOptions = {},
@@ -76,6 +88,8 @@ export async function visualize(
   const model = chain[0]!;
 
   const promptOptions: RenderPromptOptions = {};
+  // Холст Images API — 2:3, и промпт просит ровно его; Gemini рисует 4:5 по слову.
+  if (isImagesApiModel(model)) promptOptions.aspect = '2:3';
   if (options.colorwayId !== undefined) promptOptions.colorwayId = options.colorwayId;
   if (options.swatchReference !== undefined)
     promptOptions.swatchReference = options.swatchReference;
@@ -109,6 +123,10 @@ export async function visualize(
   try {
     const generateOptions: Parameters<typeof generateImage>[1] = { models: chain, logger };
     if (options.references?.length) generateOptions.references = options.references;
+    if (isImagesApiModel(model)) {
+      generateOptions.size = RENDER_SIZE;
+      generateOptions.quality = 'high';
+    }
     if (options.apiKey !== undefined) generateOptions.apiKey = options.apiKey;
     if (options.ledger !== undefined) generateOptions.ledger = options.ledger;
 
