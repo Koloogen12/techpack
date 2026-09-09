@@ -9,6 +9,7 @@ import {
 import { buildBom, countBomAssumptions, type BomInput } from './bom.js';
 import { buildLabels, type BrandProfile } from './labels.js';
 import { buildArtwork, type ArtworkInput, type PatternPlacementInput } from './artwork.js';
+import { buildDesign, type DesignInput } from './design.js';
 
 /**
  * Сборка StyleSpec — детерминированная стадия пайплайна.
@@ -18,7 +19,7 @@ import { buildArtwork, type ArtworkInput, type PatternPlacementInput } from './a
  * Из неё рендерятся чертёж, таблицы и PDF (ADR-0003 §1).
  */
 export interface StyleSpecInput
-  extends PomInput, Omit<ConstructionInput, 'category'>, Omit<BomInput, 'category'> {
+  extends PomInput, Omit<ConstructionInput, 'category'>, Omit<BomInput, 'category'>, DesignInput {
   /** Реквизиты бренда для ярлыков. Без них обязательные поля остаются пробелами. */
   brand_profile?: BrandProfile;
   /** Макеты для нанесения. Пусто — вещь без принта, и это норма. */
@@ -57,6 +58,9 @@ export function buildStyleSpec(
 
   const bom = buildBom(input, base);
   notes.push(...bom.notes);
+
+  // Дизайн-признаки не зависят ни от чего в сборке: они с фото и только с фото.
+  const design = buildDesign(input);
 
   // Состав для ярлыка берётся из спецификации, а не собирается заново:
   // расхождение состава на ярлыке и в спецификации — прямое нарушение ТР ТС.
@@ -125,6 +129,7 @@ export function buildStyleSpec(
       nodes: construction.nodes,
       sequence: construction.sequence,
     },
+    ...(design ? { design } : {}),
     bom: {
       colorways: bom.colorways,
       lines: bom.lines,

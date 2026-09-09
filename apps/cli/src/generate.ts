@@ -925,6 +925,9 @@ export function specInputFrom(
     ...defined(rest),
     ...(report ? { photo_ratios: photoRatiosFrom(report.proportions) } : {}),
     ...(report ? { visible_elements: report.visible_elements } : {}),
+    // Дизайн-признаки — единственное, что с фото уходит в задание художнику
+    // выше чек-листа узлов: окат буф, пояс, клинья.
+    ...(report?.design_features.length ? { design_features: report.design_features } : {}),
     ...(report ? { topstitching: report.topstitching } : {}),
     // Предмет известного размера в кадре: единственное, что снимает
     // монокулярную неоднозначность масштаба.

@@ -11,6 +11,9 @@ export const EN: Messages = {
   section_bom: 'Bill of Materials',
   section_colorways: 'Colourways',
   section_construction: 'Construction',
+  design_title: 'Design features seen on the photos',
+  design_note:
+    'What sets this garment apart from the category default. Observed on the photos, not covered by the construction nodes — account for it in pattern making.',
   section_artwork: 'Artwork Placement',
   section_pattern_preview: 'All-Over Print on Garment',
   section_labels: 'Labelling & SKU',

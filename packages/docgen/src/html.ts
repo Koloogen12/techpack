@@ -2156,6 +2156,81 @@ function artworkCostLine(spec: StyleSpec): string {
 
 // ---------------------------------------------------------------- конструкция
 
+/**
+ * Дизайн-признаки с фото: окат буф, пояс, клинья — то, чего в узлах нет.
+ *
+ * По-русски печатается русская формулировка, в нерусском комплекте —
+ * английская: перевода на китайский у свободного текста нет, а английский
+ * технический термин фабрика читает. Точка статуса — та же, что у узлов:
+ * признак всегда «оценка по фото», и сомнительное наблюдение помечено словом.
+ */
+function designBlock(spec: StyleSpec, t: Messages, locale: Locale): string {
+  const features = spec.design?.features ?? [];
+  if (!features.length) return '';
+  const ZONE = { ru: DESIGN_ZONE_RU, en: DESIGN_ZONE_EN, zh: DESIGN_ZONE_ZH }[locale];
+  const doubt = { ru: 'видно неуверенно', en: 'uncertain', zh: '不确定' }[locale];
+  const items = features
+    .map(
+      (f) =>
+        `<li><span class="dot dot-${f.confidence}" title="${esc(statusLabel(t, f.confidence))}"></span> ` +
+        `<b>${esc(ZONE[f.zone] ?? f.zone)}</b> — ${esc(locale === 'ru' ? f.ru : f.en)}` +
+        (f.certainty === 'low' ? ` <span class="flag">${doubt}</span>` : '') +
+        `</li>`,
+    )
+    .join('');
+  return (
+    `<h3 style="margin-top:4mm">${esc(t.design_title)}</h3>` +
+    `<ul class="dash design">${items}</ul>` +
+    `<div class="note">${esc(t.design_note)}</div>`
+  );
+}
+
+const DESIGN_ZONE_RU: Record<string, string> = {
+  neckline: 'Горловина',
+  collar: 'Воротник',
+  shoulder: 'Плечо',
+  sleeve: 'Рукав',
+  bodice: 'Лиф',
+  waist: 'Талия',
+  skirt: 'Юбка',
+  hem: 'Низ',
+  back: 'Спинка',
+  closure: 'Застёжка',
+  pocket: 'Карманы',
+  trim: 'Отделка',
+  other: 'Деталь',
+};
+const DESIGN_ZONE_EN: Record<string, string> = {
+  neckline: 'Neckline',
+  collar: 'Collar',
+  shoulder: 'Shoulder',
+  sleeve: 'Sleeve',
+  bodice: 'Bodice',
+  waist: 'Waist',
+  skirt: 'Skirt',
+  hem: 'Hem',
+  back: 'Back',
+  closure: 'Closure',
+  pocket: 'Pockets',
+  trim: 'Trim',
+  other: 'Detail',
+};
+const DESIGN_ZONE_ZH: Record<string, string> = {
+  neckline: '领口',
+  collar: '领子',
+  shoulder: '肩部',
+  sleeve: '袖子',
+  bodice: '衣身',
+  waist: '腰部',
+  skirt: '裙身',
+  hem: '下摆',
+  back: '后片',
+  closure: '门襟',
+  pocket: '口袋',
+  trim: '装饰',
+  other: '细节',
+};
+
 function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
   const c = spec.construction;
   if (!c) return [];
@@ -2186,7 +2261,8 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
       : '') +
     `<th class="num">${esc(t.node_allowance)}</th><th class="mark">●</th></tr>`;
 
-  const nodePages = chunk(c.nodes, ROWS_PER_PAGE.nodes).map((nodes, page) => {
+  const nodeChunks = chunk(c.nodes, ROWS_PER_PAGE.nodes);
+  const nodePages = nodeChunks.map((nodes, page) => {
     const rows = nodes
       .map((n, i) => {
         const number = page * ROWS_PER_PAGE.nodes + i + 1;
@@ -2236,7 +2312,11 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
         : '';
     return (
       `<h2>${esc(t.section_construction)}</h2>` +
-      `<table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>${legend}`
+      `<table><thead>${nodeHead}</thead><tbody>${rows}</tbody></table>${legend}` +
+      // Дизайн-признаки — под последней таблицей узлов, а не отдельным
+      // листом: их обычно три-пять строк, и читать их надо рядом с узлами —
+      // конструктор лекал сверяет одно с другим.
+      (page === nodeChunks.length - 1 ? designBlock(spec, t, locale) : '')
     );
   });
 

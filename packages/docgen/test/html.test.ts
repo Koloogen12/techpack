@@ -772,3 +772,46 @@ describe('шрифты документа', () => {
     expect(h).toContain('font-family: Manrope, Sora');
   });
 });
+
+describe('дизайн-признаки в документе', () => {
+  const withDesign: StyleSpec = {
+    ...SPEC,
+    design: {
+      features: [
+        {
+          zone: 'sleeve',
+          ru: 'окат буф, присборен',
+          en: 'gathered puff sleeve head',
+          certainty: 'high',
+          confidence: 'estimated_from_photo',
+          source: 'vision:design#sleeve',
+        },
+        {
+          zone: 'skirt',
+          ru: 'клинья',
+          en: 'gored panels',
+          certainty: 'low',
+          confidence: 'estimated_from_photo',
+          source: 'vision:design#skirt',
+        },
+      ],
+    },
+  };
+
+  it('печатаются под узлами по-русски, сомнительные помечены словом', () => {
+    const h = renderHtml(withDesign);
+    expect(h).toContain('Дизайн-признаки по фото');
+    expect(h).toContain('окат буф, присборен');
+    expect(h).toContain('видно неуверенно');
+    expect(h.indexOf('Конструкция')).toBeLessThan(h.indexOf('Дизайн-признаки по фото'));
+  });
+
+  it('в нерусском комплекте идёт английская формулировка', () => {
+    expect(renderHtml(withDesign, { locale: 'en' })).toContain('gathered puff sleeve head');
+    expect(renderHtml(withDesign, { locale: 'zh' })).toContain('gathered puff sleeve head');
+  });
+
+  it('у вещи без признаков блока нет', () => {
+    expect(renderHtml(SPEC)).not.toContain('Дизайн-признаки по фото');
+  });
+});

@@ -260,6 +260,46 @@ describe('эскиз от фотографии', () => {
     expect(dress).toContain('the same hardware and stitching');
   });
 
+  it('дизайн-признаки стоят выше чек-листа узлов и перебивают его', () => {
+    // Чек-лист говорит «втачной рукав», и без этой строки модель слушалась
+    // его, а не снимка: рукава-буф с подиума терялись.
+    const dress = spec({
+      category: 'dress',
+      design_features: [
+        { zone: 'sleeve', en: 'gathered puff sleeve head', ru: 'окат буф', confidence: 'high' },
+        {
+          zone: 'waist',
+          en: 'wide belt with round buckle',
+          ru: 'широкий пояс',
+          confidence: 'medium',
+        },
+        { zone: 'skirt', en: 'maybe gored panels', ru: 'клинья?', confidence: 'low' },
+      ],
+    });
+    const p = buildSketchPrompt(dress, { fromPhoto: true });
+    expect(p).toContain('What defines this garment');
+    expect(p).toContain('sleeves: gathered puff sleeve head');
+    expect(p).toContain('waist: wide belt with round buckle');
+    expect(p).toContain('takes precedence over the construction checklist');
+    expect(p.indexOf('What defines this garment')).toBeLessThan(p.indexOf('Front shows:'));
+    // Сомнительное наблюдение в задание не идёт: «add nothing the photographs
+    // do not show» относится и к нам.
+    expect(p).not.toContain('gored');
+  });
+
+  it('без снимка дизайн-признаки тоже называются — они часть спеки', () => {
+    const dress = spec({
+      category: 'dress',
+      design_features: [
+        { zone: 'sleeve', en: 'gathered puff sleeve head', ru: 'буф', confidence: 'high' },
+      ],
+    });
+    const p = buildSketchPrompt(dress);
+    expect(p).toContain('beyond the standard construction: sleeves: gathered puff sleeve head');
+    expect(p).not.toContain('photographs');
+    expect(buildSketchPrompt(HOODIE)).not.toContain('What defines');
+  });
+
   it('без снимка промпт остаётся описанием по узлам', () => {
     const p = buildSketchPrompt(HOODIE);
     expect(p).not.toContain('Reference photographs');

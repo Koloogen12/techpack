@@ -11,6 +11,9 @@ export const RU: Messages = {
   section_bom: 'Спецификация материалов',
   section_colorways: 'Колорвеи',
   section_construction: 'Конструкция',
+  design_title: 'Дизайн-признаки по фото',
+  design_note:
+    'Что отличает эту вещь от типового изделия категории. Увидено на снимках; в узлах обработки не описано — учесть при разработке лекал.',
   section_artwork: 'Нанесение',
   section_pattern_preview: 'Раппорт на изделии',
   section_labels: 'Маркировка и артикулы',

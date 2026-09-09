@@ -1,7 +1,7 @@
 import { CategorySchema, FabricKindSchema, FitIntentSchema, GenderSchema } from '@seamster/kb';
 import { MEASURE_KINDS } from '@seamster/core';
 import { z } from 'zod';
-import { tracked } from './tracked-schema.js';
+import { ConfidenceSchema, tracked } from './tracked-schema.js';
 
 /**
  * StyleSpec — единственный источник правды об изделии.
@@ -16,7 +16,7 @@ import { tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.9.0';
+export const SPEC_VERSION = '0.10.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -521,6 +521,51 @@ export const AssetRefSchema = z.object({
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
 });
 
+/**
+ * Дизайн-признаки: что отличает эту вещь от типового изделия категории.
+ *
+ * Не узлы обработки и не точки табеля. Окат буф, широкий пояс, клинья юбки,
+ * декоративные строчки — то, что видно на снимке и чего реестр узлов не
+ * описывает: это дизайн-контент, а не технология. Раздел заполняется только
+ * с фотографий (источник всегда vision), поэтому у него один статус —
+ * «оценка по фото»; уверенность самого наблюдения хранится отдельно, чтобы
+ * задание художнику брало только уверенное.
+ *
+ * Куда уходит: в промпт технического рисунка ВЫШЕ чек-листа узлов (чек-лист
+ * говорит «втачной рукав», и без этого раздела модель слушалась его, а не
+ * снимка) и в документ — конструктору лекал.
+ */
+export const DesignZoneSchema = z.enum([
+  'neckline',
+  'collar',
+  'shoulder',
+  'sleeve',
+  'bodice',
+  'waist',
+  'skirt',
+  'hem',
+  'back',
+  'closure',
+  'pocket',
+  'trim',
+  'other',
+]);
+export const DesignFeatureValueSchema = z.object({
+  zone: DesignZoneSchema,
+  /** По-русски — в документ. */
+  ru: z.string().min(1),
+  /** По-английски терминами индустрии — в задание художнику. */
+  en: z.string().min(1),
+  /** Насколько уверенно признак виден на снимке. */
+  certainty: z.enum(['high', 'medium', 'low']),
+  confidence: ConfidenceSchema,
+  source: z.string().min(1),
+});
+export const DesignSchema = z.object({
+  features: z.array(DesignFeatureValueSchema).min(1),
+});
+export type DesignFeatureValue = z.infer<typeof DesignFeatureValueSchema>;
+
 export const SpecMetaSchema = z.object({
   generated_at: z.string().datetime(),
   /**
@@ -549,6 +594,8 @@ export const StyleSpecSchema = z
      * и мигрируют простым повышением версии.
      */
     construction: ConstructionSchema.optional(),
+    /** Дизайн-признаки с фото. Необязательны: у типовой вещи их нет, и это норма. */
+    design: DesignSchema.optional(),
     /** Спецификация материалов. Необязательна: снапшоты до 0.3.0 её не содержат. */
     bom: BomSchema.optional(),
     /** Маркировка. Необязательна по той же причине. */

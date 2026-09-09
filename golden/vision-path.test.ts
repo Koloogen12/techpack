@@ -91,6 +91,7 @@ const REPORT: VisionReport = {
     reason: 'опорного предмета в кадре нет',
   },
 
+  design_features: [],
   photo_quality_notes: ['Изделие снято на манекене, а не разложено плоско'],
 };
 

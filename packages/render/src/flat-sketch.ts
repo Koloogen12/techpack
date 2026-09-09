@@ -23,7 +23,7 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * и отвечает на то, чего не видно ни на одном из них: насколько глубок
  * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v5';
+export const SKETCH_PROMPT_VERSION = 'v6';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -86,6 +86,24 @@ export interface SketchPromptOptions {
    */
   fromPhoto?: boolean;
 }
+
+/** Зона дизайн-признака словами художника: «sleeves», а не «sleeve». */
+const DESIGN_ZONE_EN: Record<NonNullable<StyleSpec['design']>['features'][number]['zone'], string> =
+  {
+    neckline: 'neckline',
+    collar: 'collar',
+    shoulder: 'shoulders',
+    sleeve: 'sleeves',
+    bodice: 'bodice',
+    waist: 'waist',
+    skirt: 'skirt',
+    hem: 'hem',
+    back: 'back',
+    closure: 'closure',
+    pocket: 'pockets',
+    trim: 'trims',
+    other: 'detail',
+  };
 
 export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions = {}): string {
   const category = spec.style.category as Category;
@@ -172,10 +190,26 @@ export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions 
     ...(CATEGORY_CLASS[category] === 'whole' ? ['the same waist and skirt shape'] : []),
     'the same hardware and stitching',
   ];
+  // Дизайн-признаки — то, что vision увидел на снимке и чего в реестре узлов
+  // нет: окат буф, пояс, клинья. Стоят ВЫШЕ чек-листа узлов и названы тем,
+  // что определяет вещь: чек-лист говорит «втачной рукав», и без этой строки
+  // модель слушалась его, а не снимка — рукава-буф с подиума терялись.
+  // Сомнительные наблюдения не идут: «add nothing the photographs do not
+  // show» относится и к нам.
+  const defining = (spec.design?.features ?? [])
+    .filter((f) => f.certainty !== 'low')
+    .map((f) => `${DESIGN_ZONE_EN[f.zone]}: ${f.en}`);
+  const design = defining.length
+    ? options.fromPhoto
+      ? `What defines this garment, as seen in the photographs — it takes precedence over the construction checklist below: ${defining.join('; ')}.`
+      : `What defines this garment beyond the standard construction: ${defining.join('; ')}.`
+    : '';
+
   const identity = options.fromPhoto
     ? [
         'Reference photographs of the actual garment are attached.',
         `Draw a technical flat sketch sheet of EXACTLY this garment, a ${fit} ${garment}: ${same.join(', ')} as in the photographs.`,
+        design,
         'Do not restyle it: add nothing the photographs do not show and drop nothing they do.',
         'The sheet shows THREE views of the SAME garment side by side in one row:',
       ]
@@ -199,6 +233,7 @@ export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions 
     'Front and back are laid flat and symmetrical; the side view is a narrow profile silhouette, roughly a third of the width of the front view, showing the garment from the left side with one sleeve hanging along the body.',
     'Pure black line drawing on plain white background, uniform line weight, no shading, no gradients, no fabric texture, no colour, no fill.',
     'Apparel industry CAD flat: closed outline, seam lines solid, topstitching shown as dashed lines.',
+    options.fromPhoto ? '' : design,
     front.length ? `Front shows: ${front.join(', ')}.` : '',
     side.length ? `Side profile shows: ${side.join(', ')}.` : '',
     backOnly.length ? `Back shows: ${backOnly.join(', ')}, and a plain back panel.` : '',

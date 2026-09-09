@@ -44,6 +44,7 @@ const REPORT: VisionReport = {
     reason: 'опорного предмета в кадре нет',
   },
 
+  design_features: [],
   photo_quality_notes: [],
 };
 
@@ -95,6 +96,15 @@ describe('промпт', () => {
   it('собирается из справочников, а не пишется руками', () => {
     for (const f of base.visibilityMap().visible) expect(system).toContain(f.key);
     for (const f of base.visibilityMap().not_visible) expect(system).toContain(f.key);
+  });
+
+  it('спрашивает дизайн-признаки — окат, пояс, клинья — отдельно от узлов', () => {
+    const p = buildSystemPrompt(base, 'tshirt');
+    expect(p).toContain('Дизайн-признаки');
+    expect(p).toContain('буф');
+    // По-английски — для художника, по-русски — для документа.
+    expect(p).toContain('по-английски');
+    expect(p).toContain('пустой список');
   });
 
   it('требует считать параллельные строчки — по ним определяется машина', () => {
@@ -324,6 +334,22 @@ describe('границы входа', () => {
 describe('схема отчёта', () => {
   it('принимает эталонный отчёт', () => {
     expect(() => VisionReportSchema.parse(REPORT)).not.toThrow();
+  });
+
+  it('принимает дизайн-признаки с зоной и двумя формулировками', () => {
+    const report = {
+      ...REPORT,
+      design_features: [
+        { zone: 'sleeve', en: 'gathered puff sleeve head', ru: 'окат буф', confidence: 'high' },
+      ],
+    };
+    expect(() => VisionReportSchema.parse(report)).not.toThrow();
+    expect(() =>
+      VisionReportSchema.parse({
+        ...report,
+        design_features: [{ zone: 'wing', en: 'x', ru: 'y', confidence: 'high' }],
+      }),
+    ).toThrow();
   });
 
   it('отвергает отчёт без блока «что не видно» — это половина ценности', () => {

@@ -15,10 +15,43 @@ import { CATEGORIES } from '@seamster/kb';
  */
 
 /** Версия схемы отчёта. Входит в ключ кэша: смена схемы = смена ключа. */
-export const VISION_SCHEMA_VERSION = '2';
+export const VISION_SCHEMA_VERSION = '3';
 
 export const VisionConfidenceSchema = z.enum(['high', 'medium', 'low']);
 export type VisionConfidence = z.infer<typeof VisionConfidenceSchema>;
+
+/**
+ * Зоны дизайн-признаков. Не узлы обработки и не точки табеля: то, что делает
+ * эту вещь этой вещью и чего в типовом изделии категории нет — окат буф, пояс,
+ * клинья, декоративные строчки. Реестр узлов такого не описывает и описать
+ * не может: это дизайн-контент, а не технология.
+ */
+export const DESIGN_ZONES = [
+  'neckline',
+  'collar',
+  'shoulder',
+  'sleeve',
+  'bodice',
+  'waist',
+  'skirt',
+  'hem',
+  'back',
+  'closure',
+  'pocket',
+  'trim',
+  'other',
+] as const;
+export type DesignZone = (typeof DESIGN_ZONES)[number];
+
+export const DesignFeatureSchema = z.object({
+  zone: z.enum(DESIGN_ZONES),
+  en: z
+    .string()
+    .describe('Термин швейной индустрии по-английски, до десяти слов: уходит в задание художнику'),
+  ru: z.string().describe('То же по-русски, до восьми слов: уходит в документ'),
+  confidence: VisionConfidenceSchema,
+});
+export type DesignFeature = z.infer<typeof DesignFeatureSchema>;
 
 export const VisionReportSchema = z.object({
   category: z.object({
@@ -78,6 +111,18 @@ export const VisionReportSchema = z.object({
       confidence: VisionConfidenceSchema,
     }),
   ),
+
+  /**
+   * Дизайн-признаки: что отличает эту вещь от типового изделия категории.
+   *
+   * Единственное поле отчёта, которое уходит в промпт технического рисунка
+   * выше чек-листа узлов. Без него чек-лист говорил «втачной рукав», и модель
+   * слушалась его, а не снимка: рукава-буф с подиума терялись. Пустой список —
+   * нормальный ответ для типовой вещи.
+   */
+  design_features: z
+    .array(DesignFeatureSchema)
+    .describe('Только видимое и только то, чего нет в типовом изделии категории'),
 
   /**
    * Число параллельных строчек в отделочных швах.
@@ -159,6 +204,7 @@ export const StructurePartSchema = VisionReportSchema.pick({
   silhouette: true,
   fabric: true,
   visible_elements: true,
+  design_features: true,
   topstitching: true,
   colorways: true,
   not_visible: true,

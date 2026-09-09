@@ -11,6 +11,8 @@ export const ZH: Messages = {
   section_bom: '物料清单',
   section_colorways: '配色',
   section_construction: '工艺说明',
+  design_title: '照片可见的设计特征',
+  design_note: '区别于本品类标准款之处。依据照片观察，未包含在工艺节点中，制版时请予考虑。',
   section_artwork: '印花位置',
   section_pattern_preview: '满印效果',
   section_labels: '唛头与货号',

@@ -218,3 +218,34 @@ describe('раздел конструкции', () => {
     expect(() => parseStyleSpec(broken)).toThrow();
   });
 });
+
+describe('дизайн-признаки', () => {
+  const current = () => migrateToCurrent(load('tshirt-women-46.json')).spec;
+  const feature = {
+    zone: 'sleeve',
+    ru: 'окат буф',
+    en: 'gathered puff sleeve head',
+    certainty: 'high',
+    confidence: 'estimated_from_photo',
+    source: 'vision:design#sleeve',
+  };
+
+  it('раздел необязателен — у типовой вещи его нет', () => {
+    expect(current().design).toBeUndefined();
+  });
+
+  it('признак с зоной, двумя формулировками и источником проходит', () => {
+    const spec = parseStyleSpec({ ...current(), design: { features: [feature] } });
+    expect(spec.design?.features[0]?.en).toBe('gathered puff sleeve head');
+  });
+
+  it('пустой раздел не проходит: нет признаков — нет раздела', () => {
+    expect(() => parseStyleSpec({ ...current(), design: { features: [] } })).toThrow();
+  });
+
+  it('зона только из списка — художник и документ переводят её по словарю', () => {
+    expect(() =>
+      parseStyleSpec({ ...current(), design: { features: [{ ...feature, zone: 'wing' }] } }),
+    ).toThrow();
+  });
+});

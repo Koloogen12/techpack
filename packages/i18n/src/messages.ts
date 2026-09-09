@@ -37,6 +37,9 @@ export interface Messages {
   section_bom: string;
   section_colorways: string;
   section_construction: string;
+  /** Дизайн-признаки с фото — блок под таблицей узлов. */
+  design_title: string;
+  design_note: string;
   section_artwork: string;
   section_pattern_preview: string;
   section_labels: string;
