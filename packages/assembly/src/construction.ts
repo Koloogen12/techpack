@@ -3,6 +3,7 @@ import {
   kb as defaultKb,
   type Category,
   type ConstructionNode,
+  type FabricKind,
   type KnowledgeBase,
   type TechOperation,
 } from '@seamster/kb';
@@ -38,6 +39,12 @@ export interface TopstitchObservation {
 
 export interface ConstructionInput {
   category: Category;
+  /**
+   * Полотно. Набор узлов у одной категории от него меняется целиком:
+   * трикотажное платье собирается оверлоком и распошивом, тканое —
+   * стачным швом, вытачками, обтачкой и потайной молнией.
+   */
+  fabric_kind: FabricKind;
   /** Что видно на фото. Приходит из VisionReport.visible_elements. */
   visible_elements?: readonly VisibleElement[];
   /** Наблюдения по отделочным строчкам. Приходит из VisionReport.topstitching. */
@@ -86,7 +93,7 @@ export function buildConstruction(
   base: KnowledgeBase = defaultKb(),
 ): ConstructionResult {
   const notes: string[] = [];
-  const defaults = base.categoryDefaultsFor(input.category);
+  const defaults = base.categoryDefaultsFor(input.category, input.fabric_kind);
   const observed = new Map((input.visible_elements ?? []).map((e) => [e.key, e]));
 
   // --- 1. Замена узла по числу параллельных строчек ---------------------------

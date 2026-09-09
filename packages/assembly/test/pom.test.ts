@@ -95,7 +95,7 @@ describe('неправдоподобная пропорция с фото', () =
     // Границы задаются относительно типового значения, поэтому ожидаемое
     // считаем из него и из отношения диапазона к базовому — тест не ломается
     // от калибровки, только от поломки самого ограничения.
-    const t01 = base.pomTemplate('tshirt').points.find((p) => p.code === 'T01')!;
+    const t01 = base.pomTemplate('tshirt', 'knit').points.find((p) => p.code === 'T01')!;
     const typical = point(INPUT, 'T01').base.value;
     const ceiling = typical * (t01.ratio_range!.max / t01.baseline_ratio!);
 

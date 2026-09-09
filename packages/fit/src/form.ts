@@ -5,6 +5,8 @@ import {
   kb as defaultKb,
   type Category,
   type KnowledgeBase,
+  CATEGORY_FABRIC,
+  type FabricKind,
 } from '@seamster/kb';
 import { messages, type Locale } from '@seamster/i18n';
 
@@ -66,6 +68,8 @@ export interface FormOptions {
    */
   locale?: Locale;
   category: Category;
+  /** Полотно: у тканого изделия свой табель. По умолчанию — полотно категории. */
+  fabric?: FabricKind;
   /** Что за вещь. Печатается в шапке, чтобы бланки не перепутались. */
   title?: string;
   /** Только обязательные точки. Быстрый бланк для первого прохода. */
@@ -76,7 +80,10 @@ export function renderMeasurementForm(
   options: FormOptions,
   base: KnowledgeBase = defaultKb(),
 ): string {
-  const template = base.pomTemplate(options.category);
+  const template = base.pomTemplate(
+    options.category,
+    options.fabric ?? CATEGORY_FABRIC[options.category],
+  );
   const points = template.points
     .filter((p) => !options.requiredOnly || p.required)
     .slice()

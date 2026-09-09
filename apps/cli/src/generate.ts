@@ -998,6 +998,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     const result = await analyzePhotos({
       photos: shots.map((s) => readPhoto(s.path, s.view)),
       category: answers.category,
+      fabric: answers.fabric_kind,
       answersFingerprint: answersFingerprint(answers),
       model: options.model ?? defaultModel(),
       cache: new FileVisionCache(options.cacheDir ?? '.cache/vision'),

@@ -21,13 +21,13 @@ describe('целостность ссылок между справочника�
   });
 
   it('операции техпоследовательности ссылаются на существующие узлы', () => {
-    for (const op of base.categoryDefaultsFor('tshirt').tech_sequence) {
+    for (const op of base.categoryDefaultsFor('tshirt', 'knit').tech_sequence) {
       if (op.node_id) expect(() => base.node(op.node_id!)).not.toThrow();
     }
   });
 
   it('дефолтные узлы категории действительно применимы к ней', () => {
-    for (const id of base.categoryDefaultsFor('tshirt').default_nodes) {
+    for (const id of base.categoryDefaultsFor('tshirt', 'knit').default_nodes) {
       expect(base.node(id).applies_to).toContain('tshirt');
     }
   });
@@ -106,7 +106,7 @@ describe('честность узлов', () => {
 });
 
 describe('технологическая последовательность', () => {
-  const seq = base.categoryDefaultsFor('tshirt').tech_sequence;
+  const seq = base.categoryDefaultsFor('tshirt', 'knit').tech_sequence;
 
   it('идёт подряд с первой операции', () => {
     expect(seq.map((o) => o.step)).toEqual(seq.map((_, i) => i + 1));
@@ -119,7 +119,7 @@ describe('технологическая последовательность', 
 
   it('нормы времени честно пустые — данных цеха у нас нет', () => {
     expect(seq.every((o) => o.time_sec === null)).toBe(true);
-    expect(base.categoryDefaultsFor('tshirt').gap).toContain('Время');
+    expect(base.categoryDefaultsFor('tshirt', 'knit').gap).toContain('Время');
   });
 });
 

@@ -10,7 +10,7 @@ import {
 } from '../src/index.js';
 
 const base = kb();
-const BOM_INPUT: BomInput = { category: 'tshirt' };
+const BOM_INPUT: BomInput = { category: 'tshirt', fabric_kind: 'knit' };
 const bom = (input: BomInput = BOM_INPUT) => buildBom(input, base);
 
 describe('спецификация материалов', () => {
@@ -91,7 +91,7 @@ describe('предварительный расход', () => {
 
   it('больше базовой нормы: заложены раскладка и усадка', () => {
     expect(result.fabric_consumption_m.value).toBeGreaterThan(
-      base.consumptionFor('tshirt').consumption_m.default,
+      base.consumptionFor('tshirt', 'knit').consumption_m.default,
     );
   });
 

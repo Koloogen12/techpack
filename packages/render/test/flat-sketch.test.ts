@@ -429,3 +429,44 @@ describe('сторож сверяет дизайн-признаки по чек-
     ).toContain('hoodie');
   });
 });
+
+describe('тканое платье', () => {
+  const WOVEN = spec({ category: 'dress', fabric_kind: 'woven' });
+
+  it('промпт называет изделие тканым и требует вытачки, а не бейку', () => {
+    const p = buildSketchPrompt(WOVEN);
+    expect(p).toContain('woven dress');
+    expect(p).toContain('waist darts');
+    expect(p).toContain('inside facing');
+    expect(p).not.toContain('ribbed neckband');
+  });
+
+  it('трикотажное платье осталось трикотажным', () => {
+    const p = buildSketchPrompt(spec({ category: 'dress', fabric_kind: 'knit' }));
+    expect(p).toContain('knit dress');
+    expect(p).not.toContain('waist darts');
+  });
+
+  it('потайная молния не считается ни пропавшей, ни лишней', () => {
+    // С переда её не видно вовсе, на спинке взгляд честно назовёт её молнией.
+    const base = {
+      category: 'dress',
+      elements: { hood: false, pocket: 'none' as const, sleeve: 'long' as const },
+    };
+    expect(
+      sketchMismatch(WOVEN, { ...base, elements: { ...base.elements, closure: 'zip' } }),
+    ).toBeNull();
+    expect(
+      sketchMismatch(WOVEN, { ...base, elements: { ...base.elements, closure: 'none' } }),
+    ).toBeNull();
+  });
+
+  it('подмена изделия у тканого платья ловится по-прежнему', () => {
+    expect(
+      sketchMismatch(WOVEN, {
+        category: 'hoodie',
+        elements: { hood: true, closure: 'none', pocket: 'none', sleeve: 'long' },
+      }),
+    ).toContain('hoodie');
+  });
+});

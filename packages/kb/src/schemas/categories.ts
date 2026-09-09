@@ -38,6 +38,7 @@ export const GARMENT_CLASS_LABEL_RU: Record<GarmentClass, string> = {
 /** Класс материала верхнего уровня. Определяет допуски, градацию и набор узлов. */
 export const FabricKindSchema = z.enum(['knit', 'woven']);
 export type FabricKind = z.infer<typeof FabricKindSchema>;
+export const FABRIC_KINDS = FabricKindSchema.options;
 
 export interface CategoryEntry {
   /** Название на языках документа. */
@@ -62,6 +63,15 @@ export interface CategoryEntry {
    * описание с узлами, иначе она рисует усреднённую вещь категории.
    */
   visual: string;
+  /**
+   * То же для изделия из ткани, если оно у категории бывает.
+   *
+   * Нужно там, где полотно меняет саму вещь, а не только её ощупь: платье
+   * из ткани сидит по фигуре на вытачках и застёгивается на молнию, и
+   * назвать его модели «knit dress» значит получить рисунок трикотажного
+   * платья при тканой спецификации.
+   */
+  visual_woven?: string;
 }
 
 export const CATEGORY_REGISTRY = {
@@ -144,6 +154,8 @@ export const CATEGORY_REGISTRY = {
     class: 'whole',
     fabric: 'knit',
     visual: 'knit dress falling below the knee, set-in long sleeves',
+    visual_woven:
+      'woven dress falling below the knee, set-in long sleeves, shaped with waist darts and closed with a concealed back zip',
   },
 } as const satisfies Record<string, CategoryEntry>;
 
@@ -154,10 +166,9 @@ export const CATEGORIES = Object.keys(CATEGORY_REGISTRY) as readonly Category[];
 export const CategorySchema = z.enum(CATEGORIES as [Category, ...Category[]]);
 
 const field = <K extends keyof CategoryEntry>(key: K): Record<Category, CategoryEntry[K]> =>
-  Object.fromEntries(CATEGORIES.map((c) => [c, CATEGORY_REGISTRY[c][key]])) as Record<
-    Category,
-    CategoryEntry[K]
-  >;
+  Object.fromEntries(
+    CATEGORIES.map((c) => [c, (CATEGORY_REGISTRY[c] as CategoryEntry)[key]]),
+  ) as Record<Category, CategoryEntry[K]>;
 
 export const CATEGORY_LABEL_RU = field('ru');
 export const CATEGORY_LABEL_EN = field('en');
@@ -166,6 +177,17 @@ export const CATEGORY_GRAMMATICAL_GENDER = field('gender');
 export const CATEGORY_CLASS = field('class');
 export const CATEGORY_FABRIC = field('fabric');
 export const CATEGORY_VISUAL_EN = field('visual');
+
+/**
+ * Описание изделия для рисующей модели с учётом полотна.
+ *
+ * У категории без тканого исполнения вариант не заводится, и вопрос
+ * не возникает: футболка из ткани — уже не футболка, а блузка.
+ */
+export function categoryVisual(category: Category, fabric: FabricKind): string {
+  const entry = CATEGORY_REGISTRY[category] as CategoryEntry;
+  return fabric === 'woven' && entry.visual_woven ? entry.visual_woven : entry.visual;
+}
 
 export const GenderSchema = z.enum(['women', 'men']);
 export type Gender = z.infer<typeof GenderSchema>;

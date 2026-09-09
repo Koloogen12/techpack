@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SeamsterError } from '@seamster/core';
 import type { z } from 'zod';
@@ -83,6 +83,7 @@ import {
   type ProductStandard,
   type VisibilityMapFile,
   CATEGORIES,
+  FABRIC_KINDS,
   type FlatFitClass,
   CutPartsFileSchema,
   type CutPart,
@@ -93,6 +94,16 @@ const DATA_DIR = new URL('../data/', import.meta.url).pathname;
 
 /** Посадки от прилегающей к свободной. Порядок задаёт направление отката. */
 const FIT_ORDER: readonly FitIntent[] = ['fitted', 'semi_fitted', 'loose', 'oversize'];
+
+/**
+ * Необязательный справочник: нет файла — нет варианта, и это не ошибка.
+ *
+ * Битый файл, наоборот, ошибка: молча пропустить его значило бы собрать
+ * документ по базовому справочнику там, где для этого полотна заведён свой.
+ */
+function loadIfExists<T>(relativePath: string, schema: z.ZodType<T>): T | null {
+  return existsSync(join(DATA_DIR, relativePath)) ? loadFile(relativePath, schema) : null;
+}
 
 function loadFile<T>(relativePath: string, schema: z.ZodType<T>): T {
   const path = join(DATA_DIR, relativePath);
@@ -142,8 +153,8 @@ export class KnowledgeBase {
     private readonly sizes: SizeChartsFile,
     private readonly ease: EaseFile,
     private readonly grading: GradingFile,
-    private readonly pomTemplates: ReadonlyMap<Category, PomTemplateFile>,
-    private readonly categoryDefaults: ReadonlyMap<Category, CategoryDefaultsFile>,
+    private readonly pomTemplates: ReadonlyMap<string, PomTemplateFile>,
+    private readonly categoryDefaults: ReadonlyMap<string, CategoryDefaultsFile>,
     private readonly stitches: StitchCodesFile,
     private readonly seams: SeamCodesFile,
     private readonly cutParts: CutPartsFile,
@@ -164,16 +175,35 @@ export class KnowledgeBase {
   ) {}
 
   static load(): KnowledgeBase {
-    const pom = new Map<Category, PomTemplateFile>();
-    const defaults = new Map<Category, CategoryDefaultsFile>();
+    const pom = new Map<string, PomTemplateFile>();
+    const defaults = new Map<string, CategoryDefaultsFile>();
     // Категории добавляются по мере готовности шаблонов; гейт вне MVP —
     // в мастере, а не здесь: отсутствующий шаблон обязан падать явно.
+    //
+    // Рядом с базовым файлом может лежать вариант по полотну —
+    // `dress.woven.json`. Категория при этом остаётся одна: платье и из
+    // трикотажа, и из ткани — платье, а полотно уже давно сквозное измерение
+    // (по нему ветвятся прибавки и допуски). Плодить вторую категорию значило
+    // бы предложить человеку выбрать между «платьем» и «платьем» в анкете.
     for (const category of CATEGORIES) {
       pom.set(category, loadFile(`pom_templates/${category}.json`, PomTemplateFileSchema));
       defaults.set(
         category,
         loadFile(`category_defaults/${category}.json`, CategoryDefaultsFileSchema),
       );
+      for (const fabric of FABRIC_KINDS) {
+        const key = `${category}:${fabric}`;
+        const pomVariant = loadIfExists(
+          `pom_templates/${category}.${fabric}.json`,
+          PomTemplateFileSchema,
+        );
+        if (pomVariant) pom.set(key, pomVariant);
+        const defaultsVariant = loadIfExists(
+          `category_defaults/${category}.${fabric}.json`,
+          CategoryDefaultsFileSchema,
+        );
+        if (defaultsVariant) defaults.set(key, defaultsVariant);
+      }
     }
 
     return new KnowledgeBase(
@@ -205,7 +235,12 @@ export class KnowledgeBase {
 
   /** Категории, для которых есть шаблон точек измерения. */
   supportedCategories(): readonly Category[] {
-    return [...this.pomTemplates.keys()];
+    return CATEGORIES.filter((c) => this.pomTemplates.has(c));
+  }
+
+  /** Есть ли у категории собственный справочник под это полотно. */
+  hasFabricVariant(category: Category, fabric: FabricKind): boolean {
+    return this.pomTemplates.has(`${category}:${fabric}`);
   }
 
   toleranceClass(name: ToleranceClass): ToleranceClassEntry {
@@ -265,8 +300,24 @@ export class KnowledgeBase {
    * У трикотажной футболки и у худи в КНР разные стандарты; печатать один
    * на всё значит соврать в строке, которую ОТК читает первой.
    */
-  productStandardFor(market: MarketAcceptance, category: Category): ProductStandard | null {
-    return market.product_standards.find((s) => s.categories.includes(category)) ?? null;
+  /**
+   * Стандарт, по которому выпускается изделие на этом рынке.
+   *
+   * Полотно уточняет выбор: стандарт на трикотажную одежду для отдыха
+   * тканому платью не подходит. Не назван — берётся стандарт категории.
+   */
+  productStandardFor(
+    market: MarketAcceptance,
+    category: Category,
+    fabric?: FabricKind,
+  ): ProductStandard | null {
+    const applicable = market.product_standards.filter((s) => s.categories.includes(category));
+    return (
+      (fabric ? applicable.find((s) => s.fabric_kind === fabric) : undefined) ??
+      applicable.find((s) => !s.fabric_kind) ??
+      applicable[0] ??
+      null
+    );
   }
 
   /**
@@ -397,8 +448,17 @@ export class KnowledgeBase {
     return this.grading.chest_step;
   }
 
-  pomTemplate(category: Category): PomTemplateFile {
-    const found = this.pomTemplates.get(category);
+  /**
+   * Табель мер категории под это полотно.
+   *
+   * Полотно — обязательный аргумент, а не удобный необязательный: у тканого
+   * платья нет бейки горловины и есть застёжка, и молча отдать ему
+   * трикотажный табель значит напечатать фабрике замер детали, которой в
+   * изделии нет. Пока варианта под полотно не заведено, отдаётся базовый
+   * файл — это честно: он и описывает единственное известное исполнение.
+   */
+  pomTemplate(category: Category, fabric: FabricKind): PomTemplateFile {
+    const found = this.pomTemplates.get(`${category}:${fabric}`) ?? this.pomTemplates.get(category);
     if (!found) {
       throw new SeamsterError('CATEGORY_UNSUPPORTED', `нет шаблона POM для ${category}`, {
         userMessage: 'Для этой категории мы пока не делаем техпаки.',
@@ -411,8 +471,17 @@ export class KnowledgeBase {
 
   // ---------------------------------------------------------------- конструкция
 
-  categoryDefaultsFor(category: Category): CategoryDefaultsFile {
-    const found = this.categoryDefaults.get(category);
+  /**
+   * Узлы, материалы и техпоследовательность категории под это полотно.
+   *
+   * Полотно обязательно по той же причине, что и у табеля: тканое платье
+   * собирается стачным швом, вытачками и обтачкой, а трикотажное — оверлоком
+   * и распошивом. Отдать одно вместо другого значит выдать фабрике
+   * несуществующую технологию.
+   */
+  categoryDefaultsFor(category: Category, fabric: FabricKind): CategoryDefaultsFile {
+    const found =
+      this.categoryDefaults.get(`${category}:${fabric}`) ?? this.categoryDefaults.get(category);
     if (!found) {
       throw new SeamsterError('CATEGORY_UNSUPPORTED', `нет дефолтов для ${category}`, {
         userMessage: 'Для этой категории мы пока не делаем техпаки.',
@@ -506,8 +575,17 @@ export class KnowledgeBase {
     return this.materialsFile.materials.filter((m) => m.applications.includes(category));
   }
 
-  consumptionFor(category: Category): ConsumptionFormula {
-    const found = this.consumption.formulas.find((f) => f.category === category);
+  /**
+   * Предварительная норма расхода полотна.
+   *
+   * Норма под конкретное полотно сильнее общей: у тканого платья другие
+   * межлекальные выпады и нет поставки чулком. Нет своей — берётся общая
+   * запись категории.
+   */
+  consumptionFor(category: Category, fabric: FabricKind): ConsumptionFormula {
+    const formulas = this.consumption.formulas.filter((f) => f.category === category);
+    const found =
+      formulas.find((f) => f.fabric_kind === fabric) ?? formulas.find((f) => !f.fabric_kind);
     if (!found) throw new Error(`нет нормы расхода для категории: ${category}`);
     return found;
   }

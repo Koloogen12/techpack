@@ -87,7 +87,7 @@ describe('промпт', () => {
   });
 
   it('перечисляет все точки измерения, кроме якоря', () => {
-    const template = base.pomTemplate('tshirt');
+    const template = base.pomTemplate('tshirt', 'knit');
     for (const p of template.points) {
       if (p.derivation === 'anchor') continue;
       expect(system).toContain(p.code);

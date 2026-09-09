@@ -201,6 +201,36 @@
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Состав деталей выведен из узлов категории. Подтвердить на первой раскладке."
+    },
+    {
+      "id": "neck_facing_front",
+      "name_ru": "Обтачка горловины переда",
+      "name_en": "Front neck facing",
+      "name_zh": "前领贴边",
+      "role": "shell",
+      "qty": 1,
+      "on_fold": true,
+      "grain": "length",
+      "requires_node": "neck_facing",
+      "note_ru": "Дублируется клеевой прокладкой; в раскладке лежит половина детали.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Деталь заведена по разделу «Платье (ткань, base)» базы знаний (04 §6): горловина обрабатывается обтачкой с клеевой прокладкой. Число деталей и ширина подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "neck_facing_back",
+      "name_ru": "Обтачка горловины спинки",
+      "name_en": "Back neck facing",
+      "name_zh": "后领贴边",
+      "role": "shell",
+      "qty": 2,
+      "on_fold": false,
+      "grain": "length",
+      "requires_node": "neck_facing",
+      "note_ru": "Две детали: спинка разрезана средним швом под потайную молнию, и обтачка повторяет разрез.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Деталь заведена по разделу «Платье (ткань, base)» базы знаний (04 §6): горловина обрабатывается обтачкой с клеевой прокладкой. Число деталей и ширина подтверждаются лекалами первого отшива."
     }
   ]
 }

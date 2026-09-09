@@ -191,7 +191,7 @@ const REFERENCE_CHEST_HALF = 46;
 
 export function buildMeasurements(input: PomInput, base: KnowledgeBase = defaultKb()): PomResult {
   const notes: string[] = [];
-  const template = base.pomTemplate(input.category);
+  const template = base.pomTemplate(input.category, input.fabric_kind);
 
   const duplicates = input.size_range.filter((ru, i) => input.size_range.indexOf(ru) !== i);
   if (duplicates.length) {

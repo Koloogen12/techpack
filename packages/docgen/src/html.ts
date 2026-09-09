@@ -1330,7 +1330,7 @@ const RU_ONLY_TITLE = 'Issued in Russian only / 仅提供俄文';
  */
 function gradingPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
   const base = kb();
-  const template = base.pomTemplate(spec.style.category);
+  const template = base.pomTemplate(spec.style.category, spec.base.fabric_kind);
   const ruleOf = new Map(template.points.map((p) => [p.code, p.grading_key]));
 
   const sorted = [...spec.base.size_range].sort((a, b) => a - b);
@@ -1423,7 +1423,9 @@ function gradingPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale
   // 执行标准 и принимает партию по AQL. Отсылка «нормы по-русски» на её
   // листе — это пустое место там, где ОТК ищет первое, что читает.
   const market = locale === 'ru' ? null : base.marketFor(locale);
-  const standard = market ? base.productStandardFor(market, spec.style.category as Category) : null;
+  const standard = market
+    ? base.productStandardFor(market, spec.style.category as Category, spec.base.fabric_kind)
+    : null;
   // В чужом комплекте от пробела остаётся только флаг: объяснение написано
   // по-русски и адресовано нам, а не фабрике. Русский абзац в китайском
   // паке — это строка, которую там никто не прочтёт.

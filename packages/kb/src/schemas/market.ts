@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   CategorySchema,
+  FabricKindSchema,
   RefBookMetaSchema,
   VerifiabilitySchema,
   verifiabilityRefinement,
@@ -41,6 +42,14 @@ export const ProductStandardSchema = z
     text_local: z.string().min(1),
     text_ru: z.string().min(1),
     categories: z.array(CategorySchema).min(1),
+    /**
+     * Полотно, если стандарт им ограничен. Пусто — стандарт на всю категорию.
+     *
+     * Разделение не формальность: стандарт на трикотажную одежду для отдыха
+     * тканому платью не подходит, и напечатать его номер на техпаке значит
+     * отправить фабрику выпускать партию не по тому нормативу.
+     */
+    fabric_kind: FabricKindSchema.optional(),
   })
   .and(VerifiabilitySchema)
   .superRefine(verifiabilityRefinement);

@@ -258,7 +258,7 @@ describe('печатный бланк', () => {
 
   it('у каждой точки написано, как её мерить', () => {
     const html = renderMeasurementForm({ category: 'hoodie' }, base);
-    for (const p of base.pomTemplate('hoodie').points) {
+    for (const p of base.pomTemplate('hoodie', 'knit').points) {
       expect(html, p.code).toContain(p.how_to_measure_ru);
     }
   });

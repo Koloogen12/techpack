@@ -30,7 +30,7 @@ export function editMeasurement(
   valueCm: number,
   base: KnowledgeBase = defaultKb(),
 ): EditResult {
-  const template = base.pomTemplate(spec.style.category);
+  const template = base.pomTemplate(spec.style.category, spec.base.fabric_kind);
   const entry = template.points.find((p) => p.code === code);
   const point = spec.measurements.points.find((p) => p.code === code);
 

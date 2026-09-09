@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kb } from '../src/index.js';
+import { CATEGORY_FABRIC, kb } from '../src/index.js';
 
 const base = kb();
 
@@ -33,19 +33,19 @@ describe('материалы', () => {
 
 describe('расход полотна', () => {
   it('худи расходует больше футболки — иначе перепутаны категории', () => {
-    expect(base.consumptionFor('hoodie').consumption_m.default).toBeGreaterThan(
-      base.consumptionFor('tshirt').consumption_m.default,
+    expect(base.consumptionFor('hoodie', 'knit').consumption_m.default).toBeGreaterThan(
+      base.consumptionFor('tshirt', 'knit').consumption_m.default,
     );
   });
 
   it('чулок экономичнее рулона', () => {
-    const tee = base.consumptionFor('tshirt');
+    const tee = base.consumptionFor('tshirt', 'knit');
     expect(tee.tube_consumption_m!.default).toBeLessThan(tee.consumption_m.default);
   });
 
   it('всегда несёт оговорку про раскладку — иначе фабрика примет оценку за расчёт', () => {
     for (const c of ['tshirt', 'hoodie'] as const) {
-      expect(base.consumptionFor(c).gap).toContain('раскладке');
+      expect(base.consumptionFor(c, CATEGORY_FABRIC[c]).gap).toContain('раскладке');
     }
   });
 });

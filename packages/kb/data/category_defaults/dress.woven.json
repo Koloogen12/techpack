@@ -1,0 +1,181 @@
+{
+  "id": "category_defaults/dress.woven",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты ТКАНОГО платья. От трикотажного отличается не отделкой, а способом сборки: ткань не тянется, поэтому посадка держится на вытачках, надевание — на потайной молнии в среднем шве спинки, горловина обработана обтачкой вместо бейки, а срезы обмётываются отдельным проходом, потому что ткань осыпается. Рибаны в изделии нет вовсе.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
+    "knowledge-base/05-materialy-bom.md#1.2"
+  ],
+  "category": "dress",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "dart_waist",
+    "shoulder_seam_plain",
+    "side_seam_plain",
+    "edge_finish_overlock",
+    "neck_facing",
+    "invisible_zip_back",
+    "sleeve_set_in_woven",
+    "sleeve_hem_topstitch",
+    "hem_blind",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "viscose_challis",
+    "rib": null,
+    "threads": ["thread_40_2"],
+    "interlinings": ["fusible_nonwoven"],
+    "hardware": ["zipper_invisible"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать обтачки горловины клеевой прокладкой",
+      "operation_en": "Fuse the neck facings with interlining",
+      "operation_zh": "领口贴边粘衬",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Стачать вытачки на переде и спинке, заутюжить",
+      "operation_en": "Stitch front and back waist darts, press",
+      "operation_zh": "缝合前后片腰省并烫倒",
+      "node_id": "dart_waist",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Обметать открытые срезы деталей",
+      "operation_en": "Neaten the raw edges of the panels",
+      "operation_zh": "锁边处理裁片毛边",
+      "node_id": "edge_finish_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Стачать средний шов спинки, оставив участок под застёжку",
+      "operation_en": "Join the centre back seam, leaving the opening for the zip",
+      "operation_zh": "缝合后中缝,留出装拉链开口",
+      "node_id": null,
+      "specialty": "M",
+      "machine": "single_needle_lockstitch",
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать потайную молнию в средний шов спинки",
+      "operation_en": "Set the concealed zip into the centre back seam",
+      "operation_zh": "后中缝装隐形拉链",
+      "node_id": "invisible_zip_back",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Стачать плечевые швы, разутюжить",
+      "operation_en": "Join the shoulder seams, press open",
+      "operation_zh": "缝合肩缝并分烫",
+      "node_id": "shoulder_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Стачать обтачки горловины по плечевым швам",
+      "operation_en": "Join the neck facings at the shoulder seams",
+      "operation_zh": "领口贴边在肩缝处拼接",
+      "node_id": null,
+      "specialty": "M",
+      "machine": "single_needle_lockstitch",
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Обработать горловину обтачкой, вложить размерник, отвернуть и закрепить",
+      "operation_en": "Finish the neckline with the facing, insert the size label, turn and secure",
+      "operation_zh": "用贴边处理领口,夹入尺码标,翻烫固定",
+      "node_id": "neck_facing",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Втачать рукава с посадкой по окату",
+      "operation_en": "Set in the sleeves, easing the sleeve head",
+      "operation_zh": "绱袖并处理袖山吃势",
+      "node_id": "sleeve_set_in_woven",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Стачать боковые швы и швы рукавов, разутюжить",
+      "operation_en": "Join the side and underarm seams, press open",
+      "operation_zh": "缝合侧缝与袖底缝并分烫",
+      "node_id": "side_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Подшить низ рукавов с отстрочкой",
+      "operation_en": "Hem the sleeves with a topstitch",
+      "operation_zh": "袖口折边缉明线",
+      "node_id": "sleeve_hem_topstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Подшить низ изделия потайной строчкой",
+      "operation_en": "Blind-stitch the bottom hem",
+      "operation_zh": "下摆暗缝",
+      "node_id": "hem_blind",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach the care label to the side seam",
+      "operation_zh": "侧缝装成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Окончательная влажно-тепловая обработка",
+      "operation_en": "Final pressing",
+      "operation_zh": "整烫",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Набор узлов и последовательность собраны по разделу «Платье (ткань, base)» базы знаний (04 §6) и таблицам узлов §3. Нормы времени на операцию в базе знаний отсутствуют — колонка оставлена пустой намеренно: проставить её можно только по данным конкретного цеха. Тканое платье у нас первое изделие из ткани, и последовательность не проверена ни одним отшивом: подтвердить у технолога фабрики-партнёра до первой партии (RAT-1).",
+  "translation_verified": false,
+  "translation_gap": "переводы техпоследовательности сделаны нами и не проверены технологом-носителем языка"
+}

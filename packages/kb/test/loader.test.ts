@@ -115,14 +115,14 @@ describe('градация', () => {
   });
 
   it('каждая точка шаблона ссылается на существующее правило', () => {
-    for (const point of base.pomTemplate('tshirt').points) {
+    for (const point of base.pomTemplate('tshirt', 'knit').points) {
       expect(() => base.gradingRule(point.grading_key)).not.toThrow();
     }
   });
 });
 
 describe('шаблон точек измерения футболки', () => {
-  const tpl = base.pomTemplate('tshirt');
+  const tpl = base.pomTemplate('tshirt', 'knit');
 
   it('содержит 18 точек и ровно один якорь масштаба', () => {
     expect(tpl.points).toHaveLength(18);

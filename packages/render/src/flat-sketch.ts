@@ -1,5 +1,5 @@
 import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
-import { CATEGORY_CLASS, CATEGORY_VISUAL_EN, type Category } from '@seamster/kb';
+import { CATEGORY_CLASS, categoryVisual, type Category } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
 import { generateImage, isImagesApiModel, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
@@ -23,7 +23,7 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * и отвечает на то, чего не видно ни на одном из них: насколько глубок
  * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v6';
+export const SKETCH_PROMPT_VERSION = 'v7';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -44,6 +44,16 @@ const NODE_ENGLISH: Record<string, string> = {
   polo_collar: 'a ribbed polo collar',
   shoulder_seam_overlock: 'dropped shoulder seams',
   sleeve_set_in: 'set-in sleeves hanging straight down along the body',
+  // Ткань. Вытачки и обтачка — не отделка, а то, чем держится посадка:
+  // без них рисунок тканого платья читается как трикотажный мешок.
+  dart_waist: 'waist darts on the front and back, drawn as fine triangles with the point upward',
+  neck_facing: 'a plain neckline finished with an inside facing, no visible band',
+  invisible_zip_back:
+    'a concealed zip in the centre back seam, drawn on the back view as a single line with no visible teeth',
+  sleeve_set_in_woven: 'set-in sleeves with a slightly eased sleeve head',
+  sleeve_hem_topstitch: 'sleeve hems turned and topstitched with a single line',
+  hem_topstitch_lockstitch: 'a plain turned hem with a single topstitch line',
+  hem_blind: 'a plain turned hem with no visible stitching on the face',
 };
 
 /**
@@ -67,6 +77,11 @@ const NODE_SIDE_ENGLISH: Record<string, string> = {
   sleeve_set_in: 'the armhole seam where the sleeve joins the body',
   side_sleeve_seam: 'one continuous seam running from the underarm down the side of the body',
   zip_full_length: 'the front zipper edge',
+  side_seam_plain: 'the side seam running from the underarm down to the hem',
+  sleeve_set_in_woven: 'the armhole seam where the sleeve joins the body',
+  neck_facing: 'the clean neckline edge without any band',
+  hem_topstitch_lockstitch: 'the turned hem at the bottom edge',
+  hem_blind: 'the turned hem at the bottom edge',
 };
 
 const FIT_ENGLISH: Record<string, string> = {
@@ -107,7 +122,7 @@ const DESIGN_ZONE_EN: Record<NonNullable<StyleSpec['design']>['features'][number
 
 export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions = {}): string {
   const category = spec.style.category as Category;
-  const garment = CATEGORY_VISUAL_EN[category] ?? 'knitted top';
+  const garment = categoryVisual(category, spec.base.fabric_kind);
   const fit = FIT_ENGLISH[spec.base.fit_intent] ?? 'regular';
 
   const nodes = spec.construction?.nodes ?? [];
@@ -492,9 +507,15 @@ export function sketchMismatch(spec: StyleSpec, seen: SketchSeen): string | null
   if (wantHood !== seen.elements.hood)
     return wantHood ? 'на эскизе нет капюшона' : 'на эскизе лишний капюшон';
 
+  // Потайная застёжка проверке не поддаётся ни в одну сторону: с переда её
+  // не видно вовсе, а на спинке взгляд честно назовёт её молнией. Требовать
+  // её на рисунке значит браковать верные листы, а считать лишней —
+  // браковать те, где она нарисована правильно.
+  const concealed = has('invisible_zip_back');
   const wantZip = has('zip_full_length');
   const seenZip = seen.elements.closure === 'zip';
-  if (wantZip !== seenZip) return wantZip ? 'на эскизе нет молнии' : 'на эскизе лишняя застёжка';
+  if (!concealed && wantZip !== seenZip)
+    return wantZip ? 'на эскизе нет молнии' : 'на эскизе лишняя застёжка';
 
   const wantPocket = has('kangaroo_pocket', 'patch_pocket');
   const seenPocket = seen.elements.pocket !== 'none';

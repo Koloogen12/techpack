@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   CategorySchema,
+  FabricKindSchema,
   RangeSchema,
   RefBookMetaSchema,
   VerifiabilitySchema,
@@ -114,6 +115,14 @@ export const MaterialsFileSchema = RefBookMetaSchema.extend({
 export const ConsumptionFormulaSchema = z
   .object({
     category: CategorySchema,
+    /**
+     * Полотно, если норма от него зависит. Пусто — норма общая для категории.
+     *
+     * У тканого платья расход другой не на проценты: криволинейные детали
+     * юбки дают 12–15 % межлекальных выпадов против 3–5 % у трикотажного
+     * верха, и полотном в чулке ткань не поставляется вовсе.
+     */
+    fabric_kind: FabricKindSchema.optional(),
     /** Ширина полотна в рулоне, см. */
     fabric_width_cm: WithDefault,
     /** Расход на изделие размера M, погонных метров. */

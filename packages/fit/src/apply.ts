@@ -60,7 +60,7 @@ export function applyFitting(
   const rejected: RejectedPoint[] = [];
   const notes: string[] = [];
 
-  const template = base.pomTemplate(spec.style.category);
+  const template = base.pomTemplate(spec.style.category, spec.base.fabric_kind);
   const byCode = new Map(template.points.map((p) => [p.code, p]));
   const measuredBy = new Map(measured.values.map((v) => [v.code, effectiveValue(v)]));
 

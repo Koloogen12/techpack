@@ -52,6 +52,7 @@ export function buildStyleSpec(
   input: StyleSpecInput,
   base: KnowledgeBase = defaultKb(),
 ): StyleSpecResult {
+  const categoryDefaults = base.categoryDefaultsFor(input.category, input.fabric_kind);
   const { measurements, notes } = buildMeasurements(input, base);
   const construction = buildConstruction(input, base);
   notes.push(...construction.notes);
@@ -149,7 +150,7 @@ export function buildStyleSpec(
       ...(input.vision_cache_key === undefined ? {} : { vision_cache_key: input.vision_cache_key }),
       kb_versions: {
         [measurements.template_id]: measurements.template_version,
-        [`category_defaults/${input.category}`]: base.categoryDefaultsFor(input.category).version,
+        [categoryDefaults.id]: categoryDefaults.version,
       },
       assumptions_count:
         countMeasurementAssumptions(measurements) +

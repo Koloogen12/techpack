@@ -1,9 +1,4 @@
-import {
-  CATEGORY_VISUAL_EN,
-  kb as defaultKb,
-  type Category,
-  type KnowledgeBase,
-} from '@seamster/kb';
+import { categoryVisual, kb as defaultKb, type Category, type KnowledgeBase } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
 
 /**
@@ -17,7 +12,7 @@ import type { StyleSpec } from '@seamster/stylespec';
  * Версия входит в ключ кэша: правка текста ниже меняет ключ и требует
  * пересборки визуализаций.
  */
-export const RENDER_PROMPT_VERSION = 'v1';
+export const RENDER_PROMPT_VERSION = 'v2';
 
 const FIT_ENGLISH: Record<string, string> = {
   fitted: 'close-fitting, following the body with minimal ease',
@@ -34,6 +29,11 @@ const FABRIC_ENGLISH: Record<string, string> = {
   french_terry_2t: 'mid-weight french terry with a smooth face and looped back',
   french_terry_3t: 'heavy brushed-back fleece with a soft dense hand',
   pique: 'cotton pique with a fine honeycomb texture',
+  // Тканые полотна. Отличие от трикотажа читается на снимке сразу: ткань
+  // держит форму складкой и мнётся, трикотаж ложится мягкой волной.
+  viscose_challis: 'fluid viscose challis, a light plain-weave fabric with soft falling drape',
+  poplin_cotton: 'crisp cotton poplin, a smooth plain-weave fabric that holds a pressed edge',
+  linen_blend: 'natural linen, a plain-weave fabric with a slubby texture that creases visibly',
 };
 
 /** Узлы, которые видно на готовом изделии и которые стоит назвать. */
@@ -49,6 +49,12 @@ const NODE_ENGLISH: Record<string, string> = {
   hood_drawcord_casing: 'a drawcord casing along the hood opening with cord ends hanging',
   hood_eyelets: 'small metal eyelets at the drawcord exits',
   kangaroo_pocket: 'a kangaroo pocket across the lower front with angled hand openings',
+  dart_waist: 'waist darts shaping the front and back',
+  neck_facing: 'a clean neckline finished with an inside facing, without any visible band',
+  invisible_zip_back: 'a concealed zip in the centre back seam, invisible from the front',
+  sleeve_hem_topstitch: 'sleeve hems turned and topstitched',
+  hem_topstitch_lockstitch: 'a plain turned hem with a single topstitch line',
+  hem_blind: 'a plain turned hem with no stitching visible on the face',
 };
 
 export interface RenderPromptOptions {
@@ -127,7 +133,7 @@ export function buildRenderPrompt(
         `${length / chest > 1.45 ? 'a long, lean shape' : length / chest > 1.25 ? 'a balanced shape' : 'a short, boxy shape'}.`
       : '';
 
-  const garment = CATEGORY_VISUAL_EN[category] ?? 'knitted top';
+  const garment = categoryVisual(category, spec.base.fabric_kind);
 
   // Масштаб мотива задаётся ОТНОШЕНИЕМ к ширине груди, а не сантиметрами:
   // модель не знает, сколько на её картинке сантиметров, но прекрасно

@@ -7,7 +7,7 @@ import {
 } from '../src/index.js';
 
 const base = kb();
-const INPUT: ConstructionInput = { category: 'tshirt' };
+const INPUT: ConstructionInput = { category: 'tshirt', fabric_kind: 'knit' };
 
 const build = (input: ConstructionInput = INPUT) => buildConstruction(input, base);
 const node = (id: string, input?: ConstructionInput) => {
@@ -19,7 +19,7 @@ const node = (id: string, input?: ConstructionInput) => {
 describe('набор узлов категории', () => {
   it('собирается из категорийных дефолтов', () => {
     expect(build().nodes.map((n) => n.node_id)).toEqual(
-      base.categoryDefaultsFor('tshirt').default_nodes,
+      base.categoryDefaultsFor('tshirt', 'knit').default_nodes,
     );
   });
 

@@ -2,7 +2,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { SeamsterError, silentLogger, type CostLedger, type Logger } from '@seamster/core';
-import { kb as defaultKb, type Category, type KnowledgeBase, type PhotoView } from '@seamster/kb';
+import {
+  CATEGORY_FABRIC,
+  kb as defaultKb,
+  type Category,
+  type FabricKind,
+  type KnowledgeBase,
+  type PhotoView,
+} from '@seamster/kb';
 import { MemoryVisionCache, cacheKey, hashPhoto, type VisionCache } from './cache.js';
 import {
   PROMPT_VERSION,
@@ -52,6 +59,13 @@ export interface AnalyzeOptions {
    * ответов, поэтому её смена меняет и ключ кэша.
    */
   category: Category;
+  /**
+   * Полотно, заявленное в анкете. У тканого изделия свой табель мер, и
+   * спрашивать модель надо про его точки: у тканого платья нет бейки
+   * горловины, зато есть застёжка. Ответ модели заявление не связывает —
+   * она может увидеть ткань там, где указан трикотаж, и скажет об этом.
+   */
+  fabric?: FabricKind;
   /** Отпечаток ответов мастера. Входит в ключ кэша. */
   answersFingerprint: string;
   model?: string;
@@ -115,12 +129,16 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
     );
   }
 
+  // Полотно из анкеты: у тканого изделия свой табель, значит и свой промпт.
+  // В ключ кэша оно входит через отпечаток промпта, отдельной строкой не идёт.
+  const fabric: FabricKind = options.fabric ?? CATEGORY_FABRIC[category];
+
   const key = cacheKey({
     photoHashes: photos.map((p) => hashPhoto(p.bytes)),
     views: photos.map((p) => p.view),
     category,
     answersFingerprint,
-    promptFingerprint: promptFingerprint(base, category),
+    promptFingerprint: promptFingerprint(base, category, fabric),
     model,
   });
 
@@ -147,7 +165,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   // Схема уходит в промпт, ответ разбирается и проверяется тем же zod:
   // мусор не пройдёт, он упадёт здесь, а не на фабрике.
   if (process.env.SEAMSTER_VISION_BASE_URL) {
-    const report = await analyzeViaProxy(client, model, photos, category, base, logger);
+    const report = await analyzeViaProxy(client, model, photos, category, fabric, base, logger);
     const proxyMs = Math.round(performance.now() - startedAt);
     cache.set(key, report);
     ledger?.record({ stage: 'vision', model, inputTokens: 0, outputTokens: 0, ms: proxyMs });
@@ -162,7 +180,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   const system = [
     {
       type: 'text' as const,
-      text: buildSystemPrompt(base, category),
+      text: buildSystemPrompt(base, category, fabric),
       cache_control: { type: 'ephemeral' as const },
     },
   ];
@@ -265,6 +283,7 @@ async function analyzeViaProxy(
   model: string,
   photos: readonly Photo[],
   category: Category,
+  fabric: FabricKind,
   base: KnowledgeBase,
   logger: Logger,
 ): Promise<VisionReport> {
@@ -278,7 +297,7 @@ async function analyzeViaProxy(
     const response = await client.messages.create({
       model,
       max_tokens: 16_000,
-      system: buildSystemPrompt(base, category),
+      system: buildSystemPrompt(base, category, fabric),
       messages: [
         {
           role: 'user',

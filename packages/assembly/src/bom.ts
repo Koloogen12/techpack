@@ -6,6 +6,7 @@ import {
   type KnowledgeBase,
   type Material,
   type MaterialRole,
+  type FabricKind,
 } from '@seamster/kb';
 import type { PhotoConfidence } from './pom.js';
 
@@ -36,6 +37,8 @@ import type { Colorway } from '@seamster/stylespec';
 
 export interface BomInput {
   category: Category;
+  /** Полотно: у тканого изделия свой состав спецификации и своя фурнитура. */
+  fabric_kind: FabricKind;
   /** Класс полотна, опознанный по фактуре. Пусто — берётся типовой для категории. */
   fabric_class?: string;
   fabric_confidence?: PhotoConfidence;
@@ -89,7 +92,7 @@ const DEFAULT_COLORWAY: Colorway = { id: 'main', name_ru: 'Основной' };
 
 export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): BomResult {
   const notes: string[] = [];
-  const defaults = base.categoryDefaultsFor(input.category).default_materials;
+  const defaults = base.categoryDefaultsFor(input.category, input.fabric_kind).default_materials;
   const colorways = input.colorways?.length ? [...input.colorways] : [DEFAULT_COLORWAY];
 
   const dupIds = colorways.map((c) => c.id).filter((id, i, all) => all.indexOf(id) !== i);
@@ -133,7 +136,7 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
   });
 
   // --- Предварительный расход -------------------------------------------------
-  const formula = base.consumptionFor(input.category);
+  const formula = base.consumptionFor(input.category, input.fabric_kind);
   const withWaste =
     formula.consumption_m.default *
     (1 + formula.marker_waste_percent.default / 100) *

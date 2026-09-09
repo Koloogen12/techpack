@@ -241,6 +241,9 @@ export const NODE_ZONES = [
   'shoulders',
   'sleeves',
   'sides',
+  // Формообразующие швы: вытачки, рельефы. У трикотажа их нет — он тянется
+  // и садится по фигуре сам; у ткани посадка держится именно на них.
+  'darts',
   'hem',
   'pockets',
   'closure',
@@ -256,6 +259,7 @@ export const ZONE_LABEL_EN: Record<NodeZone, string> = {
   shoulders: 'shoulder seams',
   sleeves: 'sleeves',
   sides: 'side seams',
+  darts: 'darts',
   hem: 'hem',
   pockets: 'pockets',
   closure: 'closure',
@@ -269,6 +273,7 @@ export const ZONE_LABEL_ZH: Record<NodeZone, string> = {
   shoulders: '肩缝',
   sleeves: '袖子',
   sides: '侧缝',
+  darts: '省道',
   hem: '下摆',
   pockets: '口袋',
   closure: '门襟',
@@ -282,6 +287,7 @@ export const ZONE_LABEL_RU: Record<NodeZone, string> = {
   shoulders: 'плечевые швы',
   sleeves: 'рукава',
   sides: 'боковые швы',
+  darts: 'вытачки',
   hem: 'низ изделия',
   pockets: 'карманы',
   closure: 'застёжка',

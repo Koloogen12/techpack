@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import {
   CATEGORIES,
+  CATEGORY_FABRIC,
   CATEGORY_LABEL_RU,
   type Category,
+  type FabricKind,
   type KnowledgeBase,
   type PhotoView,
 } from '@seamster/kb';
@@ -27,18 +29,26 @@ export const PROMPT_VERSION = 'v4';
  * целиком — фотографии идут после него.
  */
 /** Отпечаток промпта категории — им кэш отличает «промпт изменился» от «нет». */
-export function promptFingerprint(base: KnowledgeBase, category: Category): string {
+export function promptFingerprint(
+  base: KnowledgeBase,
+  category: Category,
+  fabric: FabricKind = CATEGORY_FABRIC[category],
+): string {
   return createHash('sha256')
-    .update(`${PROMPT_VERSION}\n${buildSystemPrompt(base, category)}`)
+    .update(`${PROMPT_VERSION}\n${buildSystemPrompt(base, category, fabric)}`)
     .digest('hex')
     .slice(0, 16);
 }
 
-export function buildSystemPrompt(base: KnowledgeBase, category: Category): string {
+export function buildSystemPrompt(
+  base: KnowledgeBase,
+  category: Category,
+  fabric: FabricKind = CATEGORY_FABRIC[category],
+): string {
   // Шаблон берётся по ЗАЯВЛЕННОЙ пользователем категории. Раньше здесь стояла
   // футболка для любого изделия: модель получала список её точек и разбирала
   // худи не теми ориентирами — капюшон и карман просто не спрашивались.
-  const template = base.pomTemplate(category);
+  const template = base.pomTemplate(category, fabric);
   const map = base.visibilityMap();
 
   const anchor = template.points.find((p) => p.derivation === 'anchor');
