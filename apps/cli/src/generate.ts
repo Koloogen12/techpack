@@ -51,15 +51,17 @@ import {
 import {
   FileRenderCache,
   flatSketch,
-  sketchFileName,
-  sketchMismatch,
-  visualize,
   garmentMask,
-  sheetBoxes,
-  sketchModels,
   type ReferenceImage,
   type SheetBox,
+  sheetBoxes,
   type SheetView,
+  sketchChecklist,
+  sketchFeatureDoubts,
+  sketchFileName,
+  sketchMismatch,
+  sketchModels,
+  visualize,
 } from '@seamster/render';
 import { readSwatch } from '@seamster/pattern';
 import type { Locale } from '@seamster/i18n';
@@ -686,7 +688,7 @@ async function drawSketch(
     cacheDir?: string;
     nonce?: string;
   },
-): Promise<{ checked: Awaited<ReturnType<typeof flatSketch>>; note: string }> {
+): Promise<{ checked: Awaited<ReturnType<typeof flatSketch>>; note: string; doubts: string[] }> {
   const reasons: string[] = [];
   let last: Awaited<ReturnType<typeof flatSketch>> = {
     ok: false,
@@ -710,16 +712,11 @@ async function drawSketch(
       if (input.offline) break;
       continue;
     }
-    const checked = await checkSketch(
-      spec,
-      sketch,
-      {
-        ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
-        ...(input.logger ? { logger: input.logger } : {}),
-      },
-      [],
-    );
-    if (checked.ok) return { checked, note: '' };
+    const { checked, doubts } = await checkSketch(spec, sketch, {
+      ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
+      ...(input.logger ? { logger: input.logger } : {}),
+    });
+    if (checked.ok) return { checked, note: '', doubts };
     last = checked;
     reasons.push(`${model} — ${checked.userMessage}`);
     input.logger?.warn('эскиз: лист не принят, пробуем следующую модель', { model });
@@ -727,6 +724,7 @@ async function drawSketch(
   return {
     checked: last,
     note: `Технический эскиз: ${reasons.join('; ')}. Лист чертежа собран на библиотечном силуэте.`,
+    doubts: [],
   };
 }
 
@@ -749,30 +747,45 @@ async function checkSketch(
   spec: StyleSpec,
   sketch: Awaited<ReturnType<typeof flatSketch>>,
   options: Pick<GenerateOptions, 'cacheDir' | 'logger'>,
-  notes: string[],
-): Promise<Awaited<ReturnType<typeof flatSketch>>> {
-  if (!sketch.ok) return sketch;
+): Promise<{ checked: Awaited<ReturnType<typeof flatSketch>>; doubts: string[] }> {
+  if (!sketch.ok) return { checked: sketch, doubts: [] };
   try {
-    const { look } = await quickLook({
+    // Дизайн-признаки сверяются чек-листом в том же взгляде: свободное
+    // описание рисунка со спекой словами не сойдётся, а по списку взгляд
+    // отвечает «есть / нет / не разобрать» по каждому пункту.
+    const checklist = sketchChecklist(spec).map(({ id, en }) => ({ id, en }));
+    const { look, checklist: answers } = await quickLook({
       photo: { bytes: sketch.bytes, format: sketch.mediaType === 'image/png' ? 'png' : 'jpeg' },
       cacheDir: join(options.cacheDir ?? '.cache/vision', 'sketch'),
+      ...(checklist.length ? { checklist } : {}),
     });
-    const why = sketchMismatch(spec, {
+    const seen = {
       category: look.category.value,
       elements: look.elements,
-    });
-    if (!why) return sketch;
+      ...(answers ? { features: answers } : {}),
+    };
+    const why = sketchMismatch(spec, seen);
+    if (!why) {
+      const doubts = sketchFeatureDoubts(spec, seen);
+      if (doubts.length)
+        options.logger?.warn('эскиз: не все признаки найдены на листе', {
+          doubts: doubts.join('; '),
+        });
+      return { checked: sketch, doubts };
+    }
     options.logger?.warn('эскиз: не сошёлся со спекой', { why });
-    notes.push(`${CONFLICT_PREFIX.sketch} ${why}. Лист чертежа собран на библиотечном силуэте.`);
     return {
-      ok: false,
-      reason: 'mismatch',
-      userMessage: `Эскиз не сошёлся со спецификацией: ${why}.`,
+      checked: {
+        ok: false,
+        reason: 'mismatch',
+        userMessage: `Эскиз не сошёлся со спецификацией: ${why}.`,
+      },
+      doubts: [],
     };
   } catch {
     // Сторож не смог посмотреть — это не повод отказывать рисунку.
     // Иначе сбой стороннего сервиса роняет то, что уже нарисовано верно.
-    return sketch;
+    return { checked: sketch, doubts: [] };
   }
 }
 
@@ -1126,6 +1139,13 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   // Эскиз уже прошёл сторожа внутри цепочки; отказ всех моделей — словами.
   const checked = drawn.checked;
   if (!checked.ok && options.render === true) notes.push(drawn.note);
+  // Лист принят, но признаки средней уверенности взгляд на нём не нашёл:
+  // отказа это не даёт, а молчать нельзя — человек сверит лист со снимком.
+  if (checked.ok && drawn.doubts.length)
+    notes.push(
+      `Технический эскиз: сторож не нашёл на листе — ${drawn.doubts.join('; ')}. ` +
+        `На снимке эти признаки читались неуверенно; сверьте лист со снимком.`,
+    );
   // Виды режутся из ТОГО ЖЕ листа: обложка, лист на просчёт и чип «Перед»
   // в кабинете показывают эту вещь, а не библиотечный силуэт похожей.
   const cut = checked.ok ? await cutSketchViews(browser, checked) : null;

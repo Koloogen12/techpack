@@ -405,6 +405,45 @@ export interface SketchSeen {
     pocket: 'none' | 'kangaroo' | 'patch' | 'side' | 'other';
     sleeve: 'long' | 'short' | 'none' | 'other';
   };
+  /** Ответы взгляда по чек-листу дизайн-признаков; id — из sketchChecklist(). */
+  features?: readonly { id: string; seen: 'yes' | 'no' | 'unclear' }[];
+}
+
+export interface SketchChecklistItem {
+  id: string;
+  en: string;
+  ru: string;
+  certainty: 'high' | 'medium';
+}
+
+/**
+ * Чек-лист дизайн-признаков для сторожа — ровно те, что ушли в задание
+ * художнику: сомнительные (low) в промпт не идут, значит и спрашивать
+ * о них нечего. Нумерация устойчивая: ответ взгляда сверяется по id.
+ */
+export function sketchChecklist(spec: StyleSpec): SketchChecklistItem[] {
+  return (spec.design?.features ?? [])
+    .filter((f) => f.certainty !== 'low')
+    .map((f, i) => ({
+      id: `d${i + 1}`,
+      en: f.en,
+      ru: f.ru,
+      certainty: f.certainty as 'high' | 'medium',
+    }));
+}
+
+/**
+ * Признаки средней уверенности, которых взгляд на листе точно не нашёл.
+ *
+ * Отказа они не дают — выбрасывать лист из-за того, в чём мы сами не были
+ * уверены на снимке, значит терять верные эскизы, — но и молчать нельзя:
+ * уходят примечанием «сверьте лист со снимком».
+ */
+export function sketchFeatureDoubts(spec: StyleSpec, seen: SketchSeen): string[] {
+  const answers = new Map((seen.features ?? []).map((f) => [f.id, f.seen]));
+  return sketchChecklist(spec)
+    .filter((f) => f.certainty === 'medium' && answers.get(f.id) === 'no')
+    .map((f) => f.ru);
 }
 
 /**
@@ -471,6 +510,19 @@ export function sketchMismatch(spec: StyleSpec, seen: SketchSeen): string | null
     seen.elements.sleeve !== wantSleeve
   )
     return `на эскизе рукав ${seen.elements.sleeve}, а нужен ${wantSleeve}`;
+
+  // Дизайн-признаки. Уверенный признак, которого взгляд на листе точно не
+  // нашёл, — другая вещь: платье без рукавов-жиго не то платье, хоть категория
+  // и сошлась. «unclear» отказом не считается: линейный рисунок читается
+  // хуже фотографии, и неуверенность взгляда — не вина листа. Признаки
+  // средней уверенности отказа не дают — см. sketchFeatureDoubts().
+  if (seen.features?.length) {
+    const answers = new Map(seen.features.map((f) => [f.id, f.seen]));
+    const missing = sketchChecklist(spec).find(
+      (f) => f.certainty === 'high' && answers.get(f.id) === 'no',
+    );
+    if (missing) return `на эскизе нет: ${missing.ru}`;
+  }
 
   return null;
 }

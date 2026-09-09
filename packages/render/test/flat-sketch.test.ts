@@ -11,6 +11,8 @@ import {
   sketchFingerprint,
   sketchMismatch,
   type SketchSeen,
+  sketchChecklist,
+  sketchFeatureDoubts,
 } from '../src/index.js';
 
 const AT = new Date('2026-09-03T00:00:00.000Z');
@@ -340,5 +342,90 @@ describe('цепочка моделей эскиза', () => {
     expect([...(got?.bytes ?? [])]).toEqual([137, 80, 78, 71]);
     expect(extractImagesApi({ data: [{ url: 'https://x' }] })).toBeNull();
     expect(extractImagesApi({})).toBeNull();
+  });
+});
+
+describe('сторож сверяет дизайн-признаки по чек-листу', () => {
+  const DRESS = spec({
+    category: 'dress',
+    design_features: [
+      {
+        zone: 'sleeve',
+        en: 'leg-of-mutton sleeve with gathered cap',
+        ru: 'рукав жиго',
+        confidence: 'high',
+      },
+      { zone: 'bodice', en: 'princess seams', ru: 'рельефные швы', confidence: 'medium' },
+      { zone: 'skirt', en: 'maybe godets', ru: 'клинья?', confidence: 'low' },
+    ],
+  });
+  const seenDress = (features?: { id: string; seen: 'yes' | 'no' | 'unclear' }[]) => ({
+    category: 'dress',
+    elements: {
+      hood: false,
+      closure: 'none' as const,
+      pocket: 'none' as const,
+      sleeve: 'long' as const,
+    },
+    ...(features ? { features } : {}),
+  });
+
+  it('чек-лист — те же признаки, что ушли художнику: сомнительных в нём нет', () => {
+    expect(sketchChecklist(DRESS)).toEqual([
+      {
+        id: 'd1',
+        en: 'leg-of-mutton sleeve with gathered cap',
+        ru: 'рукав жиго',
+        certainty: 'high',
+      },
+      { id: 'd2', en: 'princess seams', ru: 'рельефные швы', certainty: 'medium' },
+    ]);
+    expect(sketchChecklist(HOODIE)).toEqual([]);
+  });
+
+  it('уверенный признак, которого на листе точно нет, — отказ словами', () => {
+    // Платье без рукавов-жиго — не то платье, хоть категория и сошлась.
+    expect(
+      sketchMismatch(
+        DRESS,
+        seenDress([
+          { id: 'd1', seen: 'no' },
+          { id: 'd2', seen: 'yes' },
+        ]),
+      ),
+    ).toBe('на эскизе нет: рукав жиго');
+  });
+
+  it('«не разобрать» отказом не считается — линейный рисунок читается хуже фото', () => {
+    expect(sketchMismatch(DRESS, seenDress([{ id: 'd1', seen: 'unclear' }]))).toBeNull();
+  });
+
+  it('признак средней уверенности отказа не даёт, но уходит в сомнения', () => {
+    const seen = seenDress([
+      { id: 'd1', seen: 'yes' },
+      { id: 'd2', seen: 'no' },
+    ]);
+    expect(sketchMismatch(DRESS, seen)).toBeNull();
+    expect(sketchFeatureDoubts(DRESS, seen)).toEqual(['рельефные швы']);
+  });
+
+  it('всё на месте — ни отказа, ни сомнений', () => {
+    const seen = seenDress([
+      { id: 'd1', seen: 'yes' },
+      { id: 'd2', seen: 'yes' },
+    ]);
+    expect(sketchMismatch(DRESS, seen)).toBeNull();
+    expect(sketchFeatureDoubts(DRESS, seen)).toEqual([]);
+  });
+
+  it('без ответов по чек-листу сторож работает как раньше', () => {
+    expect(sketchMismatch(DRESS, seenDress())).toBeNull();
+    expect(sketchFeatureDoubts(DRESS, seenDress())).toEqual([]);
+  });
+
+  it('категория и капюшон проверяются раньше признаков', () => {
+    expect(
+      sketchMismatch(DRESS, { ...seenDress([{ id: 'd1', seen: 'no' }]), category: 'hoodie' }),
+    ).toContain('hoodie');
   });
 });

@@ -19,6 +19,8 @@ import {
   hashPhoto,
   type Photo,
   type VisionReport,
+  checklistPrompt,
+  ChecklistAnswerSchema,
 } from '../src/index.js';
 
 const base = kb();
@@ -389,5 +391,27 @@ describe('промпт зависит от категории', () => {
       buildSystemPrompt(base, c),
     );
     expect(new Set(prompts).size).toBe(prompts.length);
+  });
+});
+
+describe('чек-лист к быстрому взгляду', () => {
+  it('перечисляет признаки с id и требует ответ по каждому', () => {
+    const p = checklistPrompt([
+      { id: 'd1', en: 'leg-of-mutton sleeve with gathered cap' },
+      { id: 'd2', en: 'princess seams' },
+    ]);
+    expect(p).toContain('[d1] leg-of-mutton sleeve with gathered cap');
+    expect(p).toContain('[d2] princess seams');
+    // Три ответа, и неуверенность разрешена прямо: ложное «нет» выбросило
+    // бы верный лист, ложное «да» пропустило бы неверный.
+    expect(p).toContain('unclear');
+    expect(p).toContain('технический рисунок');
+  });
+
+  it('ответ по пункту — только есть, нет или не разобрать', () => {
+    expect(() =>
+      ChecklistAnswerSchema.parse({ id: 'd1', seen: 'yes', note: 'окат' }),
+    ).not.toThrow();
+    expect(() => ChecklistAnswerSchema.parse({ id: 'd1', seen: 'maybe', note: '' })).toThrow();
   });
 });

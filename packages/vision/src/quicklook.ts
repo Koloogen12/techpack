@@ -65,6 +65,42 @@ export const QuickLookSchema = z.object({
 });
 export type QuickLook = z.infer<typeof QuickLookSchema>;
 
+/**
+ * Чек-лист к быстрому взгляду: признаки, которые на изображении ОБЯЗАНЫ быть.
+ *
+ * Нужен сторожу эскиза. Свободное описание рисунка не сверить со спекой
+ * словами — «gathered puff sleeve head» и «leg-of-mutton sleeve» одно и то же,
+ * а строкой не совпадут. Поэтому взгляд получает список и отвечает по каждому
+ * пункту: есть, нет, не разобрать. Сверяет тот же механизм, что смотрит
+ * на присланное фото; чек-лист — тот же, что ушёл в задание художнику.
+ */
+export interface QuickLookChecklistItem {
+  id: string;
+  /** Формулировка признака по-английски — как в задании художнику. */
+  en: string;
+}
+
+export const ChecklistAnswerSchema = z.object({
+  id: z.string(),
+  seen: z
+    .enum(['yes', 'no', 'unclear'])
+    .describe('yes — признак есть; no — его точно нет, нарисовано иначе; unclear — не разобрать'),
+  note: z.string().describe('До шести слов: где на изображении или почему не видно'),
+});
+export type ChecklistAnswer = z.infer<typeof ChecklistAnswerSchema>;
+
+const QuickLookWithChecklistSchema = QuickLookSchema.extend({
+  checklist: z.array(ChecklistAnswerSchema),
+});
+
+/** Текст чек-листа для сообщения модели. Экспортирован ради теста. */
+export function checklistPrompt(items: readonly QuickLookChecklistItem[]): string {
+  return [
+    'Отдельно сверь по списку. Перед тобой технический рисунок изделия, и каждый пункт — признак, который художник обязан был нарисовать. По каждому ответь: yes — признак на рисунке есть; no — его точно нет, нарисовано иначе; unclear — по рисунку не понять. Не додумывай: unclear лучше ложного yes и ложного no. Верни ответ по каждому id.',
+    ...items.map((it, i) => `${i + 1}. [${it.id}] ${it.en}`),
+  ].join('\n');
+}
+
 function buildPrompt(): string {
   const categories = CATEGORIES.map((c) => `${c} (${CATEGORY_LABEL_RU[c]})`).join(', ');
   return [
@@ -103,10 +139,14 @@ export interface QuickLookOptions {
   client?: Anthropic;
   /** Каталог кэша: тот же снимок второй раз не разбирается. */
   cacheDir?: string;
+  /** Признаки, которые на изображении обязаны быть. Ответ приходит в `checklist`. */
+  checklist?: readonly QuickLookChecklistItem[];
 }
 
 export interface QuickLookResult {
   look: QuickLook;
+  /** Ответы по чек-листу — только если он был задан. */
+  checklist?: ChecklistAnswer[];
   fromCache: boolean;
   ms: number;
 }
@@ -117,9 +157,16 @@ export function defaultQuickLookModel(): string {
 
 export async function quickLook(options: QuickLookOptions): Promise<QuickLookResult> {
   const model = options.model ?? defaultQuickLookModel();
+  const checklist = options.checklist?.length ? options.checklist : null;
+  const schema = checklist ? QuickLookWithChecklistSchema : QuickLookSchema;
   const hash = createHash('sha256').update(options.photo.bytes).digest('hex').slice(0, 32);
+  // Чек-лист входит в ключ: тот же лист с другим списком — другой ответ.
+  // Без чек-листа ключ прежний, и кэш быстрого взгляда в кабинете жив.
   const key = createHash('sha256')
-    .update(`${hash}|${quickLookFingerprint()}|${model}`)
+    .update(
+      `${hash}|${quickLookFingerprint()}|${model}` +
+        (checklist ? `|${checklistPrompt(checklist)}` : ''),
+    )
     .digest('hex')
     .slice(0, 32);
   const cachePath = options.cacheDir
@@ -128,8 +175,8 @@ export async function quickLook(options: QuickLookOptions): Promise<QuickLookRes
 
   if (cachePath && existsSync(cachePath)) {
     try {
-      const look = QuickLookSchema.parse(JSON.parse(readFileSync(cachePath, 'utf8')));
-      return { look, fromCache: true, ms: 0 };
+      const parsed = schema.parse(JSON.parse(readFileSync(cachePath, 'utf8')));
+      return { ...split(parsed), fromCache: true, ms: 0 };
     } catch {
       /* битый файл кэша — разбираем заново */
     }
@@ -139,7 +186,7 @@ export async function quickLook(options: QuickLookOptions): Promise<QuickLookRes
   const startedAt = performance.now();
   const response = await client.messages.parse({
     model,
-    max_tokens: 1200,
+    max_tokens: checklist ? 2000 : 1200,
     system: [{ type: 'text', text: buildPrompt(), cache_control: { type: 'ephemeral' } }],
     messages: [
       {
@@ -153,16 +200,19 @@ export async function quickLook(options: QuickLookOptions): Promise<QuickLookRes
               data: Buffer.from(options.photo.bytes).toString('base64'),
             },
           },
-          { type: 'text', text: 'Что на снимке?' },
+          {
+            type: 'text',
+            text: checklist ? `Что на снимке?\n\n${checklistPrompt(checklist)}` : 'Что на снимке?',
+          },
         ],
       },
     ],
-    output_config: { format: zodOutputFormat(QuickLookSchema) },
+    output_config: { format: zodOutputFormat(schema) },
   });
   const ms = Math.round(performance.now() - startedAt);
 
-  const look = response.parsed_output;
-  if (!look) {
+  const parsed = response.parsed_output;
+  if (!parsed) {
     throw new SeamsterError('VISION_SCHEMA_MISMATCH', 'быстрый взгляд не сошёлся со схемой', {
       userMessage: 'Не удалось разобрать снимок.',
       userAction: 'Заполните анкету вручную — это ничего не стоит.',
@@ -171,7 +221,16 @@ export async function quickLook(options: QuickLookOptions): Promise<QuickLookRes
   }
   if (cachePath) {
     mkdirSync(join(options.cacheDir!, key.slice(0, 2)), { recursive: true });
-    writeFileSync(cachePath, JSON.stringify(look));
+    writeFileSync(cachePath, JSON.stringify(parsed));
   }
-  return { look, fromCache: false, ms };
+  return { ...split(parsed), fromCache: false, ms };
+}
+
+/** Ответ модели — на взгляд и на чек-лист; без чек-листа второго нет. */
+function split(parsed: QuickLook & { checklist?: ChecklistAnswer[] }): {
+  look: QuickLook;
+  checklist?: ChecklistAnswer[];
+} {
+  const { checklist, ...look } = parsed;
+  return checklist ? { look, checklist } : { look };
 }
