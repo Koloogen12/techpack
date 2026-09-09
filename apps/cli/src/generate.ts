@@ -21,6 +21,7 @@ import {
   suggestViews,
   viewAdviceNotes,
   type StyleSpecInput,
+  type PhotoConfidence,
 } from '@seamster/assembly';
 import { specFingerprint, type ColorwaySwatch, type StyleSpec } from '@seamster/stylespec';
 import {
@@ -915,6 +916,35 @@ function resolvePatterns(answers: Answers, library: ArtworkLibrary): PatternPlac
   });
 }
 
+/**
+ * Тканые классы полотна словами модели — в идентификаторы справочника.
+ *
+ * Неполная намеренно: саржи, денима, костюмной и крепа в справочнике пока
+ * нет, и выдавать их за штапель нельзя. Опознанное, но не заведённое
+ * полотно уходит в примечание — это подсказка, что заводить следующим.
+ */
+const WOVEN_MATERIAL: Record<string, string | undefined> = {
+  poplin: 'poplin_cotton',
+  linen: 'linen_blend',
+  challis: 'viscose_challis',
+};
+
+function fabricClassOf(report: VisionReport | null): {
+  fabric_class?: string;
+  fabric_confidence?: PhotoConfidence;
+} {
+  if (!report) return {};
+  const { fabric } = report;
+  const id = fabric.is_knit
+    ? fabric.knit_class !== 'unknown'
+      ? fabric.knit_class
+      : undefined
+    : fabric.woven_class !== 'unknown'
+      ? WOVEN_MATERIAL[fabric.woven_class]
+      : undefined;
+  return id ? { fabric_class: id, fabric_confidence: fabric.confidence } : {};
+}
+
 function fileFingerprint(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
@@ -945,9 +975,23 @@ export function specInputFrom(
     // Предмет известного размера в кадре: единственное, что снимает
     // монокулярную неоднозначность масштаба.
     ...(report ? { scale: report.scale_object } : {}),
-    ...(report?.fabric.knit_class && report.fabric.knit_class !== 'unknown'
-      ? { fabric_class: report.fabric.knit_class, fabric_confidence: report.fabric.confidence }
-      : {}),
+    // Полотно с фотографии. У трикотажа класс совпадает с идентификатором
+    // материала, у ткани — нет: модель отвечает отраслевым словом («лён»),
+    // а в справочнике лежит артикул («linen_blend»). Класса, которого у нас
+    // нет вовсе, не подставляем — сборка возьмёт типовое для категории
+    // и скажет об этом в примечаниях.
+    ...fabricClassOf(report),
+    // Поверхность полотна: наблюдение с фотографии подставляется только там,
+    // где человек молчит. Он держит вещь в руках или знает артикул ткани,
+    // а модель смотрит на подиумный кадр со сценическим светом и путает
+    // блеск полотна с бликом софита — на живом прогоне она дважды назвала
+    // матовым явно глянцевое платье. Иерархия та же, что у всей спеки:
+    // «указано вами» сильнее «оценки по фото».
+    ...(answers.fabric_surface !== undefined
+      ? { fabric_surface: answers.fabric_surface, fabric_surface_from_user: true }
+      : report && report.fabric.surface !== 'unknown'
+        ? { fabric_surface: report.fabric.surface }
+        : {}),
     // Колорвеи: из анкеты, если бренд их назвал, иначе с фотографий.
     // Паспорт образца подмешивается сюда же — цвет колорвея часть спеки,
     // а не украшение документа.

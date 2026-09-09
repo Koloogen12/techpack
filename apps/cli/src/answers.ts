@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FabricSurfaceSchema } from '@seamster/stylespec';
 import { SeamsterError } from '@seamster/core';
 import { CategorySchema, FitIntentSchema, GenderSchema, FabricKindSchema } from '@seamster/kb';
 
@@ -40,6 +41,14 @@ export const AnswersSchema = z
     base_height_cm: z.number().min(140).max(210),
     fit_intent: FitIntentSchema,
     fabric_kind: FabricKindSchema,
+    /**
+     * Как полотно ведёт свет: матовое, с блеском, глянцевое.
+     *
+     * Спрашивается у человека, потому что модель на подиумном кадре путает
+     * блеск полотна с бликом софита: на живом прогоне она дважды назвала
+     * матовым явно глянцевое платье. Указано — сильнее наблюдения с фото.
+     */
+    fabric_surface: FabricSurfaceSchema.optional(),
     size_range: z.array(z.number().int().positive()).min(1).max(24),
 
     /** Тираж. Влияет только на пересчёт расхода — на замеры не влияет. */

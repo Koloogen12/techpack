@@ -61,7 +61,13 @@ const fingerprint = [
 const REPORT: VisionReport = {
   category: { value: 'tshirt', confidence: 'high', other_description: '' },
   silhouette: { value: 'semi_fitted', confidence: 'medium' },
-  fabric: { knit_class: 'interlock', confidence: 'medium', is_knit: true },
+  fabric: {
+    woven_class: 'unknown',
+    surface: 'unknown',
+    knit_class: 'interlock',
+    confidence: 'medium',
+    is_knit: true,
+  },
   proportions: [
     { pom_code: 'T01', ratio_to_chest: 1.46, confidence: 'high', reason: 'контур виден целиком' },
     { pom_code: 'T06', ratio_to_chest: 0.86, confidence: 'low', reason: 'плечи размыты на тёмном' },
@@ -209,7 +215,15 @@ describe('расхождения между фото и ответами', () =>
 
   it('ткань вместо трикотажа отмечается — от этого зависят допуски и узлы', async () => {
     const { notes } = await run(
-      { fabric: { knit_class: 'unknown', confidence: 'low', is_knit: false } },
+      {
+        fabric: {
+          woven_class: 'unknown',
+          surface: 'unknown',
+          knit_class: 'unknown',
+          confidence: 'low',
+          is_knit: false,
+        },
+      },
       'mismatch-fabric.pdf',
     );
     expect(notes.join(' ')).toContain('Расхождение по материалу');

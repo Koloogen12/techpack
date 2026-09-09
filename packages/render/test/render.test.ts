@@ -129,8 +129,28 @@ describe('дизайн-признаки попадают и в визуализ�
   it('уверенный признак попадает в промпт, сомнительный — нет', () => {
     const p = buildRenderPrompt(withDesign());
     expect(p).toContain('leg-of-mutton sleeve with gathered puff cap');
-    expect(p).toContain('define it');
+    expect(p).toContain('defined by');
     expect(p).not.toContain('godet');
+  });
+
+  it('блеск полотна попадает в промпт: это отделка, а не вкус', () => {
+    // Глянцевое платье с бликами по складкам выходило матовым, потому что
+    // поверхность полотна система не фиксировала вовсе.
+    const glossy: StyleSpec = {
+      ...TSHIRT,
+      bom: {
+        ...TSHIRT.bom!,
+        fabric_surface: {
+          value: 'glossy',
+          confidence: 'estimated_from_photo',
+          source: 'vision:fabric#surface',
+        },
+      },
+    };
+    expect(buildRenderPrompt(glossy)).toContain('glossy surface');
+    expect(buildRenderPrompt(glossy)).toContain('highlights');
+    expect(buildRenderPrompt(TSHIRT)).not.toContain('glossy');
+    expect(buildRenderPrompt(TSHIRT)).not.toContain('matte');
   });
 
   it('у вещи без признаков промпт не изменился — кэш старых паков жив', () => {

@@ -28,7 +28,13 @@ const base = kb();
 const REPORT: VisionReport = {
   category: { value: 'tshirt', confidence: 'high', other_description: '' },
   silhouette: { value: 'semi_fitted', confidence: 'medium' },
-  fabric: { knit_class: 'single_jersey', confidence: 'medium', is_knit: true },
+  fabric: {
+    woven_class: 'unknown',
+    surface: 'unknown',
+    knit_class: 'single_jersey',
+    confidence: 'medium',
+    is_knit: true,
+  },
   proportions: [
     { pom_code: 'T01', ratio_to_chest: 1.34, confidence: 'high', reason: 'контур виден целиком' },
     { pom_code: 'T06', ratio_to_chest: 0.84, confidence: 'medium', reason: 'плечевые точки' },
@@ -98,6 +104,33 @@ describe('промпт', () => {
   it('собирается из справочников, а не пишется руками', () => {
     for (const f of base.visibilityMap().visible) expect(system).toContain(f.key);
     for (const f of base.visibilityMap().not_visible) expect(system).toContain(f.key);
+  });
+
+  it('цвета изделия отделены от стайлинга: ремень не делает второй артикул', () => {
+    // Каждый цвет отсюда становится цветовой версией со своим артикулом.
+    // Чёрный ремень, записанный цветом белого платья, превратил один
+    // артикул в три и матрицу заказа из четырёх строк в двенадцать.
+    const p = buildSystemPrompt(base, 'dress');
+    expect(p).toContain('САМОГО ИЗДЕЛИЯ');
+    expect(p).toContain('ремень, обувь, украшения');
+    expect(p).toContain('артикул');
+    // Отделочная нить — комплектующая, а не вторая цветовая версия платья.
+    expect(p).toContain('Отделочная нить');
+    expect(p).toContain('шьётся целиком');
+  });
+
+  it('просит называть выраженность, материал и цвет детали в признаке', () => {
+    const p = buildSystemPrompt(base, 'dress');
+    expect(p).toContain('насколько признак выражен');
+    expect(p).toContain('leg-of-mutton');
+  });
+
+  it('класс полотна спрашивается по тому полотну, которое видно', () => {
+    // Тканых классов в схеме не было вовсе, и платье из мятого льна
+    // доезжало до документа штапелем.
+    const p = buildSystemPrompt(base, 'dress');
+    expect(p).toContain('поплин');
+    expect(p).toContain('Лён узнаётся');
   });
 
   it('спрашивает дизайн-признаки — окат, пояс, клинья — отдельно от узлов', () => {

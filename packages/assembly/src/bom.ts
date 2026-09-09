@@ -1,4 +1,4 @@
-import { assume, fromBase, roundCm, type Tracked } from '@seamster/core';
+import { assume, fromBase, fromPhoto, userInput, roundCm, type Tracked } from '@seamster/core';
 import { SeamsterError } from '@seamster/core';
 import {
   kb as defaultKb,
@@ -33,7 +33,7 @@ import type { PhotoConfidence } from './pom.js';
  * в двух местах, расходится не «если», а «когда».
  */
 export type { Colorway } from '@seamster/stylespec';
-import type { Colorway } from '@seamster/stylespec';
+import type { Colorway, FabricSurface } from '@seamster/stylespec';
 
 export interface BomInput {
   category: Category;
@@ -41,6 +41,10 @@ export interface BomInput {
   fabric_kind: FabricKind;
   /** Класс полотна, опознанный по фактуре. Пусто — берётся типовой для категории. */
   fabric_class?: string;
+  /** Как полотно ведёт свет. Пусто — на снимке не разобрать, и мы молчим. */
+  fabric_surface?: FabricSurface;
+  /** Поверхность названа человеком, а не снята с фото. Его слово сильнее. */
+  fabric_surface_from_user?: boolean;
   fabric_confidence?: PhotoConfidence;
   /** Колорвеи изделия. Пусто — один основной цвет. */
   colorways?: readonly Colorway[];
@@ -61,6 +65,8 @@ export interface BomResult {
   lines: BomLine[];
   /** Предварительный расход основного полотна на изделие, погонных метров. */
   fabric_consumption_m: Tracked<number>;
+  /** Поверхность основного полотна. Пусто — на снимке не разобрать. */
+  fabric_surface?: Tracked<FabricSurface>;
   /** То же на весь тираж. Пусто, если тираж не назван. */
   /** Тираж заказа, штук. Без него расход на тираж — число без смысла. */
   batch_qty: number | null;
@@ -168,6 +174,19 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
     colorways,
     lines,
     fabric_consumption_m: consumption,
+    // Поверхность — наблюдение с фотографии и ничего кроме: справочник
+    // отделку полотна не знает, а выдумывать блеск нельзя.
+    ...(input.fabric_surface
+      ? {
+          fabric_surface: input.fabric_surface_from_user
+            ? userInput(input.fabric_surface, 'user:wizard.fabric_surface')
+            : fromPhoto(
+                input.fabric_surface,
+                'vision:fabric#surface',
+                'отделка полотна — уточнить по образцу',
+              ),
+        }
+      : {}),
     batch_qty: input.quantity ?? null,
     batch_consumption_m: input.quantity ? roundCm(perUnit * input.quantity) : null,
     notes,

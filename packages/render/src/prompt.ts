@@ -12,7 +12,7 @@ import type { StyleSpec } from '@seamster/stylespec';
  * Версия входит в ключ кэша: правка текста ниже меняет ключ и требует
  * пересборки визуализаций.
  */
-export const RENDER_PROMPT_VERSION = 'v3';
+export const RENDER_PROMPT_VERSION = 'v5';
 
 const FIT_ENGLISH: Record<string, string> = {
   fitted: 'close-fitting, following the body with minimal ease',
@@ -151,9 +151,21 @@ export function buildRenderPrompt(
   const defining = (spec.design?.features ?? [])
     .filter((f) => f.certainty !== 'low')
     .map((f) => f.en);
+  // Как полотно ведёт свет. Блеск — отделка, а не вкус: без него глянцевое
+  // платье с бликами по складкам выходило матовым, и это была не придирка
+  // к красоте, а другой артикул ткани.
+  const SURFACE_ENGLISH: Record<string, string> = {
+    matte: ', with a completely matte surface that absorbs the light',
+    sheen: ', with a soft sheen catching the light along the folds',
+    glossy:
+      ', with a crisp glossy surface that reflects bright highlights along every fold and crease',
+  };
+  const surface = SURFACE_ENGLISH[spec.bom?.fabric_surface?.value ?? ''] ?? '';
+
   const design = defining.length
-    ? `What gives this garment its shape, beyond the plain construction: ${defining.join('; ')}. ` +
-      `These are the features that define it — draw them clearly.`
+    ? `This garment is defined by: ${defining.join('; ')}. ` +
+      `Render each of these at the stated scale and prominence — they are the shape of the ` +
+      `garment, not small details on top of a plain one.`
     : '';
 
   // Масштаб мотива задаётся ОТНОШЕНИЕМ к ширине груди, а не сантиметрами:
@@ -173,8 +185,11 @@ export function buildRenderPrompt(
   return [
     `A single ${garment} shown on an invisible mannequin — a ghost-mannequin product photograph, front view, with the garment holding its worn shape and no person, head, hands or stand visible.`,
     '',
-    `The garment is ${fabric}, coloured ${colour}. The cut is ${fit}.`,
+    // Признаки идут ВЫШЕ полотна и кроя: они и есть форма вещи. Ниже они
+    // читались как приписка к обычному платью, и рукав-жиго выходил
+    // скромным фонариком.
     design,
+    `The garment is ${fabric}${surface}, coloured ${colour}. The cut is ${fit}.`,
     details.length
       ? `Visible construction: ${details.join(', ')}.`
       : 'Construction is plain, with no visible trims.',

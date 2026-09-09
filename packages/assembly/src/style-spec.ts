@@ -135,6 +135,7 @@ export function buildStyleSpec(
       colorways: bom.colorways,
       lines: bom.lines,
       fabric_consumption_m: bom.fabric_consumption_m,
+      ...(bom.fabric_surface ? { fabric_surface: bom.fabric_surface } : {}),
       batch_qty: bom.batch_qty,
       batch_consumption_m: bom.batch_consumption_m,
     },

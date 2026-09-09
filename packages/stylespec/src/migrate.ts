@@ -139,6 +139,15 @@ export const MIGRATIONS: readonly Migration[] = [
       'тогда об этом не спрашивали, а выдумывать признаки задним числом нельзя',
     migrate: (snapshot) => ({ ...snapshot, spec_version: '0.10.0' }),
   },
+  {
+    from: '0.10.0',
+    to: '0.11.0',
+    describe:
+      'у спецификации появилась поверхность основного полотна — матовая, ' +
+      'с блеском или глянцевая; у снапшотов 0.10.0 её нет, и восстановить ' +
+      'её неоткуда: снимки тогда об этом не спрашивали',
+    migrate: (snapshot) => ({ ...snapshot, spec_version: '0.11.0' }),
+  },
 ];
 
 function versionOf(snapshot: unknown): string {

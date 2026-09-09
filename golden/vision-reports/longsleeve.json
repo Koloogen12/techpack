@@ -11,7 +11,9 @@
   "fabric": {
     "knit_class": "single_jersey",
     "confidence": "medium",
-    "is_knit": true
+    "is_knit": true,
+    "woven_class": "unknown",
+    "surface": "unknown"
   },
   "proportions": [
     {

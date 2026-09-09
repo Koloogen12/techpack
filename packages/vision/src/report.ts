@@ -15,7 +15,7 @@ import { CATEGORIES } from '@seamster/kb';
  */
 
 /** Версия схемы отчёта. Входит в ключ кэша: смена схемы = смена ключа. */
-export const VISION_SCHEMA_VERSION = '3';
+export const VISION_SCHEMA_VERSION = '5';
 
 export const VisionConfidenceSchema = z.enum(['high', 'medium', 'low']);
 export type VisionConfidence = z.infer<typeof VisionConfidenceSchema>;
@@ -69,7 +69,34 @@ export const VisionReportSchema = z.object({
   }),
 
   fabric: z.object({
-    /** Класс полотна по фактуре. Плотность в граммах с фото не определяется никогда. */
+    /**
+     * Класс ТКАНОГО полотна по фактуре.
+     *
+     * Отдельным полем, а не в общем списке с трикотажными: лён и кулирка —
+     * разные вещи даже на глаз, и заставлять модель выбирать между ними
+     * значит получать `unknown` на каждом тканом изделии. Так и было: платье
+     * из мятого льна доехало до документа штапелем, потому что класса под
+     * ткань в схеме не существовало вовсе.
+     */
+    woven_class: z.enum([
+      'poplin',
+      'twill',
+      'denim',
+      'suiting',
+      'linen',
+      'challis',
+      'crepe',
+      'unknown',
+    ]),
+    /**
+     * Как полотно ведёт свет.
+     *
+     * Отделка, а не вкус: блеск даёт лощение, мерсеризация или само
+     * переплетение, и фабрика закупает по нему другой артикул. На снимке
+     * видно сразу — по бликам на складках.
+     */
+    surface: z.enum(['matte', 'sheen', 'glossy', 'unknown']),
+    /** Класс ТРИКОТАЖНОГО полотна. Плотность в граммах с фото не определяется никогда. */
     knit_class: z.enum([
       'single_jersey',
       'interlock',

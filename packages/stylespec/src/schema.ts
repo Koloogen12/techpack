@@ -16,7 +16,7 @@ import { ConfidenceSchema, tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.10.0';
+export const SPEC_VERSION = '0.11.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -256,10 +256,24 @@ export const BomLineSchema = z.object({
   note: z.string().optional(),
 });
 
+/**
+ * Поверхность основного полотна: как оно ведёт свет.
+ *
+ * Не украшение и не вкус: блеск — это отделка (лощение, мерсеризация,
+ * каландрирование) либо само переплетение, как у тафты. Фабрика закупает
+ * по нему другой артикул, и «лён» с блеском и без — две разные ткани.
+ * С фотографии свойство видно сразу, а в документе его до сих пор не было:
+ * глянцевое белое платье с бликами по складкам доезжало матовым.
+ */
+export const FabricSurfaceSchema = z.enum(['matte', 'sheen', 'glossy']);
+export type FabricSurface = z.infer<typeof FabricSurfaceSchema>;
+
 export const BomSchema = z
   .object({
     colorways: z.array(ColorwaySchema).min(1),
     lines: z.array(BomLineSchema).min(1),
+    /** Поверхность основного полотна. Пусто — на снимке не разобрать. */
+    fabric_surface: tracked(FabricSurfaceSchema).optional(),
     /** Предварительный расход на изделие. Уточняется фабрикой по раскладке. */
     fabric_consumption_m: tracked(z.number().positive()),
     /** Тираж заказа, штук. Фабрика считает цену от него. */

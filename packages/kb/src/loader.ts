@@ -120,7 +120,22 @@ function loadFile<T>(relativePath: string, schema: z.ZodType<T>): T {
     });
   }
 
-  const parsed = schema.safeParse(JSON.parse(raw));
+  // Разбор в try: пустой или обрезанный файл иначе падает голым
+  // «Unexpected end of JSON input», не называя, какой именно справочник
+  // повреждён, — и на его поиск уходит больше времени, чем на починку.
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch (cause) {
+    throw new SeamsterError('KB_INVALID', `справочник ${relativePath} — не JSON`, {
+      userMessage: 'Внутренняя ошибка: справочник повреждён.',
+      userAction: 'Повторить генерацию. Если повторяется — напишите нам, это на нашей стороне.',
+      details: { path: relativePath, bytes: String(raw.length) },
+      cause,
+    });
+  }
+
+  const parsed = schema.safeParse(json);
   if (!parsed.success) {
     // Справочник с ошибкой не грузится молча: битые данные дороже упавшего процесса.
     throw new SeamsterError('KB_INVALID', `справочник ${relativePath} не прошёл валидацию`, {
