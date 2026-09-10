@@ -2294,9 +2294,16 @@ class Component extends DCLogic {
         ask: () => this.setState({ fabQOpen: s.fabQOpen === code ? null : code, fabQText: '' }),
         sendQ: () => {
           const t = s.fabQText || 'Уточните, пожалуйста, эту строку';
+          // Вопрос никуда не уходит: канала до фабрики у нас нет, а есть
+          // только наша статистика. Значит и «отправлено» говорить нельзя —
+          // человек будет ждать ответа, которого не будет.
           if (TOKEN && s.curId) track('fab_question', { id: s.curId, code, text: t.slice(0, 300) });
           this.setState((p) => ({ fabQ: { ...p.fabQ, [code]: t }, fabQOpen: null, fabQText: '' }));
-          this.showToast(FT[s.fabLang].sent + ' — ' + code);
+          this.showToast(
+            TOKEN
+              ? 'Вопрос записан рядом со строкой — передайте его фабрике вместе с документом'
+              : FT[s.fabLang].sent + ' — ' + code,
+          );
         },
       };
     });
@@ -3868,9 +3875,15 @@ class Component extends DCLogic {
         this.showToast('Допуск ' + s.sel + ' перекрыт: ±' + v + ' см · ⌘Z отменит');
       },
       confirmSel: () => {
+        // Статус живёт до перезагрузки страницы: на сервер он не уходит.
+        // Значение замера, в отличие от статуса, сохраняется по-настоящему.
         this.pushHist(s.sel, 'подтверждено по образцу');
         this.setState((p) => ({ confirmed: { ...p.confirmed, [s.sel]: true } }));
-        this.showToast(s.sel + ' подтверждено по образцу — статус обновлён');
+        this.showToast(
+          TOKEN && s.curId
+            ? s.sel + ' отмечено подтверждённым — пометка держится до обновления страницы'
+            : s.sel + ' подтверждено по образцу — статус обновлён',
+        );
       },
       resetSel: () => {
         this.pushHist(s.sel, 'сброс к рассчитанному значению');
@@ -3898,7 +3911,15 @@ class Component extends DCLogic {
             : 'Все правки сброшены к рассчитанным значениям',
         );
       },
-      recalc: () => this.showToast('Градация пересчитана от базы ' + INT_OF(bru, bru)),
+      // Градация считается движком при сборке пака и пересчитывается сама
+      // при правке базового замера. Отдельной кнопки «пересчитать» за этим
+      // нет, и обещать пересчёт по нажатию нельзя.
+      recalc: () =>
+        this.showToast(
+          nodesReal
+            ? 'Градация уже пересчитана — она следует за базовым размером'
+            : 'Градация пересчитана от базы ' + INT_OF(bru, bru),
+        ),
       gradTipEnter: this.mkTip(
         'Градация — автоматический пересчёт всех размеров ряда от базового. Приращения видны в Pro-режиме.',
       ),
@@ -4298,10 +4319,14 @@ class Component extends DCLogic {
       careBtnLabel: s.careAlt ? 'Вернуть типовые' : 'Изменить символы',
       careSwap: () => {
         this.set('careAlt', !s.careAlt);
+        // Набор символов живёт только на экране: в документ уходит тот,
+        // что посчитан движком по составу полотна.
         this.showToast(
           s.careAlt
-            ? 'Вернули типовые символы ухода'
-            : 'Набор заменён на деликатный — обновится в PDF',
+            ? 'Показываем типовые символы ухода'
+            : nodesReal
+              ? 'Деликатный набор показан здесь; в документ пока идёт типовой по составу'
+              : 'Набор заменён на деликатный — обновится в PDF',
         );
       },
       precChip:
@@ -4394,7 +4419,7 @@ class Component extends DCLogic {
       },
       inviteFriend: () => {
         if (!TOKEN)
-          return this.showToast('Приглашения доступны участникам беты — вход по инвайт-ссылке');
+          return this.showToast('Приглашать могут участники беты — у вас гостевой доступ');
         apiCall('/referral')
           .then((r) => this.setState({ ref: r }))
           .catch(() => {});
@@ -4841,7 +4866,7 @@ class Component extends DCLogic {
           location.href = '/app/';
           return;
         }
-        if (!DEMO) return this.showToast('Вы гость — вход по инвайт-ссылке');
+        if (!DEMO) return this.showToast('Вы работаете гостем — отдельного входа не нужно');
         this.setState({ screen: 'auth', userMenu: false, toolMode: null, authStep: 'email' });
       },
       userChevStyle:
@@ -4850,22 +4875,22 @@ class Component extends DCLogic {
         ? s.me.name + (s.me.org ? ' · ' + s.me.org : '')
         : DEMO
           ? 'danilkochneff652@gmail.com'
-          : 'Гость · вход по инвайт-ссылке',
+          : 'Гость · вход свободный',
       passVal: s.pass,
       onPass: (e) => this.set('pass', e.target.value),
       signIn: () => {
-        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
+        if (!DEMO) return this.showToast('Вход свободный — аккаунт заводить не нужно');
         this.setState({ screen: 'home', fresh: false });
         this.showToast('С возвращением — продолжим с того же места');
       },
       yandexIn: () => {
-        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
+        if (!DEMO) return this.showToast('Вход свободный — аккаунт заводить не нужно');
         this.setState({ screen: 'home', fresh: false });
         this.showToast('Вход через Яндекс ID выполнен');
       },
       forgotPw: () => this.showToast('Отправили ссылку для сброса — проверьте почту'),
       signUpT: () => {
-        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
+        if (!DEMO) return this.showToast('Вход свободный — аккаунт заводить не нужно');
         this.setState({
           screen: 'home',
           fresh: true,
@@ -5037,6 +5062,10 @@ class Component extends DCLogic {
       impEmpty: !s.impFile,
       impDone: s.impFile,
       impDrop: () => {
+        // Разбора чужого техпака в системе нет: строки ниже — макет, и
+        // показывать их как результат распознавания значит выдумать данные
+        // о чужом изделии.
+        if (!DEMO) return this.showToast('Импорт чужого техпака — в работе, появится после беты');
         this.set('impFile', true);
         this.showToast('Файл разобран — проверьте, что распознали');
       },
@@ -5077,13 +5106,18 @@ class Component extends DCLogic {
           wizMode: 'photo',
           baseFrom: nm,
         });
-        this.showToast('Размерная сетка и BOM перенесены из «' + nm + '»');
+        // Переноса основы пока нет: имя пака дальше нигде не читается.
+        this.showToast(
+          DEMO
+            ? 'Размерная сетка и BOM перенесены из «' + nm + '»'
+            : 'Основа из другого пака — в работе; пока заполните анкету заново',
+        );
       },
       isWork: s.screen === 'doc' || s.screen === 'wizard',
       isDocScreen: s.screen === 'doc',
       goDash: () => this.setState({ screen: 'dash', toolMode: null }),
       goAuth: () => {
-        if (!DEMO) return this.showToast('Публичного входа нет — вход по инвайт-ссылке');
+        if (!DEMO) return this.showToast('Вход свободный — аккаунт заводить не нужно');
         this.setState({
           screen: 'auth',
           authStep: 'email',
@@ -5099,7 +5133,7 @@ class Component extends DCLogic {
       sendCode: () =>
         DEMO
           ? this.set('authStep', 'code')
-          : this.showToast('Публичного входа нет — вход по инвайт-ссылке'),
+          : this.showToast('Вход свободный — аккаунт заводить не нужно'),
       codeVal: s.code,
       onCode: (e) => this.setState({ code: e.target.value, codeErr: false }),
       codeInputStyle:
@@ -5291,7 +5325,14 @@ class Component extends DCLogic {
       placeChips,
       fitChips,
       roleChips,
-      refreshPdf: () => this.showToast('Превью PDF пересобрано по текущим данным'),
+      // Документ пересобирается на сервере сам, когда меняются данные пака.
+      // Кнопка ничего не запускала, а рапортовала о пересборке.
+      refreshPdf: () =>
+        this.showToast(
+          TOKEN && s.curId
+            ? 'Документ пересобирается сам после правок — обновите страницу через минуту'
+            : 'Превью PDF пересобрано по текущим данным',
+        ),
       downloadPdf: () => {
         if (TOKEN && s.curId && doc) {
           const loc = { English: 'en', 中文: 'zh' }[s.pdfLang] || '';
@@ -5528,9 +5569,16 @@ class Component extends DCLogic {
         s.wizStep === 1 ? this.set('screen', 'home') : this.set('closeConfirm', true),
       closeConfirm: s.closeConfirm,
       wizExit: () => {
+        // Черновиков анкеты мы не храним: пак заводится на сервере только
+        // при запуске генерации. Обещать сохранение значит потерять работу
+        // человека молча.
         clearInterval(this._g);
         this.setState({ closeConfirm: false, screen: 'home' });
-        this.showToast('Черновик сохранён в «Одиночных паках»');
+        this.showToast(
+          DEMO
+            ? 'Черновик сохранён в «Одиночных паках»'
+            : 'Вышли из мастера — заполненная анкета не сохраняется',
+        );
       },
       wizStay: () => this.set('closeConfirm', false),
       precOpen: s.precOpen,
