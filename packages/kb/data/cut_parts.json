@@ -16,7 +16,17 @@
       "qty": 1,
       "on_fold": true,
       "grain": "length",
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "polo", "tank_top", "dress"],
+      "applies_to": [
+        "tshirt",
+        "longsleeve",
+        "sweatshirt",
+        "hoodie",
+        "polo",
+        "tank_top",
+        "dress",
+        "shirt",
+        "blouse"
+      ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Состав деталей выведен из узлов категории, а не из лекал: лекала строит конструктор. Число и сгибы подтвердить на первой раскладке."
@@ -53,7 +63,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "shirt",
+        "blouse"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
@@ -68,7 +80,17 @@
       "qty": 2,
       "on_fold": false,
       "grain": "length",
-      "applies_to": ["tshirt", "longsleeve", "sweatshirt", "hoodie", "zip_hoodie", "polo", "dress"],
+      "applies_to": [
+        "tshirt",
+        "longsleeve",
+        "sweatshirt",
+        "hoodie",
+        "zip_hoodie",
+        "polo",
+        "dress",
+        "shirt",
+        "blouse"
+      ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Состав деталей выведен из узлов категории. Подтвердить на первой раскладке."
@@ -231,6 +253,36 @@
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Деталь заведена по разделу «Платье (ткань, base)» базы знаний (04 §6): горловина обрабатывается обтачкой с клеевой прокладкой. Число деталей и ширина подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "yoke",
+      "name_ru": "Кокетка спинки",
+      "name_en": "Back yoke",
+      "name_zh": "后过肩",
+      "role": "shell",
+      "qty": 2,
+      "on_fold": true,
+      "grain": "length",
+      "requires_node": "yoke_double",
+      "note_ru": "Две детали: внешняя и внутренняя — срезы плеча убираются между ними.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Деталь заведена по разделу «Рубашка (base)» базы знаний (04 §6). Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "collar_stand",
+      "name_ru": "Стойка воротника",
+      "name_en": "Collar stand",
+      "name_zh": "领座",
+      "role": "shell",
+      "qty": 2,
+      "on_fold": false,
+      "grain": "length",
+      "requires_node": "collar_stand_set_in",
+      "note_ru": "Дублируется прокладкой; кроится по долевой, иначе воротник ведёт.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Деталь заведена по разделу «Рубашка (base)» базы знаний (04 §6). Число деталей и размеры подтверждаются лекалами первого отшива."
     }
   ]
 }

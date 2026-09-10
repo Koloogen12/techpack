@@ -142,6 +142,34 @@ export const CATEGORY_REGISTRY = {
     visual: 'sleeveless tank top with bound armholes',
   },
 
+  // Первый тканый верх. Полотно здесь не пометка, а способ сборки: рубашка
+  // держится на воротнике со стойкой, планке с петлями и кокетке, а срезы
+  // либо обмётываются, либо убираются в запошивочный шов. Трикотажной
+  // рубашки не бывает — бывает поло, и оно заведено отдельно.
+  shirt: {
+    ru: 'рубашка',
+    en: 'shirt',
+    zh: '衬衫',
+    gender: 'f',
+    class: 'top',
+    fabric: 'woven',
+    visual:
+      'classic woven shirt with a two-piece stand collar, a buttoned front placket, a back yoke and barrel cuffs',
+  },
+  // Блузка — не «женская рубашка»: у неё тоньше полотно, мягче посадка и
+  // чаще нет кокетки с запошивочным швом. Разводить их по одной категории
+  // значило бы печатать фабрике узлы сорочки на блузе из штапеля.
+  blouse: {
+    ru: 'блузка',
+    en: 'blouse',
+    zh: '女式衬衣',
+    gender: 'f',
+    class: 'top',
+    fabric: 'woven',
+    visual:
+      'soft woven blouse with a plain neckline finished with a facing, a buttoned front placket and set-in long sleeves',
+  },
+
   // Первая вещь вне стритвира. Верх у неё конструктивно тот же, что
   // у лонгслива, — та же пройма, тот же втачной рукав, та же обработка
   // горловины; отличие в раскрое, а не в узлах. Поэтому платье честно

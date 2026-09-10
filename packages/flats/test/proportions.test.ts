@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
 import {
   CATEGORIES,
+  CATEGORY_FABRIC,
   CATEGORY_CLASS,
   kb,
   type Category,
@@ -46,7 +47,9 @@ const spec = (category: Category, fit: (typeof FITS)[number]) =>
     base_size_ru: 46,
     base_height_cm: 170,
     fit_intent: fit,
-    fabric_kind: 'knit',
+    // Полотно берётся у категории: тканый верх трикотажных прибавок
+    // не имеет, и справочник об этом честно говорит.
+    fabric_kind: CATEGORY_FABRIC[category],
     size_range: [46],
     generated_at: AT,
   } as unknown as StyleSpecInput).spec;

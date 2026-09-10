@@ -203,7 +203,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "shirt",
+        "blouse"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -284,7 +286,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "shirt",
+        "blouse"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -311,7 +315,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "shirt",
+        "blouse"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -338,7 +344,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "shirt",
+        "blouse"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -365,7 +373,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "shirt",
+        "blouse"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -478,7 +488,7 @@
       "gap": "Плотность и состав — типовой диапазон из таблицы тканых полотен базы знаний, а не паспорт конкретного артикула: с фотографии они не определяются никогда и уходят в документ предположением. Подтверждается паспортом поставщика и первым отшивом.",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её спецификация того же материала — первоисточник.",
-      "applications": ["dress"],
+      "applications": ["dress", "blouse"],
       "id": "viscose_challis",
       "name_ru": "Штапель (вискоза плательная)",
       "name_en": "Viscose challis",
@@ -502,7 +512,7 @@
       "gap": "Плотность и состав — типовой диапазон из таблицы тканых полотен базы знаний, а не паспорт конкретного артикула: с фотографии они не определяются никогда и уходят в документ предположением. Подтверждается паспортом поставщика и первым отшивом.",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её спецификация того же материала — первоисточник.",
-      "applications": ["dress"],
+      "applications": ["dress", "shirt", "blouse"],
       "id": "poplin_cotton",
       "name_ru": "Поплин хлопковый",
       "name_en": "Cotton poplin",
@@ -526,7 +536,7 @@
       "gap": "Плотность и состав — типовой диапазон из таблицы тканых полотен базы знаний, а не паспорт конкретного артикула: с фотографии они не определяются никогда и уходят в документ предположением. Подтверждается паспортом поставщика и первым отшивом.",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её спецификация того же материала — первоисточник.",
-      "applications": ["dress"],
+      "applications": ["dress", "shirt", "blouse"],
       "id": "linen_blend",
       "name_ru": "Лён плательный",
       "name_en": "Linen dress fabric",
@@ -550,7 +560,7 @@
       "gap": "Клеевая прокладка с фотографии не видна никогда — она внутри обтачки. В документ уходит предположением с пометкой «уточнить по образцу». Плотность выбирается под полотно: на лёгкий штапель тяжёлый флизелин ставить нельзя.",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её спецификация того же материала — первоисточник.",
-      "applications": ["dress"],
+      "applications": ["dress", "shirt", "blouse"],
       "id": "fusible_nonwoven",
       "name_ru": "Флизелин (клеевая нетканая прокладка)",
       "name_en": "Non-woven fusible interlining",
@@ -585,6 +595,25 @@
       "composition_default_zh": "涤纶拉链带与链牙",
       "qty_per_unit": 1,
       "photo_detectable": "partial"
+    },
+    {
+      "id": "button_shirt",
+      "name_ru": "Пуговица сорочечная 4 отверстия, 16L",
+      "name_en": "Shirt button, 4-hole, 16L",
+      "name_zh": "衬衫纽扣 四眼 16L",
+      "role": "hardware",
+      "structure_ru": "Плоская пуговица 10 мм: планка, манжеты, запасная в комплекте",
+      "composition_default_ru": "Полиэстер либо перламутр",
+      "composition_default_en": "Polyester or shell",
+      "composition_default_zh": "涤纶或贝壳",
+      "applications": ["shirt", "blouse"],
+      "qty_per_unit": 9,
+      "photo_detectable": "partial",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Размер в системе ligne: 16L это 10 мм — ходовой для сорочечной планки, воротник иногда идёт на 14L. Число штук считает конструктор по длине планки и числу манжет; девять — типовая рубашка с семью петлями и двумя манжетами плюс запасная.",
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
     }
   ]
 }

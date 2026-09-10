@@ -4,6 +4,7 @@ import { isSeamsterError } from '@seamster/core';
 import { renderHtml, renderRfqHtml, rfqText } from '@seamster/docgen';
 import {
   CATEGORIES,
+  CATEGORY_FABRIC,
   type Category,
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
@@ -226,7 +227,10 @@ describe('в чужом комплекте нет наших слов', () => {
     base_size_ru: 46,
     base_height_cm: 170,
     fit_intent: 'semi_fitted',
-    fabric_kind: 'knit',
+    // Полотно берётся у категории, а не назначается трикотажем всем подряд:
+    // рубашки и блузки из трикотажа не бывает, и справочник прибавок про
+    // такое сочетание честно не знает.
+    fabric_kind: CATEGORY_FABRIC[category],
     size_range: [44, 46, 48],
     machine_park: 'base_shop',
     generated_at: new Date('2026-08-27T00:00:00.000Z'),

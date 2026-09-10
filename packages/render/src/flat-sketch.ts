@@ -479,6 +479,10 @@ const SLEEVE_BY_CATEGORY: Record<Category, 'long' | 'short' | 'none' | null> = {
   sweatshirt: 'long',
   hoodie: 'long',
   zip_hoodie: 'long',
+  shirt: 'long',
+  // У блузки длину рукава выбирает дизайнер: она бывает и без рукава,
+  // и с длинным на манжете. Придираться тут значило бы браковать верные листы.
+  blouse: null,
   dress: null,
 };
 

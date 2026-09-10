@@ -1,0 +1,192 @@
+{
+  "id": "category_defaults/shirt",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты рубашки. Полотно сорочечное и не тянется, поэтому изделие держится на выкроенных деталях: воротник со стойкой на прокладке, планка с петлями, двойная кокетка, обтачные манжеты. Срезы либо убираются в запошивочный шов, либо обмётываются — открытыми их не оставляют.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
+    "knowledge-base/05-materialy-bom.md#1.2"
+  ],
+  "category": "shirt",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "collar_stand_set_in",
+    "collar_topstitch",
+    "front_placket",
+    "yoke_double",
+    "seam_felled",
+    "sleeve_set_in_woven",
+    "cuff_barrel",
+    "hem_narrow",
+    "placket_buttonholes",
+    "button_sew",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "poplin_cotton",
+    "rib": null,
+    "threads": ["thread_40_2"],
+    "interlinings": ["fusible_nonwoven"],
+    "hardware": ["button_shirt"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать воротник, стойку, манжеты и планку клеевой прокладкой",
+      "operation_en": "Fuse the collar, stand, cuffs and placket",
+      "operation_zh": "粘衬:领面、领座、袖头与门襟",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Обтачать воротник и стойку, вывернуть, приутюжить",
+      "operation_en": "Edge-stitch the collar and stand, turn and press",
+      "operation_zh": "缝合领面与领座,翻烫",
+      "node_id": null,
+      "specialty": "M",
+      "machine": "single_needle_lockstitch",
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Настрочить планку на полочку",
+      "operation_en": "Attach the front placket",
+      "operation_zh": "门襟缉于前片",
+      "node_id": "front_placket",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Стачать кокетку со спинкой и плечами, закрыв срезы внутри",
+      "operation_en": "Join the yoke to the back and shoulders, enclosing the allowances",
+      "operation_zh": "过肩与后片、肩缝缝合并包缝份",
+      "node_id": "yoke_double",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать воротник в горловину",
+      "operation_en": "Set the collar into the neckline",
+      "operation_zh": "绱领",
+      "node_id": "collar_stand_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Отстрочить воротник и стойку по краю",
+      "operation_en": "Topstitch the collar and stand",
+      "operation_zh": "领子与领座缉明线",
+      "node_id": "collar_topstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Втачать рукава в открытую пройму",
+      "operation_en": "Set in the sleeves at the open armhole",
+      "operation_zh": "开身绱袖",
+      "node_id": "sleeve_set_in_woven",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Стачать бок и шов рукава запошивочным швом",
+      "operation_en": "Close the side and sleeve with a felled seam",
+      "operation_zh": "侧缝与袖缝来去缝",
+      "node_id": "seam_felled",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Притачать манжеты к низу рукавов",
+      "operation_en": "Attach the cuffs",
+      "operation_zh": "绱袖头",
+      "node_id": "cuff_barrel",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Подшить низ узкой подгибкой",
+      "operation_en": "Hem with a narrow double turn",
+      "operation_zh": "下摆窄卷边",
+      "node_id": "hem_narrow",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Обметать петли на планке и манжетах",
+      "operation_en": "Work the buttonholes on the placket and cuffs",
+      "operation_zh": "门襟与袖头锁眼",
+      "node_id": "placket_buttonholes",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Пришить пуговицы",
+      "operation_en": "Sew on the buttons",
+      "operation_zh": "钉扣",
+      "node_id": "button_sew",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Вложить размерник в шов горловины",
+      "operation_en": "Insert the size label into the neckline seam",
+      "operation_zh": "领缝夹入尺码标",
+      "node_id": "size_label_in_seam",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach the care label to the side seam",
+      "operation_zh": "侧缝装成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 15,
+      "operation_ru": "Окончательная влажно-тепловая обработка",
+      "operation_en": "Final pressing",
+      "operation_zh": "整烫",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Набор узлов и последовательность собраны по разделу «Рубашка (base)» базы знаний (04 §6) и таблицам узлов §3. Норм времени на операцию в базе знаний нет — колонка оставлена пустой намеренно: проставить её можно только по данным конкретного цеха. Рубашка и блузка у нас первые изделия этого кроя, последовательность не проверена ни одним отшивом: подтвердить у технолога фабрики-партнёра до первой партии (RAT-1).",
+  "translation_verified": false,
+  "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+}

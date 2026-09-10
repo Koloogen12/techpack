@@ -1,0 +1,172 @@
+{
+  "id": "category_defaults/blouse",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты блузки. От рубашки отличается не отделкой, а тем, чего в ней нет: кокетки, запошивочного шва и воротника со стойкой. Полотно тоньше, горловина обработана обтачкой, срезы обмётаны отдельным проходом.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#3",
+    "knowledge-base/05-materialy-bom.md#1.2"
+  ],
+  "category": "blouse",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "front_placket",
+    "shoulder_seam_plain",
+    "side_seam_plain",
+    "edge_finish_overlock",
+    "neck_facing",
+    "sleeve_set_in_woven",
+    "cuff_barrel",
+    "hem_narrow",
+    "placket_buttonholes",
+    "button_sew",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "viscose_challis",
+    "rib": null,
+    "threads": ["thread_40_2"],
+    "interlinings": ["fusible_nonwoven"],
+    "hardware": ["button_shirt"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать обтачку горловины, манжеты и планку клеевой прокладкой",
+      "operation_en": "Fuse the neck facing, cuffs and placket",
+      "operation_zh": "粘衬:领贴、袖头与门襟",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Настрочить планку на полочку",
+      "operation_en": "Attach the front placket",
+      "operation_zh": "门襟缉于前片",
+      "node_id": "front_placket",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Стачать плечевые швы, разутюжить",
+      "operation_en": "Join the shoulder seams, press open",
+      "operation_zh": "缝合肩缝并分烫",
+      "node_id": "shoulder_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Обработать горловину обтачкой, вложить размерник",
+      "operation_en": "Finish the neckline with the facing, insert the size label",
+      "operation_zh": "用领贴处理领口并夹入尺码标",
+      "node_id": "neck_facing",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать рукава",
+      "operation_en": "Set in the sleeves",
+      "operation_zh": "绱袖",
+      "node_id": "sleeve_set_in_woven",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Стачать бок и шов рукава, обметать срезы",
+      "operation_en": "Close the side and sleeve seams, neaten the edges",
+      "operation_zh": "缝合侧缝与袖缝并锁边",
+      "node_id": "side_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Обметать открытые срезы",
+      "operation_en": "Neaten the raw edges",
+      "operation_zh": "裁片锁边",
+      "node_id": "edge_finish_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Притачать манжеты к низу рукавов",
+      "operation_en": "Attach the cuffs",
+      "operation_zh": "绱袖头",
+      "node_id": "cuff_barrel",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Подшить низ узкой подгибкой",
+      "operation_en": "Hem with a narrow double turn",
+      "operation_zh": "下摆窄卷边",
+      "node_id": "hem_narrow",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Обметать петли на планке и манжетах",
+      "operation_en": "Work the buttonholes",
+      "operation_zh": "锁眼",
+      "node_id": "placket_buttonholes",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Пришить пуговицы",
+      "operation_en": "Sew on the buttons",
+      "operation_zh": "钉扣",
+      "node_id": "button_sew",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach the care label to the side seam",
+      "operation_zh": "侧缝装成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Окончательная влажно-тепловая обработка",
+      "operation_en": "Final pressing",
+      "operation_zh": "整烫",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Набор узлов и последовательность собраны по разделу «Рубашка (base)» базы знаний (04 §6) и таблицам узлов §3. Норм времени на операцию в базе знаний нет — колонка оставлена пустой намеренно: проставить её можно только по данным конкретного цеха. Рубашка и блузка у нас первые изделия этого кроя, последовательность не проверена ни одним отшивом: подтвердить у технолога фабрики-партнёра до первой партии (RAT-1).",
+  "translation_verified": false,
+  "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+}

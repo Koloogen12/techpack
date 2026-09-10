@@ -8,7 +8,7 @@ import {
   measurementsFrom,
   renderFlatsFromSpec,
 } from '@seamster/flats';
-import { CATEGORIES, kb, type NodeZone } from '@seamster/kb';
+import { CATEGORIES, CATEGORY_FABRIC, kb, type NodeZone } from '@seamster/kb';
 
 /**
  * ЗАЛИВКА ПО ЗОНАМ — снимок, а не намерение.
@@ -54,7 +54,9 @@ const input = (category: (typeof CATEGORIES)[number]): StyleSpecInput => ({
   base_size_ru: 46,
   base_height_cm: 170,
   fit_intent: 'oversize',
-  fabric_kind: 'knit',
+  // Полотно берётся у категории: тканый верх трикотажных прибавок
+  // не имеет, и справочник об этом честно говорит.
+  fabric_kind: CATEGORY_FABRIC[category],
   size_range: [46],
   generated_at: new Date('2026-08-26T00:00:00.000Z'),
 });
