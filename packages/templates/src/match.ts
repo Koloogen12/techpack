@@ -70,6 +70,8 @@ const KIN: Record<Category, readonly Category[]> = {
   // планку с пуговицами, и его силуэт годится в подсказку.
   shirt: ['blouse', 'polo'],
   blouse: ['shirt', 'longsleeve'],
+  // Родни у юбки в библиотеке нет: там верх и брюки, а юбка — ни то ни другое.
+  skirt: [],
   dress: [],
 };
 

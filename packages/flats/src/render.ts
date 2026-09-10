@@ -1,4 +1,5 @@
 import type { Centimeters } from '@seamster/core';
+import type { GarmentClass } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
 import { buildPaths, DEFAULT_PATH_OPTIONS, type PathOptions } from './paths.js';
 import { buildSidePaths, garmentDepth, type SideGeometry } from './side.js';
@@ -442,6 +443,23 @@ export function needsSideView(spec: StyleSpec): boolean {
 }
 
 /** Рендер видов из спеки. Основной вход для документа и веб-вьювера. */
+/**
+ * Умеет ли параметрический построитель изделие этого класса.
+ *
+ * Класс приходит аргументом, а не берётся из справочника: чертёжник
+ * работает и в браузере, а справочник читает файлы с диска — потянуть его
+ * сюда значит утащить в сборку кабинета файловую систему.
+ *
+ * Он строит ВЕРХ: плечо, пройму, рукав, горловину. У низа этих линий нет
+ * вовсе, и прогнать через него юбку значит получить чертёж блузы с
+ * подписями от юбки. Пока геометрии низа нет, лист чертежа у таких изделий
+ * занимает генерируемый технический эскиз — так же, как у платья, для
+ * которого нет библиотечного силуэта.
+ */
+export function supportsFlat(cls: GarmentClass): boolean {
+  return cls !== 'bottom';
+}
+
 export function renderFlatsFromSpec(
   spec: StyleSpec,
   options: Omit<RenderOptions, 'view' | 'viewLabel'> & {

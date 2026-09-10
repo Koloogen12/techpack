@@ -23,6 +23,8 @@ const SLEEVE_BY_CATEGORY: Record<Category, TemplateTraits['sleeve']> = {
   zip_hoodie: 'long',
   shirt: 'long',
   blouse: 'long',
+  // У юбки рукава нет вовсе — как у майки, только по другой причине.
+  skirt: 'none',
   dress: 'long',
 };
 
@@ -34,6 +36,8 @@ const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
   zip_hoodie: 'full_zip',
   shirt: 'buttons',
   blouse: 'buttons',
+  // Потайная молния с лица не видна, и подбор силуэта по ней не идёт.
+  skirt: 'none',
   polo: 'buttons',
   dress: 'none',
   tank_top: 'none',

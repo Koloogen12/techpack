@@ -170,6 +170,20 @@ export const CATEGORY_REGISTRY = {
       'soft woven blouse with a plain neckline finished with a facing, a buttoned front placket and set-in long sleeves',
   },
 
+  // Первое изделие низа. Здесь впервые меняется опорная величина: юбку
+  // держат бёдра, а не грудь, и масштаб считается от них. Всё, что выше
+  // талии, у неё отсутствует вовсе — ни проймы, ни горловины, ни рукава.
+  skirt: {
+    ru: 'юбка',
+    en: 'skirt',
+    zh: '半身裙',
+    gender: 'f',
+    class: 'bottom',
+    fabric: 'woven',
+    visual:
+      'woven straight skirt falling below the knee, shaped with waist darts, a set-in waistband and a concealed back zip',
+  },
+
   // Первая вещь вне стритвира. Верх у неё конструктивно тот же, что
   // у лонгслива, — та же пройма, тот же втачной рукав, та же обработка
   // горловины; отличие в раскрое, а не в узлах. Поэтому платье честно

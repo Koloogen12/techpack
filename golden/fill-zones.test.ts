@@ -7,8 +7,9 @@ import {
   flatDefaults,
   measurementsFrom,
   renderFlatsFromSpec,
+  supportsFlat,
 } from '@seamster/flats';
-import { CATEGORIES, CATEGORY_FABRIC, kb, type NodeZone } from '@seamster/kb';
+import { CATEGORIES, CATEGORY_CLASS, CATEGORY_FABRIC, kb, type NodeZone } from '@seamster/kb';
 
 /**
  * ЗАЛИВКА ПО ЗОНАМ — снимок, а не намерение.
@@ -272,7 +273,13 @@ describe('узел обработки и линия на чертеже', () => 
    * с вопросом «где шов»; линия без узла обещает обработку, которой
    * в спецификации нет.
    */
-  it.each(CATEGORIES)('%s: каждому узлу — своя линия', (category) => {
+  // Низ построитель не умеет: у юбки нет ни плеча, ни проймы, ни рукава,
+  // и прогонять её через геометрию верха значит сверять чертёж блузы
+  // с узлами юбки. Пока геометрии низа нет, лист чертежа у таких изделий
+  // занимает генерируемый эскиз.
+  const DRAWN = CATEGORIES.filter((c) => supportsFlat(CATEGORY_CLASS[c]));
+
+  it.each(DRAWN)('%s: каждому узлу — своя линия', (category) => {
     const { spec } = buildStyleSpec(input(category));
     const flats = renderFlatsFromSpec(spec, flatDefaults(spec));
     const svgs = [flats.front.svg, flats.back.svg, ...(flats.side ? [flats.side.svg] : [])];
@@ -286,7 +293,7 @@ describe('узел обработки и линия на чертеже', () => 
    * отключается: контрольных точек у покупного шаблона нет, а зоны есть,
    * и документ обязан оставаться непротиворечивым и на них.
    */
-  it.each(CATEGORIES)('%s: каждому узлу — своя зона на библиотечном силуэте', (category) => {
+  it.each(DRAWN)('%s: каждому узлу — своя зона на библиотечном силуэте', (category) => {
     const { spec } = buildStyleSpec(input(category));
     const base = kb();
     const zones = [

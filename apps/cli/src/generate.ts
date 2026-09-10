@@ -33,10 +33,10 @@ import {
   type PhotoFormat,
   type VisionReport,
 } from '@seamster/vision';
-import { PHOTO_VIEWS, type PhotoView } from '@seamster/kb';
+import { CATEGORY_CLASS, PHOTO_VIEWS, type PhotoView } from '@seamster/kb';
 import { CONFLICT_PREFIX } from '@seamster/fit';
 import { chromium, type Browser } from 'playwright';
-import { flatDefaults, renderFlatsFromSpec } from '@seamster/flats';
+import { flatDefaults, renderFlatsFromSpec, supportsFlat } from '@seamster/flats';
 import {
   cropImage,
   fillGarment,
@@ -487,7 +487,11 @@ async function sketchFills(
   }
   const allover = spec.artwork?.placements.find((a) => a.kind === 'allover');
   if (tileBytes && allover) {
-    const garmentCm = renderFlatsFromSpec(spec, flatDefaults(spec)).front.viewBox.height;
+    // Масштаб раппорта считается от габарита чертежа; у низа чертежа нет,
+    // и тогда за габарит берётся длина изделия из табеля мер.
+    const garmentCm = supportsFlat(CATEGORY_CLASS[spec.style.category as Category])
+      ? renderFlatsFromSpec(spec, flatDefaults(spec)).front.viewBox.height
+      : (spec.measurements.points.find((p) => p.code === 'J01')?.base.value ?? 60);
     const pxPerCm = (gm.bbox.y1 - gm.bbox.y0 + 1) / Math.max(1, garmentCm);
     const uri = await fillGarment(browser, front.dataUri, gm.mask, {
       tile: `data:image/png;base64,${Buffer.from(tileBytes).toString('base64')}`,
@@ -1524,6 +1528,9 @@ async function chooseLibraryFlat(
   // Габарит листа берём у собственного чертежа: он построен по табелю мер
   // и нарисован в той же условности, что и шаблон, — с разведёнными
   // рукавами. Сравнивать с ним осмысленно, с шириной груди — нет.
+  // У низа собственного чертежа нет — сравнивать габарит шаблона не с чем,
+  // и библиотечный силуэт для него не подбирается вовсе.
+  if (!supportsFlat(CATEGORY_CLASS[spec.style.category as Category])) return undefined;
   const master = renderFlatsFromSpec(spec, flatDefaults(spec));
   const targetWidthCm = master.front.viewBox.width;
   const targetHeightCm = master.front.viewBox.height;

@@ -12,6 +12,7 @@ import {
   type Tracked,
 } from '@seamster/core';
 import {
+  CATEGORY_CLASS,
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
   kb as defaultKb,
@@ -188,6 +189,8 @@ const HEIGHT_RANGE = { min: 140, max: 210 } as const;
  * к росту, получают поправку на отклонение размера от этой опоры.
  */
 const REFERENCE_CHEST_HALF = 46;
+/** Размер, к которому привязан эталон шагов. Тот же, от которого считается REFERENCE_CHEST_HALF. */
+const REFERENCE_SIZE_RU = 46;
 
 export function buildMeasurements(input: PomInput, base: KnowledgeBase = defaultKb()): PomResult {
   const notes: string[] = [];
@@ -248,9 +251,27 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
     );
   }
 
+  // От какого обхвата тела считается масштаб. У верха это грудь, у низа —
+  // бёдра: юбку и брюки грудь не держит вовсе, и мерить их от неё значит
+  // получить изделие, которое не наденется. У мужчин обхвата бёдер в ГОСТ
+  // 31399 нет — там опорной величиной остаётся талия, и об этом говорится
+  // вслух, а не подставляется молча.
+  const bottom = CATEGORY_CLASS[input.category] === 'bottom';
+  let girth = body.chest;
+  if (bottom) {
+    if (typeof body.hip === 'number') girth = body.hip;
+    else if (typeof body.waist === 'number') {
+      girth = body.waist;
+      notes.push(
+        `Обхвата бёдер для этой размерной сетки в стандарте нет — масштаб низа ` +
+          `посчитан от обхвата талии. Проверьте ширину по бёдрам по образцу.`,
+      );
+    }
+  }
+
   // Прибавка задана как ПОЛНЫЙ обхват изделия минус обхват тела,
   // а якорь — половинный замер: делим на два ровно один раз.
-  const anchorFromChart = (body.chest + ease.entry.default) / 2;
+  const anchorFromChart = (girth + ease.entry.default) / 2;
 
   // Предмет известного размера в кадре, если он там был, задаёт масштаб
   // ИЗМЕРЕНИЕМ, а не расчётом от заявленного размера.
@@ -259,12 +280,18 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
 
   // Второй якорь — тело без прибавки. За ним следуют горловина и наклон плеча:
   // oversize делает изделие шире, а не длиннее.
-  const bodyAnchorCm = body.chest / 2;
+  const bodyAnchorCm = girth / 2;
 
   // Третий якорь — рост. За ним следуют длины изделия и рукава. Поправка
   // на размер к ним прибавляется отдельным слагаемым: человек на четыре
   // размера больше не имеет рук на четверть длиннее, он шире.
-  const referenceChestHalf = REFERENCE_CHEST_HALF;
+  // Эталон, от которого считаются шаги размера. У верха он захардкожен
+  // полуобхватом груди базового размера; у низа берётся из той же сетки,
+  // иначе шаги посчитались бы от чужой величины и длины поехали бы.
+  const referenceBody = base.bodyMeasurements(input.gender, REFERENCE_SIZE_RU);
+  const referenceChestHalf = bottom
+    ? ((typeof referenceBody.hip === 'number' ? referenceBody.hip : referenceBody.waist) ?? 0) / 2
+    : REFERENCE_CHEST_HALF;
   const sizeStepsFromReference = (bodyAnchorCm - referenceChestHalf) / (base.chestStep() / 2);
 
   // --- 2. Ростовка: длины подтягиваются к росту пользователя -------------------

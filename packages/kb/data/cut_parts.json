@@ -283,6 +283,50 @@
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Деталь заведена по разделу «Рубашка (base)» базы знаний (04 §6). Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "skirt_front",
+      "name_ru": "Перед юбки",
+      "name_en": "Skirt front",
+      "name_zh": "裙前片",
+      "role": "shell",
+      "qty": 1,
+      "on_fold": true,
+      "grain": "length",
+      "applies_to": ["skirt"],
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "skirt_back",
+      "name_ru": "Спинка юбки",
+      "name_en": "Skirt back",
+      "name_zh": "裙后片",
+      "role": "shell",
+      "qty": 2,
+      "on_fold": false,
+      "grain": "length",
+      "applies_to": ["skirt"],
+      "note_ru": "Две детали: средний шов держит застёжку и шлицу.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "waistband_woven",
+      "name_ru": "Пояс",
+      "name_en": "Waistband",
+      "name_zh": "腰头",
+      "role": "shell",
+      "qty": 1,
+      "on_fold": false,
+      "grain": "length",
+      "requires_node": "waistband_set_in",
+      "note_ru": "Дублируется прокладкой; кроится по долевой, иначе пояс тянется.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
     }
   ]
 }

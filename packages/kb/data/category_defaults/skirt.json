@@ -1,0 +1,159 @@
+{
+  "id": "category_defaults/skirt",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты юбки. Первое изделие низа: держится на поясе и вытачках, надевается через потайную молнию в среднем шве спинки, шаг обеспечивает шлица. Полотно тканое и осыпается, поэтому срезы обмётываются отдельным проходом.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#3.5"
+  ],
+  "category": "skirt",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "waistband_set_in",
+    "dart_skirt",
+    "side_seam_plain",
+    "edge_finish_overlock",
+    "invisible_zip_back",
+    "vent_back",
+    "vent_bartack",
+    "hem_topstitch_lockstitch",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "poplin_cotton",
+    "rib": null,
+    "threads": ["thread_40_2"],
+    "interlinings": ["fusible_nonwoven"],
+    "hardware": ["zipper_invisible"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать пояс клеевой прокладкой",
+      "operation_en": "Fuse the waistband",
+      "operation_zh": "腰头粘衬",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Стачать вытачки переда и спинки, заутюжить",
+      "operation_en": "Stitch the front and back darts, press",
+      "operation_zh": "缝合前后腰省并烫倒",
+      "node_id": "dart_skirt",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Обметать открытые срезы",
+      "operation_en": "Neaten the raw edges",
+      "operation_zh": "裁片锁边",
+      "node_id": "edge_finish_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Стачать средний шов спинки, оставив участок под застёжку и шлицу",
+      "operation_en": "Join the centre back seam, leaving the zip opening and the vent",
+      "operation_zh": "缝合后中缝,留出拉链口与开衩",
+      "node_id": null,
+      "specialty": "M",
+      "machine": "single_needle_lockstitch",
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать потайную молнию",
+      "operation_en": "Set the concealed zip",
+      "operation_zh": "装隐形拉链",
+      "node_id": "invisible_zip_back",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Обработать шлицу",
+      "operation_en": "Finish the back vent",
+      "operation_zh": "处理后开衩",
+      "node_id": "vent_back",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Поставить закрепку вверху шлицы",
+      "operation_en": "Bartack the top of the vent",
+      "operation_zh": "开衩上端打枣",
+      "node_id": "vent_bartack",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Стачать боковые швы, разутюжить",
+      "operation_en": "Join the side seams, press open",
+      "operation_zh": "缝合侧缝并分烫",
+      "node_id": "side_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Притачать пояс, вложить размерник",
+      "operation_en": "Attach the waistband, insert the size label",
+      "operation_zh": "装腰头并夹入尺码标",
+      "node_id": "waistband_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Подшить низ",
+      "operation_en": "Hem the skirt",
+      "operation_zh": "缲下摆",
+      "node_id": "hem_topstitch_lockstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach the care label to the side seam",
+      "operation_zh": "侧缝装成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Окончательная влажно-тепловая обработка",
+      "operation_en": "Final pressing",
+      "operation_zh": "整烫",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Набор узлов и последовательность собраны по разделу «Юбка (base)» базы знаний. Норм времени на операцию там нет — колонка пустая намеренно. Юбка первое изделие низа, последовательность не проверена ни одним отшивом: подтвердить у технолога (RAT-1).",
+  "translation_verified": false,
+  "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+}
