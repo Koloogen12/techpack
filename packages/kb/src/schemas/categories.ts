@@ -142,6 +142,39 @@ export const CATEGORY_REGISTRY = {
     visual: 'sleeveless tank top with bound armholes',
   },
 
+  // Трикотажный верх из вязаного полотна. От свитшота отличается не отделкой,
+  // а сырьём: не футер с начёсом, а полотно из шерстяной, кашемировой или
+  // хлопковой пряжи. Отсюда другой уход, другой расход и другая цена, и
+  // вписать свитер в свитшот значило бы напечатать фабрике футер там, где
+  // закупается пряжа.
+  //
+  // ВАЖНО про способ производства: обе категории заведены как КРОЙ-И-ШЕЙ —
+  // полотно вяжется рулоном, раскраивается и стачивается, как трикотажный
+  // верх. Изделие, СВЯЗАННОЕ ПО ФОРМЕ (fully fashioned, детали вывязываются
+  // по контуру и соединяются кеттлёвкой), нашим движком не описывается вовсе:
+  // у него нет ни раскладки, ни расхода в метрах, ни припусков — расход
+  // считается в граммах пряжи. Это названо в gap справочников, а не скрыто.
+  cardigan: {
+    ru: 'кардиган',
+    en: 'cardigan',
+    zh: '开衫',
+    gender: 'm',
+    class: 'top',
+    fabric: 'knit',
+    visual:
+      'button-through knit cardigan, open all the way down the centre front with a full-length button placket, a narrow ribbed neckband, ribbed cuffs and a ribbed hem, no hood',
+  },
+  sweater: {
+    ru: 'свитер',
+    en: 'sweater',
+    zh: '毛衫',
+    gender: 'm',
+    class: 'top',
+    fabric: 'knit',
+    visual:
+      'knit pullover sweater with a ribbed crew neckline, ribbed cuffs and a ribbed hem, a closed front with no opening of any kind',
+  },
+
   // Первый тканый верх. Полотно здесь не пометка, а способ сборки: рубашка
   // держится на воротнике со стойкой, планке с петлями и кокетке, а срезы
   // либо обмётываются, либо убираются в запошивочный шов. Трикотажной

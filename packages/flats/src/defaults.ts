@@ -1,6 +1,6 @@
 import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
 import type { StyleSpec } from '@seamster/stylespec';
-import { measurementsFrom, needsSideView, type RenderOptions } from './render.js';
+import { isBottomSpec, measurementsFrom, needsSideView, type RenderOptions } from './render.js';
 import { garmentDepth } from './side.js';
 
 /**
@@ -20,6 +20,12 @@ export function flatDefaults(
   spec: StyleSpec,
   base: KnowledgeBase = defaultKb(),
 ): Pick<RenderOptions, 'depthCm' | 'minSleeveAngleDeg' | 'hoodDrawFactor'> {
+  // У низа обе величины бессмысленны: рукава нет, а глубина изделия выводится
+  // из обхвата груди. Спросить справочник всё равно можно — он ответит углом
+  // для несуществующего рукава, — но ответ пошёл бы в чертёж числом, за
+  // которым ничего не стоит.
+  if (isBottomSpec(spec)) return {};
+
   const m = measurementsFrom(spec);
   const angle = base.sleeveAngle(m.sleeveLength, spec.base.fit_intent);
   const hoodDrawFactor = base.hoodDrawFactor();

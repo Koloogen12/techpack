@@ -47,7 +47,7 @@
         "max": 250,
         "default": 200
       },
-      "applications": ["longsleeve", "tshirt", "polo", "tank_top", "dress"],
+      "applications": ["longsleeve", "tshirt", "polo", "tank_top", "dress", "cardigan", "sweater"],
       "photo_detectable": "partial",
       "care_profile_id": "cotton_knit",
       "verified": false,
@@ -79,7 +79,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "structure",
       "care_profile_id": "cotton_knit",
@@ -104,7 +106,7 @@
         "max": 450,
         "default": 280
       },
-      "applications": ["sweatshirt", "hoodie", "zip_hoodie"],
+      "applications": ["sweatshirt", "hoodie", "zip_hoodie", "cardigan", "sweater"],
       "photo_detectable": "structure",
       "care_profile_id": "cotton_knit",
       "verified": false,
@@ -189,6 +191,30 @@
       "translation_gap": "Перевод сведён по отраслевой номенклатуре полотен и не проверен носителем-технологом. Закрывается сверкой с прайсом поставщика: название полотна в его документах — первоисточник."
     },
     {
+      "id": "wool_knit_jersey",
+      "name_ru": "Полотно из шерстяной пряжи",
+      "name_en": "Wool-yarn knit jersey",
+      "name_zh": "羊毛针织面料",
+      "role": "shell",
+      "structure_ru": "Гладь либо интерлок машинной вязки из пряжи, полотно в рулоне",
+      "composition_default_ru": "70% шерсть / 30% акрил",
+      "composition_default_en": "70% wool / 30% acrylic",
+      "composition_default_zh": "70% 羊毛 / 30% 腈纶",
+      "gsm": {
+        "min": 250,
+        "max": 450,
+        "default": 320
+      },
+      "applications": ["cardigan", "sweater"],
+      "photo_detectable": "structure",
+      "care_profile_id": "wool_knit",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#1.1",
+      "gap": "Раздел 1.1 базы знаний полотен из шерстяной, кашемировой или смесовой пряжи НЕ содержит вовсе: там перечислен только хлопковый крой-и-шей ассортимент — кулирка, интерлок, рибана, кашкорсе, футер, пике. Состав и плотность здесь сведены по отраслевой практике трикотажного производства, а не выведены из справочника, и это главное, что нужно подтвердить у поставщика пряжи. Плотность полотна с фото не определяется никогда (05 §1.1), поэтому конкретное значение уходит в документ предположением с пометкой «уточнить у заказчика или по образцу». ОТДЕЛЬНО И ВАЖНО: позиция описывает ПОЛОТНО В РУЛОНЕ, которое раскраивают и стачивают. Изделие, СВЯЗАННОЕ ПО ФОРМЕ (детали вывязываются по контуру и соединяются кеттлёвкой), этой строкой не описывается: у него нет ни раскладки, ни расхода в погонных метрах — пряжа считается в граммах. Такой способ производства наш движок не умеет, и подменять его метражом полотна значило бы дать фабрике неверную закупку.",
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре полотен и не проверен носителем-технологом. Закрывается сверкой с прайсом поставщика: название полотна в его документах — первоисточник."
+    },
+    {
       "id": "thread_40_2",
       "name_ru": "Нитки 40/2 универсальные",
       "name_en": "Thread 40/2",
@@ -207,7 +233,9 @@
         "shirt",
         "blouse",
         "skirt",
-        "trousers"
+        "trousers",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -234,7 +262,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -261,7 +291,9 @@
         "zip_hoodie",
         "polo",
         "tank_top",
-        "dress"
+        "dress",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -292,7 +324,9 @@
         "shirt",
         "blouse",
         "skirt",
-        "trousers"
+        "trousers",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -323,7 +357,9 @@
         "shirt",
         "blouse",
         "skirt",
-        "trousers"
+        "trousers",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -354,7 +390,9 @@
         "shirt",
         "blouse",
         "skirt",
-        "trousers"
+        "trousers",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -385,7 +423,9 @@
         "shirt",
         "blouse",
         "skirt",
-        "trousers"
+        "trousers",
+        "cardigan",
+        "sweater"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -489,6 +529,25 @@
       "verified": false,
       "source": "knowledge-base/05-materialy-bom.md#2",
       "gap": "Размер в линиях (L), материал и число отверстий с фото не читаются — подтверждаются образцом. Количество равно числу петель на планке.",
+      "translation_verified": false,
+      "translation_gap": "Перевод не проверен носителем-технологом."
+    },
+    {
+      "id": "button_cardigan",
+      "name_ru": "Пуговица кардигана 24L",
+      "name_en": "Cardigan button, 24L",
+      "name_zh": "开衫纽扣 24L",
+      "role": "hardware",
+      "structure_ru": "Пуговица 15 мм на планку: четыре отверстия либо на ножке",
+      "composition_default_ru": "Полиэстер, рог либо кокос",
+      "composition_default_en": "Polyester, horn or coconut",
+      "composition_default_zh": "涤纶、牛角或椰壳",
+      "applications": ["cardigan"],
+      "qty_per_unit": 7,
+      "photo_detectable": "partial",
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Размер в системе ligne: 24L это 15 мм. База знаний называет 24L размером брючной пуговицы (05 §2), для кардигана величина в ней не названа — взята как ходовая для планки трикотажного изделия: пуговица мельче теряется в рельефе кашкорсе, крупнее оттягивает планку. Число штук — типовое: шесть петель плюс запасная. Движок его НЕ считает из шага петель и длины планки, хотя обе величины в табеле мер есть (Z01 и Z03) — это незакрытый пробел, и до его закрытия количество подтверждает конструктор по лекалам.",
       "translation_verified": false,
       "translation_gap": "Перевод не проверен носителем-технологом."
     },

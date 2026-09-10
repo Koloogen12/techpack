@@ -25,7 +25,8 @@
         "tank_top",
         "dress",
         "shirt",
-        "blouse"
+        "blouse",
+        "sweater"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
@@ -40,7 +41,7 @@
       "qty": 2,
       "on_fold": false,
       "grain": "length",
-      "applies_to": ["zip_hoodie"],
+      "applies_to": ["zip_hoodie", "cardigan"],
       "note_ru": "У изделия со сквозной застёжкой перед раскроен из двух половин.",
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
@@ -65,7 +66,9 @@
         "tank_top",
         "dress",
         "shirt",
-        "blouse"
+        "blouse",
+        "cardigan",
+        "sweater"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
@@ -89,7 +92,9 @@
         "polo",
         "dress",
         "shirt",
-        "blouse"
+        "blouse",
+        "cardigan",
+        "sweater"
       ],
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
@@ -209,6 +214,21 @@
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Состав деталей выведен из узлов категории. Подтвердить на первой раскладке."
+    },
+    {
+      "id": "placket_cardigan",
+      "name_ru": "Планка кардигана",
+      "name_en": "Cardigan placket",
+      "name_zh": "开衫门襟条",
+      "role": "rib",
+      "qty": 2,
+      "on_fold": true,
+      "grain": "length",
+      "requires_node": "cardigan_placket",
+      "note_ru": "Полоса на всю длину переда, кроится со сгибом по длине и притачивается сложенной вдвое. Рубчик идёт ВДОЛЬ детали, а не поперёк, как у манжеты: планка не должна тянуться по длине, иначе борт волнит.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Состав деталей выведен из узлов категории, а не из лекал: лекала строит конструктор. Направление рубчика и сгиб — практика обработки трикотажной планки, в базе знаний этого пункта нет. Подтвердить на первой раскладке."
     },
     {
       "id": "armhole_binding",

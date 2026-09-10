@@ -4,6 +4,13 @@ import type { StyleSpec } from '@seamster/stylespec';
 import { buildPaths, DEFAULT_PATH_OPTIONS, type PathOptions } from './paths.js';
 import { buildSidePaths, garmentDepth, type SideGeometry } from './side.js';
 import type { FlatGeometry, FlatMeasurements } from './geometry.js';
+import {
+  buildBottomPaths,
+  DEFAULT_BOTTOM_OPTIONS,
+  type BottomGeometry,
+  type BottomMeasurements,
+  type BottomPathOptions,
+} from './bottom.js';
 
 /**
  * Рендер технического чертежа в SVG.
@@ -122,8 +129,24 @@ export interface RenderOptions {
    */
   colorFill?: string;
   paths?: PathOptions;
+  /**
+   * Величины низа, которых нет в табеле мер: припуски узлов и список деталей,
+   * которые запросил раздел конструкции. Бессмысленны для верха.
+   */
+  bottom?: BottomPathOptions;
   /** Поле вокруг чертежа, см. */
   margin?: number;
+}
+
+/**
+ * Изделие низа узнаётся по СОСТАВУ ЗАМЕРОВ, а не по названию категории.
+ *
+ * Так же, как боковой вид: правило по составу изделия переживает добавление
+ * новой вещи, а список категорий пришлось бы дополнять на каждую — и забытая
+ * строчка тихо превратила бы юбку в очень короткую блузу.
+ */
+function isBottom(m: FlatMeasurements | BottomMeasurements): m is BottomMeasurements {
+  return 'kind' in m;
 }
 
 /**
@@ -181,9 +204,80 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
   };
 }
 
+/**
+ * Есть ли у изделия табель мер низа.
+ *
+ * Признак — ширина по бёдрам: это ЯКОРЬ МАСШТАБА низа, он есть у всякого
+ * изделия, которое держится на бёдрах, и его нет ни у одного изделия верха.
+ * Правило по составу табеля, а не по списку категорий: список пришлось бы
+ * дополнять на каждую новую вещь, и забытая строчка тихо вернула бы юбке
+ * чертёж блузы.
+ */
+export function isBottomSpec(spec: StyleSpec): boolean {
+  return spec.measurements.points.some((p) => p.code === 'B05');
+}
+
+/**
+ * Замеры низа из табеля мер.
+ *
+ * Юбка отличается от брюк тем же, чем в жизни: у брюк есть шаговый шов,
+ * а значит и его длина B11. Спрашивать про это категорию не нужно — ответ
+ * лежит в самом табеле.
+ *
+ * Запасные значения выведены из якоря (ширины по бёдрам), а не назначены
+ * числом: точки помечены в шаблоне обязательными и в собранной спеке есть
+ * всегда, но чертёж обязан построиться и на урезанном табеле — и построиться
+ * в масштабе изделия, а не в масштабе чужой вещи.
+ */
+export function bottomMeasurementsFrom(spec: StyleSpec): BottomMeasurements {
+  const at = (code: string): number | undefined =>
+    spec.measurements.points.find((p) => p.code === code)?.base.value;
+  const value = (code: string, fallback: number): number => at(code) ?? fallback;
+
+  const hip = value('B05', 56);
+  const common = {
+    waistFlat: value('B01', hip * 0.68),
+    waistbandHeight: value('B03', hip * 0.06),
+    highHipFlat: value('B04', hip * 0.79),
+    hipFlat: hip,
+    // B16 есть только у брюк. Замер точнее припуска из справочника, и рисунок
+    // обязан идти за табелем: подгибка низа брючины на чертеже — это она.
+    ...(at('B16') === undefined ? {} : { hemAllowance: at('B16')! }),
+  };
+
+  if (at('B11') === undefined) {
+    const length = value('J01', hip);
+    return {
+      kind: 'skirt',
+      ...common,
+      length,
+      sweepFlat: value('J02', hip),
+      // Вытачки, шлицы и застёжки у юбки может не быть вовсе: ключ с undefined
+      // не добавляется, потому что его отсутствие — значимая информация.
+      ...(at('J03') === undefined ? {} : { dartLength: at('J03')! }),
+      ...(at('J04') === undefined ? {} : { ventLength: at('J04')! }),
+      ...(at('J05') === undefined ? {} : { zipLength: at('J05')! }),
+    };
+  }
+
+  const inseam = at('B11')!;
+  return {
+    kind: 'trousers',
+    ...common,
+    frontRise: value('B06', hip * 0.45),
+    backRise: value('B07', hip * 0.52),
+    thighFlat: value('B08', hip * 0.62),
+    kneeFlat: value('B09', hip * 0.44),
+    legOpening: value('B10', hip * 0.4),
+    inseamLength: inseam,
+    outseamLength: value('B12', inseam * 1.33),
+    ...(at('B13') === undefined ? {} : { flyLength: at('B13')! }),
+  };
+}
+
 export interface RenderResult {
   svg: string;
-  geometry: FlatGeometry | SideGeometry;
+  geometry: FlatGeometry | SideGeometry | BottomGeometry;
   /**
    * Габариты области рисования в САНТИМЕТРАХ изделия.
    *
@@ -206,9 +300,15 @@ export interface ArtworkZone {
   view: 'front' | 'back';
 }
 
-export function renderFlat(m0: FlatMeasurements, options: RenderOptions): RenderResult {
-  const m: FlatMeasurements =
-    options.hoodDrawFactor === undefined ? m0 : { ...m0, hoodDrawFactor: options.hoodDrawFactor };
+export function renderFlat(
+  m0: FlatMeasurements | BottomMeasurements,
+  options: RenderOptions,
+): RenderResult {
+  const bottom = isBottom(m0);
+  const m =
+    bottom || options.hoodDrawFactor === undefined
+      ? m0
+      : { ...m0, hoodDrawFactor: options.hoodDrawFactor };
   const layers = options.layers ?? ['outline', 'seams', 'stitches', 'hardware', 'artwork'];
   const margin = options.margin ?? 4;
   const isSide = options.view === 'side';
@@ -216,17 +316,41 @@ export function renderFlat(m0: FlatMeasurements, options: RenderOptions): Render
   if (isSide && options.depthCm === undefined) {
     throw new Error('боковой вид требует глубины изделия: её не задаёт ни один замер');
   }
+  if (isSide && bottom) {
+    // Глубина изделия выводится из обхвата груди по размерной сетке
+    // (см. `garmentDepth`), а у изделия низа груди нет вовсе. Нарисовать
+    // профиль юбки нечем — и подставить сюда чужую грудь значило бы
+    // показать фабрике объём, которого никто не считал.
+    throw new Error(
+      'боковой вид низа не строится: глубина изделия выводится из обхвата груди, а у низа груди нет',
+    );
+  }
 
-  const built = isSide
-    ? buildSidePaths(m, options.depthCm!, options.paths ?? DEFAULT_PATH_OPTIONS)
-    : buildPaths(m, options.view as 'front' | 'back', options.paths ?? DEFAULT_PATH_OPTIONS);
+  const built = bottom
+    ? buildBottomPaths(
+        m as BottomMeasurements,
+        options.view as 'front' | 'back',
+        options.bottom ?? DEFAULT_BOTTOM_OPTIONS,
+      )
+    : isSide
+      ? buildSidePaths(
+          m as FlatMeasurements,
+          options.depthCm!,
+          options.paths ?? DEFAULT_PATH_OPTIONS,
+        )
+      : buildPaths(
+          m as FlatMeasurements,
+          options.view as 'front' | 'back',
+          options.paths ?? DEFAULT_PATH_OPTIONS,
+        );
   const geometry = built.geometry;
   const paths = built.paths;
 
-  // Перед и спинка симметричны: рисуется правая половина, левая берётся
+  // Перед и спинка верха симметричны: рисуется правая половина, левая берётся
   // зеркалом (knowledge-base/02 §6, правило 2). Бок несимметричен по сути —
   // у него перед спереди, спинка сзади, — и зеркалить его значит стереть
-  // единственное, что он показывает.
+  // единственное, что он показывает. Низ нарисован целиком: гульфик лежит
+  // на одной стороне, и зеркало нарисовало бы вторую застёжку.
   const b = geometry.bounds;
   const left = ('left' in b ? b.left : -b.width) - margin;
   const right = ('right' in b ? b.right : b.width) + margin;
@@ -235,8 +359,9 @@ export function renderFlat(m0: FlatMeasurements, options: RenderOptions): Render
   const boxHeight = b.bottom - b.top + margin * 2;
   const viewBox = `${left} ${top} ${boxWidth} ${boxHeight}`;
 
+  const whole = isSide || bottom;
   const half = (content: string): string =>
-    isSide ? content : `<g>${content}</g><g transform="scale(-1,1)">${content}</g>`;
+    whole ? content : `<g>${content}</g><g transform="scale(-1,1)">${content}</g>`;
 
   const layer = (name: FlatLayer, content: string): string =>
     layers.includes(name) && content
@@ -321,7 +446,7 @@ export function renderFlat(m0: FlatMeasurements, options: RenderOptions): Render
   const patternFill = layer(
     'pattern',
     options.patternFill
-      ? clipped(panelFill(false), false) + (isSide ? '' : clipped(panelFill(true), true))
+      ? clipped(panelFill(false), false) + (whole ? '' : clipped(panelFill(true), true))
       : '',
   );
 
@@ -380,7 +505,10 @@ export function renderFlat(m0: FlatMeasurements, options: RenderOptions): Render
         // Отсчёт от ВЫСШЕЙ ТОЧКИ ПЛЕЧА — она в геометрии лежит на y = 0.
         // Считать от верха габарита нельзя: у худи туда попадает капюшон,
         // и зона уехала бы вниз на всю его высоту, разойдясь с таблицей.
-        const y = geometry.hps.y + z.offsetFromTop;
+        // У низа плеча нет, и якорь у него свой — верхний край пояса:
+        // от него же отсчитаны все его замеры.
+        const anchorY = 'hps' in geometry ? geometry.hps.y : geometry.waistTop.y;
+        const y = anchorY + z.offsetFromTop;
         return (
           `<g data-artwork="${z.id}">` +
           `<rect x="${x}" y="${y}" width="${z.widthCm}" height="${z.heightCm}" ` +
@@ -450,14 +578,73 @@ export function needsSideView(spec: StyleSpec): boolean {
  * работает и в браузере, а справочник читает файлы с диска — потянуть его
  * сюда значит утащить в сборку кабинета файловую систему.
  *
- * Он строит ВЕРХ: плечо, пройму, рукав, горловину. У низа этих линий нет
- * вовсе, и прогнать через него юбку значит получить чертёж блузы с
- * подписями от юбки. Пока геометрии низа нет, лист чертежа у таких изделий
- * занимает генерируемый технический эскиз — так же, как у платья, для
- * которого нет библиотечного силуэта.
+ * Верх он строит от плеча: плечо, пройма, рукав, горловина. Низ — от пояса:
+ * талия, линии бедра, вытачки, брючины (см. bottom.ts). Цельное изделие идёт
+ * построителем верха и выходит очень длинной футболкой — это признано вслух
+ * в бенчмарке пропорций и потому не считается умением, а считается тем, что
+ * есть.
+ *
+ * Верхняя одежда остаётся за чертой: категории такого класса в реестре пока
+ * нет, а геометрии пальто — бортов, лацканов, подкладки — у построителя нет
+ * вовсе. Ответ на неё обязан быть решением, а не значением по умолчанию.
  */
 export function supportsFlat(cls: GarmentClass): boolean {
-  return cls !== 'bottom';
+  return cls !== 'outerwear';
+}
+
+type SpecNode = NonNullable<StyleSpec['construction']>['nodes'][number];
+
+/**
+ * Число пунктирных линий подгибки низа — по коду стежка узла.
+ *
+ * 103 — потайной стежок: с лица строчки нет вовсе, и пунктир обещал бы
+ * отстрочку, которой не будет. 301 — одна игла, значит одна строчка;
+ * 406 — две, 407 — три. По числу линий фабрика опознаёт машину, и лишняя
+ * линия читается как заказ на другое оборудование.
+ *
+ * Верх считает то же самое своей функцией, написанной под трикотажные машины:
+ * там 301 даёт две линии. Свести их в одну — переписать чертёж всех тканых
+ * изделий верха, и это отдельный разговор с отдельной проверкой.
+ */
+const hemRows = (code: string | undefined): number => {
+  if (code === '103') return 0;
+  if (code === '407') return 3;
+  if (code === '406' || code === '401') return 2;
+  return 1;
+};
+
+/**
+ * Величины низа, которых нет в табеле мер.
+ *
+ * Их две породы. Припуски (подгибка, подзор шлицы) приходят из справочника
+ * узлов — там они и живут. Наличие деталей приходит из раздела конструкции:
+ * шлёвки и карман в боковом шве не меряются вовсе, а вытачка, шлица и
+ * застёжка бывают и не бывают. Так связь «узел ↔ линия на чертеже» держится
+ * с обеих сторон ПО ПОСТРОЕНИЮ: линия появляется от узла, и линии без узла
+ * взяться неоткуда.
+ */
+function bottomOptionsFrom(spec: StyleSpec, hem: SpecNode | undefined): BottomPathOptions {
+  const nodes = spec.construction?.nodes ?? [];
+  const has = (id: string): boolean => nodes.some((n) => n.node_id === id);
+  const vent = nodes.find((n) => n.node_id === 'vent_back');
+
+  return {
+    hemAllowance: hem?.seam_allowance_cm.value ?? DEFAULT_BOTTOM_OPTIONS.hemAllowance,
+    hemStitchRows: hemRows(hem?.stitch_code),
+    // Подзор шлицы заходит ровно на припуск её узла: своей точки в табеле
+    // мер у него нет, а припуск — это и есть та величина.
+    ventAllowance: vent?.seam_allowance_cm.value ?? DEFAULT_BOTTOM_OPTIONS.ventAllowance,
+    parts: {
+      waistband: has('waistband_set_in'),
+      darts: has('dart_skirt'),
+      vent: has('vent_back'),
+      zipBack: has('invisible_zip_back'),
+      fly: has('fly_zip'),
+      beltLoops: has('belt_loops'),
+      sidePocket: has('pocket_side_seam'),
+      hem: hem !== undefined,
+    },
+  };
 }
 
 export function renderFlatsFromSpec(
@@ -467,7 +654,6 @@ export function renderFlatsFromSpec(
     viewLabels?: Record<FlatView, string>;
   } = {},
 ): { front: RenderResult; back: RenderResult; side?: RenderResult } {
-  const m = measurementsFrom(spec);
   const label = (view: FlatView): { viewLabel: string } | object =>
     options.viewLabels ? { viewLabel: options.viewLabels[view] } : {};
 
@@ -482,13 +668,29 @@ export function renderFlatsFromSpec(
     view: a.zone.startsWith('back') ? ('back' as const) : ('front' as const),
   }));
 
-  const hem = spec.construction?.nodes.find((n) => n.zone === 'hem');
+  // Узел низа ищется по идентификатору, а не по зоне: в зоне `hem` у юбки
+  // лежат ещё шлица и её закрепка, и поиск по зоне возвращал припуск шлицы
+  // вместо припуска подгибки — низ отстрачивался бы в четырёх сантиметрах
+  // от края вместо двух.
+  const hem = spec.construction?.nodes.find((n) => n.node_id.startsWith('hem_'));
   const sleeveHem = spec.construction?.nodes.find((n) => n.node_id.startsWith('sleeve_hem'));
 
   // Число пунктирных линий берётся из кода стежка узла: 406 — две строчки,
   // 407 — три. Замена узла на чертеже видна, а не только в таблице.
   const rows = (stitch: string | undefined): number => (stitch === '407' ? 3 : 2);
 
+  // У низа бокового вида нет: глубина изделия выводится из обхвата груди,
+  // а груди у него нет. Профиль разложенной юбки — полоска в два слоя
+  // полотна, и рисовать её значило бы отдать лист под пустой чертёж.
+  if (isBottomSpec(spec)) {
+    const bm = bottomMeasurementsFrom(spec);
+    const bottom = bottomOptionsFrom(spec, hem);
+    const view = (v: 'front' | 'back'): RenderResult =>
+      renderFlat(bm, { ...options, view: v, bottom, artwork, ...label(v) });
+    return { front: view('front'), back: view('back') };
+  }
+
+  const m = measurementsFrom(spec);
   const paths: PathOptions = {
     ...DEFAULT_PATH_OPTIONS,
     ...(options.minSleeveAngleDeg === undefined

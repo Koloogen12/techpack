@@ -2,9 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
 import { buildStyleSpec, type StyleSpecInput } from '@seamster/assembly';
 import {
+  buildBottomGeometry,
   buildGeometry,
+  bottomMeasurementsFrom,
   checkFlatLines,
   flatDefaults,
+  isBottomSpec,
   measurementsFrom,
   renderFlatsFromSpec,
   supportsFlat,
@@ -199,7 +202,43 @@ describe.each(CATEGORIES)('заливка чертежа: %s', (category) => {
     expect(back.holes).toBeLessThan(0.005);
   }, 60_000);
 
+  /**
+   * Точки низа строятся от ЕГО опорных точек — пояса, бёдер, брючины.
+   *
+   * Взять их у геометрии верха нельзя даже приблизительно: там начало отсчёта
+   * на линии плеч, которой у юбки нет, и точка «грудь» уехала бы на белый фон.
+   * Пояс низа при этом ждёт РИСУНОК, а не цвет-компаньон: он кроится из того
+   * же полотна, что корпус, и рибаны в спецификации юбки нет вовсе.
+   */
+  const bottomPoints = (): { label: string; at: { x: number; y: number }; want: string }[] => {
+    const g = buildBottomGeometry(bottomMeasurementsFrom(spec));
+    const at = [
+      { label: 'пояс низа', at: { x: g.waistTop.x * 0.5, y: g.waistSeam.y * 0.5 }, want: 'tile' },
+      { label: 'бедро', at: { x: g.hip.x * 0.5, y: g.hip.y }, want: 'tile' },
+    ];
+    if (g.kind === 'skirt') {
+      at.push({ label: 'подол', at: { x: g.hem.x * 0.5, y: g.hem.y - 3 }, want: 'tile' });
+    } else {
+      at.push({
+        label: 'брючина',
+        at: { x: (g.knee!.inner.x + g.knee!.outer.x) / 2, y: g.knee!.inner.y },
+        want: 'tile',
+      });
+    }
+    return at;
+  };
+
   it('рибаны не печатаются, основное полотно печатается', async () => {
+    if (isBottomSpec(spec)) {
+      const wanted = bottomPoints();
+      const colors = await probe(
+        filled.front.svg,
+        wanted.map((p) => p.at),
+      );
+      for (const [i, p] of wanted.entries()) expect(colors[i], p.label).toBe(p.want);
+      return;
+    }
+
     const m = measurementsFrom(spec);
     const g = buildGeometry(m, 'front', defaults.minSleeveAngleDeg);
 
@@ -273,10 +312,11 @@ describe('узел обработки и линия на чертеже', () => 
    * с вопросом «где шов»; линия без узла обещает обработку, которой
    * в спецификации нет.
    */
-  // Низ построитель не умеет: у юбки нет ни плеча, ни проймы, ни рукава,
-  // и прогонять её через геометрию верха значит сверять чертёж блузы
-  // с узлами юбки. Пока геометрии низа нет, лист чертежа у таких изделий
-  // занимает генерируемый эскиз.
+  // Низ проверяется наравне с верхом: построитель умеет и его — пояс, вытачки,
+  // шлицу, гульфик, шаговый шов. Список берётся у самого построителя, а не
+  // пишется здесь руками: класс, которого он не умеет, обязан выпасть из
+  // проверки там же, где он выпадает из документа, — иначе тест сторожил бы
+  // не то, что уходит фабрике.
   const DRAWN = CATEGORIES.filter((c) => supportsFlat(CATEGORY_CLASS[c]));
 
   it.each(DRAWN)('%s: каждому узлу — своя линия', (category) => {

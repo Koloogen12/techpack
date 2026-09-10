@@ -19,6 +19,8 @@ const LABEL: Record<Category, string> = {
   sweatshirt: 'Свитшот',
   hoodie: 'Худи',
   zip_hoodie: 'Худи на молнии',
+  cardigan: 'Кардиган',
+  sweater: 'Свитер',
   polo: 'Поло',
   trousers: 'Брюки',
   skirt: 'Юбка',

@@ -8,6 +8,7 @@
  */
 export * from './geometry.js';
 export * from './paths.js';
+export * from './bottom.js';
 export * from './svg.js';
 export * from './side.js';
 export * from './render.js';

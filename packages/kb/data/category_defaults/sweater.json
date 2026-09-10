@@ -1,0 +1,150 @@
+{
+  "id": "category_defaults/sweater",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты свитера: полотно из пряжи, сборка оверлоком, воротник-резинка, манжеты и пояс из кашкорсе. Застёжки нет ни одной — изделие надевается через голову. От свитшота отличается не порядком операций, а сырьём и уходом: не футер с начёсом, а вязаное полотно, и ручная стирка вместо машинной.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#5",
+    "knowledge-base/05-materialy-bom.md#1.1"
+  ],
+  "category": "sweater",
+  "fabric_kind": "knit",
+  "default_nodes": [
+    "neck_rib_band",
+    "neck_topstitch_tape",
+    "shoulder_seam_overlock",
+    "shoulder_stay_tape",
+    "sleeve_set_in",
+    "side_sleeve_seam",
+    "cuff_rib",
+    "waistband_rib",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "wool_knit_jersey",
+    "rib": "rib_2x2",
+    "threads": ["thread_40_2", "thread_textured"],
+    "interlinings": ["stay_tape"],
+    "hardware": [],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Стачать плечевые швы с вложением укрепляющей тесьмы",
+      "operation_en": "Join shoulder seams with stay tape",
+      "operation_zh": "缝合肩缝并夹入防伸带",
+      "node_id": "shoulder_seam_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Стачать воротник-резинку в кольцо, сложить вдвое, приутюжить",
+      "operation_en": "Close the rib collar into a loop, fold double, press",
+      "operation_zh": "领罗纹接圈缝合、对折并烫平",
+      "node_id": null,
+      "specialty": "M",
+      "machine": "single_needle_lockstitch",
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Втачать воротник-резинку в горловину",
+      "operation_en": "Set the rib collar into the neckline",
+      "operation_zh": "绱领罗纹",
+      "node_id": "neck_rib_band",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Отстрочить горловину, настрочить тесьму, вложить размерник",
+      "operation_en": "Topstitch neckline, attach back neck tape, insert size label",
+      "operation_zh": "领口缉明线，压后领带，夹入尺码标",
+      "node_id": "neck_topstitch_tape",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать рукава в проймы",
+      "operation_en": "Set sleeves into armholes",
+      "operation_zh": "绱袖（装入袖窿）",
+      "node_id": "sleeve_set_in",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Стачать боковой шов и шов рукава одной строчкой",
+      "operation_en": "Close side and underarm seam in one operation",
+      "operation_zh": "一次缝合摆缝与袖底缝",
+      "node_id": "side_sleeve_seam",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Стачать манжеты в кольцо и притачать к низу рукавов",
+      "operation_en": "Close cuffs into loops and attach to sleeve openings",
+      "operation_zh": "袖口罗纹接圈并绱至袖口",
+      "node_id": "cuff_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Стачать пояс в кольцо и притачать к низу изделия",
+      "operation_en": "Close waistband into a loop and attach to garment bottom",
+      "operation_zh": "下摆罗纹接圈并绱至下摆",
+      "node_id": "waistband_rib",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach content label into side seam",
+      "operation_zh": "侧缝夹缝成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Чистка изделия, контроль качества",
+      "operation_en": "Trim threads, quality control",
+      "operation_zh": "剪线清理、质检",
+      "node_id": null,
+      "specialty": "R",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Отпарить изделие, разложив на горизонтальной поверхности, упаковать",
+      "operation_en": "Steam the garment laid flat, then pack",
+      "operation_zh": "平放蒸汽整烫后包装",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Норма времени на операцию в базе знаний отсутствует — оставлено пустым намеренно. Технологическая последовательность РФ-формата требует колонку «Время, с», но проставить её можно только по данным конкретного цеха. Собрать на интервью с технологами (RAT-1). ОТДЕЛЬНО ПРО КАТЕГОРИЮ: раздел 6 базы знаний описывает наборы «футболка», «лонгслив», «худи / свитшот», «платье», «брюки», «юбка», «рубашка» и «куртка/бомбер» — свитера и кардигана среди них НЕТ. Набор собран нами переносом трикотажной сборки свитшота, и это главное, что нужно подтвердить у технолога фабрики-партнёра до первой партии. ОТДЕЛЬНО ПРО ВТО: полотно из пряжи не проутюживают с нажимом — его отпаривают разложив, иначе шерсть сваливается и деталь садится безвозвратно. Режима ВТО для шерсти в базе знаний нет; формулировка взята из практики и подтверждается поставщиком пряжи. ОТДЕЛЬНО И ВАЖНО ПРО СПОСОБ ПРОИЗВОДСТВА: последовательность описывает КРОЙ-И-ШЕЙ — полотно раскраивается и стачивается на швейных машинах. Изделие, СВЯЗАННОЕ ПО ФОРМЕ (детали вывязываются по контуру на плосковязальной машине и соединяются кеттлёвкой), этой последовательностью не описывается вовсе: там нет ни раскроя, ни припусков, ни оверлока, а расход считается в граммах пряжи, а не в метрах полотна. Такого маршрута наш движок не умеет; выдавать за него швейную сборку значило бы отправить фабрике невыполнимый техпак. Кому нужен fully fashioned — отдельная работа, а не настройка.",
+  "translation_verified": false,
+  "translation_gap": "переводы техпоследовательности сделаны нами и не проверены технологом-носителем языка"
+}

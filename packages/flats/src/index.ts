@@ -1,5 +1,6 @@
 export * from './geometry.js';
 export * from './paths.js';
+export * from './bottom.js';
 export * from './render.js';
 export * from './side.js';
 export * from './defaults.js';

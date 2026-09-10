@@ -41,6 +41,9 @@ const NODE_ENGLISH: Record<string, string> = {
   sleeve_hem_coverstitch: 'coverstitched sleeve hems',
   zip_full_length: 'a full-length front zipper with a visible zipper tape and pull',
   placket_buttonholes: 'a buttoned front placket',
+  cardigan_placket:
+    'the front open all the way down the centre with a full-length button placket band along each front edge',
+  cardigan_placket_topstitch: 'a single edge stitch running the length of each front placket',
   polo_collar: 'a ribbed polo collar',
   shoulder_seam_overlock: 'dropped shoulder seams',
   sleeve_set_in: 'set-in sleeves hanging straight down along the body',
@@ -77,6 +80,7 @@ const NODE_SIDE_ENGLISH: Record<string, string> = {
   sleeve_set_in: 'the armhole seam where the sleeve joins the body',
   side_sleeve_seam: 'one continuous seam running from the underarm down the side of the body',
   zip_full_length: 'the front zipper edge',
+  cardigan_placket: 'the front placket band at the body edge',
   side_seam_plain: 'the side seam running from the underarm down to the hem',
   sleeve_set_in_woven: 'the armhole seam where the sleeve joins the body',
   neck_facing: 'the clean neckline edge without any band',
@@ -479,6 +483,9 @@ const SLEEVE_BY_CATEGORY: Record<Category, 'long' | 'short' | 'none' | null> = {
   sweatshirt: 'long',
   hoodie: 'long',
   zip_hoodie: 'long',
+  // Короткого рукава у вязаного верха не бывает: это уже другая вещь.
+  cardigan: 'long',
+  sweater: 'long',
   shirt: 'long',
   // У блузки длину рукава выбирает дизайнер: она бывает и без рукава,
   // и с длинным на манжете. Придираться тут значило бы браковать верные листы.

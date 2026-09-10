@@ -21,6 +21,8 @@ const SLEEVE_BY_CATEGORY: Record<Category, TemplateTraits['sleeve']> = {
   sweatshirt: 'long',
   hoodie: 'long',
   zip_hoodie: 'long',
+  cardigan: 'long',
+  sweater: 'long',
   shirt: 'long',
   blouse: 'long',
   // У юбки рукава нет вовсе — как у майки, только по другой причине.
@@ -35,6 +37,11 @@ const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
   sweatshirt: 'none',
   hoodie: 'none',
   zip_hoodie: 'full_zip',
+  // Кардиган распашной и застёгивается на пуговицы. Молния у него бывает,
+  // но реже, и подбирать силуэт по ней значило бы чаще ошибаться, чем нет.
+  cardigan: 'buttons',
+  // Свитер цельный: застёжки нет вовсе, а не «не видно».
+  sweater: 'none',
   shirt: 'buttons',
   blouse: 'buttons',
   // Потайная молния с лица не видна, и подбор силуэта по ней не идёт.
