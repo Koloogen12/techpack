@@ -104,10 +104,77 @@ function invites(): Invite[] {
   }
 }
 
+/**
+ * Гостевой вход: сервис открыт всем, ключи и приглашения больше не нужны.
+ *
+ * Токен при этом остаётся, и не ради барьера, а потому что на нём держится
+ * всё остальное: паки принадлежат владельцу по токену, месячный счётчик
+ * ведётся по нему же. Поэтому первый заход без токена не отвергается, а
+ * получает свой — и человек сразу оказывается в кабинете со своими паками,
+ * которые не видит никто другой.
+ *
+ * Счётчик у гостя остаётся не как запрет, а как предохранитель кошелька:
+ * каждый пак стоит живых денег на ключах, и открытый вход без счёта означает,
+ * что одна ночь с ботом обнуляет бюджет. Цифра задаётся переменной среды.
+ */
+const GUEST_PREFIX = 'g-';
+const GUEST_LIMIT = Number(process.env.SEAMSTER_GUEST_LIMIT ?? 3);
+const GUEST_TOKEN = /^g-[0-9a-f]{24,48}$/;
+
+function guestInvite(token: string): Invite {
+  return {
+    token,
+    name: `Гость ${token.slice(GUEST_PREFIX.length, GUEST_PREFIX.length + 6)}`,
+    org: 'без приглашения',
+    limit: GUEST_LIMIT,
+  };
+}
+
+function cookieOf(req: IncomingMessage, name: string): string | null {
+  const raw = String(req.headers.cookie ?? '');
+  for (const part of raw.split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k === name) return decodeURIComponent(v.join('='));
+  }
+  return null;
+}
+
 function inviteOf(req: IncomingMessage, url: URL): Invite | null {
-  const token = url.searchParams.get('t') ?? String(req.headers['x-invite'] ?? '');
+  // Порядок: ссылка сильнее заголовка, заголовок сильнее куки. Пришедший
+  // по именному приглашению попадает в свой кабинет даже с чужого браузера,
+  // где уже лежит гостевая кука.
+  const token =
+    url.searchParams.get('t') ||
+    String(req.headers['x-invite'] ?? '') ||
+    cookieOf(req, 'sid') ||
+    '';
   if (!token) return null;
-  return invites().find((i) => i.token === token) ?? null;
+  const known = invites().find((i) => i.token === token);
+  if (known) return known;
+  // Гостевой токен не лежит в списке приглашений: держать там запись на
+  // каждого случайного посетителя значит вести список, который никто
+  // не читает и который растёт быстрее, чем что-либо в системе.
+  return GUEST_TOKEN.test(token) ? guestInvite(token) : null;
+}
+
+/**
+ * Впустить того, кто пришёл на голый адрес.
+ *
+ * Выдаёт гостевой токен, кладёт его в куку на год и уводит в кабинет
+ * обычной ссылкой с токеном — дальше работает ровно тот же код, что и для
+ * приглашённого. Кука нужна на следующий заход: без неё человек вернулся бы
+ * на пустое место, а его паки остались бы за токеном, которого он не видел.
+ */
+function letGuestIn(req: IncomingMessage, res: ServerResponse): void {
+  const token = `${GUEST_PREFIX}${randomBytes(16).toString('hex')}`;
+  const https = String(req.headers['x-forwarded-proto'] ?? '').includes('https');
+  res.writeHead(302, {
+    location: `/app/?t=${encodeURIComponent(token)}`,
+    'set-cookie':
+      `sid=${token}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax` + (https ? '; Secure' : ''),
+    'cache-control': 'no-store',
+  });
+  res.end();
 }
 
 // ---------------------------------------------------------------- телеметрия
@@ -713,6 +780,25 @@ const server = createServer(async (req, res) => {
 
   try {
     if (url.pathname === '/app/api/health') return json(res, 200, { ok: true });
+
+    // Пришёл на голый адрес — впускаем. Раньше здесь отдавался служебный
+    // JSON «нужна инвайт-ссылка»: сервис работал, а выглядел сломанным для
+    // любого, кто набрал домен руками.
+    if (req.method === 'GET' && !invite && !url.pathname.startsWith('/app/api')) {
+      const wantsPage = url.pathname === '/' || url.pathname === '/app' || url.pathname === '/app/';
+      // Демо-режим и реферальная ссылка адресуются кабинету напрямую и своих
+      // паков не заводят: перехватить их значило бы стереть параметр
+      // редиректом и показать человеку не то, за чем он пришёл.
+      const ownRoute = url.searchParams.has('demo') || url.searchParams.has('ref');
+      if (wantsPage && !ownRoute) return letGuestIn(req, res);
+    }
+
+    // Корень домена — это кабинет. Отдельной витрины у нас нет, и делать
+    // из адреса тупик не за чем.
+    if (req.method === 'GET' && url.pathname === '/') {
+      res.writeHead(302, { location: '/app/', 'cache-control': 'no-store' });
+      return res.end();
+    }
 
     // --- Админка созвонов: события по валидаторам + заметки о звонке --------
     // По токену, не по инвайту: это внутренняя страница Данила.
