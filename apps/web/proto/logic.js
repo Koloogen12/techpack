@@ -3229,7 +3229,7 @@ class Component extends DCLogic {
         desc: 'Только флэт в 3 видах — без полного пака. Быстрее и не тратит генерацию.',
         cta: 'Построить чертёж',
         credit: 'бесплатно в бете',
-        on: s.drawFile,
+        on: DEMO ? s.drawFile : (s.wshots || []).length > 0,
         hint: 'добавьте фото изделия',
         sec: false,
       },
@@ -4185,6 +4185,10 @@ class Component extends DCLogic {
         : 'используется: ГОСТ 31396 + отраслевые таблицы',
       gridBtnLabel: s.libGrid ? 'Заменить сетку' : 'Загрузить сетку (CSV)',
       uploadGrid: () => {
+        // Сервер размерных сеток пока не принимает, и обещать пересчёт
+        // градации нельзя: раньше здесь просто вставал флаг, а в документе
+        // оставался ГОСТ. Правда о недоделанном лучше нарисованного успеха.
+        if (!DEMO) return this.showToast('Своя размерная сетка — в работе, появится после беты');
         this.set('libGrid', true);
         this.persistProfile();
         this.showToast('Сетка brand-grid.csv загружена — градация пересчитана');
@@ -4250,6 +4254,9 @@ class Component extends DCLogic {
         ? 'logo-mono.svg · лёг на навесной ярлык и титул PDF'
         : 'Ляжет на навесной ярлык и титульную страницу PDF. Лучше монохромный вектор.',
       uploadLogo: () => {
+        // То же самое: файл логотипа никуда не уходил, а подпись сообщала,
+        // что он лёг на ярлык и титул PDF.
+        if (!DEMO) return this.showToast('Логотип на ярлыке — в работе, появится после беты');
         this.set('libLogo', true);
         this.persistProfile();
         this.showToast('Логотип загружен — обновили ярлык и титул PDF');
@@ -4658,22 +4665,45 @@ class Component extends DCLogic {
           ],
         }));
       },
-      addDraw: () => this.set('drawFile', !s.drawFile),
-      addFit: () => this.set('fitFile', !s.fitFile),
+      // Зона загрузки открывает настоящий выбор файла, как и зона референсов
+      // рядом. Раньше клик просто переключал флаг и рисовал «photo-front.jpg
+      // загружено ✓»: человек видел, что файл принят, шёл дальше и обнаруживал
+      // в мастере пустую анкету. Обещание в интерфейсе дороже любого макета.
+      addDraw: () => {
+        if (!DEMO) return this.pickFiles(false);
+        this.set('drawFile', !s.drawFile);
+      },
+      addFit: () => {
+        // Примерка ещё не сделана, и зона не должна изображать приём файла.
+        if (!DEMO) return this.showToast('Виртуальная примерка появится после беты');
+        this.set('fitFile', !s.fitFile);
+      },
       drawZoneStyle:
         'border-radius:12px;border:1px ' +
-        (s.drawFile
+        ((DEMO ? s.drawFile : (s.wshots || []).length)
           ? 'solid rgba(47,124,90,.4);background:rgba(228,247,239,.35)'
           : 'dashed rgba(14,14,14,.22)') +
         ';padding:22px 14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer',
-      drawZoneLabel: s.drawFile ? 'photo-front.jpg загружено ✓' : 'Одно фото анфас',
+      // Имя файла — настоящее, из выбранного человеком. Придуманное имя
+      // в этой строке и было тем, что выдавало макет за работу.
+      drawZoneLabel: DEMO
+        ? s.drawFile
+          ? 'photo-front.jpg загружено ✓'
+          : 'Одно фото анфас'
+        : (s.wshots || []).length
+          ? (s.wshots || [])[0][1] + ' загружено ✓'
+          : 'Одно фото анфас',
       fitZoneStyle:
         'border-radius:12px;border:1px ' +
-        (s.fitFile
+        ((DEMO ? s.fitFile : false)
           ? 'solid rgba(47,124,90,.4);background:rgba(228,247,239,.35)'
           : 'dashed rgba(14,14,14,.22)') +
         ';padding:22px 14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer',
-      fitZoneLabel: s.fitFile ? 'model-full.jpg загружено ✓' : 'Фото модели в полный рост',
+      fitZoneLabel: DEMO
+        ? s.fitFile
+          ? 'model-full.jpg загружено ✓'
+          : 'Фото модели в полный рост'
+        : 'Фото модели в полный рост',
       dashNoRes: !s.dashEmpty && dashCards.length === 0,
       dashReset: () => this.setState({ dashQ: '', dashFilter: 'Все' }),
       calcOpen: s.calcOpen,
@@ -5146,11 +5176,13 @@ class Component extends DCLogic {
         }
         if (s.toolMode === 'draw') {
           if (TOKEN || !DEMO) {
+            // Фото уже выбрано здесь же — мастер открывается на шаге анкеты,
+            // а не на загрузке: просить тот же файл второй раз незачем.
             this.setState({
               toolMode: null,
               drawFile: false,
               screen: 'wizard',
-              wizStep: 1,
+              wizStep: (this.state.wshots || []).length ? 2 : 1,
               wizMode: 'photo',
             });
             this.showToast('Соберём полный пак — чертёж будет внутри');
