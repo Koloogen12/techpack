@@ -484,6 +484,7 @@ const SLEEVE_BY_CATEGORY: Record<Category, 'long' | 'short' | 'none' | null> = {
   // и с длинным на манжете. Придираться тут значило бы браковать верные листы.
   blouse: null,
   // У юбки рукава нет вовсе, и «нет» здесь — не придирка, а факт кроя.
+  trousers: 'none',
   skirt: 'none',
   dress: null,
 };

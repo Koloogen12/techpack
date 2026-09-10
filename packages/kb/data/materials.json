@@ -206,7 +206,8 @@
         "dress",
         "shirt",
         "blouse",
-        "skirt"
+        "skirt",
+        "trousers"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -290,7 +291,8 @@
         "dress",
         "shirt",
         "blouse",
-        "skirt"
+        "skirt",
+        "trousers"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -320,7 +322,8 @@
         "dress",
         "shirt",
         "blouse",
-        "skirt"
+        "skirt",
+        "trousers"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -350,7 +353,8 @@
         "dress",
         "shirt",
         "blouse",
-        "skirt"
+        "skirt",
+        "trousers"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -380,7 +384,8 @@
         "dress",
         "shirt",
         "blouse",
-        "skirt"
+        "skirt",
+        "trousers"
       ],
       "photo_detectable": "no",
       "verified": false,
@@ -541,7 +546,7 @@
       "gap": "Плотность и состав — типовой диапазон из таблицы тканых полотен базы знаний, а не паспорт конкретного артикула: с фотографии они не определяются никогда и уходят в документ предположением. Подтверждается паспортом поставщика и первым отшивом.",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её спецификация того же материала — первоисточник.",
-      "applications": ["dress", "shirt", "blouse", "skirt"],
+      "applications": ["dress", "shirt", "blouse", "skirt", "trousers"],
       "id": "linen_blend",
       "name_ru": "Лён плательный",
       "name_en": "Linen dress fabric",
@@ -565,7 +570,7 @@
       "gap": "Клеевая прокладка с фотографии не видна никогда — она внутри обтачки. В документ уходит предположением с пометкой «уточнить по образцу». Плотность выбирается под полотно: на лёгкий штапель тяжёлый флизелин ставить нельзя.",
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра: её спецификация того же материала — первоисточник.",
-      "applications": ["dress", "shirt", "blouse", "skirt"],
+      "applications": ["dress", "shirt", "blouse", "skirt", "trousers"],
       "id": "fusible_nonwoven",
       "name_ru": "Флизелин (клеевая нетканая прокладка)",
       "name_en": "Non-woven fusible interlining",
@@ -617,6 +622,92 @@
       "verified": false,
       "source": "knowledge-base/05-materialy-bom.md#2",
       "gap": "Размер в системе ligne: 16L это 10 мм — ходовой для сорочечной планки, воротник иногда идёт на 14L. Число штук считает конструктор по длине планки и числу манжет; девять — типовая рубашка с семью петлями и двумя манжетами плюс запасная.",
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+    },
+    {
+      "id": "suiting_pes_visc",
+      "name_ru": "Костюмная ткань",
+      "name_en": "Suiting fabric",
+      "name_zh": "西服面料",
+      "role": "shell",
+      "structure_ru": "Тканое полотно саржевого либо полотняного переплетения, держит складку",
+      "composition_default_ru": "Полиэстер 65%, вискоза 30%, эластан 5%",
+      "composition_default_en": "65% polyester, 30% viscose, 5% elastane",
+      "composition_default_zh": "65%涤纶 30%粘胶 5%氨纶",
+      "gsm": {
+        "min": 180,
+        "max": 320,
+        "default": 240
+      },
+      "photo_detectable": "partial",
+      "care_profile_id": "cotton_woven",
+      "applications": ["trousers"],
+      "source": "knowledge-base/05-materialy-bom.md#1.2",
+      "gap": "Плотность и состав — типовой диапазон из таблицы тканых полотен базы знаний (05 §1.2), а не паспорт артикула: с фотографии они не определяются и уходят в документ предположением. Подтверждается паспортом поставщика и первым отшивом.",
+      "verified": false,
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+    },
+    {
+      "id": "twill_cotton",
+      "name_ru": "Твил хлопковый (чинос)",
+      "name_en": "Cotton twill",
+      "name_zh": "全棉斜纹",
+      "role": "shell",
+      "structure_ru": "Тканое полотно саржевого переплетения с диагональным рубчиком, плотное",
+      "composition_default_ru": "Хлопок 97%, эластан 3%",
+      "composition_default_en": "97% cotton, 3% elastane",
+      "composition_default_zh": "97%棉 3%氨纶",
+      "gsm": {
+        "min": 180,
+        "max": 280,
+        "default": 230
+      },
+      "photo_detectable": "partial",
+      "care_profile_id": "cotton_woven",
+      "applications": ["trousers"],
+      "source": "knowledge-base/05-materialy-bom.md#1.2",
+      "gap": "Плотность и состав — типовой диапазон из таблицы тканых полотен базы знаний (05 §1.2), а не паспорт артикула: с фотографии они не определяются и уходят в документ предположением. Подтверждается паспортом поставщика и первым отшивом.",
+      "verified": false,
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+    },
+    {
+      "id": "zipper_trouser",
+      "name_ru": "Молния брючная витая №3, неразъёмная",
+      "name_en": "Trouser coil zip #3, closed-end",
+      "name_zh": "3号裤用闭尾拉链",
+      "role": "hardware",
+      "structure_ru": "Короткая витая молния с автолоком для гульфика",
+      "composition_default_ru": "Полиэстер, лента и звенья",
+      "composition_default_en": "Polyester tape and coil",
+      "composition_default_zh": "涤纶拉链带与链牙",
+      "qty_per_unit": 1,
+      "photo_detectable": "partial",
+      "applications": ["trousers"],
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Длина следует за длиной гульфика и в спецификации задаётся диапазоном. Бренд поставщика согласуется отдельно: в техпаке пишем «YKK или аналог по согласованию».",
+      "verified": false,
+      "translation_verified": false,
+      "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+    },
+    {
+      "id": "button_trouser",
+      "name_ru": "Пуговица брючная 24L",
+      "name_en": "Trouser button, 24L",
+      "name_zh": "裤扣 24L",
+      "role": "hardware",
+      "structure_ru": "Пуговица 15 мм на пояс, плюс запасная в комплекте",
+      "composition_default_ru": "Полиэстер либо металл",
+      "composition_default_en": "Polyester or metal",
+      "composition_default_zh": "涤纶或金属",
+      "qty_per_unit": 2,
+      "photo_detectable": "partial",
+      "applications": ["trousers"],
+      "source": "knowledge-base/05-materialy-bom.md#2",
+      "gap": "Размер в системе ligne: 24L это 15 мм — ходовой для брючного пояса.",
+      "verified": false,
       "translation_verified": false,
       "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
     }

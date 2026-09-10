@@ -24,6 +24,7 @@ const SLEEVE_BY_CATEGORY: Record<Category, TemplateTraits['sleeve']> = {
   shirt: 'long',
   blouse: 'long',
   // У юбки рукава нет вовсе — как у майки, только по другой причине.
+  trousers: 'none',
   skirt: 'none',
   dress: 'long',
 };
@@ -37,6 +38,8 @@ const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
   shirt: 'buttons',
   blouse: 'buttons',
   // Потайная молния с лица не видна, и подбор силуэта по ней не идёт.
+  // Гульфик виден спереди, но подбор силуэта по нему не идёт.
+  trousers: 'other',
   skirt: 'none',
   polo: 'buttons',
   dress: 'none',

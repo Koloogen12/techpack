@@ -184,6 +184,22 @@ export const CATEGORY_REGISTRY = {
       'woven straight skirt falling below the knee, shaped with waist darts, a set-in waistband and a concealed back zip',
   },
 
+  // Первое изделие с шаговым швом и гульфиком. Опорная величина та же,
+  // что у юбки, — бёдра; у мужчин их в стандарте нет, и там масштаб
+  // считается от талии, о чём документ говорит вслух.
+  trousers: {
+    ru: 'брюки',
+    en: 'trousers',
+    zh: '裤子',
+    // «Брюки женские»: множественное число ведёт себя как женский род
+    // в реквизите ярлыка.
+    gender: 'f',
+    class: 'bottom',
+    fabric: 'woven',
+    visual:
+      'woven straight-leg trousers with a set-in waistband, belt loops, a zip fly and side-seam pockets',
+  },
+
   // Первая вещь вне стритвира. Верх у неё конструктивно тот же, что
   // у лонгслива, — та же пройма, тот же втачной рукав, та же обработка
   // горловины; отличие в раскрое, а не в узлах. Поэтому платье честно

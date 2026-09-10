@@ -1,0 +1,194 @@
+{
+  "id": "category_defaults/trousers",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты брюк. Первое изделие с шаговым швом и гульфиком: держатся на поясе со шлёвками, застёгиваются молнией под откоском, карманы идут в боковых швах. Срезы обмётываются, швы разутюживаются — полотно тканое и осыпается.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#3.2",
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#3.5"
+  ],
+  "category": "trousers",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "waistband_set_in",
+    "belt_loops",
+    "dart_skirt",
+    "side_seam_plain",
+    "inseam_seam",
+    "crotch_seam",
+    "edge_finish_overlock",
+    "fly_zip",
+    "fly_bartack",
+    "pocket_side_seam",
+    "hem_topstitch_lockstitch",
+    "placket_buttonholes",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "twill_cotton",
+    "rib": null,
+    "threads": ["thread_40_2"],
+    "interlinings": ["fusible_nonwoven"],
+    "hardware": ["zipper_trouser", "button_trouser"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать пояс и откосок клеевой прокладкой",
+      "operation_en": "Fuse the waistband and fly shield",
+      "operation_zh": "腰头与里襟粘衬",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Стачать вытачки на задних половинках, заутюжить",
+      "operation_en": "Stitch the back darts, press",
+      "operation_zh": "缝合后片省道并烫倒",
+      "node_id": "dart_skirt",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Обметать открытые срезы",
+      "operation_en": "Neaten the raw edges",
+      "operation_zh": "裁片锁边",
+      "node_id": "edge_finish_overlock",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Обработать карманы в боковых швах",
+      "operation_en": "Make the side-seam pockets",
+      "operation_zh": "做侧缝插袋",
+      "node_id": "pocket_side_seam",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Стачать боковые швы, разутюжить",
+      "operation_en": "Join the side seams, press open",
+      "operation_zh": "缝合侧缝并分烫",
+      "node_id": "side_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Стачать шаговые швы, разутюжить",
+      "operation_en": "Join the inseams, press open",
+      "operation_zh": "缝合内缝并分烫",
+      "node_id": "inseam_seam",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Стачать средний шов сиденья",
+      "operation_en": "Close the crotch seam",
+      "operation_zh": "缝合裆缝",
+      "node_id": "crotch_seam",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Обработать гульфик с молнией",
+      "operation_en": "Make the zip fly",
+      "operation_zh": "做门襟拉链",
+      "node_id": "fly_zip",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Поставить закрепку внизу гульфика",
+      "operation_en": "Bartack the fly bottom",
+      "operation_zh": "门襟下端打枣",
+      "node_id": "fly_bartack",
+      "specialty": "S",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Притачать пояс, вложить размерник",
+      "operation_en": "Attach the waistband, insert the size label",
+      "operation_zh": "装腰头并夹入尺码标",
+      "node_id": "waistband_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Настрочить шлёвки",
+      "operation_en": "Attach the belt loops",
+      "operation_zh": "上裤袢",
+      "node_id": "belt_loops",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Подшить низ брючин",
+      "operation_en": "Hem the legs",
+      "operation_zh": "缲脚口",
+      "node_id": "hem_topstitch_lockstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Обметать петлю и пришить пуговицу на поясе",
+      "operation_en": "Work the buttonhole and sew the waistband button",
+      "operation_zh": "腰头锁眼钉扣",
+      "node_id": "placket_buttonholes",
+      "specialty": "A",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Притачать составник в боковой шов",
+      "operation_en": "Attach the care label to the side seam",
+      "operation_zh": "侧缝装成分标",
+      "node_id": "care_label_stitched",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 15,
+      "operation_ru": "Окончательная влажно-тепловая обработка",
+      "operation_en": "Final pressing",
+      "operation_zh": "整烫",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+  "gap": "Набор узлов и последовательность собраны по разделу «Брюки (ткань, base)» базы знаний. Норм времени на операцию там нет — колонка пустая намеренно. Брюки первое изделие с гульфиком: последовательность не проверена ни одним отшивом, подтвердить у технолога.",
+  "translation_verified": false,
+  "translation_gap": "Перевод сведён по отраслевой номенклатуре техпаков и не проверен носителем-технологом. Закрывается сверкой с техпаком фабрики-партнёра."
+}

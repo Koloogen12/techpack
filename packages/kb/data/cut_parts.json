@@ -327,6 +327,64 @@
       "verified": false,
       "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
       "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "trouser_front",
+      "name_ru": "Перед брючины",
+      "name_en": "Trouser front",
+      "name_zh": "前裤片",
+      "role": "shell",
+      "qty": 2,
+      "on_fold": false,
+      "grain": "length",
+      "applies_to": ["trousers"],
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "trouser_back",
+      "name_ru": "Задняя половинка брючины",
+      "name_en": "Trouser back",
+      "name_zh": "后裤片",
+      "role": "shell",
+      "qty": 2,
+      "on_fold": false,
+      "grain": "length",
+      "applies_to": ["trousers"],
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "fly_shield",
+      "name_ru": "Откосок гульфика",
+      "name_en": "Fly shield",
+      "name_zh": "里襟",
+      "role": "shell",
+      "qty": 1,
+      "on_fold": false,
+      "grain": "length",
+      "requires_node": "fly_zip",
+      "note_ru": "Закрывает молнию изнутри, чтобы зубцы не касались тела.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
+    },
+    {
+      "id": "pocket_bag",
+      "name_ru": "Мешковина кармана",
+      "name_en": "Pocket bag",
+      "name_zh": "袋布",
+      "role": "shell",
+      "qty": 4,
+      "on_fold": false,
+      "grain": "length",
+      "requires_node": "pocket_side_seam",
+      "note_ru": "Кроится из подкладочной или основной ткани — решает бренд.",
+      "verified": false,
+      "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#6",
+      "gap": "Число деталей и размеры подтверждаются лекалами первого отшива."
     }
   ]
 }

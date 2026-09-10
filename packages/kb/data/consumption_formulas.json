@@ -353,6 +353,33 @@
       "verified": false,
       "source": "knowledge-base/05-materialy-bom.md#3.2 · knowledge-base/05-materialy-bom.md#3.3",
       "gap": "Норма из таблицы расхода базы знаний: юбка 0,8–1,5 м. Выпады ниже платьевых — деталей мало и они прямоугольные; расклешённая юбка ляжет ближе к верхней границе. Уточняется фабрикой по раскладке."
+    },
+    {
+      "category": "trousers",
+      "fabric_kind": "woven",
+      "fabric_width_cm": {
+        "min": 140,
+        "max": 150,
+        "default": 145
+      },
+      "consumption_m": {
+        "min": 1.5,
+        "max": 2.0,
+        "default": 1.7
+      },
+      "marker_waste_percent": {
+        "min": 5,
+        "max": 6,
+        "default": 6
+      },
+      "shrinkage_percent": {
+        "min": 3,
+        "max": 7,
+        "default": 5
+      },
+      "verified": false,
+      "source": "knowledge-base/05-materialy-bom.md#3.2 · knowledge-base/05-materialy-bom.md#3.3",
+      "gap": "Норма из таблицы базы знаний: брюки 1,5–2 м (длина плюс 0,4 м). Выпады 5–6 % — там же: у брюк детали длинные и прямые, они ложатся в раскладку плотнее платьевых. Уточняется фабрикой по раскладке."
     }
   ]
 }
