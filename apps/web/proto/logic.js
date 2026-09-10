@@ -728,6 +728,16 @@ class Component extends DCLogic {
       });
     }
     if (TOKEN) {
+      // Черновик анкеты: человек вышел из мастера, не досоздав пак.
+      // Ответы возвращаются, снимки — нет, и об этом сказано прямо.
+      apiCall('/draft')
+        .then((r) => {
+          const d = r && r.draft;
+          if (!d || !d.picks) return;
+          this.setState((p) => ({ picks: { ...p.picks, ...d.picks }, draftFound: true }));
+          this.showToast('Нашли незаконченную анкету — ответы вернули, фото добавьте заново');
+        })
+        .catch(() => {});
       this.pollNotifs();
       this._nt = setInterval(() => this.pollNotifs(), 60_000);
       apiCall('/referral')
@@ -1023,6 +1033,50 @@ class Component extends DCLogic {
           return { vals };
         });
       });
+  }
+
+  /**
+   * Черновик анкеты: ответы переживают закрытие вкладки.
+   *
+   * Снимки не сохраняются намеренно — это мегабайты чужих фотографий на
+   * диске у того, кто до пака так и не дошёл. Возвращаясь, человек видит
+   * заполненную анкету и приносит фото заново; об этом ему и говорят.
+   */
+  saveDraft() {
+    if (!TOKEN) return;
+    const s = this.state;
+    apiCall('/draft', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ at: new Date().toISOString(), step: s.wizStep, picks: s.picks }),
+    }).catch(() => {});
+  }
+
+  dropDraft() {
+    if (!TOKEN) return;
+    apiCall('/draft', { method: 'DELETE' }).catch(() => {});
+  }
+
+  /**
+   * Подтверждение замера по образцу уходит на сервер.
+   *
+   * Значение при этом не меняется — меняется то, откуда мы его знаем.
+   * Пока отметка жила только на экране, человек сверял вещь с образцом,
+   * ставил пометку и терял её при первом обновлении страницы.
+   */
+  sendConfirm(code, confirmed) {
+    const id = this.state.curId;
+    if (!id) return;
+    apiCall('/jobs/' + id + '/measurements', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code, confirmed }),
+    })
+      .then((p) => {
+        this._specs[id] = { spec: p.spec, flat_defaults: p.flat_defaults };
+        this.setState({ curSpec: p.spec, curDefaults: p.flat_defaults });
+      })
+      .catch((e) => this.showToast('Не удалось сохранить: ' + e.message));
   }
 
   /** Спека с локальными правками — живой чертёж без похода на сервер. */
@@ -2050,6 +2104,8 @@ class Component extends DCLogic {
   startGen() {
     clearInterval(this._g);
     clearInterval(this._gs);
+    // Пак заводится — черновик своё отработал и не должен всплывать снова.
+    this.dropDraft();
     const t0 = Date.now();
     this.setState({
       genStep: 0,
@@ -3875,18 +3931,21 @@ class Component extends DCLogic {
         this.showToast('Допуск ' + s.sel + ' перекрыт: ±' + v + ' см · ⌘Z отменит');
       },
       confirmSel: () => {
-        // Статус живёт до перезагрузки страницы: на сервер он не уходит.
-        // Значение замера, в отличие от статуса, сохраняется по-настоящему.
         this.pushHist(s.sel, 'подтверждено по образцу');
         this.setState((p) => ({ confirmed: { ...p.confirmed, [s.sel]: true } }));
-        this.showToast(
-          TOKEN && s.curId
-            ? s.sel + ' отмечено подтверждённым — пометка держится до обновления страницы'
-            : s.sel + ' подтверждено по образцу — статус обновлён',
-        );
+        if (TOKEN && s.curId) this.sendConfirm(s.sel, true);
+        this.showToast(s.sel + ' подтверждено по образцу — статус обновлён');
       },
       resetSel: () => {
         this.pushHist(s.sel, 'сброс к рассчитанному значению');
+        // Снятие подтверждения тоже уходит на сервер: иначе точка осталась бы
+        // «померенной на образце» после того, как человек от этого отказался.
+        const wasConfirmed =
+          s.confirmed[s.sel] ||
+          (s.curSpec &&
+            s.curSpec.measurements.points.find((p) => p.code === s.sel)?.base.confidence ===
+              'fit_confirmed');
+        if (TOKEN && s.curId && wasConfirmed) this.sendConfirm(s.sel, false);
         this.setState((p) => {
           const vals = { ...p.vals };
           const tols = { ...p.tols };
@@ -4318,15 +4377,36 @@ class Component extends DCLogic {
         : 'типовое значение — можно изменить',
       careBtnLabel: s.careAlt ? 'Вернуть типовые' : 'Изменить символы',
       careSwap: () => {
-        this.set('careAlt', !s.careAlt);
-        // Набор символов живёт только на экране: в документ уходит тот,
-        // что посчитан движком по составу полотна.
+        const toDelicate = !s.careAlt;
+        this.set('careAlt', toDelicate);
+        // Выбор бренда доезжает до ярлыка: состав полотна знает не всё —
+        // вышивку и фурнитуру, которым барабан противопоказан, знает человек.
+        if (TOKEN && s.curId && s.curSpec) {
+          const shell =
+            (s.curSpec.bom && s.curSpec.bom.lines.find((l) => l.role === 'shell')) || null;
+          const back =
+            shell && shell.material_id === 'single_jersey' ? 'cotton_knit' : 'cotton_woven';
+          apiCall('/jobs/' + s.curId + '/care', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ profile: toDelicate ? 'delicate' : back }),
+          })
+            .then((p) => {
+              this._specs[s.curId] = { spec: p.spec, flat_defaults: p.flat_defaults };
+              this.setState({ curSpec: p.spec, curDefaults: p.flat_defaults });
+              this.showToast(
+                toDelicate
+                  ? 'Деликатный набор — ушёл на ярлык и в документ'
+                  : 'Вернули набор по составу полотна',
+              );
+            })
+            .catch((e) => this.showToast('Не удалось сохранить: ' + e.message));
+          return;
+        }
         this.showToast(
           s.careAlt
-            ? 'Показываем типовые символы ухода'
-            : nodesReal
-              ? 'Деликатный набор показан здесь; в документ пока идёт типовой по составу'
-              : 'Набор заменён на деликатный — обновится в PDF',
+            ? 'Вернули типовые символы ухода'
+            : 'Набор заменён на деликатный — обновится в PDF',
         );
       },
       precChip:
@@ -5569,15 +5649,13 @@ class Component extends DCLogic {
         s.wizStep === 1 ? this.set('screen', 'home') : this.set('closeConfirm', true),
       closeConfirm: s.closeConfirm,
       wizExit: () => {
-        // Черновиков анкеты мы не храним: пак заводится на сервере только
-        // при запуске генерации. Обещать сохранение значит потерять работу
-        // человека молча.
         clearInterval(this._g);
-        this.setState({ closeConfirm: false, screen: 'home' });
+        if (TOKEN) this.saveDraft();
+        this.setState({ closeConfirm: false, screen: 'home', draftSaved: !!TOKEN });
         this.showToast(
-          DEMO
-            ? 'Черновик сохранён в «Одиночных паках»'
-            : 'Вышли из мастера — заполненная анкета не сохраняется',
+          TOKEN
+            ? 'Черновик анкеты сохранён — фото попросим заново'
+            : 'Черновик сохранён в «Одиночных паках»',
         );
       },
       wizStay: () => this.set('closeConfirm', false),

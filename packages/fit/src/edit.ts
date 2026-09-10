@@ -126,3 +126,96 @@ export function editMeasurement(
 
   return { spec: parseStyleSpec(draft), changed, rejected: null };
 }
+
+/**
+ * Подтверждение замера по образцу.
+ *
+ * Отдельная операция, а не разновидность правки: значение не меняется —
+ * меняется то, откуда мы его знаем. «Указано вами» означает замысел,
+ * «подтверждено по образцу» — что человек взял отшитую вещь и померил её.
+ * Для фабрики это разные вещи: по подтверждённому замеру она шьёт партию,
+ * по указанному ждёт образец.
+ *
+ * Раньше пометка жила только на экране и пропадала при обновлении страницы:
+ * человек сверял вещь с образцом, отмечал точку и терял эту работу молча.
+ */
+export function confirmMeasurement(
+  spec: StyleSpec,
+  code: string,
+  confirmed: boolean,
+  base: KnowledgeBase = defaultKb(),
+): EditResult {
+  const template = base.pomTemplate(spec.style.category, spec.base.fabric_kind);
+  const entry = template.points.find((p) => p.code === code);
+  const point = spec.measurements.points.find((p) => p.code === code);
+  if (!entry || !point) {
+    return { spec, changed: [], rejected: `точки ${code} нет в этом изделии` };
+  }
+  // Составная точка тождественна своим частям: подтверждать её отдельно
+  // значит утверждать, что сумма померена, а слагаемые нет.
+  if (entry.derivation === 'composed') {
+    const parts = (entry.composed_of ?? []).map((p) => p.code).join(' и ');
+    return {
+      spec,
+      changed: [],
+      rejected: `${code} считается из ${parts} — подтверждайте их, а не сумму`,
+    };
+  }
+
+  const already = point.base.confidence === 'fit_confirmed';
+  if (already === confirmed) return { spec, changed: [], rejected: null };
+
+  // Снятие возвращает статус «указано вами»: прежний уровень восстановить
+  // неоткуда, а число в таблице человек уже видел и оставил. Занижать его
+  // до «оценки по фото» значило бы соврать в другую сторону.
+  const level = confirmed ? ('fit_confirmed' as const) : ('user_input' as const);
+  const source = confirmed ? 'fit:sample-confirmed' : 'user:workspace/measurements';
+  const note = confirmed ? 'померено на образце' : 'подтверждение снято';
+
+  const points = spec.measurements.points.map((p) =>
+    p.code === code ? { ...p, base: track(p.base.value, level, source, note) } : p,
+  );
+
+  const draft = {
+    ...spec,
+    measurements: { ...spec.measurements, points },
+    meta: {
+      ...spec.meta,
+      assumptions_count:
+        points.filter(
+          (p) => p.base.confidence === 'assumption' || p.tolerance.confidence === 'assumption',
+        ).length +
+        (spec.construction?.nodes.filter((n) => n.presence.confidence === 'assumption').length ??
+          0) +
+        (spec.bom?.lines.filter(
+          (l) => l.composition.confidence === 'assumption' || l.gsm?.confidence === 'assumption',
+        ).length ?? 0),
+    },
+  };
+  return { spec: parseStyleSpec(draft), changed: [], rejected: null };
+}
+
+/**
+ * Набор символов ухода, выбранный человеком.
+ *
+ * По умолчанию он считается из состава полотна: это правильно и для
+ * большинства вещей достаточно. Но бренд знает про изделие то, чего не знает
+ * состав — вышивку, которая не любит барабан, фурнитуру, которая боится
+ * утюга, — и его решение обязано доезжать до ярлыка. Раньше выбор жил только
+ * на экране: в документ уходил набор по составу, и человек об этом не знал.
+ */
+export function setCareProfile(
+  spec: StyleSpec,
+  profileId: string,
+  base: KnowledgeBase = defaultKb(),
+): EditResult {
+  if (!spec.labels) return { spec, changed: [], rejected: 'в этом документе нет маркировки' };
+  let symbols;
+  try {
+    symbols = base.careSymbolsOrdered(profileId);
+  } catch {
+    return { spec, changed: [], rejected: `набора символов «${profileId}» нет в справочнике` };
+  }
+  const draft = { ...spec, labels: { ...spec.labels, care_symbols: symbols } };
+  return { spec: parseStyleSpec(draft), changed: [], rejected: null };
+}

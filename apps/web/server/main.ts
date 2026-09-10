@@ -31,7 +31,13 @@ import {
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { isSeamsterError } from '@seamster/core';
-import { applyDecision, editMeasurement, openDecisions } from '@seamster/fit';
+import {
+  applyDecision,
+  confirmMeasurement,
+  editMeasurement,
+  openDecisions,
+  setCareProfile,
+} from '@seamster/fit';
 import { flatDefaults, parseSketchEdits, type SketchEdits } from '@seamster/flats';
 import { kb } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
@@ -1533,13 +1539,19 @@ const server = createServer(async (req, res) => {
       if (req.method === 'PATCH' && rest === '/measurements') {
         const body = await readBody(req, 4096);
         if (!body) return json(res, 413, { error: 'слишком большой запрос' });
-        const { code, value_cm } = JSON.parse(body.toString('utf8')) as {
+        const { code, value_cm, confirmed } = JSON.parse(body.toString('utf8')) as {
           code: string;
-          value_cm: number;
+          value_cm?: number;
+          confirmed?: boolean;
         };
         const spec = specOf(id);
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
-        const result = editMeasurement(spec, code, value_cm);
+        // Подтверждение по образцу — не правка числа, а смена того, откуда
+        // мы это число знаем. Значение при этом не трогается.
+        const result =
+          typeof confirmed === 'boolean'
+            ? confirmMeasurement(spec, code, confirmed)
+            : editMeasurement(spec, code, Number(value_cm));
         if (result.rejected) {
           logEvent(invite.name, 'edit_rejected', { id, code, reason: result.rejected });
           return json(res, 422, { error: result.rejected });
@@ -1547,8 +1559,27 @@ const server = createServer(async (req, res) => {
         writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
         // PDF устарел: следующая выгрузка пересоберёт его из новой спеки.
         writeFileSync(join(dir, 'pdf-stale.flag'), '1');
-        logEvent(invite.name, 'edit', { id, code, changed: result.changed });
+        logEvent(invite.name, typeof confirmed === 'boolean' ? 'confirm' : 'edit', {
+          id,
+          code,
+          ...(typeof confirmed === 'boolean' ? { confirmed } : { changed: result.changed }),
+        });
         return json(res, 200, { ...(specPayload(result.spec) as object), changed: result.changed });
+      }
+
+      // Набор символов ухода: решение бренда перекрывает расчёт по составу.
+      if (req.method === 'PATCH' && rest === '/care') {
+        const body = await readBody(req, 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const { profile } = JSON.parse(body.toString('utf8')) as { profile: string };
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const result = setCareProfile(spec, String(profile || ''));
+        if (result.rejected) return json(res, 422, { error: result.rejected });
+        writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
+        writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        logEvent(invite.name, 'care_profile', { id, profile });
+        return json(res, 200, specPayload(result.spec));
       }
 
       // Детали пака: бренд, название, сезон, описание. До сборки — в анкету,
@@ -2113,6 +2144,41 @@ const server = createServer(async (req, res) => {
         mkdirSync(join(DATA, 'profiles'), { recursive: true });
         writeFileSync(path, body);
         logEvent(invite.name, 'profile_saved', null);
+        return json(res, 200, { ok: true });
+      }
+    }
+
+    /**
+     * Черновик анкеты.
+     *
+     * Человек заполняет анкету, отвлекается, закрывает вкладку — и работа
+     * пропадала: пак заводится только при запуске генерации, а до этого
+     * ответы жили в памяти страницы. Кабинет при этом обещал сохранённый
+     * черновик, и обещание было ложным.
+     *
+     * Снимки сюда не кладутся сознательно: это мегабайты на каждый черновик
+     * и чужие фотографии на диске у того, кто до пака так и не дошёл.
+     * Возвращаясь, человек видит заполненную анкету и приносит фото заново.
+     */
+    if (url.pathname === '/app/api/draft') {
+      const path = join(DATA, 'drafts', `${invite.token}.json`);
+      if (req.method === 'GET') {
+        if (!existsSync(path)) return json(res, 200, { draft: null });
+        try {
+          return json(res, 200, { draft: JSON.parse(readFileSync(path, 'utf8')) });
+        } catch {
+          return json(res, 200, { draft: null });
+        }
+      }
+      if (req.method === 'PUT') {
+        const body = await readBody(req, 32 * 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        mkdirSync(join(DATA, 'drafts'), { recursive: true });
+        writeFileSync(path, body);
+        return json(res, 200, { ok: true });
+      }
+      if (req.method === 'DELETE') {
+        rmSync(path, { force: true });
         return json(res, 200, { ok: true });
       }
     }
