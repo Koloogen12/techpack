@@ -117,6 +117,7 @@ const CAT_RU = {
   shirt: 'Рубашка',
   blouse: 'Блузка',
   skirt: 'Юбка',
+  trousers: 'Брюки',
   dress: 'Платье',
 };
 const CAT_OF = {
@@ -132,6 +133,7 @@ const CAT_OF = {
   Рубашка: 'shirt',
   Блузка: 'blouse',
   Юбка: 'skirt',
+  Брюки: 'trousers',
   Платье: 'dress',
 };
 const FIT_OF = {
@@ -3203,6 +3205,7 @@ class Component extends DCLogic {
           'Рубашка',
           'Блузка',
           'Юбка',
+          'Брюки',
           'Платье',
         ].map((l) => mkOpt('cat', l)),
         extra: false,
