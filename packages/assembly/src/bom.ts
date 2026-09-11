@@ -76,6 +76,10 @@ export interface BomResult {
 
 const ROLE_PREFIX: Record<MaterialRole, string> = {
   shell: 'F',
+  // Подкладка и утеплитель — полотна, и артикул у них полотняный: F2, F3.
+  // Отдельная буква завела бы фабрику в заблуждение, что это не ткань.
+  lining: 'F',
+  insulation: 'F',
   rib: 'F',
   interlining: 'I',
   thread: 'T',
@@ -86,6 +90,8 @@ const ROLE_PREFIX: Record<MaterialRole, string> = {
 
 const PLACEMENT: Record<MaterialRole, string> = {
   shell: 'основное полотно',
+  lining: 'подкладка полочки, спинки и рукава',
+  insulation: 'полочка, спинка, рукав',
   rib: 'горловина, манжеты, пояс',
   interlining: 'плечевой шов',
   thread: 'все швы',
@@ -121,6 +127,11 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
 
   const ids: { id: string; role: MaterialRole }[] = [
     { id: shellId, role: 'shell' },
+    // Подкладка и утеплитель идут сразу за верхом: в спецификации это
+    // полотна одного порядка, а не добавка к основному. У однослойной
+    // вещи полей нет вовсе, и список остаётся прежним.
+    ...(defaults.lining ? [{ id: defaults.lining, role: 'lining' as const }] : []),
+    ...(defaults.insulation ? [{ id: defaults.insulation, role: 'insulation' as const }] : []),
     ...(defaults.rib ? [{ id: defaults.rib, role: 'rib' as const }] : []),
     ...defaults.threads.map((id) => ({ id, role: 'thread' as const })),
     ...defaults.interlinings.map((id) => ({ id, role: 'interlining' as const })),
@@ -128,6 +139,38 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
     ...defaults.labels.map((id) => ({ id, role: 'label' as const })),
     ...defaults.packaging.map((id) => ({ id, role: 'packaging' as const })),
   ];
+
+  // --- Предварительный расход по слоям ---------------------------------------
+  //
+  // У изделия на подкладке полотен три, и закупать их надо все. Общая цифра
+  // «расход на изделие» описывает только верх: фабрика, читая её, не закупит
+  // ни подкладку, ни утеплитель. Поэтому расход считается для каждого
+  // полотна и живёт в его собственной строке спецификации.
+  const layerOf = (role: MaterialRole): LayerConsumption | undefined => {
+    const own = base.consumptionForRole(input.category, input.fabric_kind, role);
+    if (!own) return undefined;
+    const metres = roundCm(
+      own.consumption_m.default *
+        (1 + own.marker_waste_percent.default / 100) *
+        (1 + own.shrinkage_percent.default / 100),
+    );
+    return {
+      per_unit: fromBase(
+        metres,
+        `kb:consumption_formulas#${input.category}.${role}`,
+        `предварительно: ${own.consumption_m.default} м на размер M при ширине ` +
+          `${own.fabric_width_cm.default} см, плюс ${own.marker_waste_percent.default}% ` +
+          `на раскладку и ${own.shrinkage_percent.default}% на усадку. ` +
+          `Уточняется фабрикой по раскладке`,
+      ),
+      batch: input.quantity ? roundCm(metres * input.quantity) : null,
+    };
+  };
+
+  const layers = new Map<MaterialRole, LayerConsumption | undefined>([
+    ['lining', layerOf('lining')],
+    ['insulation', layerOf('insulation')],
+  ]);
 
   const counters = new Map<string, number>();
   const lines = ids.map(({ id, role }) => {
@@ -138,10 +181,10 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
       role,
       `${ROLE_PREFIX[role]}-${String(n).padStart(2, '0')}`,
       input,
+      layers.get(role),
     );
   });
 
-  // --- Предварительный расход -------------------------------------------------
   const formula = base.consumptionFor(input.category, input.fabric_kind);
   const withWaste =
     formula.consumption_m.default *
@@ -162,6 +205,29 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
     'Расход полотна дан предварительно. Точное значение фабрика считает по раскладке ' +
       'на конкретный размерный ряд — заложите запас при закупке.',
   );
+
+  // Подкладку и утеплитель не видно ни на одной фотографии: они внутри.
+  // Справочник знает, что у куртки они есть, но какие именно — решает
+  // заказчик, и молчание здесь читалось бы как «мы их разглядели».
+  if (ids.some((x) => x.role === 'lining' || x.role === 'insulation')) {
+    notes.push(
+      'Подкладка и утеплитель с фотографии не видны — взяты типовые для категории. ' +
+        'Подтвердите артикул и плотность до запуска: от них зависит и цена, и режим ухода.',
+    );
+  }
+
+  // Молчаливый прочерк в строке подкладки фабрика прочитает как «расход
+  // считать не надо», и закупит верх, а изделие встанет. Лучше сказать.
+  for (const [role, layer] of layers) {
+    const has = ids.some((x) => x.role === role);
+    if (has && !layer) {
+      notes.push(
+        role === 'lining'
+          ? 'Норма расхода подкладки в справочнике не задана — запросите раскладку у фабрики.'
+          : 'Норма расхода утеплителя в справочнике не задана — запросите раскладку у фабрики.',
+      );
+    }
+  }
 
   if (colorways.length > 1) {
     notes.push(
@@ -234,10 +300,28 @@ function resolveShell(
 
 /** Роли, чей состав — свойство полотна, а не артикула. */
 function isFabric(role: MaterialRole): boolean {
-  return role === 'shell' || role === 'rib' || role === 'interlining';
+  return (
+    role === 'shell' ||
+    role === 'lining' ||
+    role === 'insulation' ||
+    role === 'rib' ||
+    role === 'interlining'
+  );
 }
 
-function buildLine(material: Material, role: MaterialRole, code: string, input: BomInput): BomLine {
+/** Расход одного слоя: на изделие и на весь тираж. */
+interface LayerConsumption {
+  per_unit: Tracked<number>;
+  batch: number | null;
+}
+
+function buildLine(
+  material: Material,
+  role: MaterialRole,
+  code: string,
+  input: BomInput,
+  layer?: LayerConsumption,
+): BomLine {
   const source = `kb:materials#${material.id}`;
   const isShellFromPhoto =
     role === 'shell' && input.fabric_class === material.id && input.fabric_confidence !== undefined;
@@ -287,13 +371,19 @@ function buildLine(material: Material, role: MaterialRole, code: string, input: 
     placement_ru: role === 'hardware' ? material.structure_ru : PLACEMENT[role],
     consumption:
       role === 'shell'
-        ? null // расход полотна считается отдельно, ниже по документу
-        : fromBase(
-            material.qty_per_unit ?? 1,
-            `${source}.consumption`,
-            'типовое количество на изделие',
-          ),
-    consumption_unit: role === 'shell' || role === 'rib' ? 'м' : 'шт',
+        ? null // расход основного полотна живёт отдельным полем спецификации
+        : role === 'lining' || role === 'insulation'
+          ? (layer?.per_unit ?? null)
+          : fromBase(
+              material.qty_per_unit ?? 1,
+              `${source}.consumption`,
+              'типовое количество на изделие',
+            ),
+    consumption_unit:
+      role === 'shell' || role === 'lining' || role === 'insulation' || role === 'rib' ? 'м' : 'шт',
+    ...(role === 'lining' || role === 'insulation'
+      ? { batch_consumption: layer?.batch ?? null }
+      : {}),
     supplier_article: null,
     ...(isShellFromPhoto ? { note: 'класс полотна опознан по фактуре на фото' } : {}),
   };

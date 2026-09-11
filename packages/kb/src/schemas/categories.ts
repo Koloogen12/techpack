@@ -237,6 +237,63 @@ export const CATEGORY_REGISTRY = {
   // у лонгслива, — та же пройма, тот же втачной рукав, та же обработка
   // горловины; отличие в раскрое, а не в узлах. Поэтому платье честно
   // наследует выверенные отношения, а не заводит выдуманные свои.
+  /**
+   * Куртка: утеплённая вещь на подкладке.
+   *
+   * Первая категория класса `outerwear` (11 сентября 2026) и первое
+   * изделие, у которого полотен больше одного: верх, подкладка и
+   * утеплитель. До неё вся спецификация считала одно полотно.
+   *
+   * Парка и пуховик отдельными категориями НЕ заводятся: от куртки они
+   * отличаются длиной, навеской утеплителя и капюшоном — то есть
+   * значениями, а не устройством. Заводить под каждое значение свою
+   * категорию значило бы плодить справочники, которые отличаются одной
+   * строкой.
+   */
+  jacket: {
+    ru: 'куртка',
+    en: 'jacket',
+    zh: '夹克',
+    gender: 'f',
+    class: 'outerwear',
+    fabric: 'woven',
+    visual:
+      'insulated hip-length jacket in technical woven fabric, full-length separating front zip with a storm flap, stand collar, two welt pockets at the hip, elasticated cuffs, quilted body, fully lined',
+  },
+  /**
+   * Пальто: длинная вещь на подкладке из пальтового полотна.
+   *
+   * От куртки отличается не длиной, а устройством борта: у пальто
+   * подборт, лацкан и отложной воротник, втачанный вместе с подбортом.
+   * Это другой набор узлов и другие детали кроя, поэтому категория своя.
+   */
+  coat: {
+    ru: 'пальто',
+    en: 'coat',
+    zh: '大衣',
+    gender: 'n',
+    class: 'outerwear',
+    fabric: 'woven',
+    visual:
+      'single-breasted wool coat falling below the knee, notched lapels and a flat collar, button-through front, two jetted pockets at the hip, set-in sleeves, back vent, fully lined',
+  },
+  /**
+   * Бомбер: короткая куртка с рибом по низу, манжетам и горловине.
+   *
+   * Единственное изделие, где основное полотно тканое, а отделочное —
+   * трикотажное. Риб здесь не украшение: он держит форму низа и
+   * манжеты, и без него бомбер перестаёт быть бомбером.
+   */
+  bomber: {
+    ru: 'бомбер',
+    en: 'bomber jacket',
+    zh: '飞行员夹克',
+    gender: 'm',
+    class: 'outerwear',
+    fabric: 'woven',
+    visual:
+      'cropped bomber jacket in technical woven fabric, full-length separating front zip, ribbed stand collar, ribbed cuffs and ribbed hem band, two slash pockets at the side seams, lined',
+  },
   dress: {
     ru: 'платье',
     en: 'dress',

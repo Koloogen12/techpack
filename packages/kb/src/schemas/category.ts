@@ -50,6 +50,17 @@ export const CategoryDefaultsFileSchema = RefBookMetaSchema.extend({
    */
   default_materials: z.object({
     shell: z.string().min(1),
+    /**
+     * Подкладка. Пусто у всего, что шьётся в один слой.
+     *
+     * Необязательное поле, а не обязательное с `null`, потому что
+     * пятнадцать уже написанных файлов категорий про подкладку ничего не
+     * знают, и требовать от футболки строку «подкладки нет» — значит
+     * править пятнадцать файлов ради умолчания.
+     */
+    lining: z.string().min(1).nullable().optional(),
+    /** Утеплитель. Есть только у зимних вещей; у пальто чаще его нет. */
+    insulation: z.string().min(1).nullable().optional(),
     rib: z.string().min(1).nullable(),
     threads: z.array(z.string().min(1)),
     interlinings: z.array(z.string().min(1)),

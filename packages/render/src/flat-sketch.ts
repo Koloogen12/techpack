@@ -494,6 +494,12 @@ const SLEEVE_BY_CATEGORY: Record<Category, 'long' | 'short' | 'none' | null> = {
   trousers: 'none',
   skirt: 'none',
   dress: null,
+  // Верхняя одежда: рукав всегда длинный. Сторож эскиза сверяет его с
+  // рисунком, и «не задано» здесь означало бы, что куртку с коротким
+  // рукавом он пропустит молча.
+  jacket: 'long',
+  coat: 'long',
+  bomber: 'long',
 };
 
 /**

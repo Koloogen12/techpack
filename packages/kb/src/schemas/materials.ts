@@ -13,6 +13,26 @@ const WithDefault = RangeSchema.extend({ default: z.number() });
 /** Роль материала в изделии. Определяет группу в спецификации материалов. */
 export const MATERIAL_ROLES = [
   'shell',
+  /**
+   * Подкладка. Второй слой изделия, а не отделка.
+   *
+   * Роль заведена под верхнюю одежду 11 сентября 2026 и отличается от
+   * прокладки (`interlining`) принципиально: прокладка дублирует участок
+   * основного полотна и живёт внутри узла, подкладка — самостоятельный
+   * слой со своим кроем, своим расходом и своей строкой в составе на
+   * ярлыке. По статье 9 ТР ТС 017 состав изделия на подкладке
+   * указывается ПО СЛОЯМ, поэтому склеить её с верхом нельзя даже
+   * ради простоты.
+   */
+  'lining',
+  /**
+   * Утеплитель: синтепон, холлофайбер, пух, шерстепон.
+   *
+   * Третий слой. От подкладки отличается тем, что не имеет лицевой
+   * стороны и задаётся плотностью в граммах на квадратный метр, а не
+   * составом полотна. В состав на ярлыке входит отдельной строкой.
+   */
+  'insulation',
   'rib',
   'interlining',
   'thread',
@@ -33,6 +53,8 @@ export type MaterialRole = z.infer<typeof MaterialRoleSchema>;
 
 export const MATERIAL_ROLE_LABEL_EN: Record<MaterialRole, string> = {
   shell: 'shell fabric',
+  lining: 'lining',
+  insulation: 'insulation / wadding',
   rib: 'rib trim',
   interlining: 'interlining',
   thread: 'thread',
@@ -43,6 +65,8 @@ export const MATERIAL_ROLE_LABEL_EN: Record<MaterialRole, string> = {
 
 export const MATERIAL_ROLE_LABEL_ZH: Record<MaterialRole, string> = {
   shell: '面料',
+  lining: '里布',
+  insulation: '填充物',
   rib: '罗纹',
   interlining: '衬布',
   thread: '缝纫线',
@@ -53,6 +77,8 @@ export const MATERIAL_ROLE_LABEL_ZH: Record<MaterialRole, string> = {
 
 export const MATERIAL_ROLE_LABEL_RU: Record<MaterialRole, string> = {
   shell: 'основное полотно',
+  lining: 'подкладочное полотно',
+  insulation: 'утеплитель',
   rib: 'отделочное полотно (рибана, кашкорсе)',
   interlining: 'прокладочные материалы',
   thread: 'нитки',
@@ -123,6 +149,19 @@ export const ConsumptionFormulaSchema = z
      * верха, и полотном в чулке ткань не поставляется вовсе.
      */
     fabric_kind: FabricKindSchema.optional(),
+    /**
+     * Слой изделия, к которому относится норма. Пусто — основное полотно.
+     *
+     * У изделия на подкладке полотен три, и раскладка у каждого своя:
+     * подкладка кроится по тем же лекалам, но уже и без припуска на
+     * стёжку, а утеплитель настилается полосами. Одна цифра на категорию
+     * описывала бы только верх, и фабрика, читая её, не закупила бы ни
+     * подкладку, ни утеплитель.
+     *
+     * Необязательное поле, а не обязательное: пятнадцать норм написаны до
+     * верхней одежды, и переписывать их ради слова «верх» незачем.
+     */
+    role: MaterialRoleSchema.optional(),
     /** Ширина полотна в рулоне, см. */
     fabric_width_cm: WithDefault,
     /** Расход на изделие размера M, погонных метров. */

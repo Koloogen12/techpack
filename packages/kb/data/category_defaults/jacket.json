@@ -1,0 +1,230 @@
+{
+  "id": "category_defaults/jacket",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты куртки. Первое изделие из трёх полотен: верх, подкладка, утеплитель. Верх простёгивается с утеплителем до сборки, подкладка втачивается в готовое изделие и выворачивается через отверстие в шве рукава. Борт держится подбортом, застёжка — разъёмная молния с ветрозащитной планкой.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#7",
+    "knowledge-base/05-materialy-bom.md#1.3",
+    "knowledge-base/05-materialy-bom.md#1.4",
+    "knowledge-base/05-materialy-bom.md#1.5"
+  ],
+  "category": "jacket",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "collar_stand_woven",
+    "zip_set_in",
+    "zip_placket_topstitch",
+    "storm_flap",
+    "front_facing",
+    "insulation_layup",
+    "quilting",
+    "shoulder_seam_plain",
+    "sleeve_set_in_woven",
+    "side_seam_plain",
+    "edge_finish_overlock",
+    "pocket_jetted",
+    "pocket_bartack",
+    "cuff_elastic_casing",
+    "hem_topstitch_lockstitch",
+    "lining_set_in",
+    "lining_pocket_inner",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "oxford_420d",
+    "lining": "lining_taffeta_190t",
+    "insulation": "padding_150",
+    "rib": null,
+    "threads": ["thread_core_spun"],
+    "interlinings": ["fusible_nonwoven"],
+    "hardware": ["zipper_separating", "elastic_band_25"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать подборт, стойку и вход в карман клеевой прокладкой",
+      "operation_en": "Fuse the front facing, collar stand and pocket openings",
+      "operation_zh": "粘衬:挂面、领座与袋口",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Настелить утеплитель на полочки, спинку и рукава",
+      "operation_en": "Lay up the insulation on fronts, back and sleeves",
+      "operation_zh": "前片、后片与袖片铺填充物",
+      "node_id": "insulation_layup",
+      "specialty": "M",
+      "machine": "manual",
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Простегать верх с утеплителем",
+      "operation_en": "Quilt the shell to the insulation",
+      "operation_zh": "面料与填充物绗缝",
+      "node_id": "quilting",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Обтачать и втачать воротник-стойку",
+      "operation_en": "Make and set the stand collar",
+      "operation_zh": "制作并装立领",
+      "node_id": "collar_stand_woven",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Втачать разъёмную молнию, настрочить ветрозащитную планку",
+      "operation_en": "Set the separating zip and attach the storm flap",
+      "operation_zh": "装开尾拉链并缉风门襟",
+      "node_id": "zip_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Отстрочить планку молнии",
+      "operation_en": "Topstitch the zip placket",
+      "operation_zh": "缉拉链门襟",
+      "node_id": "zip_placket_topstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Обтачать борт подбортом, вывернуть, выправить кант",
+      "operation_en": "Face the front edge, turn and set the edge",
+      "operation_zh": "挂面缲边、翻烫止口",
+      "node_id": "front_facing",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Стачать плечевые швы, разутюжить, обметать срезы",
+      "operation_en": "Join the shoulder seams, press open and overlock",
+      "operation_zh": "合肩缝、分烫、锁边",
+      "node_id": "shoulder_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Втачать рукава с посадкой по окату",
+      "operation_en": "Set the sleeves easing the cap",
+      "operation_zh": "装袖、吃势",
+      "node_id": "sleeve_set_in_woven",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Стачать боковые швы и швы рукава",
+      "operation_en": "Join the side and sleeve seams",
+      "operation_zh": "合侧缝与袖缝",
+      "node_id": "side_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Обметать открытые срезы",
+      "operation_en": "Overlock the raw edges",
+      "operation_zh": "锁毛边",
+      "node_id": "edge_finish_overlock",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Обработать карманы в рамку, поставить закрепки",
+      "operation_en": "Make the jetted pockets and bartack them",
+      "operation_zh": "做双嵌线袋并打套结",
+      "node_id": "pocket_jetted",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Обработать низ рукава кулиской, вдеть резинку",
+      "operation_en": "Make the elastic cuff casing and insert the elastic",
+      "operation_zh": "袖口做穿带口并穿松紧",
+      "node_id": "cuff_elastic_casing",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Подшить низ изделия с отстрочкой",
+      "operation_en": "Hem the garment with topstitching",
+      "operation_zh": "缲底边并缉线",
+      "node_id": "hem_topstitch_lockstitch",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 15,
+      "operation_ru": "Стачать подкладку, обработать внутренний карман",
+      "operation_en": "Assemble the lining and make the inside pocket",
+      "operation_zh": "合里布、做内袋",
+      "node_id": "lining_pocket_inner",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 16,
+      "operation_ru": "Втачать подкладку, вывернуть через отверстие в шве рукава, зашить отверстие",
+      "operation_en": "Set the lining, turn through the sleeve opening and close it",
+      "operation_zh": "装里布、由袖缝翻出并封口",
+      "node_id": "lining_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 17,
+      "operation_ru": "Настрочить размерный ярлык в шов, пришить ярлык ухода",
+      "operation_en": "Set the size label in the seam and stitch the care label",
+      "operation_zh": "尺码唛缉于缝内、洗唛缝合",
+      "node_id": "size_label_in_seam",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 18,
+      "operation_ru": "Приутюжить изделие, упаковать",
+      "operation_en": "Final press and pack",
+      "operation_zh": "整烫、包装",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#7",
+  "gap": "Состав узлов собран по разделу «Куртка/бомбер (base)» базы знаний и отраслевой практике. Рецепта именно этой сборки в базе знаний нет построчно: там названы верх, подкладка, риб, молния, карманы и стёжка, а порядок операций выведен инженерно. Утеплитель взят синтепоном 150 — демисезонная навеска; зимняя куртка потребует другой плотности, и это решает заказчик. Калибровать по первому отшиву."
+}

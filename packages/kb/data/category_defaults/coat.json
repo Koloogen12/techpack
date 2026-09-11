@@ -1,0 +1,220 @@
+{
+  "id": "category_defaults/coat",
+  "version": "0.1.0",
+  "description": "Категорийные дефолты пальто. Борт держится подбортом, лацкан обтачивается с перекантом, отложной воротник втачивается вместе с подбортом. Утеплителя нет: тепло даёт само пальтовое полотно. Низ подшивается потайным стежком, спинка со шлицей.",
+  "sources": [
+    "knowledge-base/04-konstrukciya-shvy-uzly.md#8",
+    "knowledge-base/05-materialy-bom.md#1.2",
+    "knowledge-base/05-materialy-bom.md#1.5"
+  ],
+  "category": "coat",
+  "fabric_kind": "woven",
+  "default_nodes": [
+    "front_facing",
+    "lapel_edge",
+    "collar_coat_set_in",
+    "dart_waist",
+    "shoulder_seam_plain",
+    "sleeve_set_in_woven",
+    "side_seam_plain",
+    "edge_finish_overlock",
+    "pocket_jetted",
+    "pocket_bartack",
+    "vent_back",
+    "vent_bartack",
+    "hem_blind",
+    "placket_buttonholes",
+    "button_sew",
+    "lining_set_in",
+    "lining_pocket_inner",
+    "hanger_loop",
+    "size_label_in_seam",
+    "care_label_stitched"
+  ],
+  "default_materials": {
+    "shell": "wool_coating",
+    "lining": "lining_viscose_twill",
+    "insulation": null,
+    "rib": null,
+    "threads": ["thread_core_spun"],
+    "interlinings": ["fusible_nonwoven", "stay_tape"],
+    "hardware": ["button_coat_36l"],
+    "labels": ["care_label", "size_label", "hangtag"],
+    "packaging": ["polybag"]
+  },
+  "tech_sequence": [
+    {
+      "step": 1,
+      "operation_ru": "Продублировать подборт, воротник, лацкан и вход в карман",
+      "operation_en": "Fuse the facing, collar, lapel and pocket openings",
+      "operation_zh": "粘衬:挂面、领、驳头与袋口",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    },
+    {
+      "step": 2,
+      "operation_ru": "Стачать вытачки на полочках и спинке",
+      "operation_en": "Sew the front and back darts",
+      "operation_zh": "收前后省",
+      "node_id": "dart_waist",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 3,
+      "operation_ru": "Обработать карманы в рамку, поставить закрепки",
+      "operation_en": "Make the jetted pockets and bartack them",
+      "operation_zh": "做双嵌线袋并打套结",
+      "node_id": "pocket_jetted",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 4,
+      "operation_ru": "Стачать плечевые швы, разутюжить",
+      "operation_en": "Join the shoulder seams and press open",
+      "operation_zh": "合肩缝、分烫",
+      "node_id": "shoulder_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 5,
+      "operation_ru": "Обтачать лацкан с перекантом",
+      "operation_en": "Edge the lapel with a favour",
+      "operation_zh": "做驳头、坐止口",
+      "node_id": "lapel_edge",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 6,
+      "operation_ru": "Втачать воротник в горловину вместе с подбортом",
+      "operation_en": "Set the collar into the neckline with the facing",
+      "operation_zh": "装领与挂面",
+      "node_id": "collar_coat_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 7,
+      "operation_ru": "Обтачать борт подбортом, вывернуть, выправить кант",
+      "operation_en": "Face the front edge, turn and set the edge",
+      "operation_zh": "挂面缲边、翻烫止口",
+      "node_id": "front_facing",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 8,
+      "operation_ru": "Втачать рукава с посадкой по окату",
+      "operation_en": "Set the sleeves easing the cap",
+      "operation_zh": "装袖、吃势",
+      "node_id": "sleeve_set_in_woven",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 9,
+      "operation_ru": "Стачать боковые швы и швы рукава, обработать шлицу",
+      "operation_en": "Join the side and sleeve seams, make the back vent",
+      "operation_zh": "合侧缝与袖缝、做后开衩",
+      "node_id": "side_seam_plain",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 10,
+      "operation_ru": "Закрепить шлицу закрепкой",
+      "operation_en": "Bartack the vent",
+      "operation_zh": "开衩打套结",
+      "node_id": "vent_bartack",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 11,
+      "operation_ru": "Обметать открытые срезы",
+      "operation_en": "Overlock the raw edges",
+      "operation_zh": "锁毛边",
+      "node_id": "edge_finish_overlock",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 12,
+      "operation_ru": "Подшить низ потайным стежком",
+      "operation_en": "Blind-hem the bottom",
+      "operation_zh": "暗缲底边",
+      "node_id": "hem_blind",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 13,
+      "operation_ru": "Обметать петли, пришить пуговицы",
+      "operation_en": "Make the buttonholes and sew the buttons",
+      "operation_zh": "锁眼、钉扣",
+      "node_id": "placket_buttonholes",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 14,
+      "operation_ru": "Стачать подкладку, обработать внутренний карман, настрочить вешалку",
+      "operation_en": "Assemble the lining, make the inside pocket and attach the hanger loop",
+      "operation_zh": "合里布、做内袋、装挂襻",
+      "node_id": "lining_pocket_inner",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 15,
+      "operation_ru": "Втачать подкладку, вывернуть через отверстие в шве рукава, зашить отверстие",
+      "operation_en": "Set the lining, turn through the sleeve opening and close it",
+      "operation_zh": "装里布、由袖缝翻出并封口",
+      "node_id": "lining_set_in",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 16,
+      "operation_ru": "Настрочить размерный ярлык в шов, пришить ярлык ухода",
+      "operation_en": "Set the size label in the seam and stitch the care label",
+      "operation_zh": "尺码唛缉于缝内、洗唛缝合",
+      "node_id": "size_label_in_seam",
+      "specialty": "M",
+      "machine": null,
+      "time_sec": null
+    },
+    {
+      "step": 17,
+      "operation_ru": "Отпарить изделие на манекене, упаковать",
+      "operation_en": "Steam on the form and pack",
+      "operation_zh": "人台整烫、包装",
+      "node_id": null,
+      "specialty": "U",
+      "machine": "iron",
+      "time_sec": null
+    }
+  ],
+  "verified": false,
+  "source": "knowledge-base/04-konstrukciya-shvy-uzly.md#8",
+  "gap": "Пальто в базе знаний не описано ни строкой: раздел категорийных рецептов доходит до куртки и бомбера. Состав узлов и порядок операций собраны по словарю терминов и отраслевой практике пошива однобортного пальто. Проверить у фабрики-партнёра до первого заказа — в первую очередь порядок втачивания воротника с подбортом и необходимость долевика по борту."
+}

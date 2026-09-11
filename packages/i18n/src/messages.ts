@@ -116,6 +116,8 @@ export interface Messages {
   cut_note: string;
   cut_shell: string;
   cut_rib: string;
+  cut_lining: string;
+  cut_insulation: string;
   node_stitch: string;
   node_spi: string;
   node_machine: string;
@@ -276,6 +278,8 @@ export interface Messages {
   rfq_row_fit: string;
   rfq_row_fabric: string;
   rfq_row_trim: string;
+  rfq_row_lining: string;
+  rfq_row_insulation: string;
   rfq_row_qty: string;
   rfq_row_sizes: string;
   rfq_row_consumption: string;

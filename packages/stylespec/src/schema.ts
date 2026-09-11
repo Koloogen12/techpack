@@ -237,7 +237,17 @@ export const ColorwaySchema = z.object({
 
 export const BomLineSchema = z.object({
   code: z.string().min(1),
-  role: z.enum(['shell', 'rib', 'interlining', 'thread', 'hardware', 'label', 'packaging']),
+  role: z.enum([
+    'shell',
+    'lining',
+    'insulation',
+    'rib',
+    'interlining',
+    'thread',
+    'hardware',
+    'label',
+    'packaging',
+  ]),
   material_id: z.string().min(1),
   name_ru: z.string().min(1),
   name_en: z.string().min(1),
@@ -251,6 +261,15 @@ export const BomLineSchema = z.object({
   placement_ru: z.string().min(1),
   consumption: tracked(z.number().positive()).nullable(),
   consumption_unit: z.enum(['м', 'шт', 'компл']),
+  /**
+   * Расход этой позиции на весь тираж. Пусто, если тираж не назван или
+   * позиция считается штуками.
+   *
+   * Заведено под верхнюю одежду: у изделия на подкладке полотен три, и
+   * закупать их надо все. Общая цифра «расход на тираж» описывает только
+   * верх, и фабрика, читая её, не закупит ни подкладку, ни утеплитель.
+   */
+  batch_consumption: z.number().positive().nullable().optional(),
   /** Артикул поставщика заполняет бренд или фабрика — мы его не выдумываем. */
   supplier_article: z.null(),
   note: z.string().optional(),
@@ -274,7 +293,14 @@ export const BomSchema = z
     lines: z.array(BomLineSchema).min(1),
     /** Поверхность основного полотна. Пусто — на снимке не разобрать. */
     fabric_surface: tracked(FabricSurfaceSchema).optional(),
-    /** Предварительный расход на изделие. Уточняется фабрикой по раскладке. */
+    /**
+     * Предварительный расход ОСНОВНОГО полотна на изделие.
+     *
+     * Расход подкладки и утеплителя живёт в своих строках спецификации
+     * (`lines[].consumption`): у двухслойного изделия одного числа мало,
+     * а превращать это поле в список значило бы сломать всё, что его
+     * читает, ради величины, которой у однослойной вещи нет.
+     */
     fabric_consumption_m: tracked(z.number().positive()),
     /** Тираж заказа, штук. Фабрика считает цену от него. */
     batch_qty: z.number().int().positive().nullable(),

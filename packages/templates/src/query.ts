@@ -29,6 +29,9 @@ const SLEEVE_BY_CATEGORY: Record<Category, TemplateTraits['sleeve']> = {
   trousers: 'none',
   skirt: 'none',
   dress: 'long',
+  jacket: 'long',
+  coat: 'long',
+  bomber: 'long',
 };
 
 const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
@@ -51,6 +54,13 @@ const CLOSURE_BY_CATEGORY: Record<Category, TemplateTraits['closure']> = {
   polo: 'buttons',
   dress: 'none',
   tank_top: 'none',
+  // Куртка и бомбер застёгиваются на разъёмную молнию во всю длину:
+  // в библиотеке таких листов 49, и это самый частый признак семейства.
+  jacket: 'full_zip',
+  bomber: 'full_zip',
+  // Пальто однобортное на пуговицах. Молния у него бывает, но реже, и
+  // подбирать силуэт по ней значило бы чаще ошибаться, чем нет.
+  coat: 'buttons',
 };
 
 export interface QueryOptions {

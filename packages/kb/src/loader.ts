@@ -27,6 +27,7 @@ import {
   type ConstructionNodesFile,
   type ConsumptionFile,
   type ConsumptionFormula,
+  type MaterialRole,
   type EaseEntry,
   type EaseFile,
   type FabricKind,
@@ -536,6 +537,18 @@ export class KnowledgeBase {
    * всегда), либо по узлу: карман кенгуру — только если у изделия есть узел
    * кармана. Иначе документ обещает фабрике деталь, которой в раскладке нет.
    */
+  /**
+   * Все детали кроя справочника, без отбора.
+   *
+   * Нужен сторожу целостности: `cutPartsFor` отбирает детали по наличию
+   * узла, и деталь со ССЫЛКОЙ НА НЕСУЩЕСТВУЮЩИЙ узел из него просто не
+   * возвращается — то есть именно та поломка, которую надо поймать,
+   * через него не видна.
+   */
+  allCutParts(): readonly CutPart[] {
+    return this.cutParts.parts;
+  }
+
   cutPartsFor(category: Category, nodeIds: readonly string[]): readonly CutPart[] {
     const has = new Set(nodeIds);
     return this.cutParts.parts.filter((p) => {
@@ -598,11 +611,31 @@ export class KnowledgeBase {
    * запись категории.
    */
   consumptionFor(category: Category, fabric: FabricKind): ConsumptionFormula {
-    const formulas = this.consumption.formulas.filter((f) => f.category === category);
-    const found =
-      formulas.find((f) => f.fabric_kind === fabric) ?? formulas.find((f) => !f.fabric_kind);
+    const found = this.consumptionForRole(category, fabric, 'shell');
     if (!found) throw new Error(`нет нормы расхода для категории: ${category}`);
     return found;
+  }
+
+  /**
+   * Норма расхода отдельного слоя: подкладки, утеплителя.
+   *
+   * Отличается от нормы основного полотна тем, что её может не быть вовсе,
+   * и это законное состояние: у однослойной вещи подкладки нет, а у
+   * двухслойной справочник может ещё не знать её раскладку. Поэтому метод
+   * возвращает пусто вместо ошибки — а вызывающий обязан сказать об этом
+   * фабрике вслух, а не поставить молчаливый прочерк.
+   */
+  consumptionForRole(
+    category: Category,
+    fabric: FabricKind,
+    role: MaterialRole,
+  ): ConsumptionFormula | undefined {
+    // Слоя в записи может не стоять вовсе: нормы, написанные до верхней
+    // одежды, описывают основное полотно. Пустое поле читается как `shell`.
+    const formulas = this.consumption.formulas.filter(
+      (f) => f.category === category && (f.role ?? 'shell') === role,
+    );
+    return formulas.find((f) => f.fabric_kind === fabric) ?? formulas.find((f) => !f.fabric_kind);
   }
 
   // ---------------------------------------------------------------- маркировка
@@ -611,6 +644,32 @@ export class KnowledgeBase {
     const found = this.care.profiles.find((p) => p.id === id);
     if (!found) throw new Error(`неизвестный профиль ухода: ${id}`);
     return found;
+  }
+
+  /**
+   * Самый требовательный профиль ухода из нескольких.
+   *
+   * Нужен изделию из нескольких слоёв: шерстяное пальто на вискозной
+   * подкладке стирать нельзя не потому, что нельзя шерсть, а потому, что
+   * нельзя изделие целиком. Мягкий режим одного слоя не отменяет запрета
+   * другого, и ярлык обязан печатать запрет.
+   *
+   * Строгость берётся ИЗ ПОРЯДКА ВАРИАНТОВ СТИРКИ в справочнике, а не из
+   * списка в коде: варианты записаны от свободного к строгому (95 °C …
+   * ручная … запрещена), это порядок самого ярлыка, и новый вариант
+   * встанет на своё место без правки движка. Порядок закреплён тестом —
+   * иначе он держался бы на случайности.
+   */
+  strictestCareProfile(ids: readonly string[]): string | undefined {
+    const order = this.care.variants.filter((v) => v.group === 'wash').map((v) => v.id);
+    const rank = (id: string): number => {
+      const wash = this.careProfile(id).variants.wash;
+      const at = wash ? order.indexOf(wash) : -1;
+      return at < 0 ? 0 : at;
+    };
+    const known = ids.filter((id) => this.care.profiles.some((p) => p.id === id));
+    if (!known.length) return undefined;
+    return known.reduce((worst, id) => (rank(id) > rank(worst) ? id : worst));
   }
 
   /** Символы ухода в обязательном порядке ГОСТ ISO 3758: стирка → … → чистка. */

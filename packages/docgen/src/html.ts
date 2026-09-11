@@ -2,6 +2,7 @@ import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamst
 import { editsToSvg, flatDefaults, renderFlatsFromSpec, type SketchEdits } from '@seamster/flats';
 import { seamDiagramSvg } from './seam-diagram.js';
 import {
+  CATEGORY_CLASS,
   CATEGORY_LABEL_RU,
   FIT_INTENT_LABEL_RU,
   MACHINE_LABEL_RU,
@@ -2105,19 +2106,92 @@ function bomPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
         ? `<div class="note" style="margin-bottom:3mm"><b>${esc(t.bom_colorways)}:</b> ${colorways}</div>`
         : '') +
       `<table><thead>${head}</thead><tbody>${rows}</tbody></table>` +
-      (isLast && locale === 'ru'
-        ? `<h3>Расход основного полотна</h3>` +
-          `<div style="font-size:18pt;font-weight:700">${value(bom.fabric_consumption_m)}` +
-          `<span class="v"> м</span>` +
-          (bom.batch_consumption_m
-            ? `<span class="note" style="margin-left:6mm">на тираж: ${num(bom.batch_consumption_m)} м</span>`
-            : '') +
-          `</div>` +
-          `<div class="note warn" style="margin-top:2mm">${esc(bom.fabric_consumption_m.note ?? '')}</div>` +
-          artworkCostLine(spec)
-        : '')
+      (isLast && locale === 'ru' ? consumptionBlock(spec) + artworkCostLine(spec) : '')
     );
   });
+}
+
+/**
+ * Слой изделия по ТР ТС 017/2011 и форма подтверждения соответствия.
+ *
+ * Регламент делит одежду по слою контакта с кожей, и от слоя зависит, что
+ * вообще нужно получить перед продажей: первый слой сертифицируют, второй
+ * и третий декларируют. Пальто, куртки и плащи на подкладке — третий слой.
+ *
+ * Строка короткая, но без неё бренд узнаёт про форму подтверждения от
+ * маркетплейса при отказе в размещении, а не из техпака. Номер декларации
+ * мы не печатаем и печатать не можем: он появляется после испытаний.
+ */
+function conformityLine(spec: StyleSpec): string {
+  const category = spec.style.category as Category;
+  const cls = CATEGORY_CLASS[category];
+  const third = cls === 'outerwear';
+  // Коротко намеренно: блок реквизитов и без того плотный, а длинная
+  // строка выталкивала содержимое за лист на голден-прогоне вёрстки.
+  return (
+    ` Изделие — ${third ? 'третий' : 'второй'} слой ТР ТС 017/2011, ` +
+    `подтверждение: декларирование (номер — после испытаний).`
+  );
+}
+
+/**
+ * Расход полотна: по слоям, если слоёв больше одного.
+ *
+ * У изделия на подкладке полотна три, и закупать их надо все. Одна цифра
+ * описывает только верх — фабрика, прочитав её, закупит верх, а изделие
+ * встанет на подкладке. Поэтому у однослойной вещи здесь остаётся то же
+ * крупное число, что было, а у двухслойной появляется строка на каждый
+ * слой.
+ */
+function consumptionBlock(spec: StyleSpec): string {
+  const bom = spec.bom;
+  if (!bom) return '';
+  const layers = bom.lines.filter((l) => l.role === 'lining' || l.role === 'insulation');
+  const batch = (n: number | null | undefined): string =>
+    n ? `<span class="note" style="margin-left:6mm">на тираж: ${num(n)} м</span>` : '';
+
+  if (!layers.length) {
+    return (
+      `<h3>Расход основного полотна</h3>` +
+      `<div style="font-size:18pt;font-weight:700">${value(bom.fabric_consumption_m)}` +
+      `<span class="v"> м</span>` +
+      batch(bom.batch_consumption_m) +
+      `</div>` +
+      `<div class="note warn" style="margin-top:2mm">${esc(bom.fabric_consumption_m.note ?? '')}</div>`
+    );
+  }
+
+  const LAYER_RU: Record<string, string> = {
+    shell: 'Основное полотно',
+    lining: 'Подкладка',
+    insulation: 'Утеплитель',
+  };
+  const row = (name: string, per: string, note: string, batchCell: string): string =>
+    `<tr><td>${esc(name)}</td><td>${per}</td><td>${batchCell}</td><td class="note">${esc(note)}</td></tr>`;
+
+  const rows =
+    row(
+      LAYER_RU.shell!,
+      `${value(bom.fabric_consumption_m)} м`,
+      bom.fabric_consumption_m.note ?? '',
+      bom.batch_consumption_m ? `${num(bom.batch_consumption_m)} м` : '—',
+    ) +
+    layers
+      .map((l) =>
+        row(
+          LAYER_RU[l.role] ?? l.role,
+          l.consumption ? `${value(l.consumption)} м` : '—',
+          l.consumption?.note ?? 'норма расхода в справочнике не задана — запросите раскладку',
+          l.batch_consumption ? `${num(l.batch_consumption)} м` : '—',
+        ),
+      )
+      .join('');
+
+  return (
+    `<h3>Расход полотен</h3>` +
+    `<table><thead><tr><th>Слой</th><th>На изделие</th><th>На тираж</th><th>Примечание</th></tr></thead>` +
+    `<tbody>${rows}</tbody></table>`
+  );
 }
 
 /**
@@ -2432,7 +2506,8 @@ function labelsPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
     `<div class="note" style="margin-top:2mm">` +
     (ru
       ? `* обязательно по статье 9 ТР ТС 017/2011. ` +
-        `Все надписи — на русском языке, на изделии, этикетке, ярлыке или упаковке.`
+        `Все надписи — на русском языке, на изделии, этикетке, ярлыке или упаковке.` +
+        conformityLine(spec)
       : esc(t.labels_ru_only)) +
     `</div></div>` +
     `<div><h2>${esc(t.labels_care)}</h2>` +
@@ -2492,9 +2567,19 @@ function patternsBody(spec: StyleSpec, t: Messages, locale: Locale): string {
 
   const name = (p: (typeof parts)[number]): string =>
     locale === 'ru' ? p.name_ru : locale === 'zh' ? p.name_zh : p.name_en;
+  // Подпись «из какого полотна кроить» берётся из строки спецификации, а
+  // когда строки нет — из роли детали. Раньше любая незнакомая роль
+  // печаталась как основное полотно: деталь подкладки подписалась бы
+  // враньём, и закройщик выкроил бы её из верха.
+  const FALLBACK: Record<string, string> = {
+    rib: t.cut_rib,
+    lining: t.cut_lining,
+    insulation: t.cut_insulation,
+    shell: t.cut_shell,
+  };
   const material = (role: string): string => {
     const line = spec.bom?.lines.find((l) => l.role === role);
-    if (!line) return role === 'rib' ? t.cut_rib : t.cut_shell;
+    if (!line) return FALLBACK[role] ?? t.cut_shell;
     return locale === 'ru'
       ? line.name_ru
       : locale === 'zh'

@@ -28,6 +28,9 @@ const LABEL: Record<Category, string> = {
   blouse: 'Блузка',
   dress: 'Платье',
   tank_top: 'Майка',
+  jacket: 'Куртка',
+  coat: 'Пальто',
+  bomber: 'Бомбер',
 };
 
 const blocks = CATEGORIES.map((category) => {

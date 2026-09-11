@@ -118,6 +118,9 @@ const CAT_RU = {
   blouse: 'Блузка',
   skirt: 'Юбка',
   trousers: 'Брюки',
+  jacket: 'Куртка',
+  coat: 'Пальто',
+  bomber: 'Бомбер',
   dress: 'Платье',
 };
 const CAT_OF = {
@@ -134,6 +137,9 @@ const CAT_OF = {
   Блузка: 'blouse',
   Юбка: 'skirt',
   Брюки: 'trousers',
+  Куртка: 'jacket',
+  Пальто: 'coat',
+  Бомбер: 'bomber',
   Платье: 'dress',
 };
 const FIT_OF = {
@@ -1664,7 +1670,11 @@ class Component extends DCLogic {
       fit_intent: FIT_OF[s.picks.fit] || 'semi_fitted',
       fabric_kind: s.picks.mat === 'Ткань' ? 'woven' : 'knit',
       size_range: [...new Set(sr)].sort((a, b) => a - b),
-      ...(Number(s.picks.qty) ? { quantity: Number(s.picks.qty) } : {}),
+      // Тираж приходит строкой из анкеты, и один её вариант — «500+».
+      // Number('500+') даёт NaN, и тираж терялся молча: человек выбирал
+      // самую крупную партию, а документ печатался без расхода на тираж
+      // вовсе. Берём ведущее число, знак «плюс» отбрасываем.
+      ...(parseInt(s.picks.qty, 10) > 0 ? { quantity: parseInt(s.picks.qty, 10) } : {}),
       // Ручной замер калибрует масштаб всего чертежа — реальная механика движка.
       ...(isFinite(manualCm) && manualCm > 30
         ? { manual: { code: 'T01', value_cm: manualCm } }
@@ -3206,6 +3216,9 @@ class Component extends DCLogic {
           'Блузка',
           'Юбка',
           'Брюки',
+          'Куртка',
+          'Пальто',
+          'Бомбер',
           'Платье',
         ].map((l) => mkOpt('cat', l)),
         extra: false,

@@ -43,6 +43,7 @@
     "flats:grid": "tsx packages/flats/scripts/reference-grid.ts",
     "templates:ingest": "tsx packages/templates/scripts/ingest.ts",
     "templates:catalog": "tsx --env-file-if-exists=.env packages/templates/scripts/catalog.ts",
+    "templates:promote": "tsx packages/templates/scripts/promote.ts",
     "qa:sweep": "tsx golden/qa/sweep.ts",
     "qa:consistency": "tsx golden/qa/consistency.ts",
     "qa:cabinet": "./golden/qa/cabinet.sh",

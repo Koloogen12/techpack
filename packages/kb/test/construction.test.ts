@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CATEGORIES, MACHINE_TYPES, kb } from '../src/index.js';
+import { CATEGORIES, CATEGORY_REGISTRY, MACHINE_TYPES, kb } from '../src/index.js';
 
 const base = kb();
 
@@ -44,6 +44,82 @@ describe('целостность ссылок между справочника�
     for (const id of base.categoryDefaultsFor('tshirt', 'knit').default_nodes) {
       expect(base.node(id).applies_to).toContain('tshirt');
     }
+  });
+});
+
+describe('уход изделия из нескольких слоёв', () => {
+  /**
+   * Режим ухода выбирается ЦЕЛИКОМ по самому требовательному слою, потому
+   * что ярлык — согласованный набор символов, а не сборная солянка из
+   * разных профилей. Цена этого решения: если слои требуют
+   * ПРОТИВОПОЛОЖНОГО, победитель молча навяжет свой режим остальным.
+   *
+   * Живой пример, найденный при заведении материалов: вискозная подкладка
+   * запрещает барабанную сушку, а синтепоновый утеплитель без барабана
+   * сваливается. Профиль подкладки строже по стирке, значит на ярлык
+   * ушёл бы запрет барабана — и куртка испортилась бы при первой стирке
+   * по своей же инструкции.
+   *
+   * Сейчас конфликта нет: материалы разведены намеренно (вискоза в
+   * пальто, таффета в утеплённой куртке). Тест держит именно это
+   * разведение — не даёт вернуть конфликт молча.
+   */
+  it('слои одной категории не требуют противоположной сушки', () => {
+    const conflicts: string[] = [];
+
+    for (const category of CATEGORIES) {
+      const defaults = base.categoryDefaultsFor(
+        category,
+        CATEGORY_REGISTRY[category].fabric,
+      ).default_materials;
+      const ids = [defaults.shell, defaults.lining, defaults.insulation].filter(
+        (id): id is string => typeof id === 'string',
+      );
+      if (ids.length < 2) continue;
+
+      const tumble = ids
+        .map((id) => base.material(id).care_profile_id)
+        .filter((id): id is string => typeof id === 'string')
+        .map((id) => ({ id, dry: base.careProfile(id).variants.tumble_dry }));
+
+      const forbids = tumble.filter((t) => t.dry === 'tumble_none');
+      const allows = tumble.filter((t) => t.dry && t.dry !== 'tumble_none');
+      if (forbids.length && allows.length) {
+        conflicts.push(
+          `${category}: ${forbids.map((f) => f.id).join(', ')} запрещают барабан, ` +
+            `${allows.map((a) => a.id).join(', ')} его допускают`,
+        );
+      }
+    }
+
+    expect(conflicts).toEqual([]);
+  });
+});
+
+describe('детали кроя ссылаются на настоящие узлы', () => {
+  /**
+   * Деталь появляется в листе кроя, только если в изделии есть узел, ради
+   * которого она нужна. Ссылка на несуществующий узел не ошибка для
+   * компилятора и не ошибка для схемы: это просто строка, которая никогда
+   * не совпадёт. Деталь тихо исчезает из документа.
+   *
+   * Так и было с воротником поло: деталь требовала узел `polo_collar`, а
+   * узел называется `polo_collar_set_in`. Воротник не попадал в лист кроя
+   * ни разу — фабрика получала поло без воротника в деталях. Нашлось
+   * случайно, при заведении верхней одежды, спустя месяцы.
+   */
+  it('каждая ссылка requires_node указывает на существующий узел', () => {
+    const broken: string[] = [];
+    for (const part of base.allCutParts()) {
+      const node = part.requires_node;
+      if (!node) continue;
+      try {
+        base.node(node);
+      } catch {
+        broken.push(`${part.id} → ${node}`);
+      }
+    }
+    expect(broken).toEqual([]);
   });
 });
 

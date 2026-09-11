@@ -46,7 +46,7 @@
       "paths_back": 132,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (укороченные, на резинке)",
         "fit": "loose",
         "hood": false,
@@ -76,7 +76,7 @@
       "paths_back": 5,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джоггеры (спинка)",
         "fit": "loose",
         "hood": false,
@@ -107,7 +107,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джоггеры (перед)",
         "fit": "loose",
         "hood": false,
@@ -138,7 +138,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "спортивные брюки",
         "fit": "loose",
         "hood": false,
@@ -167,7 +167,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "спортивные брюки (спинка)",
         "fit": "loose",
         "hood": false,
@@ -197,7 +197,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (джоггеры/спортивные брюки)",
         "fit": "loose",
         "hood": false,
@@ -228,7 +228,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (палаццо)",
         "fit": "loose",
         "hood": false,
@@ -257,7 +257,7 @@
       "paths_back": 16,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (палаццо), вид сзади",
         "fit": "loose",
         "hood": false,
@@ -287,7 +287,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (палаццо), вид спереди",
         "fit": "loose",
         "hood": false,
@@ -315,7 +315,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямые на кулиске (карго/ворквеар)",
         "fit": "loose",
         "hood": false,
@@ -347,7 +347,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямые, вид сзади",
         "fit": "loose",
         "hood": false,
@@ -378,7 +378,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные, широкие)",
         "fit": "loose",
         "hood": false,
@@ -409,7 +409,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные с кулиской)",
         "fit": "loose",
         "hood": false,
@@ -438,7 +438,7 @@
       "paths_back": 33,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные, широкие)",
         "fit": "oversize",
         "hood": false,
@@ -472,7 +472,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные, широкие)",
         "fit": "oversize",
         "hood": false,
@@ -503,7 +503,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные, широкие)",
         "fit": "oversize",
         "hood": false,
@@ -532,7 +532,7 @@
       "paths_back": 58,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки карго",
         "fit": "loose",
         "hood": false,
@@ -564,7 +564,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -595,7 +595,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки карго",
         "fit": "loose",
         "hood": false,
@@ -624,7 +624,7 @@
       "paths_back": 25,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -658,7 +658,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -689,7 +689,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -722,7 +722,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (джоггеры/спортивные)",
         "fit": "loose",
         "hood": false,
@@ -751,7 +751,7 @@
       "paths_back": 67,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -783,7 +783,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -814,7 +814,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -843,7 +843,7 @@
       "paths_back": 47,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки карго",
         "fit": "loose",
         "hood": false,
@@ -875,7 +875,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки карго",
         "fit": "loose",
         "hood": false,
@@ -906,7 +906,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки карго",
         "fit": "loose",
         "hood": false,
@@ -935,7 +935,7 @@
       "paths_back": 50,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие",
         "fit": "loose",
         "hood": false,
@@ -967,7 +967,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие",
         "fit": "loose",
         "hood": false,
@@ -998,7 +998,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (широкие, палаццо)",
         "fit": "loose",
         "hood": false,
@@ -1028,7 +1028,7 @@
       "paths_back": 54,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямого кроя",
         "fit": "loose",
         "hood": false,
@@ -1088,7 +1088,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -1118,7 +1118,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямого кроя",
         "fit": "loose",
         "hood": false,
@@ -1147,7 +1147,7 @@
       "paths_back": 63,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "рабочие брюки (карго/double knee)",
         "fit": "loose",
         "hood": false,
@@ -1179,7 +1179,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -1210,7 +1210,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (рабочие, double knee)",
         "fit": "loose",
         "hood": false,
@@ -1240,7 +1240,7 @@
       "paths_back": 54,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-трансформеры карго",
         "fit": "loose",
         "hood": false,
@@ -1272,7 +1272,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-трансформеры карго",
         "fit": "loose",
         "hood": false,
@@ -1303,7 +1303,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки карго",
         "fit": "loose",
         "hood": false,
@@ -1333,7 +1333,7 @@
       "paths_back": 71,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (рабочие, double knee)",
         "fit": "loose",
         "hood": false,
@@ -1365,7 +1365,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "loose",
         "hood": false,
@@ -1426,7 +1426,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (рабочие/карго-стиль)",
         "fit": "loose",
         "hood": false,
@@ -1456,7 +1456,7 @@
       "paths_back": 53,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки рабочие (перед и спинка)",
         "fit": "loose",
         "hood": false,
@@ -1488,7 +1488,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки",
         "fit": "semi_fitted",
         "hood": false,
@@ -1519,7 +1519,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки рабочие",
         "fit": "loose",
         "hood": false,
@@ -1549,7 +1549,7 @@
       "paths_back": 26,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (джинсы) клёш от колена",
         "fit": "semi_fitted",
         "hood": false,
@@ -1583,7 +1583,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки, вид сзади",
         "fit": "semi_fitted",
         "hood": false,
@@ -1614,7 +1614,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (джинсы), вид спереди",
         "fit": "semi_fitted",
         "hood": false,
@@ -1644,7 +1644,7 @@
       "paths_back": 29,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки трикотажные на резинке",
         "fit": "semi_fitted",
         "hood": false,
@@ -1677,7 +1677,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки, вид сзади",
         "fit": "semi_fitted",
         "hood": false,
@@ -1708,7 +1708,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки, вид спереди",
         "fit": "semi_fitted",
         "hood": false,
@@ -1771,7 +1771,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямые (трикотажные)",
         "fit": "loose",
         "hood": false,
@@ -1803,7 +1803,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямые (трикотажные)",
         "fit": "loose",
         "hood": false,
@@ -1834,7 +1834,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямые (трикотажные)",
         "fit": "loose",
         "hood": false,
@@ -1863,7 +1863,7 @@
       "paths_back": 46,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки спортивные (джоггеры)",
         "fit": "oversize",
         "hood": false,
@@ -1895,7 +1895,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки спортивные (джоггеры)",
         "fit": "oversize",
         "hood": false,
@@ -1926,7 +1926,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (джоггеры/спортивные штаны)",
         "fit": "loose",
         "hood": false,
@@ -1955,7 +1955,7 @@
       "paths_back": 52,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (джинсы)",
         "fit": "loose",
         "hood": false,
@@ -1987,7 +1987,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие",
         "fit": "loose",
         "hood": false,
@@ -2018,7 +2018,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие",
         "fit": "loose",
         "hood": false,
@@ -2048,7 +2048,7 @@
       "paths_back": 15,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "джинсы прямые",
         "fit": "semi_fitted",
         "hood": false,
@@ -2108,7 +2108,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид сзади)",
         "fit": "loose",
         "hood": false,
@@ -2139,7 +2139,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид спереди)",
         "fit": "loose",
         "hood": false,
@@ -2470,7 +2470,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джоггеры (спортивные штаны)",
         "fit": "loose",
         "hood": false,
@@ -2502,7 +2502,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джоггеры (спортивные штаны), вид спереди",
         "fit": "loose",
         "hood": false,
@@ -2533,7 +2533,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джоггеры (спортивные штаны), вид сзади",
         "fit": "loose",
         "hood": false,
@@ -2562,7 +2562,7 @@
       "paths_back": 14,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямого кроя (трикотажные)",
         "fit": "loose",
         "hood": false,
@@ -2593,7 +2593,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямого кроя, вид сзади",
         "fit": "loose",
         "hood": false,
@@ -2624,7 +2624,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки прямого кроя, вид спереди",
         "fit": "loose",
         "hood": false,
@@ -3161,7 +3161,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие укороченные (кюлоты)",
         "fit": "loose",
         "hood": false,
@@ -3190,7 +3190,7 @@
       "paths_back": 11,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (палаццо), вид спинки",
         "fit": "loose",
         "hood": false,
@@ -3221,7 +3221,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (палаццо), вид переда",
         "fit": "loose",
         "hood": false,
@@ -3339,7 +3339,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие укороченные (кюлоты)",
         "fit": "loose",
         "hood": false,
@@ -3396,7 +3396,7 @@
       "paths_back": 99,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие",
         "fit": "loose",
         "hood": false,
@@ -3427,7 +3427,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие",
         "fit": "loose",
         "hood": false,
@@ -3457,7 +3457,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки рабочие (карпентер/дабл-ни)",
         "fit": "loose",
         "hood": false,
@@ -3487,7 +3487,7 @@
       "paths_back": 99,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -3517,7 +3517,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки рабочие (карпентер/дабл-ни)",
         "fit": "loose",
         "hood": false,
@@ -3549,7 +3549,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (карго/рабочие, широкие)",
         "fit": "loose",
         "hood": false,
@@ -3579,7 +3579,7 @@
       "paths_back": 96,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -3610,7 +3610,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (рабочие, вид переда)",
         "fit": "loose",
         "hood": false,
@@ -3641,7 +3641,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки джинсовые слегка расклешённые",
         "fit": "fitted",
         "hood": false,
@@ -3670,7 +3670,7 @@
       "paths_back": 30,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (вид спинки)",
         "fit": "semi_fitted",
         "hood": false,
@@ -3732,7 +3732,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (джинсы прямого кроя, пятикарманка)",
         "fit": "semi_fitted",
         "hood": false,
@@ -3764,7 +3764,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки клёш (расклешённые от колена)",
         "fit": "fitted",
         "hood": false,
@@ -3794,7 +3794,7 @@
       "paths_back": 25,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки клёш, вид сзади",
         "fit": "fitted",
         "hood": false,
@@ -3825,7 +3825,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки клёш, вид спереди",
         "fit": "fitted",
         "hood": false,
@@ -3856,7 +3856,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки клёш (расклешённые)",
         "fit": "fitted",
         "hood": false,
@@ -3885,7 +3885,7 @@
       "paths_back": 28,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки клёш, вид сзади",
         "fit": "fitted",
         "hood": false,
@@ -3916,7 +3916,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (расклешённые, флэр)",
         "fit": "semi_fitted",
         "hood": false,
@@ -3947,7 +3947,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (расклешённые, флэр)",
         "fit": "semi_fitted",
         "hood": false,
@@ -3976,7 +3976,7 @@
       "paths_back": 24,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (расклешённые, флэр)",
         "fit": "semi_fitted",
         "hood": false,
@@ -4006,7 +4006,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (расклешённые, флэр)",
         "fit": "semi_fitted",
         "hood": false,
@@ -4066,7 +4066,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (палаццо/кюлоты)",
         "fit": "loose",
         "hood": false,
@@ -4095,7 +4095,7 @@
       "paths_back": 74,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные, вид сзади)",
         "fit": "loose",
         "hood": false,
@@ -4126,7 +4126,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (спортивные, вид спереди)",
         "fit": "loose",
         "hood": false,
@@ -4157,7 +4157,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джинсы клёш",
         "fit": "fitted",
         "hood": false,
@@ -4186,7 +4186,7 @@
       "paths_back": 14,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джинсы клёш (вид сзади)",
         "fit": "fitted",
         "hood": false,
@@ -4217,7 +4217,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джинсы клёш (вид спереди)",
         "fit": "fitted",
         "hood": false,
@@ -4541,7 +4541,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "спортивные брюки (капри/укороченные) с лампасами",
         "fit": "loose",
         "hood": false,
@@ -4570,7 +4570,7 @@
       "paths_back": 30,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "спортивные брюки (укороченные), вид сзади",
         "fit": "loose",
         "hood": false,
@@ -4601,7 +4601,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "спортивные брюки (укороченные), вид спереди",
         "fit": "loose",
         "hood": false,
@@ -4631,7 +4631,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (широкие спортивные, укороченные)",
         "fit": "loose",
         "hood": false,
@@ -4662,7 +4662,7 @@
       "paths_back": 34,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (широкие спортивные), вид сзади",
         "fit": "loose",
         "hood": false,
@@ -4723,7 +4723,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (широкие спортивные), вид спереди",
         "fit": "loose",
         "hood": false,
@@ -4754,7 +4754,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (широкие спортивные с лампасами)",
         "fit": "loose",
         "hood": false,
@@ -4784,7 +4784,7 @@
       "paths_back": 35,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (широкие спортивные с лампасами), вид сзади",
         "fit": "loose",
         "hood": false,
@@ -4815,7 +4815,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (укороченные широкие, спортивные)",
         "fit": "oversize",
         "hood": false,
@@ -4846,7 +4846,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (укороченные широкие, спортивные)",
         "fit": "oversize",
         "hood": false,
@@ -4876,7 +4876,7 @@
       "paths_back": 60,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (укороченные широкие, спортивные)",
         "fit": "oversize",
         "hood": false,
@@ -4906,7 +4906,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки (укороченные широкие, спортивные)",
         "fit": "oversize",
         "hood": false,
@@ -5057,7 +5057,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки палаццо (широкие расклешенные)",
         "fit": "loose",
         "hood": false,
@@ -5086,7 +5086,7 @@
       "paths_back": 31,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки палаццо, вид сзади",
         "fit": "loose",
         "hood": false,
@@ -5117,7 +5117,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки палаццо, вид спереди",
         "fit": "loose",
         "hood": false,
@@ -5148,7 +5148,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие на резинке (спортивные)",
         "fit": "loose",
         "hood": false,
@@ -5177,7 +5177,7 @@
       "paths_back": 36,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (спинка)",
         "fit": "loose",
         "hood": false,
@@ -5208,7 +5208,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки широкие (перед)",
         "fit": "loose",
         "hood": false,
@@ -5239,7 +5239,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки/джинсы палаццо",
         "fit": "loose",
         "hood": false,
@@ -5269,7 +5269,7 @@
       "paths_back": 33,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки палаццо (спинка)",
         "fit": "loose",
         "hood": false,
@@ -5300,7 +5300,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки/джинсы палаццо (перед)",
         "fit": "loose",
         "hood": false,
@@ -5331,7 +5331,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "trousers",
         "category_other": "брюки-джоггеры спортивные",
         "fit": "loose",
         "hood": false,
@@ -11178,7 +11178,7 @@
       "paths_back": 162,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (укороченная куртка)",
         "fit": "oversize",
         "hood": false,
@@ -11208,7 +11208,7 @@
       "paths_back": 19,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (утеплённая куртка с капюшоном)",
         "fit": "oversize",
         "hood": true,
@@ -11238,7 +11238,7 @@
       "paths_back": 122,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "cardigan",
         "category_other": "кардиган",
         "fit": "loose",
         "hood": false,
@@ -11270,7 +11270,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "cardigan",
         "category_other": "кардиган",
         "fit": "loose",
         "hood": false,
@@ -11301,7 +11301,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "cardigan",
         "category_other": "кардиган (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -11329,7 +11329,7 @@
       "paths_back": 122,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "cardigan",
         "category_other": "кардиган",
         "fit": "loose",
         "hood": false,
@@ -11361,7 +11361,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "cardigan",
         "category_other": "кардиган",
         "fit": "loose",
         "hood": false,
@@ -11393,7 +11393,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "cardigan",
         "category_other": "кардиган (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -11514,7 +11514,7 @@
       "paths_back": 16,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (стёганая куртка)",
         "fit": "oversize",
         "hood": false,
@@ -11546,7 +11546,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик с капюшоном (вид спинки)",
         "fit": "oversize",
         "hood": true,
@@ -11578,7 +11578,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (стёганая куртка)",
         "fit": "oversize",
         "hood": false,
@@ -11609,7 +11609,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (стёганая куртка), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -11637,7 +11637,7 @@
       "paths_back": 16,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик с ветрозащитной планкой",
         "fit": "oversize",
         "hood": false,
@@ -11668,7 +11668,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик с ветрозащитной планкой",
         "fit": "oversize",
         "hood": false,
@@ -11699,7 +11699,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (стёганая куртка)",
         "fit": "oversize",
         "hood": false,
@@ -11728,7 +11728,7 @@
       "paths_back": 12,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (харрингтон/джинсовая) на кнопках",
         "fit": "oversize",
         "hood": false,
@@ -11760,7 +11760,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (харрингтон/джинсовая)",
         "fit": "oversize",
         "hood": false,
@@ -11791,7 +11791,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка на кнопках (харрингтон)",
         "fit": "oversize",
         "hood": false,
@@ -11882,7 +11882,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (утеплённая куртка с капюшоном)",
         "fit": "oversize",
         "hood": true,
@@ -12035,7 +12035,7 @@
       "paths_back": 16,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "олимпийка / трикотажная куртка-бомбер",
         "fit": "loose",
         "hood": false,
@@ -12067,7 +12067,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "спортивная куртка (олимпийка/бомбер), вид спинки",
         "fit": "loose",
         "hood": false,
@@ -12099,7 +12099,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "спортивная куртка на молнии (олимпийка/бомбер)",
         "fit": "loose",
         "hood": false,
@@ -12129,7 +12129,7 @@
       "paths_back": 14,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-харрингтон на молнии (перед и спинка)",
         "fit": "loose",
         "hood": false,
@@ -12161,7 +12161,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка на молнии, вид спинки",
         "fit": "loose",
         "hood": false,
@@ -12192,7 +12192,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-харрингтон на молнии, вид спереди",
         "fit": "loose",
         "hood": false,
@@ -12222,7 +12222,7 @@
       "paths_back": 12,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "спортивная куртка/бомбер на молнии (перед и спинка)",
         "fit": "semi_fitted",
         "hood": false,
@@ -12286,7 +12286,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "олимпийка (трикотажная куртка на молнии)",
         "fit": "semi_fitted",
         "hood": false,
@@ -12317,7 +12317,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "олимпийка (трикотажная куртка на сквозной молнии)",
         "fit": "semi_fitted",
         "hood": false,
@@ -12346,7 +12346,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка на молнии)",
         "fit": "loose",
         "hood": false,
@@ -12377,7 +12377,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка на молнии), вид спинки",
         "fit": "loose",
         "hood": false,
@@ -12407,7 +12407,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка на сквозной молнии)",
         "fit": "loose",
         "hood": false,
@@ -12436,7 +12436,7 @@
       "paths_back": 36,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (харрингтон/блузон на молнии)",
         "fit": "loose",
         "hood": false,
@@ -12469,7 +12469,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (блузон), вид спинки",
         "fit": "loose",
         "hood": false,
@@ -12501,7 +12501,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (харрингтон на молнии)",
         "fit": "loose",
         "hood": false,
@@ -12531,7 +12531,7 @@
       "paths_back": 53,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка на кнопках (варсити/коуч)",
         "fit": "oversize",
         "hood": false,
@@ -12563,7 +12563,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка (коуч-джакет), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -12594,7 +12594,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка)",
         "fit": "oversize",
         "hood": false,
@@ -12626,7 +12626,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (варсити/коуч-джекет на кнопках)",
         "fit": "oversize",
         "hood": false,
@@ -12656,7 +12656,7 @@
       "paths_back": 10,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер на молнии (толстовка на сквозной молнии без капюшона)",
         "fit": "oversize",
         "hood": false,
@@ -12720,7 +12720,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер/олимпийка на молнии",
         "fit": "oversize",
         "hood": false,
@@ -12750,7 +12750,7 @@
       "paths_back": 13,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка (ветровка на молнии с высоким воротником)",
         "fit": "oversize",
         "hood": false,
@@ -12782,7 +12782,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка, вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -12812,7 +12812,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер на молнии со стойкой",
         "fit": "oversize",
         "hood": false,
@@ -12841,7 +12841,7 @@
       "paths_back": 16,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка на кнопках с воротником-стойкой (перед и спинка)",
         "fit": "oversize",
         "hood": false,
@@ -12872,7 +12872,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка (вид спинки)",
         "fit": "oversize",
         "hood": false,
@@ -12903,7 +12903,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка на кнопках с воротником-стойкой (вид переда)",
         "fit": "oversize",
         "hood": false,
@@ -12932,7 +12932,7 @@
       "paths_back": 27,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "джинсовая куртка (trucker jacket)",
         "fit": "semi_fitted",
         "hood": false,
@@ -12961,7 +12961,7 @@
       "paths_back": 18,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "анорак с капюшоном на короткой молнии",
         "fit": "loose",
         "hood": true,
@@ -13054,7 +13054,7 @@
       "paths_back": 33,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "удлинённый пуховик (куртка-пальто), перед и спинка",
         "fit": "oversize",
         "hood": true,
@@ -13085,7 +13085,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "удлинённый пуховик (куртка-пальто)",
         "fit": "oversize",
         "hood": true,
@@ -13115,7 +13115,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "удлинённый пуховик (куртка-пальто)",
         "fit": "oversize",
         "hood": true,
@@ -13145,7 +13145,7 @@
       "paths_back": 31,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер",
         "fit": "loose",
         "hood": false,
@@ -13175,7 +13175,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка на молнии)",
         "fit": "oversize",
         "hood": false,
@@ -13206,7 +13206,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -13234,7 +13234,7 @@
       "paths_back": 31,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер/варсити-куртка на кнопках",
         "fit": "oversize",
         "hood": false,
@@ -13265,7 +13265,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-джекет с отложным воротником, вид спинки",
         "fit": "semi_fitted",
         "hood": false,
@@ -13296,7 +13296,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (куртка), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -13326,7 +13326,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер/варсити-куртка на кнопках",
         "fit": "oversize",
         "hood": false,
@@ -13355,7 +13355,7 @@
       "paths_back": 33,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "джинсовая куртка (трактор)",
         "fit": "oversize",
         "hood": false,
@@ -13388,7 +13388,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "джинсовая куртка (трактор), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -13420,7 +13420,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "джинсовая куртка (трактор), вид переда",
         "fit": "oversize",
         "hood": false,
@@ -13450,7 +13450,7 @@
       "paths_back": 22,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (утеплённая куртка с капюшоном)",
         "fit": "oversize",
         "hood": true,
@@ -13481,7 +13481,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик с капюшоном, вид спинки",
         "fit": "oversize",
         "hood": true,
@@ -13511,7 +13511,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик с капюшоном, вид переда",
         "fit": "oversize",
         "hood": true,
@@ -13540,7 +13540,7 @@
       "paths_back": 18,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (утеплённая куртка с капюшоном на молнии)",
         "fit": "oversize",
         "hood": true,
@@ -13571,7 +13571,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (утеплённая куртка с капюшоном), вид сзади",
         "fit": "oversize",
         "hood": true,
@@ -13601,7 +13601,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-рубашка (джинсовая/рабочая куртка на кнопках)",
         "fit": "semi_fitted",
         "hood": false,
@@ -13631,7 +13631,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "пуховик (утеплённая куртка с капюшоном на молнии)",
         "fit": "oversize",
         "hood": true,
@@ -13751,7 +13751,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-парка утеплённая с капюшоном",
         "fit": "oversize",
         "hood": true,
@@ -13782,7 +13782,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-парка с капюшоном (вид спинки)",
         "fit": "oversize",
         "hood": true,
@@ -13812,7 +13812,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-парка утеплённая с капюшоном",
         "fit": "oversize",
         "hood": true,
@@ -13841,7 +13841,7 @@
       "paths_back": 52,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер (харрингтон) на молнии",
         "fit": "loose",
         "hood": false,
@@ -13871,7 +13871,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка на молнии (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -13901,7 +13901,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (блузон/харрингтон на молнии)",
         "fit": "oversize",
         "hood": false,
@@ -13933,7 +13933,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка рабочая (work jacket)",
         "fit": "oversize",
         "hood": false,
@@ -13966,7 +13966,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "анорак с капюшоном (утеплённая куртка)",
         "fit": "oversize",
         "hood": true,
@@ -13998,7 +13998,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "анорак с капюшоном (утеплённая куртка), вид сзади",
         "fit": "oversize",
         "hood": true,
@@ -14028,7 +14028,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "анорак с капюшоном (утеплённая куртка), вид спереди",
         "fit": "oversize",
         "hood": true,
@@ -14058,7 +14058,7 @@
       "paths_back": 17,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер",
         "fit": "oversize",
         "hood": false,
@@ -14089,7 +14089,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер (вид спинки)",
         "fit": "oversize",
         "hood": false,
@@ -14120,7 +14120,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-бомбер",
         "fit": "oversize",
         "hood": false,
@@ -14149,7 +14149,7 @@
       "paths_back": 22,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-коуч на кнопках",
         "fit": "loose",
         "hood": false,
@@ -14180,7 +14180,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-коуч на кнопках",
         "fit": "loose",
         "hood": false,
@@ -14211,7 +14211,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-коуч (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -14239,7 +14239,7 @@
       "paths_back": 22,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-коуч на молнии",
         "fit": "loose",
         "hood": false,
@@ -14270,7 +14270,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (харрингтон), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -14301,7 +14301,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка-харрингтон на молнии",
         "fit": "loose",
         "hood": false,
@@ -14331,7 +14331,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка, вид спинки",
         "fit": "loose",
         "hood": false,
@@ -14359,7 +14359,7 @@
       "paths_back": 24,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-рубашка (филдовая куртка), перед и спинка",
         "fit": "oversize",
         "hood": false,
@@ -14390,7 +14390,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-рубашка, вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -14420,7 +14420,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "куртка-рубашка (филдовая куртка)",
         "fit": "oversize",
         "hood": false,
@@ -14601,7 +14601,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "куртка (харрингтон/рабочая куртка на молнии)",
         "fit": "oversize",
         "hood": false,
@@ -14843,7 +14843,7 @@
       "paths_back": 22,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (варсити-куртка)",
         "fit": "oversize",
         "hood": false,
@@ -14874,7 +14874,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (варсити-куртка), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -14904,7 +14904,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "bomber",
         "category_other": "бомбер (варсити-куртка)",
         "fit": "loose",
         "hood": false,
@@ -17053,7 +17053,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "укороченная рубашка (оверщот) с коротким рукавом на сквозной молнии",
         "fit": "oversize",
         "hood": false,
@@ -17085,7 +17085,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "укороченная рубашка (оверщот) с коротким рукавом, вид сзади",
         "fit": "oversize",
         "hood": false,
@@ -17116,7 +17116,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "укороченная рубашка (оверщот) с коротким рукавом на сквозной молнии",
         "fit": "oversize",
         "hood": false,
@@ -17145,7 +17145,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "укороченная рубашка с коротким рукавом на пуговицах",
         "fit": "oversize",
         "hood": false,
@@ -17177,7 +17177,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "укороченная рубашка с коротким рукавом, вид сзади",
         "fit": "oversize",
         "hood": false,
@@ -17208,7 +17208,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "укороченная рубашка с коротким рукавом на кнопках/пуговицах",
         "fit": "oversize",
         "hood": false,
@@ -17237,7 +17237,7 @@
       "paths_back": 11,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайская, воротник апаш)",
         "fit": "loose",
         "hood": false,
@@ -17268,7 +17268,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайская, воротник апаш)",
         "fit": "loose",
         "hood": false,
@@ -17299,7 +17299,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайская, воротник апаш)",
         "fit": "loose",
         "hood": false,
@@ -17419,7 +17419,7 @@
       "paths_back": 9,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом",
         "fit": "oversize",
         "hood": false,
@@ -17451,7 +17451,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (спинка)",
         "fit": "oversize",
         "hood": false,
@@ -17482,7 +17482,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом",
         "fit": "oversize",
         "hood": false,
@@ -19155,7 +19155,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "рубашка-овершот (куртка-рубашка)",
         "fit": "oversize",
         "hood": false,
@@ -19184,7 +19184,7 @@
       "paths_back": 17,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "jacket",
         "category_other": "рубашка-овершот (куртка-рубашка), вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -19214,7 +19214,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка (овершот) на кнопках",
         "fit": "oversize",
         "hood": false,
@@ -19246,7 +19246,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка на кнопках",
         "fit": "loose",
         "hood": false,
@@ -19275,7 +19275,7 @@
       "paths_back": 17,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -19334,7 +19334,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка на кнопках",
         "fit": "loose",
         "hood": false,
@@ -19750,7 +19750,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с длинным рукавом (курортный воротник)",
         "fit": "loose",
         "hood": false,
@@ -19779,7 +19779,7 @@
       "paths_back": 16,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с длинным рукавом, вид спинки",
         "fit": "loose",
         "hood": false,
@@ -19809,7 +19809,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с длинным рукавом (курортный воротник)",
         "fit": "loose",
         "hood": false,
@@ -19840,7 +19840,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайка)",
         "fit": "oversize",
         "hood": false,
@@ -19869,7 +19869,7 @@
       "paths_back": 21,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом, вид спинки",
         "fit": "oversize",
         "hood": false,
@@ -19898,7 +19898,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайка)",
         "fit": "oversize",
         "hood": false,
@@ -20428,7 +20428,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка (оверширт) с отложным воротником",
         "fit": "loose",
         "hood": false,
@@ -20457,7 +20457,7 @@
       "paths_back": 5,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -20488,7 +20488,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка (овершот) на пуговицах",
         "fit": "loose",
         "hood": false,
@@ -20519,7 +20519,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайская)",
         "fit": "oversize",
         "hood": false,
@@ -20547,7 +20547,7 @@
       "paths_back": 5,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (вид спинки)",
         "fit": "oversize",
         "hood": false,
@@ -20577,7 +20577,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с коротким рукавом (гавайская), перед",
         "fit": "oversize",
         "hood": false,
@@ -20638,7 +20638,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с длинным рукавом",
         "fit": "loose",
         "hood": false,
@@ -20669,7 +20669,7 @@
       "paths_back": 6,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с длинным рукавом (вид спинки)",
         "fit": "loose",
         "hood": false,
@@ -20700,7 +20700,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка с длинным рукавом (вид спереди)",
         "fit": "loose",
         "hood": false,
@@ -20731,7 +20731,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка в клетку с длинным рукавом",
         "fit": "loose",
         "hood": false,
@@ -20761,7 +20761,7 @@
       "paths_back": 6,
       "notes": [],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка в клетку с длинным рукавом (вид спереди)",
         "fit": "loose",
         "hood": false,
@@ -20792,7 +20792,7 @@
         "вид один: разделить перед и спинку по просвету не удалось"
       ],
       "traits": {
-        "category": null,
+        "category": "shirt",
         "category_other": "рубашка в клетку с длинным рукавом (вид спереди)",
         "fit": "loose",
         "hood": false,

@@ -11,7 +11,7 @@ import {
   type Category,
   type FitIntent,
 } from '@seamster/kb';
-import { messages, type Locale } from '@seamster/i18n';
+import { messages, type Locale, type Messages } from '@seamster/i18n';
 import type { StyleSpec } from '@seamster/stylespec';
 import { docFontFaces } from './fonts.js';
 
@@ -142,6 +142,27 @@ export function rfqSizeLine(
  * с конца, пока не поместится. Обрезать посередине фразы нельзя: получится
  * сообщение, которое выглядит как ошибка отправителя.
  */
+/** Строки подкладки и утеплителя для листа на просчёт. */
+function layerRows(spec: StyleSpec, t: Messages, locale: Locale): [string, string][] {
+  const named = (l: {
+    name_ru: string;
+    name_en?: string | undefined;
+    name_zh?: string | undefined;
+  }): string =>
+    locale === 'zh'
+      ? (l.name_zh ?? l.name_ru)
+      : locale === 'en'
+        ? (l.name_en ?? l.name_ru)
+        : l.name_ru;
+
+  return (spec.bom?.lines ?? [])
+    .filter((l) => l.role === 'lining' || l.role === 'insulation')
+    .map((l): [string, string] => [
+      l.role === 'lining' ? t.rfq_row_lining : t.rfq_row_insulation,
+      `${esc(named(l))}${l.gsm ? ` — ${num(l.gsm.value)} ${esc(t.rfq_gsm_unit)}` : ''}`,
+    ]);
+}
+
 export const RFQ_TEXT_LIMIT = 500;
 
 export function rfqText(spec: StyleSpec, options: RfqOptions = {}): string {
@@ -294,6 +315,10 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
           ],
         ] as [string, string][])
       : []),
+    // Подкладка и утеплитель — отдельные строки закупки. Фабрика считает
+    // цену по ним так же, как по верху, и умолчание здесь стоит дороже
+    // лишней строки: изделие встанет на середине тиража.
+    ...layerRows(spec, t, locale),
     [
       t.rfq_row_qty,
       spec.bom?.batch_qty
@@ -304,12 +329,28 @@ export function renderRfqHtml(spec: StyleSpec, options: RfqOptions = {}): string
     [
       t.rfq_row_consumption,
       spec.bom
-        ? esc(
-            t.rfq_consumption(
-              num(spec.bom.fabric_consumption_m.value),
-              spec.bom.batch_consumption_m ? num(spec.bom.batch_consumption_m) : null,
+        ? [
+            esc(
+              t.rfq_consumption(
+                num(spec.bom.fabric_consumption_m.value),
+                spec.bom.batch_consumption_m ? num(spec.bom.batch_consumption_m) : null,
+              ),
             ),
-          )
+            ...spec.bom.lines
+              .filter((l) => l.role === 'lining' || l.role === 'insulation')
+              .map((l) => {
+                const label = l.role === 'lining' ? t.rfq_row_lining : t.rfq_row_insulation;
+                const per = l.consumption
+                  ? esc(
+                      t.rfq_consumption(
+                        num(l.consumption.value),
+                        l.batch_consumption ? num(l.batch_consumption) : null,
+                      ),
+                    )
+                  : esc(t.to_be_confirmed);
+                return `${esc(label)}: ${per}`;
+              }),
+          ].join('<br>')
         : '—',
     ],
   ];
