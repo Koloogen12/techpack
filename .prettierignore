@@ -23,3 +23,9 @@ apps/web/data/
 # пересборке и спорить с генератором о переносах.
 packages/kb/data/templates/template_manifest.json
 packages/stylespec/schema/stylespec.schema.json
+
+# Библиотека силуэтов — 1605 файлов SVG и PNG. Парсера для них у Prettier
+# нет вовсе: он их читает и отбрасывает. На забитой памяти этот обход
+# растянул проверку формата с секунд до сорока минут (11.09.2026) и
+# выглядел как зависший гейт. Форматировать здесь нечего — пропускаем.
+packages/kb/data/templates/
