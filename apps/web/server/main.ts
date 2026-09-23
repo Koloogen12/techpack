@@ -738,7 +738,13 @@ function setStage(id: string, stage: Stage, detail?: string): void {
 function ownerOf(id: string): Invite | null {
   try {
     const token = readFileSync(join(jobDir(id), 'owner.txt'), 'utf8').trim();
-    return invites().find((i) => i.token === token) ?? null;
+    // Гость в списке приглашений не лежит (см. inviteOf), но пак его —
+    // без этого гостю не списывалась генерация и не приходили уведомления,
+    // а очередь не считала его работы (прод, 24.09.2026).
+    return (
+      invites().find((i) => i.token === token) ??
+      (GUEST_TOKEN.test(token) ? guestInvite(token) : null)
+    );
   } catch {
     return null;
   }

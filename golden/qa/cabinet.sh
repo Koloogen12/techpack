@@ -424,7 +424,7 @@ if [ -z "$tok" ]; then
   gaps=$(curl -s -H "$H" "$BASE/jobs/$ID/readiness" | python3 -c "import json,sys; print(len(json.load(sys.stdin)['gaps']))" 2>/dev/null)
   [ "${gaps:-0}" -gt 0 ] && ok "(гейт держит: пробелов $gaps)" || bad "ссылки нет и гейт не объясняет почему"
 else
-  code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8132/p/$tok")
+  code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE%/app/api}/p/$tok")
   [ "$code" = "200" ] && ok || bad "публичный документ $code"
 fi
 
@@ -432,7 +432,7 @@ step "14б. ссылка для фабрики говорит на трёх яз
 langs=0
 for pair in ":Табель мер" "?locale=en:Points of Measure" "?locale=zh:尺寸表"; do
   q="${pair%%:*}"; want="${pair#*:}"
-  curl -s "http://127.0.0.1:8132/p/$tok$q" | grep -q "$want" && langs=$((langs+1))
+  curl -s "${BASE%/app/api}/p/$tok$q" | grep -q "$want" && langs=$((langs+1))
 done
 [ "$langs" = "3" ] && ok || bad "языков работает $langs из 3"
 
