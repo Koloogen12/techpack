@@ -3850,13 +3850,16 @@ class Component extends DCLogic {
       const allUrl = liveOn && s.gal === 'flat' ? this.viewUrl('all') : null;
       // Визуализация изделия — рядом с исходными снимками: человек ради неё
       // и приходит, а жила она только внутри PDF.
+      // Позиция и размер фона — один раз, в хвосте: с дублем «50% 50%/contain»
+      // браузер отбрасывал всё объявление и оставлял прошлый фон, и
+      // «Внешний вид» на обзоре не показывался никогда (QA прода, 24.09.2026).
       if (liveOn && s.gal === 'photo' && s.curId && s.hasRender && !s.curShot)
         return (
           'position:absolute;inset:16px;background:url("/app/api/jobs/' +
           s.curId +
           '/render?t=' +
           encodeURIComponent(TOKEN || '') +
-          '") 50% 50%/contain no-repeat' +
+          '")' +
           tail
         );
       if (allUrl) return 'position:absolute;inset:16px;background:' + allUrl + tail;
@@ -4916,10 +4919,7 @@ class Component extends DCLogic {
       layStitch: layS('stitch'),
       layTrims: layS('trims'),
       calloutsOn: s.layers.callouts && !liveOn,
-      // Слой живого рисунка лежит поверх сцены. На обзоре во вкладке «Фото»
-      // сцена показывает снимок или «Внешний вид» — слой эскиза её закрывал,
-      // и визуализация не была видна нигде, кроме PDF (QA прода, 24.09.2026).
-      liveFlatOn: liveOn && !(s.screen === 'doc' && s.section === 'cover' && s.gal === 'photo'),
+      liveFlatOn: liveOn,
       liveFlatOff: !liveOn,
       editOn: !!s.editOn,
       liveShots,
