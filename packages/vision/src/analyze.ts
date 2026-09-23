@@ -25,6 +25,7 @@ import {
   VisionReportSchema,
   type VisionReport,
 } from './report.js';
+import { parseLenient } from './lenient.js';
 
 /** Форматы, которые принимает Claude API. */
 export const MEDIA_TYPES = {
@@ -194,8 +195,12 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
     },
   }));
   const shots = photos.map((p, i) => ({ index: i + 1, view: p.view }));
-  const ask = <T extends z.ZodType>(part: ReportPart, schema: T) =>
-    client.messages.parse({
+  // Не `messages.parse`: он бросает исключение на первом же значении вне
+  // перечисления, а структурный вывод перечисления не держит (SDK переписывает
+  // enum в подсказку). Ответ читается сырым и разбирается терпимо.
+  const ask = async <T extends z.ZodType>(part: ReportPart, schema: T) => {
+    const format = zodOutputFormat(schema);
+    const response = await client.messages.create({
       model,
       max_tokens: 6_000,
       system,
@@ -205,8 +210,14 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
           content: [...images, { type: 'text' as const, text: buildUserPrompt(shots, base, part) }],
         },
       ],
-      output_config: { format: zodOutputFormat(schema) },
+      output_config: { format: { type: 'json_schema', schema: format.schema } },
     });
+    const text = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    return { response, text, schema };
+  };
 
   const [structure, proportions] = await Promise.all([
     ask('structure', StructurePartSchema),
@@ -214,7 +225,7 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
   ]);
   const ms = Math.round(performance.now() - startedAt);
 
-  for (const response of [structure, proportions]) {
+  for (const { response } of [structure, proportions]) {
     if (response.stop_reason === 'refusal') {
       throw new SeamsterError('VISION_FAILED', 'модель отказалась разбирать снимки', {
         userMessage: 'Не удалось разобрать эти фотографии.',
@@ -223,27 +234,26 @@ export async function analyzePhotos(options: AnalyzeOptions): Promise<AnalyzeRes
       });
     }
   }
-  if (!structure.parsed_output || !proportions.parsed_output) {
-    // Structured output не сошёлся со схемой. Молча продолжать нельзя:
-    // документ построится на мусоре, и это заметят только на фабрике.
-    throw new SeamsterError('VISION_SCHEMA_MISMATCH', 'ответ модели не сошёлся со схемой отчёта', {
-      userMessage: 'Разбор фотографий не завершился корректно.',
-      userAction: 'Повторить бесплатно. Если повторяется — напишите нам.',
-      details: { model, promptVersion: PROMPT_VERSION },
-    });
-  }
-  const parsed = { ...structure.parsed_output, ...proportions.parsed_output };
-  const usage = {
-    input_tokens: structure.usage.input_tokens + proportions.usage.input_tokens,
-    output_tokens: structure.usage.output_tokens + proportions.usage.output_tokens,
-    cache_creation_input_tokens:
-      (structure.usage.cache_creation_input_tokens ?? 0) +
-      (proportions.usage.cache_creation_input_tokens ?? 0),
-    cache_read_input_tokens:
-      (structure.usage.cache_read_input_tokens ?? 0) +
-      (proportions.usage.cache_read_input_tokens ?? 0),
+  // Значение вне словаря заменяется на «иное / не видно», разбор идёт
+  // дальше; всё остальное обязано сойтись — иначе документ строился бы на
+  // мусоре, и это заметили бы только на фабрике.
+  const parsed = {
+    ...parseLenient(structure.schema, structure.text, logger, 'vision:structure').value,
+    ...parseLenient(proportions.schema, proportions.text, logger, 'vision:proportions').value,
   };
-  const response = { usage };
+  const response = {
+    usage: {
+      input_tokens: structure.response.usage.input_tokens + proportions.response.usage.input_tokens,
+      output_tokens:
+        structure.response.usage.output_tokens + proportions.response.usage.output_tokens,
+      cache_creation_input_tokens:
+        (structure.response.usage.cache_creation_input_tokens ?? 0) +
+        (proportions.response.usage.cache_creation_input_tokens ?? 0),
+      cache_read_input_tokens:
+        (structure.response.usage.cache_read_input_tokens ?? 0) +
+        (proportions.response.usage.cache_read_input_tokens ?? 0),
+    },
+  };
 
   const report = VisionReportSchema.parse(parsed);
 
@@ -349,7 +359,8 @@ async function analyzeViaProxy(
       continue;
     }
     try {
-      return VisionModelSchema.parse(JSON.parse(text.slice(start, end + 1)));
+      return parseLenient(VisionModelSchema, text.slice(start, end + 1), logger, 'vision(proxy)')
+        .value;
     } catch (cause) {
       lastError = String(cause).slice(0, 400);
       logger.warn('vision(proxy): не сошлось со схемой, повтор', {

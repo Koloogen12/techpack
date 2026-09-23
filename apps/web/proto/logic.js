@@ -5290,6 +5290,12 @@ class Component extends DCLogic {
               'Готово',
             ][Math.min(5, s.genStep)],
       genErrOff: !s.genErr,
+      // Текст карточки сбоя — настоящая причина с сервера, а не заглушка
+      // прототипа «фото слишком тёмное».
+      genErrText:
+        s.genErr && s.genError
+          ? s.genError.message + (s.genError.action ? ' ' + s.genError.action : '')
+          : 'Генерация не получилась. Повторите — лимит не списан.',
       genCards: [
         [
           'Референс 1',

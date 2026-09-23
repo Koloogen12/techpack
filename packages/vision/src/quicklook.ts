@@ -4,8 +4,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { parseLenient } from './lenient.js';
 import { CATEGORIES, CATEGORY_LABEL_RU } from '@seamster/kb';
-import { SeamsterError } from '@seamster/core';
 import { createClient, MEDIA_TYPES, type Photo } from './analyze.js';
 
 /**
@@ -184,7 +184,8 @@ export async function quickLook(options: QuickLookOptions): Promise<QuickLookRes
 
   const client = options.client ?? createClient();
   const startedAt = performance.now();
-  const response = await client.messages.parse({
+  const format = zodOutputFormat(schema);
+  const response = await client.messages.create({
     model,
     max_tokens: checklist ? 2000 : 1200,
     system: [{ type: 'text', text: buildPrompt(), cache_control: { type: 'ephemeral' } }],
@@ -207,18 +208,17 @@ export async function quickLook(options: QuickLookOptions): Promise<QuickLookRes
         ],
       },
     ],
-    output_config: { format: zodOutputFormat(schema) },
+    output_config: { format: { type: 'json_schema', schema: format.schema } },
   });
   const ms = Math.round(performance.now() - startedAt);
 
-  const parsed = response.parsed_output;
-  if (!parsed) {
-    throw new SeamsterError('VISION_SCHEMA_MISMATCH', 'быстрый взгляд не сошёлся со схемой', {
-      userMessage: 'Не удалось разобрать снимок.',
-      userAction: 'Заполните анкету вручную — это ничего не стоит.',
-      details: { model, version: QUICKLOOK_VERSION },
-    });
-  }
+  // Значение вне перечисления (структурный вывод их не держит) — запасное
+  // «other», а не падение быстрого взгляда на весь мастер.
+  const text = response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+  const parsed = parseLenient(schema, text, undefined, 'quicklook').value;
   if (cachePath) {
     mkdirSync(join(options.cacheDir!, key.slice(0, 2)), { recursive: true });
     writeFileSync(cachePath, JSON.stringify(parsed));

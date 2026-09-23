@@ -70,14 +70,31 @@ const photo = (byte: number): Photo => ({
 });
 
 /** Подставной клиент: тесты не ходят в сеть и не тратят токены. */
-function fakeClient(onCall?: () => void): Anthropic {
+/** Ответ модели — сырой текст, как его отдаёт API; словари обязательны. */
+const OBSERVATIONS = {
+  neckline: { value: 'crew_rib_band', confidence: 'high' },
+  closure: { value: 'none', confidence: 'high' },
+  cuff: { value: 'turned_hem', confidence: 'medium' },
+  hem: { value: 'turned_hem', confidence: 'medium' },
+  pocket: { value: 'none', confidence: 'high' },
+  sleeve: { value: 'set_in', confidence: 'high' },
+  sleeve_length: { value: 'short', confidence: 'high' },
+  hood: { value: 'no', confidence: 'high' },
+};
+
+function fakeClient(onCall?: () => void, text?: string): Anthropic {
   return {
     messages: {
-      parse: async () => {
+      create: async () => {
         onCall?.();
         return {
           stop_reason: 'end_turn',
-          parsed_output: REPORT,
+          content: [
+            {
+              type: 'text',
+              text: text ?? JSON.stringify({ ...REPORT, observations: OBSERVATIONS }),
+            },
+          ],
           usage: {
             input_tokens: 14_000,
             output_tokens: 4_000,
@@ -402,7 +419,11 @@ describe('границы входа', () => {
   it('ответ не по схеме останавливает пайплайн, а не едет в документ', async () => {
     const broken = {
       messages: {
-        parse: async () => ({ stop_reason: 'end_turn', parsed_output: null, usage: {} }),
+        create: async () => ({
+          stop_reason: 'end_turn',
+          content: [{ type: 'text', text: '{"category": 1}' }],
+          usage: {},
+        }),
       },
     } as unknown as Anthropic;
 
