@@ -24,6 +24,13 @@ curl -s -o /dev/null -X PUT -H "$H" -H 'content-type: application/json' -d '{
 saved=$(curl -s -H "$H" $BASE/profile | python3 -c "import json,sys; p=json.load(sys.stdin).get('profile') or {}; print(p.get('trademark',''))" 2>/dev/null)
 [ "$saved" = "SEAMSTER" ] && ok || bad "профиль не сохранился"
 
+step "2c. вернувшийся гость: страница по куке получает ссылку с токеном, заголовок «null» не запирает"
+ROOT=${BASE%/app/api}
+GUEST=$(curl -s -o /dev/null -D - "$ROOT/app/" | grep -i '^location:' | sed 's/.*t=//' | tr -d '\r\n')
+redir=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H "Cookie: sid=$GUEST" "$ROOT/app/")
+nullh=$(curl -s -o /dev/null -w '%{http_code}' -H "Cookie: sid=$GUEST" -H 'x-invite: null' "$BASE/me")
+case "$redir" in 302*t=g-*) [ "$nullh" = "200" ] && ok || bad "заголовок null → $nullh";; *) bad "по куке без редиректа: $redir";; esac
+
 step "3. создание пака"
 ID=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d '{
   "id":"qa","name":"QA прогон","article":"QA-E2E-001","category":"hoodie",

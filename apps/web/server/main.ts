@@ -204,9 +204,13 @@ function inviteOf(req: IncomingMessage, url: URL): Invite | null {
   // Порядок: ссылка сильнее заголовка, заголовок сильнее куки. Пришедший
   // по именному приглашению попадает в свой кабинет даже с чужого браузера,
   // где уже лежит гостевая кука.
+  // Заголовок «null» и «undefined» — это не токен, а страница без токена в
+  // памяти (новая вкладка, где ссылка была без ?t=): fetch превращает null в
+  // строку. Считать его токеном значило бы отказать человеку с живой кукой.
+  const header = String(req.headers['x-invite'] ?? '');
   const token =
     url.searchParams.get('t') ||
-    String(req.headers['x-invite'] ?? '') ||
+    (header && header !== 'null' && header !== 'undefined' ? header : '') ||
     cookieOf(req, 'sid') ||
     '';
   if (!token) return null;
@@ -1051,6 +1055,22 @@ const server = createServer(async (req, res) => {
       // редиректом и показать человеку не то, за чем он пришёл.
       const ownRoute = url.searchParams.has('demo') || url.searchParams.has('ref');
       if (wantsPage && !ownRoute) return letGuestIn(req, res);
+    }
+    // Пришёл по куке в новой вкладке: страница без ?t= не узнаёт свой токен
+    // (sessionStorage — на вкладку), и быстрый взгляд с загрузкой фото молча
+    // не работают. Отдаём ту же ссылку с токеном — дальше обычный путь.
+    if (
+      req.method === 'GET' &&
+      invite &&
+      !url.searchParams.get('t') &&
+      !String(req.headers['x-invite'] ?? '') &&
+      (url.pathname === '/' || url.pathname === '/app' || url.pathname === '/app/') &&
+      !url.searchParams.has('demo') &&
+      !url.searchParams.has('ref')
+    ) {
+      url.searchParams.set('t', invite.token);
+      res.writeHead(302, { location: `/app/${url.search}`, 'cache-control': 'no-store' });
+      return res.end();
     }
 
     // Корень домена — это кабинет. Отдельной витрины у нас нет, и делать

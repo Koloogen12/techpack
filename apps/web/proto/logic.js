@@ -91,7 +91,7 @@ const track = (type, payload) => {
   if (!TOKEN) return;
   fetch('/app/api/events', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-invite': TOKEN },
+    headers: { 'content-type': 'application/json', ...(TOKEN ? { 'x-invite': TOKEN } : {}) },
     body: JSON.stringify({ type, payload: payload || null }),
   }).catch(() => {});
 };
@@ -2472,7 +2472,10 @@ class Component extends DCLogic {
     this.setState({ quick: null, quickBusy: true });
     fetch('/app/api/quicklook', {
       method: 'POST',
-      headers: { 'content-type': file.type || 'image/jpeg', 'x-invite': TOKEN },
+      headers: {
+        'content-type': file.type || 'image/jpeg',
+        ...(TOKEN ? { 'x-invite': TOKEN } : {}),
+      },
       body: file,
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -2595,7 +2598,10 @@ class Component extends DCLogic {
           const view = fi++ === 0 && firstView ? '?view=' + firstView : '';
           const r = await fetch('/app/api/jobs/' + id + '/photos' + view, {
             method: 'POST',
-            headers: { 'content-type': f.type || 'image/jpeg', 'x-invite': TOKEN },
+            headers: {
+              'content-type': f.type || 'image/jpeg',
+              ...(TOKEN ? { 'x-invite': TOKEN } : {}),
+            },
             body: f,
           });
           if (!r.ok) throw new Error('фото не загрузилось');
