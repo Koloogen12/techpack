@@ -29,3 +29,7 @@ packages/stylespec/schema/stylespec.schema.json
 # растянул проверку формата с секунд до сорока минут (11.09.2026) и
 # выглядел как зависший гейт. Форматировать здесь нечего — пропускаем.
 packages/kb/data/templates/
+
+# Генерируемые отчёты и живые ответы модели — не форматируются
+golden/reports/
+golden/vision-reports/vocab/

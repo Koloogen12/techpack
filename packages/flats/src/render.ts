@@ -156,7 +156,23 @@ function isBottom(m: FlatMeasurements | BottomMeasurements): m is BottomMeasurem
  * значение: у худи горловина закрыта капюшоном, и рисовать ей бейку значило бы
  * показать фабрике изделие, которого нет.
  */
+/**
+ * Ход молнии по дизайн-признакам: «asymmetric», «diagonal», «curved»,
+ * «off-centre» в описании застёжки — молния не по центру.
+ */
+export function zipPathOf(spec: StyleSpec): 'center' | 'asymmetric' {
+  const closure = (spec.design?.features ?? []).filter(
+    (f) => f.zone === 'closure' && f.certainty !== 'low',
+  );
+  return closure.some((f) => /asymmetr|diagonal|curved|off-cent|offset|side seam/i.test(f.en))
+    ? 'asymmetric'
+    : 'center';
+}
+
 export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
+  const hasZipNode = (spec.construction?.nodes ?? []).some((n) =>
+    /^(zip_set_in|zip_full_length)$/.test(n.node_id),
+  );
   const value = (code: string, fallback: number): number =>
     spec.measurements.points.find((p) => p.code === code)?.base.value ?? fallback;
   const optional = (code: string): number | undefined =>
@@ -175,7 +191,11 @@ export function measurementsFrom(spec: StyleSpec): FlatMeasurements {
     pocketHeight: optional('H05') ?? optional('H10'),
     // Застёжка и воротник: величины есть только у тех категорий, где деталь
     // существует, — рисунок не догадывается, а читает табель мер.
-    zipPlacketWidth: optional('Z02'),
+    // Молния, добавленная по фото категории без планки (свитер), ширины
+    // планки в табеле не имеет — берётся типовая, иначе застёжка исчезла бы
+    // с чертежа при живом узле.
+    zipPlacketWidth: optional('Z02') ?? (hasZipNode ? 2.5 : undefined),
+    zipPath: hasZipNode ? zipPathOf(spec) : undefined,
     collarLength: optional('P01'),
     collarSpread: optional('P03'),
     placketLength: optional('P04'),
@@ -468,7 +488,12 @@ export function renderFlat(
         paths.ribs.map((d) => path(d, STROKE.hidden)).join('') +
         // Точками — то, что закрыто другой деталью (knowledge-base/02 §3).
         paths.hidden.map((d) => path(d, STROKE.seam, '0.35 0.55')).join(''),
-    ) + (paths.center ? path(paths.center, STROKE.center, '1.2 0.8') : ''),
+    ) +
+      // Односторонние линии — один раз, без зеркала.
+      paths.single.seams
+        .map((s) => `<g data-line="${s.id}">${path(s.d, STROKE.seam)}</g>`)
+        .join('') +
+      (paths.center ? path(paths.center, STROKE.center, '1.2 0.8') : ''),
   );
 
   const stitches = layer(
@@ -477,7 +502,10 @@ export function renderFlat(
       paths.stitches
         .map((st) => `<g data-line="${st.id}">${path(st.d, STROKE.stitch, '0.7 0.5')}</g>`)
         .join(''),
-    ),
+    ) +
+      paths.single.stitches
+        .map((st) => `<g data-line="${st.id}">${path(st.d, STROKE.stitch, '0.7 0.5')}</g>`)
+        .join(''),
   );
 
   const callouts = layer(

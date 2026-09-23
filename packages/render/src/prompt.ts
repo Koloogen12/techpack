@@ -1,5 +1,7 @@
-import { categoryVisual, kb as defaultKb, type Category, type KnowledgeBase } from '@seamster/kb';
+import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
+import { effectiveVisual, sleeveWords } from './effective.js';
 import type { StyleSpec } from '@seamster/stylespec';
+import { observationLines } from './flat-sketch.js';
 
 /**
  * Промпт визуализации изделия.
@@ -12,7 +14,7 @@ import type { StyleSpec } from '@seamster/stylespec';
  * Версия входит в ключ кэша: правка текста ниже меняет ключ и требует
  * пересборки визуализаций.
  */
-export const RENDER_PROMPT_VERSION = 'v5';
+export const RENDER_PROMPT_VERSION = 'v7';
 
 const FIT_ENGLISH: Record<string, string> = {
   fitted: 'close-fitting, following the body with minimal ease',
@@ -39,7 +41,7 @@ const FABRIC_ENGLISH: Record<string, string> = {
 /** Узлы, которые видно на готовом изделии и которые стоит назвать. */
 const NODE_ENGLISH: Record<string, string> = {
   neck_rib_band: 'a narrow ribbed neckband',
-  neck_binding: 'a bound neckline edge',
+  neck_binding: 'a narrow bound neckline edge about 1 cm wide, no standing collar or neckband',
   cuff_rib: 'ribbed cuffs at the sleeve ends',
   waistband_rib: 'a ribbed waistband at the hem',
   hem_coverstitch: 'a plain turned hem with a twin coverstitch line',
@@ -52,6 +54,12 @@ const NODE_ENGLISH: Record<string, string> = {
   dart_waist: 'waist darts shaping the front and back',
   neck_facing: 'a clean neckline finished with an inside facing, without any visible band',
   invisible_zip_back: 'a concealed zip in the centre back seam, invisible from the front',
+  // Застёжка называется узлом, а не словом категории: планка с пуговицами и
+  // молния — разные вещи, и картинка обязана следовать за узлами.
+  cardigan_placket: 'a full-length front button placket',
+  button_sew: 'buttons down the front placket',
+  zip_set_in: 'a separating front zipper set into narrow plackets, with a visible zipper pull',
+  zip_placket_topstitch: 'an edge stitch along the zipper plackets',
   sleeve_hem_topstitch: 'sleeve hems turned and topstitched',
   hem_topstitch_lockstitch: 'a plain turned hem with a single topstitch line',
   hem_blind: 'a plain turned hem with no stitching visible on the face',
@@ -97,7 +105,6 @@ export function buildRenderPrompt(
   options: RenderPromptOptions = {},
   base: KnowledgeBase = defaultKb(),
 ): string {
-  const category = spec.style.category as Category;
   const fit = FIT_ENGLISH[spec.base.fit_intent] ?? 'a regular fit';
 
   const shell = spec.bom?.lines.find((l) => l.role === 'shell');
@@ -133,7 +140,8 @@ export function buildRenderPrompt(
         `${length / chest > 1.45 ? 'a long, lean shape' : length / chest > 1.25 ? 'a balanced shape' : 'a short, boxy shape'}.`
       : '';
 
-  const garment = categoryVisual(category, spec.base.fabric_kind);
+  // Вещь называется тем, чем читается по узлам: худи без капюшона — свитшот.
+  const garment = effectiveVisual(spec);
 
   // Дизайн-признаки — часть спеки, и потому часть картинки.
   //
@@ -162,11 +170,15 @@ export function buildRenderPrompt(
   };
   const surface = SURFACE_ENGLISH[spec.bom?.fabric_surface?.value ?? ''] ?? '';
 
-  const design = defining.length
-    ? `This garment is defined by: ${defining.join('; ')}. ` +
-      `Render each of these at the stated scale and prominence — they are the shape of the ` +
-      `garment, not small details on top of a plain one.`
-    : '';
+  // Наблюдения по словарям — впереди признаков: горловина, застёжка, края.
+  const observed = observationLines(spec);
+  const design =
+    (observed.length ? `Observed on the garment: ${observed.join('; ')}. ` : '') +
+    (defining.length
+      ? `This garment is defined by: ${defining.join('; ')}. ` +
+        `Render each of these at the stated scale and prominence — they are the shape of the ` +
+        `garment, not small details on top of a plain one.`
+      : '');
 
   // Масштаб мотива задаётся ОТНОШЕНИЕМ к ширине груди, а не сантиметрами:
   // модель не знает, сколько на её картинке сантиметров, но прекрасно
@@ -194,6 +206,8 @@ export function buildRenderPrompt(
       ? `Visible construction: ${details.join(', ')}.`
       : 'Construction is plain, with no visible trims.',
     proportion,
+    // Длина рукава — из табеля, вслед за правкой «рукав до локтя».
+    sleeveWords(spec),
     pattern,
     '',
     'Photographed straight on at eye level against a smooth light warm-grey seamless studio background, soft even diffused lighting from a large scrim, a gentle contact shadow beneath the garment. Shot on an 85mm lens at f/5.6. The fabric surface texture and every seam and stitch line stay legible.',

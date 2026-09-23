@@ -42,6 +42,8 @@ export interface ArtworkInput {
   height_cm?: number | undefined;
   /** Отступ от опорной точки, см. */
   offset_cm?: number | undefined;
+  /** Смещение вбок от середины переда, см; положительное — влево по носке. */
+  lateral_cm?: number | undefined;
   /** Число плашечных цветов, если заказчик его знает. */
   color_count?: number | undefined;
   /** Коды цветов — Pantone или иные. Мы их не выдумываем. */
@@ -187,6 +189,19 @@ function placement(
 
   const colors = colorSpec(input, entry, warnings);
 
+  // Смещение вбок задаёт только человек: зона «грудь слева» без него стоит
+  // на типовых десяти сантиметрах от середины, остальные — по центру.
+  const lateral =
+    input.lateral_cm !== undefined
+      ? userInput(roundCm(input.lateral_cm), 'user:artwork.lateral_cm')
+      : zone.id === 'chest_left'
+        ? assume(
+            10,
+            `kb:print_zones#${zone.id}.lateral`,
+            'типовое смещение мелкого знака от середины',
+          )
+        : null;
+
   return {
     id: `A${index + 1}`,
     kind: 'placement',
@@ -199,6 +214,7 @@ function placement(
     ...(entry.label_en ? { technique_label_en: entry.label_en } : {}),
     ...(entry.label_zh ? { technique_label_zh: entry.label_zh } : {}),
     offset_from_anchor_cm: offset,
+    ...(lateral ? { lateral_offset_cm: lateral } : {}),
     anchor_label_ru:
       zone.anchor === 'hps' ? 'от высшей точки плеча вниз' : 'от плечевого шва вниз по рукаву',
     anchor_label_en:

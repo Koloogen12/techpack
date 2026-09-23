@@ -33,7 +33,7 @@ export const MAX_PER_HOUR = 6;
 /** Строка журнала списаний: что списано, подарено или не списано за ошибку. */
 export interface LedgerEntry {
   at: string;
-  kind: 'generation' | 'failed' | 'credit';
+  kind: 'generation' | 'failed' | 'credit' | 'revision';
   /** −1 списание, +N подарок, 0 — ошибка, за которую не списано. */
   delta: number;
   job?: string;
@@ -138,6 +138,21 @@ export class Limits {
 
   private log(state: LimitState, entry: LedgerEntry): void {
     state.ledger = [entry, ...state.ledger].slice(0, LEDGER_MAX);
+  }
+
+  /**
+   * Бесплатное действие — строка нулём: правка фразой, перерисовка, пересборка.
+   * Конкурент списывает за принятую правку; у нас правка входит в пак, и
+   * журнал говорит это явно, а не молчит.
+   */
+  noteFree(
+    token: string,
+    entry: { job: string; name: string; note: string },
+    now = new Date(),
+  ): void {
+    const state = this.read(token, now);
+    this.log(state, { at: now.toISOString(), kind: 'revision', delta: 0, ...entry });
+    this.write(token, state);
   }
 
   /** Ошибка генерации — строка «не списано»: человек видит, что квота цела. */

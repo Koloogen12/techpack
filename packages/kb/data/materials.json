@@ -527,7 +527,7 @@
       "composition_default_ru": "витая спираль либо тракторная, полиэфирная лента",
       "composition_default_en": "coil or moulded teeth, polyester tape",
       "composition_default_zh": "尼龙或树脂齿，涤纶布带",
-      "applications": ["zip_hoodie", "jacket", "bomber"],
+      "applications": ["zip_hoodie", "jacket", "bomber", "cardigan", "sweater"],
       "qty_per_unit": 1,
       "photo_detectable": "partial",
       "verified": false,

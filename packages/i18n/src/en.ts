@@ -221,6 +221,19 @@ export const EN: Messages = {
   art_colors_full: 'full-colour print',
   art_colors_spot: 'spot colours',
   art_file: 'Artwork file',
+  pom_drawing_title: 'Measurement drawing',
+  pom_drawing_note:
+    'Lines show where each measurement is taken on this garment; values and tolerances are in the table. Scale is set from the garment length in the table.',
+  pom_grid: 'grid',
+  art_layout_title: 'Artwork layout',
+  art_lateral: 'From centre',
+  art_layout_note:
+    'The frame shows the place; the printer works from the centimetres in the table.',
+  art_place_title: 'Placement detail',
+  art_place_note: 'Crop of the drawing around the frame; the artwork is shown at the frame scale.',
+  label_files_title: 'Brand label and packaging artwork',
+  label_files_note:
+    'Files are attached to the pack as supplied; the factory prints them to its own specification and checks the requisites against the sheets above.',
   art_file_none: 'not supplied',
   art_repeat_type: 'Repeat type',
   art_repeat_mirror: 'mirrored (2×2 block)',

@@ -469,7 +469,7 @@ sub(
   '<sc-if value="{{ tipOn }}" hint-placeholder-val="{{ false }}">',
   `<sc-if value="{{ modalOn }}" hint-placeholder-val="{{ false }}">
 <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:44;background:rgba(14,14,14,.34);display:flex;align-items:center;justify-content:center;padding:20px">
-<div onClick="{{ modalStop }}" style="width:100%;max-width:420px;border-radius:14px;background:#fff;border:1px solid rgba(14,14,14,.1);box-shadow:0 24px 56px rgba(0,0,0,.24);padding:20px 22px 18px;animation:sfup .18s ease">
+<div onClick="{{ modalStop }}" style="{{ modalCardStyle }}">
 <div style="display:flex;align-items:center;gap:10px">
 <span style="{{ modalIconStyle }}">
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4.5 4.5L19 7"></path></svg>
@@ -488,6 +488,31 @@ sub(
 <span style="flex:1;border-radius:10px;border:1px solid #E4E1DC;padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace">{{ refInvited }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67">приглашено</span></span>
 <span style="flex:1;border-radius:10px;border:1px solid #E4E1DC;padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace">{{ refJoined }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#6B6B67">подключилось</span></span>
 <span style="flex:1;border-radius:10px;border:1px solid rgba(41,117,82,.22);background:rgba(228,247,239,.5);padding:10px 12px"><span style="display:block;font:500 19px/24px 'JetBrains Mono',monospace;color:#2F7C5A">{{ refCredits }}</span><span style="display:block;font:400 9.5px/13px Sora,sans-serif;color:#2F7C5A">генераций</span></span>
+</div>
+</sc-if>
+<sc-if value="{{ modalProposalOn }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ propSketchOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:9px;margin-top:13px">
+<span style="{{ propCurStyle }}"></span>
+<span style="{{ propNewStyle }}"></span>
+</div>
+</sc-if>
+<div style="font:400 10.5px/15px Sora,sans-serif;color:#6B6B67;margin-top:8px;text-wrap:pretty">{{ propSketchNote }}</div>
+<div style="font:600 12px/18px Sora,sans-serif;margin-top:13px">{{ propSummary }}</div>
+<div style="display:flex;flex-direction:column;margin-top:6px">
+<sc-for list="{{ propRows }}" as="pr" hint-placeholder-count="4">
+<span style="{{ pr.style }}">{{ pr.t }}</span>
+</sc-for>
+</div>
+<sc-if value="{{ propWarnOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:9px;border:1px solid rgba(183,121,31,.3);background:rgba(183,121,31,.06);padding:9px 11px;font:400 10.5px/15px Sora,sans-serif;color:#6B6B67;margin-top:10px;text-wrap:pretty">{{ propWarn }}</div>
+</sc-if>
+</sc-if>
+<sc-if value="{{ modalListOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;margin-top:11px;max-height:50vh;overflow:auto">
+<sc-for list="{{ modalRows }}" as="mr" hint-placeholder-count="4">
+<span style="font:400 11px/16px Sora,sans-serif;padding:6px 0;border-top:1px solid #EFEDE9">{{ mr.t }}</span>
+</sc-for>
 </div>
 </sc-if>
 <sc-if value="{{ modalSilhOn }}" hint-placeholder-val="{{ false }}">
@@ -564,6 +589,16 @@ sub(
 <span onClick="{{ sketchRedraw }}" style="flex:none;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:#F8F7F5;border-color:rgba(14,14,14,.18)">{{ sketchRedrawLabel }}</span>
 </div>
 </sc-if>
+<sc-if value="{{ reviseOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-top:1px solid #E4E1DC;padding:10px 13px;display:flex;flex-direction:column;gap:7px">
+<div style="display:flex;align-items:center;gap:9px">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B6B67" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z"></path><path d="M13.5 6.5 17 10"></path><path d="M19 3v4M17 5h4"></path></svg>
+<input value="{{ reviseText }}" onChange="{{ onReviseText }}" onKeyDown="{{ onReviseKey }}" placeholder="Что изменить: «убери капюшон», «рукав до локтя», «добавь накладной карман»" style="flex:1;min-width:0;height:29px;border-radius:9px;border:1px solid rgba(14,14,14,.14);background:#FAF9F7;padding:0 11px;font:400 11px/16px Sora,sans-serif" style-focus="border-color:#0E0E0E;background:#fff">
+<span onClick="{{ sendRevise }}" style="{{ reviseBtnStyle }}" style-hover="background:#242424">{{ reviseLabel }}</span>
+</div>
+<span style="font:400 10px/14px Sora,sans-serif;color:#B0ADA6">{{ reviseHint }}</span>
+</div>
+</sc-if>
 <sc-if value="{{ silhOn }}" hint-placeholder-val="{{ false }}">`,
   1,
 );
@@ -638,6 +673,402 @@ sub(
 sub(
   'style-hover="background:#242424">Показать в замерах</span>',
   'style-hover="background:#242424">{{ guessBannerAction }}</span>',
+  1,
+);
+
+// Плашки «раздел устарел»: правка фразой задела раздел, или он изменился
+// после отметки «проверено». Слово то же, что у плашки предположений на
+// обложке, тон — янтарный, как у решений «нужен ввод».
+sub(
+  '<sc-if value="{{ secCover }}" hint-placeholder-val="{{ true }}">\n',
+  '<sc-if value="{{ secCover }}" hint-placeholder-val="{{ true }}">\n' +
+    `<sc-if value="{{ staleOn_cover }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid rgba(183,121,31,.3);background:rgba(183,121,31,.05);padding:13px 15px;display:flex;align-items:center;gap:13px;margin-bottom:13px;flex-wrap:wrap">
+<span style="width:26px;height:26px;flex:none;border-radius:8px;background:rgba(183,121,31,.12);display:flex;align-items:center;justify-content:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"></path><path d="M12 10v4.5"></path><path d="M12 17.4h.01"></path></svg>
+</span>
+<span style="flex:1;min-width:220px">
+<span style="display:block;font:600 12px/18px Sora,sans-serif;text-wrap:pretty">{{ staleTitle_cover }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ staleSub_cover }}</span>
+</span>
+<span style="display:flex;gap:6px;flex:none;align-items:center">
+<sc-if value="{{ staleShowOn_cover }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ staleShow_cover }}" style="height:29px;border-radius:9px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Что изменилось</span>
+</sc-if>
+<span onClick="{{ staleReview_cover }}" style="height:29px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#242424">{{ staleReviewLabel_cover }}</span>
+</span>
+</div>
+</sc-if>
+`,
+  1,
+);
+sub(
+  '<sc-if value="{{ secPom }}" hint-placeholder-val="{{ false }}">\n',
+  '<sc-if value="{{ secPom }}" hint-placeholder-val="{{ false }}">\n' +
+    `<sc-if value="{{ staleOn_pom }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid rgba(183,121,31,.3);background:rgba(183,121,31,.05);padding:13px 15px;display:flex;align-items:center;gap:13px;margin-bottom:13px;flex-wrap:wrap">
+<span style="width:26px;height:26px;flex:none;border-radius:8px;background:rgba(183,121,31,.12);display:flex;align-items:center;justify-content:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"></path><path d="M12 10v4.5"></path><path d="M12 17.4h.01"></path></svg>
+</span>
+<span style="flex:1;min-width:220px">
+<span style="display:block;font:600 12px/18px Sora,sans-serif;text-wrap:pretty">{{ staleTitle_pom }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ staleSub_pom }}</span>
+</span>
+<span style="display:flex;gap:6px;flex:none;align-items:center">
+<sc-if value="{{ staleShowOn_pom }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ staleShow_pom }}" style="height:29px;border-radius:9px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Что изменилось</span>
+</sc-if>
+<span onClick="{{ staleReview_pom }}" style="height:29px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#242424">{{ staleReviewLabel_pom }}</span>
+</span>
+</div>
+</sc-if>
+`,
+  1,
+);
+sub(
+  '<sc-if value="{{ secBom }}" hint-placeholder-val="{{ false }}">\n',
+  '<sc-if value="{{ secBom }}" hint-placeholder-val="{{ false }}">\n' +
+    `<sc-if value="{{ staleOn_bom }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid rgba(183,121,31,.3);background:rgba(183,121,31,.05);padding:13px 15px;display:flex;align-items:center;gap:13px;margin-bottom:13px;flex-wrap:wrap">
+<span style="width:26px;height:26px;flex:none;border-radius:8px;background:rgba(183,121,31,.12);display:flex;align-items:center;justify-content:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"></path><path d="M12 10v4.5"></path><path d="M12 17.4h.01"></path></svg>
+</span>
+<span style="flex:1;min-width:220px">
+<span style="display:block;font:600 12px/18px Sora,sans-serif;text-wrap:pretty">{{ staleTitle_bom }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ staleSub_bom }}</span>
+</span>
+<span style="display:flex;gap:6px;flex:none;align-items:center">
+<sc-if value="{{ staleShowOn_bom }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ staleShow_bom }}" style="height:29px;border-radius:9px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Что изменилось</span>
+</sc-if>
+<span onClick="{{ staleReview_bom }}" style="height:29px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#242424">{{ staleReviewLabel_bom }}</span>
+</span>
+</div>
+</sc-if>
+`,
+  1,
+);
+sub(
+  '<sc-if value="{{ secNodes }}" hint-placeholder-val="{{ false }}">\n',
+  '<sc-if value="{{ secNodes }}" hint-placeholder-val="{{ false }}">\n' +
+    `<sc-if value="{{ staleOn_nodes }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid rgba(183,121,31,.3);background:rgba(183,121,31,.05);padding:13px 15px;display:flex;align-items:center;gap:13px;margin-bottom:13px;flex-wrap:wrap">
+<span style="width:26px;height:26px;flex:none;border-radius:8px;background:rgba(183,121,31,.12);display:flex;align-items:center;justify-content:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"></path><path d="M12 10v4.5"></path><path d="M12 17.4h.01"></path></svg>
+</span>
+<span style="flex:1;min-width:220px">
+<span style="display:block;font:600 12px/18px Sora,sans-serif;text-wrap:pretty">{{ staleTitle_nodes }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ staleSub_nodes }}</span>
+</span>
+<span style="display:flex;gap:6px;flex:none;align-items:center">
+<sc-if value="{{ staleShowOn_nodes }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ staleShow_nodes }}" style="height:29px;border-radius:9px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Что изменилось</span>
+</sc-if>
+<span onClick="{{ staleReview_nodes }}" style="height:29px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#242424">{{ staleReviewLabel_nodes }}</span>
+</span>
+</div>
+</sc-if>
+`,
+  1,
+);
+sub(
+  '<sc-if value="{{ secLabels }}" hint-placeholder-val="{{ false }}">\n',
+  '<sc-if value="{{ secLabels }}" hint-placeholder-val="{{ false }}">\n' +
+    `<sc-if value="{{ staleOn_labels }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid rgba(183,121,31,.3);background:rgba(183,121,31,.05);padding:13px 15px;display:flex;align-items:center;gap:13px;margin-bottom:13px;flex-wrap:wrap">
+<span style="width:26px;height:26px;flex:none;border-radius:8px;background:rgba(183,121,31,.12);display:flex;align-items:center;justify-content:center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19L12 4Z"></path><path d="M12 10v4.5"></path><path d="M12 17.4h.01"></path></svg>
+</span>
+<span style="flex:1;min-width:220px">
+<span style="display:block;font:600 12px/18px Sora,sans-serif;text-wrap:pretty">{{ staleTitle_labels }}</span>
+<span style="display:block;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ staleSub_labels }}</span>
+</span>
+<span style="display:flex;gap:6px;flex:none;align-items:center">
+<sc-if value="{{ staleShowOn_labels }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ staleShow_labels }}" style="height:29px;border-radius:9px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#FAF9F7">Что изменилось</span>
+</sc-if>
+<span onClick="{{ staleReview_labels }}" style="height:29px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer" style-hover="background:#242424">{{ staleReviewLabel_labels }}</span>
+</span>
+</div>
+</sc-if>
+`,
+  1,
+);
+
+// Выбор класса стежка ISO 4915 у строки узла: чип с кодом становится кнопкой,
+// под строкой раскрывается ряд чипов из справочника. Тот же чип, что и
+// слои чертежа; ничего нового не нарисовано.
+sub(
+  `<span style="padding:3px 7px;border-radius:6px;background:rgba(14,14,14,.05);font:400 9.7px/14px 'JetBrains Mono',monospace;color:#5A5A56">{{ n.stitch }}</span>`,
+  `<span onClick="{{ n.pickStitch }}" style="{{ n.stitchStyle }}">{{ n.stitch }}</span>`,
+  1,
+);
+
+// Ряд чипов выбора стежка — под строкой узла, внутри той же карточки.
+sub(
+  `заменить на узел для базового цеха</span>
+</span>
+</sc-if>
+</div>
+</sc-for>`,
+  `заменить на узел для базового цеха</span>
+</span>
+</sc-if>
+</div>
+<sc-if value="{{ n.pickOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-wrap:wrap;gap:6px;padding:9px 15px 12px 50px;border-bottom:1px solid #EFEDE9;background:rgba(14,14,14,.02)">
+<span style="width:100%;font:600 9.5px/14px Sora,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:#6B6B67">Класс стежка ISO 4915 · машина подберётся по нему</span>
+<sc-for list="{{ n.stitchOpts }}" as="so" hint-placeholder-count="4">
+<span onClick="{{ so.go }}" style="{{ so.style }}" style-hover="background:#FAF9F7">
+<span style="font:500 10px/14px 'JetBrains Mono',monospace;color:#0E0E0E">{{ so.label }}</span>
+<span style="font:400 9.5px/13px Sora,sans-serif;color:#6B6B67;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ so.sub }}</span>
+</span>
+</sc-for>
+</div>
+</sc-if>
+</sc-for>`,
+  1,
+);
+
+// Чертёж замеров — карточка над табелем: рисунок вида с сеткой в сантиметрах
+// и линиями точек табеля. Слова те же, что у раскладки нанесения; линии
+// рисует движок в #pom-host, место живёт в спеке у точки.
+sub(
+  '<sc-if value="{{ secPom }}" hint-placeholder-val="{{ false }}">\n',
+  `<sc-if value="{{ secPom }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ pomDrawOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid #E4E1DC;overflow:hidden;background:#fff;margin-bottom:13px">
+<div style="min-height:36px;background:rgba(14,14,14,.04);border-bottom:1px solid #E4E1DC;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 13px;flex-wrap:wrap">
+<span style="display:flex;align-items:center;gap:4px">
+<sc-for list="{{ pomViewChips }}" as="pv" hint-placeholder-count="2">
+<span onClick="{{ pv.go }}" style="{{ pv.style }}">{{ pv.label }}</span>
+</sc-for>
+</span>
+<span style="font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">{{ pomDrawTitle }}</span>
+</div>
+<div style="position:relative;background:#fff;padding:14px 16px">
+<div id="pom-host" style="position:relative;max-width:640px;margin:0 auto;min-height:120px"></div>
+</div>
+<div style="border-top:1px solid #E4E1DC;padding:9px 13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+<span style="font:400 10.5px/16px Sora,sans-serif;color:#5A5A56;flex:1;min-width:220px;text-wrap:pretty">{{ pomDrawStatus }}</span>
+<sc-for list="{{ pomDrawActions }}" as="pa" hint-placeholder-count="2">
+<span onClick="{{ pa.go }}" style="{{ pa.style }}">{{ pa.label }}</span>
+</sc-for>
+</div>
+<sc-if value="{{ pomCalibOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-top:1px solid #E4E1DC;padding:8px 13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span style="font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">{{ pomCalibLabel }}</span>
+<input value="{{ pomCalibVal }}" onInput="{{ pomCalibInput }}" placeholder="см" style="width:64px;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.18);padding:0 8px;font:500 11px/15px 'JetBrains Mono',monospace;color:#0E0E0E;background:#fff;outline:none">
+<span onClick="{{ pomCalibGo }}" style="{{ pomCalibStyle }}">Пересчитать масштаб по этому замеру</span>
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6;text-wrap:pretty">один замер на образце задаёт множитель для всех точек от ширины изделия; точки от роста не трогаются</span>
+</div>
+</sc-if>
+<div style="border-top:1px solid #E4E1DC;padding:7px 13px;font:400 10px/15px Sora,sans-serif;color:#B0ADA6;text-wrap:pretty">{{ pomDrawNote }}</div>
+</div>
+</sc-if>
+<sc-if value="{{ pomDrawNoSketch }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid #E4E1DC;background:#fff;padding:11px 15px;margin-bottom:13px;font:400 11px/17px Sora,sans-serif;color:#6B6B67">Чертёж замеров появится, когда у пака будут вырезки видов эскиза: линии точек табеля ставятся на рисунок этой вещи.</div>
+</sc-if>
+`,
+  1,
+);
+
+// Раздел «Нанесение» — раскладка макетов на техническом рисунке. В прототипе
+// его не было: нанесение жило только в анкете и в документе. Собран из слов
+// раздела чертежа (чипы видов, карточка, холст) и карточек решений; рамки
+// поверх рисунка рисует движок (engine.js) в #art-host.
+const INPUT_STYLE =
+  "width:64px;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.18);padding:0 8px;font:500 11px/15px 'JetBrains Mono',monospace;color:#0E0E0E;background:#fff;outline:none";
+const LBL =
+  'font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67';
+sub(
+  '<sc-if value="{{ secLabels }}" hint-placeholder-val="{{ false }}">\n',
+  `<sc-if value="{{ secArtwork }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ artDemo }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid #E4E1DC;background:#fff;padding:13px 15px;font:400 11.5px/17px Sora,sans-serif;color:#5A5A56">Раскладка нанесения живёт в рабочем паке: там макеты ставятся рамками на рисунок этой вещи и уходят в документ отдельным листом.</div>
+</sc-if>
+<sc-if value="{{ artOn }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:13px">
+<div style="border-radius:10px;border:1px solid #E4E1DC;overflow:hidden;background:#fff">
+<div style="min-height:36px;background:rgba(14,14,14,.04);border-bottom:1px solid #E4E1DC;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 13px;flex-wrap:wrap">
+<span style="display:flex;align-items:center;gap:4px">
+<sc-for list="{{ artViewChips }}" as="av" hint-placeholder-count="2">
+<span onClick="{{ av.go }}" style="{{ av.style }}">{{ av.label }}</span>
+</sc-for>
+</span>
+<span style="${LBL}">Раскладка нанесения · рамки в масштабе табеля</span>
+</div>
+<sc-if value="{{ artCanvasOn }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;background:#fff;padding:14px 16px">
+<div id="art-host" style="position:relative;max-width:720px;margin:0 auto;min-height:120px"></div>
+</div>
+</sc-if>
+<sc-if value="{{ artNoSketch }}" hint-placeholder-val="{{ false }}">
+<div style="padding:13px 15px;font:400 11px/17px Sora,sans-serif;color:#6B6B67">У пака нет вырезок видов эскиза — раскладку на рисунке показать не на чем. Макеты всё равно можно задать сантиметрами ниже: печатнику нужны они, а не картинка.</div>
+</sc-if>
+<div style="border-top:1px solid #E4E1DC;padding:9px 13px;font:400 10.5px/16px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ artScaleNote }} Рамку можно двигать и тянуть за угол — сантиметры ниже обновятся.</div>
+</div>
+<div style="border-radius:10px;border:1px solid #E4E1DC;overflow:hidden;background:#fff">
+<div style="min-height:36px;background:rgba(14,14,14,.04);border-bottom:1px solid #E4E1DC;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 13px;flex-wrap:wrap">
+<span style="${LBL}">Макеты</span>
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6">{{ artBusyNote }}</span>
+</div>
+<div style="padding:13px 15px;display:flex;flex-direction:column;gap:10px">
+<sc-if value="{{ artEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">Макетов пока нет. Добавьте зону — рамка встанет на рисунок типовым для зоны размером, а сантиметры поправите здесь или мышью.</div>
+</sc-if>
+<sc-for list="{{ artRows }}" as="ar" hint-placeholder-count="2">
+<div onClick="{{ ar.select }}" style="{{ ar.cardStyle }}">
+<div style="display:flex;align-items:center;gap:10px">
+<span style="{{ ar.numStyle }}">{{ ar.letter }}</span>
+<span style="flex:1;min-width:0">
+<span style="display:block;font:600 12px/18px Sora,sans-serif">{{ ar.zone }}</span>
+<span style="display:block;font:400 10.5px/15px Sora,sans-serif;color:#6B6B67">{{ ar.anchor }}</span>
+</span>
+<span onClick="{{ ar.remove }}" style="font:600 10px/14px Sora,sans-serif;color:#6B6B67;cursor:pointer;padding:4px 6px;border-radius:7px" style-hover="background:rgba(14,14,14,.06);color:#0E0E0E">Убрать</span>
+</div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+<span style="display:flex;align-items:center;gap:6px"><span style="${LBL}">Ширина</span><input value="{{ ar.w.val }}" onChange="{{ ar.w.on }}" style="${INPUT_STYLE}"><span style="font:400 10.5px/15px Sora,sans-serif;color:#6B6B67">{{ ar.w.unit }}</span></span>
+<span style="display:flex;align-items:center;gap:6px"><span style="${LBL}">Высота</span><input value="{{ ar.h.val }}" onChange="{{ ar.h.on }}" style="${INPUT_STYLE}"><span style="font:400 10.5px/15px Sora,sans-serif;color:#6B6B67">{{ ar.h.unit }}</span></span>
+<span style="display:flex;align-items:center;gap:6px"><span style="${LBL}">Отступ вниз</span><input value="{{ ar.off.val }}" onChange="{{ ar.off.on }}" style="${INPUT_STYLE}"><span style="font:400 10.5px/15px Sora,sans-serif;color:#6B6B67">{{ ar.off.unit }}</span></span>
+<sc-if value="{{ ar.latOn }}" hint-placeholder-val="{{ true }}">
+<span style="display:flex;align-items:center;gap:6px"><span style="${LBL}">От середины</span><input value="{{ ar.lat.val }}" onChange="{{ ar.lat.on }}" style="${INPUT_STYLE}"><span style="font:400 10.5px/15px Sora,sans-serif;color:#6B6B67">{{ ar.lat.unit }}</span></span>
+</sc-if>
+</div>
+<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+<span style="${LBL};margin-right:3px">Техника</span>
+<sc-for list="{{ ar.techChips }}" as="tc" hint-placeholder-count="3">
+<span onClick="{{ tc.go }}" style="{{ tc.style }}">{{ tc.label }}</span>
+</sc-for>
+<span style="font:400 10px/14px Sora,sans-serif;color:#B0ADA6">{{ ar.techNote }}</span>
+</div>
+<div style="display:flex;align-items:center;gap:9px">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B6B67" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"></path><path d="M6 3h8l5 5v13H6Z"></path></svg>
+<span style="{{ ar.fileStyle }}">{{ ar.file }}</span>
+<span onClick="{{ ar.upload }}" style="flex:none;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:#F8F7F5">{{ ar.uploadLabel }}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:3px">
+<sc-for list="{{ ar.checks }}" as="ck" hint-placeholder-count="3">
+<span style="display:flex;gap:6px;align-items:flex-start;font:400 10.5px/15px Sora,sans-serif;color:#5A5A56"><span style="{{ ck.markStyle }}">{{ ck.mark }}</span><span style="flex:1;min-width:0;text-wrap:pretty">{{ ck.text }}</span></span>
+</sc-for>
+<sc-for list="{{ ar.warnings }}" as="wn" hint-placeholder-count="1">
+<span style="font:400 10px/14px Sora,sans-serif;color:#B0ADA6;text-wrap:pretty">{{ wn.text }}</span>
+</sc-for>
+</div>
+</div>
+</sc-for>
+<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:4px;border-top:1px solid #EFEDE9">
+<span style="${LBL};margin-right:3px">Добавить макет</span>
+<sc-for list="{{ artZoneChips }}" as="az" hint-placeholder-count="4">
+<span onClick="{{ az.go }}" style="{{ az.style }}" style-hover="background:#F8F7F5">{{ az.label }}</span>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ secLabels }}" hint-placeholder-val="{{ false }}">
+`,
+  1,
+);
+
+// Карточка «Файлы ярлыков и упаковки» — под SKU-матрицей в разделе ярлыков.
+// Несколько файлов разом, каждый своей карточкой; в документ — отдельный
+// лист. Слова те же, что у карточек силуэтов в модалке замены.
+sub(
+  'как это устроено →</span>\n</div>\n</div>\n</sc-if>',
+  `как это устроено →</span>
+</div>
+</div>
+<sc-if value="{{ labelFilesOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius:10px;border:1px solid #E4E1DC;overflow:hidden;background:#fff;margin-top:13px">
+<div style="min-height:36px;background:rgba(14,14,14,.04);border-bottom:1px solid #E4E1DC;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 13px;flex-wrap:wrap">
+<span style="font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">Файлы ярлыков и упаковки</span>
+<span style="display:flex;align-items:center;gap:9px">
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6">{{ labelFilesNote }}</span>
+<span onClick="{{ labelUpload }}" style="flex:none;height:27px;border-radius:8px;border:1px solid rgba(14,14,14,.12);background:#fff;display:flex;align-items:center;padding:0 11px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap" style-hover="background:#F8F7F5">Загрузить файлы</span>
+</span>
+</div>
+<sc-if value="{{ labelFilesEmpty }}" hint-placeholder-val="{{ true }}">
+<div style="padding:13px 15px;font:400 11px/17px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">Готовые макеты составника, навесного ярлыка, вкладыша или наклейки на пакет. Реквизиты выше собраны из спецификации; ваш макет уйдёт фабрике как есть, отдельным листом документа.</div>
+</sc-if>
+<div style="padding:13px 15px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px">
+<sc-for list="{{ labelCards }}" as="lf" hint-placeholder-count="2">
+<span style="border-radius:10px;border:1px solid #E4E1DC;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0">
+<span style="{{ lf.thumbStyle }}"><span style="display:flex;align-items:center;justify-content:center;height:100%;font:600 11px/14px Sora,sans-serif;color:#6B6B67">{{ lf.thumbText }}</span></span>
+<span style="display:block;font:600 10px/14px Sora,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ lf.name }}</span>
+<span style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font:400 9.5px/13px Sora,sans-serif;color:#6B6B67;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ lf.sub }}</span><span onClick="{{ lf.remove }}" style="font:600 9.5px/13px Sora,sans-serif;color:#6B6B67;cursor:pointer;flex:none" style-hover="color:#C0392B">Убрать</span></span>
+</span>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</sc-if>`,
+  1,
+);
+
+// Блок «Что входит в генерацию» — над приватностью на экране тарифа. Те же
+// строки-факты: точка, ключ, пояснение.
+sub(
+  `<div style="grid-column:1/-1"><span style="font:700 13px/18px Sora,sans-serif">Приватность и данные</span>`,
+  `<div style="grid-column:1/-1"><span style="font:700 13px/18px Sora,sans-serif">Что входит в генерацию</span><div style="font:400 11px/16px Sora,sans-serif;color:#6B6B67;margin-top:3px">Одно списание — весь пак и все правки к нему.</div></div>
+<sc-for list="{{ includedRows }}" as="ir" hint-placeholder-count="3">
+<div style="display:flex;gap:9px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:#0E0E0E;flex:none;margin-top:6px"></span><span style="min-width:0"><span style="display:block;font:600 11px/16px Sora,sans-serif">{{ ir.k }}</span><span style="display:block;font:400 10.5px/15px Sora,sans-serif;color:#6B6B67;text-wrap:pretty">{{ ir.v }}</span></span></div>
+</sc-for>
+<div style="grid-column:1/-1;height:1px;background:#EFEDE9"></div>
+<div style="grid-column:1/-1"><span style="font:700 13px/18px Sora,sans-serif">Приватность и данные</span>`,
+  1,
+);
+
+// Слои есть только у схемы по табелю. Пока на холсте растровый эскиз или
+// силуэт, ряд слоёв не показывается: чип, который ничего не меняет, хуже
+// отсутствующего. Схема открывается явно, чипом «Схема по табелю».
+sub(
+  `</sc-for>
+</span>
+<span style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+<span style="font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67;margin-right:3px">Слои</span>
+<sc-for list="{{ layers }}" as="l" hint-placeholder-count="5">
+<span onClick="{{ l.go }}" style="{{ l.style }}">{{ l.label }}</span>
+</sc-for>
+</span>`,
+  `</sc-for>
+</span>
+<sc-if value="{{ layersOn }}" hint-placeholder-val="{{ true }}">
+<span style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+<span style="font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67;margin-right:3px">Слои</span>
+<sc-for list="{{ layers }}" as="l" hint-placeholder-count="5">
+<span onClick="{{ l.go }}" style="{{ l.style }}">{{ l.label }}</span>
+</sc-for>
+</span>
+</sc-if>
+<sc-if value="{{ layersOff }}" hint-placeholder-val="{{ false }}">
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6">{{ layersNote }}</span>
+</sc-if>`,
+  1,
+);
+
+// Режим SVG: под холстом вместо слоёв — режим трассировки и «Скачать SVG».
+// Три режима — три набора порога и шумодава у Potrace, ничего больше.
+sub(
+  `<sc-if value="{{ layersOff }}" hint-placeholder-val="{{ false }}">
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6">{{ layersNote }}</span>
+</sc-if>`,
+  `<sc-if value="{{ layersOff }}" hint-placeholder-val="{{ false }}">
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6">{{ layersNote }}</span>
+</sc-if>
+<sc-if value="{{ traceOn }}" hint-placeholder-val="{{ false }}">
+<span style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+<span style="font:600 9.2px/14px Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67;margin-right:3px">Трассировка</span>
+<sc-for list="{{ traceModes }}" as="m" hint-placeholder-count="3">
+<span onClick="{{ m.go }}" style="{{ m.style }}">{{ m.label }}</span>
+</sc-for>
+<span onClick="{{ traceDl }}" style="{{ traceDlStyle }}">Скачать SVG</span>
+<span style="font:400 10px/15px Sora,sans-serif;color:#B0ADA6">{{ traceNote }}</span>
+</span>
+</sc-if>`,
   1,
 );
 

@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type Anthropic from '@anthropic-ai/sdk';
 import { afterAll, describe, expect, it } from 'vitest';
-import { CostLedger, isSeamsterError } from '@seamster/core';
+import {
+  CostLedger,
+  OBSERVATION_KEYS,
+  isSeamsterError,
+  observationVocabulary,
+} from '@seamster/core';
 import { kb } from '@seamster/kb';
 import type { AnalyzeOptions } from '../src/index.js';
 import {
@@ -11,6 +16,9 @@ import {
   MAX_PHOTOS,
   MemoryVisionCache,
   PROMPT_VERSION,
+  StructurePartSchema,
+  VISION_SCHEMA_VERSION,
+  VisionModelSchema,
   VisionReportSchema,
   analyzePhotos,
   buildSystemPrompt,
@@ -84,6 +92,53 @@ function fakeClient(onCall?: () => void): Anthropic {
 
 const tmp = mkdtempSync(join(tmpdir(), 'specform-vision-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
+
+describe('словари наблюдений', () => {
+  const system = buildSystemPrompt(base, 'tshirt');
+
+  it('промпт перечисляет каждое значение каждого словаря с глоссой', () => {
+    for (const key of OBSERVATION_KEYS) {
+      const { values, gloss } = observationVocabulary(key);
+      expect(system).toContain(`(${key})`);
+      for (const v of values) expect(system).toContain(`${v} — ${gloss[v]}`);
+    }
+  });
+
+  it('модели словари обязательны, хранению — нет: старые отчёты читаются', () => {
+    expect(() => VisionReportSchema.parse(REPORT)).not.toThrow();
+    expect(() => VisionModelSchema.parse(REPORT)).toThrow();
+    const structure = StructurePartSchema.safeParse({ ...REPORT, proportions: undefined });
+    expect(structure.success).toBe(false);
+    const withObs = {
+      ...REPORT,
+      observations: {
+        neckline: { value: 'crew_rib_band', confidence: 'high' },
+        closure: { value: 'none', confidence: 'high' },
+        cuff: { value: 'turned_hem', confidence: 'medium' },
+        hem: { value: 'turned_hem', confidence: 'medium' },
+        pocket: { value: 'none', confidence: 'high' },
+        sleeve: { value: 'set_in', confidence: 'high' },
+        sleeve_length: { value: 'short', confidence: 'high' },
+        hood: { value: 'no', confidence: 'high' },
+      },
+    };
+    expect(() => VisionModelSchema.parse(withObs)).not.toThrow();
+    expect(() =>
+      VisionModelSchema.parse({
+        ...withObs,
+        observations: {
+          ...withObs.observations,
+          neckline: { value: 'узкая бейка', confidence: 'high' },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it('смена словарей — смена версии промпта и схемы', () => {
+    expect(PROMPT_VERSION).toBe('v9');
+    expect(VISION_SCHEMA_VERSION).toBe('6');
+  });
+});
 
 describe('промпт', () => {
   const system = buildSystemPrompt(base, 'tshirt');

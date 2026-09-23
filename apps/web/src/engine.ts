@@ -9,8 +9,23 @@
  * Живой чертёж пересобирается на каждое нажатие клавиши в замерах — сеть
  * в этой петле недопустима, вся геометрия считается здесь, в браузере.
  */
-import { editsDataUri, editsToSvg, measurementsFrom, renderFlat } from '@seamster/flats/client';
+import {
+  editsDataUri,
+  editsToSvg,
+  garmentGeometry,
+  imageViewOfZone,
+  measurementsFrom,
+  placementRect,
+  pomCodesWithPlace,
+  pomGrid,
+  pomLines,
+  rectToCm,
+  renderFlat,
+  toDrawing,
+} from '@seamster/flats/client';
 import { mountSketchEditor } from './sketch-editor.js';
+import { mountArtworkEditor } from './artwork-editor.js';
+import { mountPomEditor } from './pom-editor.js';
 
 declare global {
   interface Window {
@@ -21,6 +36,18 @@ declare global {
       editsToSvg: typeof editsToSvg;
       editsDataUri: typeof editsDataUri;
       mountSketchEditor: typeof mountSketchEditor;
+      /** Раскладка нанесения: геометрия та же, что печатает документ. */
+      mountArtworkEditor: typeof mountArtworkEditor;
+      garmentGeometry: typeof garmentGeometry;
+      placementRect: typeof placementRect;
+      rectToCm: typeof rectToCm;
+      imageViewOfZone: typeof imageViewOfZone;
+      /** Чертёж замеров: линии точек табеля на рисунке вещи, та же геометрия, что в документе. */
+      mountPomEditor: typeof mountPomEditor;
+      pomLines: typeof pomLines;
+      pomGrid: typeof pomGrid;
+      pomCodesWithPlace: typeof pomCodesWithPlace;
+      toDrawing: typeof toDrawing;
     };
   }
 }
@@ -31,4 +58,14 @@ window.SeamsterEngine = {
   editsToSvg,
   editsDataUri,
   mountSketchEditor,
+  mountArtworkEditor,
+  garmentGeometry,
+  placementRect,
+  rectToCm,
+  imageViewOfZone,
+  mountPomEditor,
+  pomLines,
+  pomGrid,
+  pomCodesWithPlace,
+  toDrawing,
 };

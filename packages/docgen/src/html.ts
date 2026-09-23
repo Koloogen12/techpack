@@ -1,5 +1,18 @@
 import { CONFIDENCE_LABEL_RU, CONFIDENCE_LEVELS, type Confidence } from '@seamster/core';
-import { editsToSvg, flatDefaults, renderFlatsFromSpec, type SketchEdits } from '@seamster/flats';
+import {
+  editsToSvg,
+  flatDefaults,
+  garmentGeometry,
+  imageViewOfZone,
+  placementOverlaySvg,
+  placementRect,
+  pomDrawingSvg,
+  pomGrid,
+  pomLines,
+  renderFlatsFromSpec,
+  type GarmentBox,
+  type SketchEdits,
+} from '@seamster/flats';
 import { seamDiagramSvg } from './seam-diagram.js';
 import {
   CATEGORY_CLASS,
@@ -180,6 +193,18 @@ export interface DocVisuals {
    * показывают правки одним и тем же кодом (ADR-0010, разбор референса).
    */
   sketchEdits?: SketchEdits;
+  /**
+   * Габарит изделия на вырезках видов, в пикселях картинки, и размер картинки.
+   * По нему сантиметры макета нанесения переводятся в рамку на рисунке.
+   */
+  sketchGarment?: Partial<Record<'front' | 'back', GarmentBox & { w: number; h: number }>>;
+  /** Файлы макетов нанесения — по номеру макета (A1, A2…). */
+  artworkFiles?: Readonly<Record<string, DocImage>>;
+  /**
+   * Макеты ярлыков и упаковки от бренда: составник, навесной ярлык, вкладыш.
+   * Без картинки (PDF) — только имя: фабрика получит файл отдельно.
+   */
+  labelFiles?: readonly { label: string; note: string; dataUri?: string }[];
   /**
    * Эскиз переда, залитый цветом колорвея — по идентификатору колорвея.
    *
@@ -403,7 +428,11 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
             ),
     ]);
   }
-  add('measurements', t.section_measurements, measurementsPages(spec, pro, t, locale));
+  add(
+    'measurements',
+    t.section_measurements,
+    measurementsPages(spec, pro, t, locale, options.visuals),
+  );
   add('grading', t.section_grading, gradingPages(spec, pro, t, locale));
   add('bom', t.section_bom, bomPages(spec, t, locale));
   if (include('colorways')) {
@@ -420,7 +449,7 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
     const body = patternPreviewBody(spec, options.visuals);
     if (body) add('pattern_preview', t.section_pattern_preview, [body]);
   }
-  add('labels', t.section_labels, labelsPages(spec, t, locale));
+  add('labels', t.section_labels, labelsPages(spec, t, locale, options.visuals));
   add('patterns', t.section_patterns, [patternsBody(spec, t, locale)]);
 
   // Общее число листов известно только когда собраны все: футер печатает
@@ -665,6 +694,12 @@ function coverBody(
 }
 
 /** Полотно одной строкой: то, что фабрика ищет на обложке первым. */
+/** Основное полотно — рубчик: замеры без натяжения. */
+function isRib(spec: StyleSpec): boolean {
+  const shell = spec.bom?.lines.find((l) => l.role === 'shell');
+  return /^rib_/.test(shell?.material_id ?? '');
+}
+
 function shellLine(spec: StyleSpec): string | null {
   const shell = spec.bom?.lines.find((l) => l.role === 'shell');
   if (!shell) return null;
@@ -918,9 +953,99 @@ function artworkPages(
     );
   if (!translated) return [];
 
+  // Рамки макетов на рисунке: геометрия та же, что в кабинете (packages/flats).
+  const geometry = (view: 'front' | 'back') => {
+    const g = visuals?.sketchGarment?.[view];
+    const image = visuals?.sketchViews?.[view];
+    if (!g || !image) return null;
+    const geo = garmentGeometry(spec, g, view);
+    return geo ? { geo, image, size: { w: g.w, h: g.h } } : null;
+  };
+  const front = geometry('front');
+  const back = geometry('back');
+  const local = artwork.placements.filter((a) => a.kind === 'placement');
+  const rectOf = (a: (typeof local)[number]) => {
+    const v = imageViewOfZone(a.zone);
+    const geo = v === 'back' ? back : front;
+    if (!geo) return null;
+    const rect = placementRect(a, geo.geo);
+    return rect ? { rect, view: v, geo } : null;
+  };
+  const overview =
+    local.length && (front || back)
+      ? (() => {
+          const figure = (view: 'front' | 'back') => {
+            const geo = view === 'back' ? back : front;
+            if (!geo) return '';
+            const rects = local
+              .map((a) => ({ a, r: rectOf(a) }))
+              .filter((x) => x.r && x.r.view === view)
+              .map((x) => ({ letter: x.a.id.replace(/^A/, ''), rect: x.r!.rect }));
+            const src = safeDataUri(geo.image.dataUri);
+            if (!src) return '';
+            return (
+              `<figure class="raster"><div class="sheet" style="position:relative">` +
+              `<img class="sketch-view" src="${src}" alt="">` +
+              placementOverlaySvg(rects, geo.size) +
+              `</div><figcaption class="ml">${view === 'front' ? esc(t.view_front) : esc(t.view_back)}` +
+              (rects.length ? ` · ${rects.map((r) => r.letter).join(', ')}` : '') +
+              `</figcaption></figure>`
+            );
+          };
+          const rows = local
+            .map((a) => {
+              const zoneLabel = pick(a.zone_label_en, a.zone_label_zh, a.zone_label_ru);
+              return (
+                `<tr><td class="mono">${esc(a.id.replace(/^A/, ''))}</td><td>${esc(zoneLabel)}</td>` +
+                `<td class="num v">${value(a.size_cm.width)} × ${value(a.size_cm.height)} ${t.cm}</td>` +
+                `<td class="num v">${value(a.offset_from_anchor_cm)} ${t.cm}</td>` +
+                `<td class="num v">${a.lateral_offset_cm ? `${value(a.lateral_offset_cm)} ${t.cm}` : '0'}</td>` +
+                `<td>${labelled(a.technique, pick(a.technique_label_en, a.technique_label_zh, a.technique_label_ru))}</td>` +
+                `<td>${a.file_name ? esc(a.file_name) : esc(t.art_file_none)}</td></tr>`
+              );
+            })
+            .join('');
+          return (
+            `<h2>${esc(t.art_layout_title)}</h2>` +
+            `<div class="grid2 art-layout" style="flex:0 0 auto">${figure('front')}${figure('back')}</div>` +
+            `<table><thead><tr><th>#</th><th>${esc(t.art_zone)}</th><th>${esc(t.art_size)}</th>` +
+            `<th>${esc(t.art_offset)}</th><th>${esc(t.art_lateral)}</th><th>${esc(t.art_technique)}</th><th>${esc(t.art_file)}</th></tr></thead>` +
+            `<tbody>${rows}</tbody></table>` +
+            `<div class="note" style="margin-top:3mm">${esc((front ?? back)!.geo.note_ru && locale === 'ru' ? (front ?? back)!.geo.note_ru : t.art_layout_note)}</div>`
+          );
+        })()
+      : null;
+
   const pages = artwork.placements.map((a) => {
     const allover = a.kind === 'allover';
     const zoneLabel = pick(a.zone_label_en, a.zone_label_zh, a.zone_label_ru);
+    // Место макета крупно: вырезка рисунка вокруг рамки, сам макет — внутри
+    // рамки в масштабе. Всё процентами от контейнера, без браузера.
+    const zoom = (() => {
+      if (allover) return '';
+      const hit = rectOf(a);
+      if (!hit) return '';
+      const src = safeDataUri(hit.geo.image.dataUri);
+      if (!src) return '';
+      const { rect } = hit;
+      const side = Math.max(rect.w, rect.h) * 2.2;
+      const x0 = rect.x + rect.w / 2 - side / 2;
+      const y0 = rect.y + rect.h / 2 - side / 2;
+      const pct = (v: number): string => `${Math.round((v / side) * 10000) / 100}%`;
+      const art = visuals?.artworkFiles?.[a.id];
+      const artSrc = art ? safeDataUri(art.dataUri) : null;
+      return (
+        `<h3>${esc(t.art_place_title)}</h3>` +
+        `<div style="position:relative;width:62mm;aspect-ratio:1;overflow:hidden;border:0.3mm solid #D9D6D0;border-radius:2mm;background:#fff">` +
+        `<img src="${src}" alt="" style="position:absolute;left:${pct(-x0)};top:${pct(-y0)};width:${pct(hit.geo.size.w)};max-width:none">` +
+        (artSrc
+          ? `<img src="${artSrc}" alt="" style="position:absolute;left:${pct(rect.x - x0)};top:${pct(rect.y - y0)};width:${pct(rect.w)};height:${pct(rect.h)};object-fit:contain">`
+          : '') +
+        `<div style="position:absolute;left:${pct(rect.x - x0)};top:${pct(rect.y - y0)};width:${pct(rect.w)};height:${pct(rect.h)};border:0.35mm dashed #B3261E;box-sizing:border-box"></div>` +
+        `</div>` +
+        `<div class="note" style="margin-top:2mm">${esc(t.art_place_note)}</div>`
+      );
+    })();
     const params: [string, string][] = [
       [t.art_zone, esc(zoneLabel)],
       [
@@ -1032,18 +1157,20 @@ function artworkPages(
           `</ul>`
         : '') +
       `</div>` +
+      `<div>` +
+      zoom +
       (ru
-        ? `<div>` +
-          `<h3 style="margin-top:0">Проверка макета</h3>` +
+        ? `<h3 style="margin-top:${zoom ? '4mm' : '0'}">Проверка макета</h3>` +
           `<table><tbody>${checks}</tbody></table>` +
           `<div class="note" style="margin-top:4mm">● годится · ▲ обратите внимание · ` +
           `■ печатать нельзя. Это те же вопросы, которые печатник задал бы письмом: ` +
-          `в каких сантиметрах печатать, хватит ли разрешения, что с фоном.</div>` +
-          `</div>`
+          `в каких сантиметрах печатать, хватит ли разрешения, что с фоном.</div>`
         : '') +
+      `</div>` +
       `</div>`
     );
   });
+  if (overview) pages.unshift(overview);
 
   const tile = visuals?.patternTile;
   const allover = artwork.placements.find((a) => a.kind === 'allover');
@@ -1938,10 +2065,14 @@ function libraryFlatsBody(library: LibraryFlatViews, t: Messages, locale: Locale
 /** Заголовок блока примечаний. Примечания приходят из движка по-русски. */
 const NOTES_TITLE = 'Примечания к значениям';
 
-function acceptanceNote(pro: boolean): string {
+function acceptanceNote(pro: boolean, rib = false): string {
   const base =
-    `<div class="note" style="margin-top:4mm">Замеры сняты с изделия в плоском виде. ` +
-    `Крупные ширины даны как половина обхвата. Допуск — предельное отклонение ` +
+    `<div class="note" style="margin-top:4mm">Замеры сняты с изделия в плоском виде` +
+    (rib
+      ? `, полотно в рубчик — <b>без натяжения</b>, в свободном состоянии, ` +
+        `как требует <b>ГОСТ 4103-82</b>: растянутый рубчик даёт ширину на треть больше`
+      : '') +
+    `. Крупные ширины даны как половина обхвата. Допуск — предельное отклонение ` +
     `при приёмке ОТК, по <b>ГОСТ 23193-78</b>. По точкам, которых стандарт ` +
     `не описывает — высота бейки, пояса и манжеты, — допуск взят из практики ` +
     `и объяснён в примечании к значению.`;
@@ -1961,9 +2092,16 @@ function acceptanceNote(pro: boolean): string {
   );
 }
 
-function measurementsPages(spec: StyleSpec, pro: boolean, t: Messages, locale: Locale): string[] {
+function measurementsPages(
+  spec: StyleSpec,
+  pro: boolean,
+  t: Messages,
+  locale: Locale,
+  visuals?: DocVisuals,
+): string[] {
   const graded = spec.base.size_range.filter((ru) => ru !== spec.base.base_size_ru);
   const points = spec.measurements.points.filter((p) => pro || !p.pro_only);
+  const drawingPage = pomDrawingPage(spec, points, t, visuals);
 
   // Примечания нумеруются ОДИН раз на весь табель и печатаются сносками
   // под таблицей. В ячейке остаётся только номер: калибровка добавляет
@@ -2010,7 +2148,7 @@ function measurementsPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
     const isLast = i === all.length - 1;
     return (
       `<table><thead>${head}</thead><tbody>${body}</tbody></table>` +
-      (isLast && locale === 'ru' ? acceptanceNote(pro) : '')
+      (isLast && locale === 'ru' ? acceptanceNote(pro, isRib(spec)) : '')
     );
   });
 
@@ -2026,8 +2164,56 @@ function measurementsPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
       `</ol></div>`,
   );
 
-  const pages = [...tablePages, ...notePages];
+  const pages = [...(drawingPage ? [drawingPage] : []), ...tablePages, ...notePages];
   return pages.length ? pages : [`<div class="note">Табель мер пуст.</div>`];
+}
+
+/**
+ * Чертёж замеров: рисунок вида с сеткой в сантиметрах и линиями точек табеля.
+ *
+ * Та же геометрия, что в кабинете (packages/flats/src/pom-drawing.ts):
+ * масштаб по длине изделия, линии по типовым местам или по тем, что задал
+ * человек. Лист идёт первым в разделе замеров — ОТК сначала видит, ГДЕ
+ * мерить, потом СКОЛЬКО. Без вырезок видов эскиза листа нет.
+ */
+function pomDrawingPage(
+  spec: StyleSpec,
+  points: readonly StyleSpec['measurements']['points'][number][],
+  t: Messages,
+  visuals?: DocVisuals,
+): string | null {
+  const shown = new Set(points.map((p) => p.code));
+  const figures: string[] = [];
+  let step: number | null = null;
+  for (const view of ['front', 'back'] as const) {
+    const box = visuals?.sketchGarment?.[view];
+    const image = visuals?.sketchViews?.[view];
+    if (!box || !image) continue;
+    const g = garmentGeometry(spec, box, view);
+    if (!g) continue;
+    const size = { w: box.w, h: box.h };
+    const grid = pomGrid(g, size);
+    step = step ?? grid.stepCm;
+    const lines = pomLines(spec, g, view).filter((l) => shown.has(l.code));
+    if (!lines.length) continue;
+    const src = safeDataUri(image.dataUri);
+    if (!src) continue;
+    figures.push(
+      `<figure class="raster"><div class="sheet" style="position:relative">` +
+        `<img class="sketch-view" src="${src}" alt="">` +
+        pomDrawingSvg(lines, grid, size) +
+        `</div><figcaption class="ml">${view === 'front' ? esc(t.view_front) : esc(t.view_back)}` +
+        ` · ${lines.map((l) => l.code).join(', ')}</figcaption></figure>`,
+    );
+  }
+  if (!figures.length) return null;
+  return (
+    `<h2>${esc(t.pom_drawing_title)}</h2>` +
+    `<div class="grid2 art-layout" style="flex:0 0 auto">${figures.join('')}</div>` +
+    `<div class="note" style="margin-top:3mm">${esc(t.pom_drawing_note)}` +
+    (step ? ` ${esc(t.pom_grid)} ${step} ${esc(t.cm)}.` : '') +
+    `</div>`
+  );
 }
 
 /**
@@ -2379,7 +2565,13 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
                   widthMm: 22,
                 }) ?? ''
               }</td>` +
-              `<td class="mono">${n.seam_code}/${n.stitch_code}</td>` +
+              `<td class="mono">${n.seam_code}/${n.stitch_code}` +
+              // Стежок, выбранный брендом, отмечается словами: технолог не
+              // должен спорить со справочником там, где решил заказчик.
+              (n.stitch_by_user
+                ? `<div class="note">${locale === 'ru' ? 'стежок задан брендом' : locale === 'zh' ? '线迹由品牌指定' : 'stitch set by brand'}</div>`
+                : '') +
+              `</td>` +
               `<td class="num mono">${n.spi}</td>` +
               `<td class="note">${esc(machine(n.machine))}</td>`
             : '') +
@@ -2456,9 +2648,33 @@ function constructionPages(spec: StyleSpec, pro: boolean, t: Messages, locale: L
 
 // ---------------------------------------------------------------- маркировка
 
-function labelsPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
+function labelsPages(spec: StyleSpec, t: Messages, locale: Locale, visuals?: DocVisuals): string[] {
   const l = spec.labels;
   if (!l) return [];
+  // Лист макетов бренда — после листов реквизитов, по восемь карточек.
+  const files = visuals?.labelFiles ?? [];
+  const filePages: string[] = [];
+  for (let i = 0; i < files.length; i += 8) {
+    const cards = files
+      .slice(i, i + 8)
+      .map((f) => {
+        const src = f.dataUri ? safeDataUri(f.dataUri) : null;
+        return (
+          `<figure class="raster" style="margin:0;text-align:center;min-width:0">` +
+          `<div class="sheet" style="display:inline-block;max-height:52mm;border:0.3mm solid #E4E1DC;border-radius:2mm;padding:2mm;background:#fff">` +
+          (src
+            ? `<img src="${src}" alt="" style="max-height:48mm;width:auto;max-width:100%;display:block">`
+            : `<div style="width:48mm;height:48mm;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#8A8A85">${esc(f.note)}</div>`) +
+          `</div><figcaption class="ml">${esc(f.label)}<br>${esc(f.note)}</figcaption></figure>`
+        );
+      })
+      .join('');
+    filePages.push(
+      `<h2>${esc(t.label_files_title)}</h2>` +
+        `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6mm;align-items:start">${cards}</div>` +
+        `<div class="note" style="margin-top:4mm">${esc(t.label_files_note)}</div>`,
+    );
+  }
   const ru = locale === 'ru';
   // Названия реквизитов — наш текст, и без перевода лист бесполезен фабрике.
   // Значения внутри останутся русскими: это надписи на ярлыке, их печатают
@@ -2543,7 +2759,8 @@ function labelsPages(spec: StyleSpec, t: Messages, locale: Locale): string[] {
     );
   });
 
-  return [first, ...skuPages];
+  const pages = [first, ...skuPages];
+  return [...pages, ...filePages];
 }
 
 // ---------------------------------------------------------------- лекала

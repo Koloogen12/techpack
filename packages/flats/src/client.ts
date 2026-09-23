@@ -13,3 +13,5 @@ export * from './svg.js';
 export * from './side.js';
 export * from './render.js';
 export * from './edits.js';
+export * from './placement.js';
+export * from './pom-drawing.js';

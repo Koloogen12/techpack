@@ -1,4 +1,4 @@
-import { fromPhoto } from '@seamster/core';
+import { fromPhoto, type Observations } from '@seamster/core';
 import type { DesignFeatureValue } from '@seamster/stylespec';
 
 /**
@@ -25,9 +25,13 @@ export interface DesignFeatureObservation {
 export interface DesignInput {
   /** Что vision увидел на снимках. Приходит из VisionReport.design_features. */
   design_features?: readonly DesignFeatureObservation[];
+  /** Наблюдения по словарям. Приходит из VisionReport.observations. */
+  observations?: Observations;
 }
 
-export function buildDesign(input: DesignInput): { features: DesignFeatureValue[] } | null {
+export function buildDesign(
+  input: DesignInput,
+): { features: DesignFeatureValue[]; observations?: Observations } | null {
   const seen = new Set<string>();
   const features: DesignFeatureValue[] = [];
   for (const f of input.design_features ?? []) {
@@ -49,5 +53,6 @@ export function buildDesign(input: DesignInput): { features: DesignFeatureValue[
       source: tracked.source,
     });
   }
-  return features.length ? { features } : null;
+  if (!features.length && !input.observations) return null;
+  return { features, ...(input.observations ? { observations: input.observations } : {}) };
 }

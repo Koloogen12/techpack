@@ -6,3 +6,4 @@ export * from './style-spec.js';
 export * from './photo-advice.js';
 export * from './artwork.js';
 export * from './design.js';
+export * from './observations.js';

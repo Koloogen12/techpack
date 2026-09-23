@@ -1,0 +1,22 @@
+{
+  "id": "sweater-zip",
+  "name": "Джемпер в рубчик с асимметричной молнией",
+  "article": "GOLD-SWZ-46",
+  "category": "cardigan",
+  "gender": "women",
+  "base_size_ru": 46,
+  "base_height_cm": 170,
+  "fit_intent": "fitted",
+  "fabric_kind": "knit",
+  "size_range": [42, 44, 46, 48],
+  "machine_park": "base_shop",
+  "batch_qty": 100,
+  "fabric_surface": "matte",
+  "colorways": [
+    {
+      "id": "black",
+      "name_ru": "Чёрный",
+      "hex_approx": "#0B0B0B"
+    }
+  ]
+}

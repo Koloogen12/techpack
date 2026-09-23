@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "note": "Ожидания технолога по эталонным снимкам: наблюдения по словарям (packages/core/src/observations.ts) и узлы, которые обязаны быть или не быть в собранной спеке. Список значений — допустимые ответы: «crew_binding» и «crew_rib_band» на узкой бейке оба честны.",
+  "entries": [
+    {
+      "id": "hoodie",
+      "answers": "hoodie-women-46.json",
+      "photos": [{ "file": "photos/hoodie-front.png", "view": "front_flat" }],
+      "observations": {
+        "neckline": ["hood"],
+        "closure": ["none"],
+        "cuff": ["rib_band"],
+        "hem": ["rib_band"],
+        "pocket": ["kangaroo"],
+        "sleeve": ["set_in", "dropped"],
+        "sleeve_length": ["long"],
+        "hood": ["yes"]
+      },
+      "nodes_present": ["hood_set_in", "kangaroo_pocket", "cuff_rib", "waistband_rib"],
+      "nodes_absent": ["zip_set_in", "neck_binding", "patch_pocket", "cardigan_placket"]
+    },
+    {
+      "id": "sweatshirt",
+      "answers": "sweatshirt-women-46.json",
+      "photos": [{ "file": "photos/sweatshirt-front.png", "view": "front_flat" }],
+      "observations": {
+        "neckline": ["crew_rib_band"],
+        "closure": ["none"],
+        "cuff": ["rib_band"],
+        "hem": ["rib_band"],
+        "pocket": ["none"],
+        "sleeve": ["set_in", "dropped"],
+        "sleeve_length": ["long"],
+        "hood": ["no"]
+      },
+      "nodes_present": ["neck_rib_band", "cuff_rib", "waistband_rib"],
+      "nodes_absent": ["hood_set_in", "kangaroo_pocket", "zip_set_in", "neck_binding"]
+    },
+    {
+      "id": "longsleeve",
+      "answers": "longsleeve-women-46.json",
+      "photos": [{ "file": "photos/longsleeve-front.png", "view": "front_flat" }],
+      "observations": {
+        "neckline": ["crew_rib_band", "crew_binding"],
+        "closure": ["none"],
+        "cuff": ["turned_hem"],
+        "hem": ["turned_hem"],
+        "pocket": ["none"],
+        "sleeve": ["set_in"],
+        "sleeve_length": ["long"],
+        "hood": ["no"]
+      },
+      "nodes_present": ["sleeve_hem_coverstitch", "hem_coverstitch"],
+      "nodes_absent": ["cuff_rib", "waistband_rib", "zip_set_in", "hood_set_in", "kangaroo_pocket"]
+    },
+    {
+      "id": "tshirt",
+      "answers": "tshirt-women-46.json",
+      "photos": [{ "file": "photos/tshirt-front.png", "view": "front_flat" }],
+      "observations": {
+        "neckline": ["crew_rib_band", "crew_binding"],
+        "closure": ["none"],
+        "cuff": ["turned_hem"],
+        "hem": ["turned_hem"],
+        "pocket": ["none"],
+        "sleeve": ["set_in"],
+        "sleeve_length": ["short"],
+        "hood": ["no"]
+      },
+      "nodes_present": ["hem_coverstitch", "sleeve_hem_coverstitch"],
+      "nodes_absent": ["cuff_rib", "waistband_rib", "zip_set_in", "hood_set_in", "patch_pocket"]
+    },
+    {
+      "id": "sweater-zip",
+      "answers": "sweater-zip-46.json",
+      "photos": [{ "file": "photos/sweater-zip-front.jpg", "view": "front_flat" }],
+      "observations": {
+        "neckline": ["v_notch_zip", "crew_binding", "v_neck"],
+        "closure": ["zip_asymmetric"],
+        "cuff": ["turned_hem"],
+        "hem": ["turned_hem"],
+        "pocket": ["none"],
+        "sleeve": ["set_in", "dropped"],
+        "sleeve_length": ["long"],
+        "hood": ["no"]
+      },
+      "nodes_present": ["zip_set_in", "neck_binding"],
+      "nodes_absent": [
+        "cardigan_placket",
+        "button_sew",
+        "placket_buttonholes",
+        "hood_set_in",
+        "kangaroo_pocket",
+        "neck_rib_band"
+      ]
+    }
+  ]
+}

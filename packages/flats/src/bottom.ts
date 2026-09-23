@@ -644,6 +644,7 @@ export function buildBottomPaths(
       panels,
       center,
       hidden,
+      single: { seams: [], stitches: [] },
     },
   };
 }

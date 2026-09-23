@@ -18,7 +18,11 @@
     "@seamster/docgen": "workspace:*",
     "@seamster/i18n": "workspace:*",
     "@seamster/templates": "workspace:*",
-    "@seamster/vision": "workspace:*"
+    "@seamster/vision": "workspace:*",
+    "@seamster/versions": "workspace:*",
+    "@seamster/render": "workspace:*",
+    "@seamster/assembly": "workspace:*",
+    "@seamster/trace": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

@@ -6,3 +6,5 @@ export * from './side.js';
 export * from './defaults.js';
 export * from './lines.js';
 export * from './edits.js';
+export * from './placement.js';
+export * from './pom-drawing.js';

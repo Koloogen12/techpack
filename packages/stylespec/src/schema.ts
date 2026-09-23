@@ -1,5 +1,14 @@
 import { CategorySchema, FabricKindSchema, FitIntentSchema, GenderSchema } from '@seamster/kb';
-import { MEASURE_KINDS } from '@seamster/core';
+import {
+  CLOSURE_KINDS,
+  EDGE_KINDS,
+  MEASURE_KINDS,
+  NECKLINE_KINDS,
+  POCKET_KINDS,
+  SLEEVE_KINDS,
+  SLEEVE_LENGTHS,
+  YES_NO,
+} from '@seamster/core';
 import { z } from 'zod';
 import { ConfidenceSchema, tracked } from './tracked-schema.js';
 
@@ -16,7 +25,7 @@ import { ConfidenceSchema, tracked } from './tracked-schema.js';
  */
 
 /** Текущая версия схемы. Ломающее изменение — мажор, новый раздел — минор. */
-export const SPEC_VERSION = '0.11.0';
+export const SPEC_VERSION = '0.13.0';
 
 export const StyleIdentitySchema = z.object({
   /** Внутренний идентификатор техпака. */
@@ -60,6 +69,17 @@ export const GradedValueSchema = z.object({
  * Табель мер с допусками — главный документ приёмки: по нему работает ОТК
  * фабрики (knowledge-base/07 §6). Полнота этой таблицы и есть ядро ценности.
  */
+export const PomDrawingSchema = z.object({
+  view: z.enum(['front', 'back']),
+  pts: z
+    .array(z.object({ u: z.number(), v: z.number() }))
+    .min(2)
+    .max(3),
+  /** Человек посмотрел на линию и подтвердил место. */
+  confirmed_at: z.string().optional(),
+});
+export type PomDrawing = z.infer<typeof PomDrawingSchema>;
+
 export const PomValueSchema = z.object({
   code: z.string().regex(/^[A-Z]\d{2}$/),
   name_ru: z.string().min(1),
@@ -90,6 +110,13 @@ export const PomValueSchema = z.object({
   graded: z.array(GradedValueSchema),
   required: z.boolean(),
   pro_only: z.boolean(),
+  /**
+   * Место замера на рисунке ЭТОЙ вещи: вид и точки линии в долях габарита
+   * изделия на виде (0 — левый/верхний край габарита, 1 — правый/нижний).
+   * Нет — линия стоит по типовому месту для кода. Доли, а не пиксели: лист
+   * перерисовывается, габарит меняется, а место замера остаётся.
+   */
+  drawing: PomDrawingSchema.optional(),
 });
 
 export const MeasurementsSchema = z.object({
@@ -120,6 +147,12 @@ export const ConstructionNodeValueSchema = z.object({
   plain_ru: z.string().min(1),
   seam_code: z.string().min(3),
   stitch_code: z.string().regex(/^\d{3}$/),
+  /**
+   * Класс стежка выбрал человек, а не справочник узла. Машина и парк при
+   * этом пересчитаны; документ отмечает выбор словами, чтобы технолог не
+   * спорил со справочником там, где решил бренд.
+   */
+  stitch_by_user: z.boolean().optional(),
   spi: z.number().int().positive(),
   machine: z.string().min(1),
   specialty: z.string().min(1),
@@ -499,6 +532,12 @@ export const ArtworkPlacementSchema = z
      * У сплошного раппорта положения нет: он покрывает всё.
      */
     offset_from_anchor_cm: tracked(z.number().nonnegative()),
+    /**
+     * Смещение центра макета от середины переда (или спинки) вбок, см.
+     * Положительное — влево по носке (на виде спереди это правая сторона
+     * рисунка). Пусто — макет по центру: так печатник и поймёт.
+     */
+    lateral_offset_cm: tracked(z.number()).optional(),
     anchor_label_ru: z.string().min(1),
     anchor_label_en: z.string().min(1).optional(),
     anchor_label_zh: z.string().min(1).optional(),
@@ -601,9 +640,34 @@ export const DesignFeatureValueSchema = z.object({
   confidence: ConfidenceSchema,
   source: z.string().min(1),
 });
-export const DesignSchema = z.object({
-  features: z.array(DesignFeatureValueSchema).min(1),
+/**
+ * Наблюдения по закрытым словарям — как их увидел разбор фото
+ * (packages/core/src/observations.ts). Лежат в спеке, потому что по ним
+ * рисуется эскиз и сверяется сторож: документ годовой давности обязан
+ * помнить, что на снимке была молния по диагонали, а не выводить это заново.
+ */
+const observed = <const T extends readonly [string, ...string[]]>(values: T) =>
+  z.object({ value: z.enum(values), confidence: z.enum(['high', 'medium', 'low']) });
+export const ObservationsValueSchema = z.object({
+  neckline: observed(NECKLINE_KINDS),
+  closure: observed(CLOSURE_KINDS),
+  cuff: observed(EDGE_KINDS),
+  hem: observed(EDGE_KINDS),
+  pocket: observed(POCKET_KINDS),
+  sleeve: observed(SLEEVE_KINDS),
+  sleeve_length: observed(SLEEVE_LENGTHS),
+  hood: observed(YES_NO),
 });
+
+export const DesignSchema = z
+  .object({
+    /** Пусто — типовая вещь без особенностей; наблюдения при этом могут быть. */
+    features: z.array(DesignFeatureValueSchema),
+    observations: ObservationsValueSchema.optional(),
+  })
+  .refine((d) => d.features.length > 0 || d.observations !== undefined, {
+    message: 'раздел дизайна без признаков и без наблюдений — не раздел',
+  });
 export type DesignFeatureValue = z.infer<typeof DesignFeatureValueSchema>;
 
 export const SpecMetaSchema = z.object({

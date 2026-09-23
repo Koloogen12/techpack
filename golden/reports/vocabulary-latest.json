@@ -1,0 +1,362 @@
+{
+  "summary": {
+    "at": "2026-09-23T14:23:20.610Z",
+    "live": false,
+    "prompt_version": "v9",
+    "schema_version": "6",
+    "entries": 5,
+    "skipped": [],
+    "observation_accuracy": 1,
+    "node_recall": 1,
+    "node_precision_absent": 1,
+    "by_key": {
+      "neckline": 1,
+      "closure": 1,
+      "cuff": 1,
+      "hem": 1,
+      "pocket": 1,
+      "sleeve": 1,
+      "sleeve_length": 1,
+      "hood": 1
+    }
+  },
+  "scores": [
+    {
+      "id": "hoodie",
+      "observations": {
+        "neckline": {
+          "expected": [
+            "hood"
+          ],
+          "got": "hood",
+          "hit": true
+        },
+        "closure": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "cuff": {
+          "expected": [
+            "rib_band"
+          ],
+          "got": "rib_band",
+          "hit": true
+        },
+        "hem": {
+          "expected": [
+            "rib_band"
+          ],
+          "got": "rib_band",
+          "hit": true
+        },
+        "pocket": {
+          "expected": [
+            "kangaroo"
+          ],
+          "got": "kangaroo",
+          "hit": true
+        },
+        "sleeve": {
+          "expected": [
+            "set_in",
+            "dropped"
+          ],
+          "got": "dropped",
+          "hit": true
+        },
+        "sleeve_length": {
+          "expected": [
+            "long"
+          ],
+          "got": "long",
+          "hit": true
+        },
+        "hood": {
+          "expected": [
+            "yes"
+          ],
+          "got": "yes",
+          "hit": true
+        }
+      },
+      "observation_accuracy": 1,
+      "node_recall": 1,
+      "node_precision_absent": 1,
+      "missing": [],
+      "extra": []
+    },
+    {
+      "id": "sweatshirt",
+      "observations": {
+        "neckline": {
+          "expected": [
+            "crew_rib_band"
+          ],
+          "got": "crew_rib_band",
+          "hit": true
+        },
+        "closure": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "cuff": {
+          "expected": [
+            "rib_band"
+          ],
+          "got": "rib_band",
+          "hit": true
+        },
+        "hem": {
+          "expected": [
+            "rib_band"
+          ],
+          "got": "rib_band",
+          "hit": true
+        },
+        "pocket": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "sleeve": {
+          "expected": [
+            "set_in",
+            "dropped"
+          ],
+          "got": "set_in",
+          "hit": true
+        },
+        "sleeve_length": {
+          "expected": [
+            "long"
+          ],
+          "got": "long",
+          "hit": true
+        },
+        "hood": {
+          "expected": [
+            "no"
+          ],
+          "got": "no",
+          "hit": true
+        }
+      },
+      "observation_accuracy": 1,
+      "node_recall": 1,
+      "node_precision_absent": 1,
+      "missing": [],
+      "extra": []
+    },
+    {
+      "id": "longsleeve",
+      "observations": {
+        "neckline": {
+          "expected": [
+            "crew_rib_band",
+            "crew_binding"
+          ],
+          "got": "crew_binding",
+          "hit": true
+        },
+        "closure": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "cuff": {
+          "expected": [
+            "turned_hem"
+          ],
+          "got": "turned_hem",
+          "hit": true
+        },
+        "hem": {
+          "expected": [
+            "turned_hem"
+          ],
+          "got": "turned_hem",
+          "hit": true
+        },
+        "pocket": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "sleeve": {
+          "expected": [
+            "set_in"
+          ],
+          "got": "set_in",
+          "hit": true
+        },
+        "sleeve_length": {
+          "expected": [
+            "long"
+          ],
+          "got": "long",
+          "hit": true
+        },
+        "hood": {
+          "expected": [
+            "no"
+          ],
+          "got": "no",
+          "hit": true
+        }
+      },
+      "observation_accuracy": 1,
+      "node_recall": 1,
+      "node_precision_absent": 1,
+      "missing": [],
+      "extra": []
+    },
+    {
+      "id": "tshirt",
+      "observations": {
+        "neckline": {
+          "expected": [
+            "crew_rib_band",
+            "crew_binding"
+          ],
+          "got": "crew_rib_band",
+          "hit": true
+        },
+        "closure": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "cuff": {
+          "expected": [
+            "turned_hem"
+          ],
+          "got": "turned_hem",
+          "hit": true
+        },
+        "hem": {
+          "expected": [
+            "turned_hem"
+          ],
+          "got": "turned_hem",
+          "hit": true
+        },
+        "pocket": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "sleeve": {
+          "expected": [
+            "set_in"
+          ],
+          "got": "set_in",
+          "hit": true
+        },
+        "sleeve_length": {
+          "expected": [
+            "short"
+          ],
+          "got": "short",
+          "hit": true
+        },
+        "hood": {
+          "expected": [
+            "no"
+          ],
+          "got": "no",
+          "hit": true
+        }
+      },
+      "observation_accuracy": 1,
+      "node_recall": 1,
+      "node_precision_absent": 1,
+      "missing": [],
+      "extra": []
+    },
+    {
+      "id": "sweater-zip",
+      "observations": {
+        "neckline": {
+          "expected": [
+            "v_notch_zip",
+            "crew_binding",
+            "v_neck"
+          ],
+          "got": "crew_binding",
+          "hit": true
+        },
+        "closure": {
+          "expected": [
+            "zip_asymmetric"
+          ],
+          "got": "zip_asymmetric",
+          "hit": true
+        },
+        "cuff": {
+          "expected": [
+            "turned_hem"
+          ],
+          "got": "turned_hem",
+          "hit": true
+        },
+        "hem": {
+          "expected": [
+            "turned_hem"
+          ],
+          "got": "turned_hem",
+          "hit": true
+        },
+        "pocket": {
+          "expected": [
+            "none"
+          ],
+          "got": "none",
+          "hit": true
+        },
+        "sleeve": {
+          "expected": [
+            "set_in",
+            "dropped"
+          ],
+          "got": "set_in",
+          "hit": true
+        },
+        "sleeve_length": {
+          "expected": [
+            "long"
+          ],
+          "got": "long",
+          "hit": true
+        },
+        "hood": {
+          "expected": [
+            "no"
+          ],
+          "got": "no",
+          "hit": true
+        }
+      },
+      "observation_accuracy": 1,
+      "node_recall": 1,
+      "node_precision_absent": 1,
+      "missing": [],
+      "extra": []
+    }
+  ]
+}

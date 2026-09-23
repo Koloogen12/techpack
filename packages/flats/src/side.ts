@@ -495,6 +495,7 @@ export function buildSidePaths(
       pocket,
       center: '',
       hidden,
+      single: { seams: [], stitches: [] },
     },
   };
 }

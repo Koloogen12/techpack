@@ -36,7 +36,12 @@ import {
 import { CATEGORY_CLASS, PHOTO_VIEWS, type PhotoView } from '@seamster/kb';
 import { CONFLICT_PREFIX } from '@seamster/fit';
 import { chromium, type Browser } from 'playwright';
-import { flatDefaults, renderFlatsFromSpec, supportsFlat } from '@seamster/flats';
+import {
+  flatDefaults,
+  garmentBoxFromLuma,
+  renderFlatsFromSpec,
+  supportsFlat,
+} from '@seamster/flats';
 import {
   cropImage,
   fillGarment,
@@ -52,6 +57,7 @@ import {
 import {
   FileRenderCache,
   flatSketch,
+  lookFingerprint,
   garmentMask,
   type ReferenceImage,
   type SheetBox,
@@ -60,9 +66,11 @@ import {
   sketchChecklist,
   sketchFeatureDoubts,
   sketchFileName,
+  sketchFingerprint,
   sketchMismatch,
   sketchModels,
   visualize,
+  sketchCorrections,
 } from '@seamster/render';
 import { readSwatch } from '@seamster/pattern';
 import type { Locale } from '@seamster/i18n';
@@ -450,8 +458,10 @@ async function readSwatches(
   return { swatches, bytes, notes };
 }
 
+// Спутник sketch.json (для какой спеки нарисован лист) едет вместе с листом:
+// в историю, из истории и из папки предложения.
 const SKETCH_FILE =
-  /^sketch(-front|-side|-back)?\.(jpg|png)$|^sketch-views\.json$|^sketch-(colorway-[A-Za-z0-9_-]+|pattern)\.jpg$/;
+  /^sketch(-front|-side|-back)?\.(jpg|png)$|^sketch(-views|-garment)?\.json$|^sketch-(colorway-[A-Za-z0-9_-]+|pattern)\.jpg$/;
 
 /** Заливки на эскизе: цвет каждого колорвея и раппорт — на вырезке переда. */
 export interface SketchFills {
@@ -502,6 +512,34 @@ async function sketchFills(
   return Object.keys(fills.colorways).length || fills.pattern ? fills : null;
 }
 
+/**
+ * Габарит изделия на вырезках переда и спинки — в пикселях вырезки.
+ *
+ * По нему сантиметры макета нанесения ложатся рамкой на рисунок: столько-то
+ * пикселей на сантиметр по длине изделия из табеля. Считается один раз при
+ * записи листа и хранится рядом: кабинету и документу габарит нужен на
+ * каждый показ, а браузер под рукой есть только здесь.
+ */
+export type SketchGarment = Partial<
+  Record<'front' | 'back', { x0: number; y0: number; x1: number; y1: number; w: number; h: number }>
+>;
+
+async function sketchGarmentOf(
+  browser: Browser,
+  views: Partial<Record<SheetView, DocImage>> | null | undefined,
+): Promise<SketchGarment> {
+  const out: SketchGarment = {};
+  for (const view of ['front', 'back'] as const) {
+    const image = views?.[view];
+    if (!image) continue;
+    const pixels = await sheetLuma(browser, image.dataUri, 400_000);
+    if (!pixels) continue;
+    const box = garmentBoxFromLuma(pixels.luma, pixels.width, pixels.height);
+    if (box) out[view] = { ...box, w: pixels.width, h: pixels.height };
+  }
+  return out;
+}
+
 /** Лист, вырезки и границы видов прошлой сборки снимаются разом. */
 function clearSketchFiles(dir: string): void {
   for (const name of readdirSync(dir))
@@ -519,9 +557,20 @@ export function writeSketchFiles(
   checked: { bytes: Uint8Array; mediaType: string },
   cut: { views: Partial<Record<SheetView, DocImage>>; boxes: SheetBox[] } | null,
   fills: SketchFills | null = null,
+  spec: StyleSpec | null = null,
+  garment: SketchGarment | null = null,
 ): void {
   clearSketchFiles(dir);
   writeFileSync(join(dir, sketchFileName(checked.mediaType)), checked.bytes);
+  if (garment && Object.keys(garment).length)
+    writeFileSync(join(dir, 'sketch-garment.json'), JSON.stringify(garment));
+  // Для какой спецификации нарисован лист. По этому отпечатку кабинет
+  // узнаёт, что рисунок отстал от данных: узлы изменились, а лист — нет.
+  if (spec)
+    writeFileSync(
+      join(dir, 'sketch.json'),
+      JSON.stringify({ fingerprint: sketchFingerprint(spec), at: new Date().toISOString() }),
+    );
   const writeJpeg = (name: string, image: DocImage): void => {
     const m = /^data:image\/jpeg;base64,(.+)$/.exec(image.dataUri);
     if (m) writeFileSync(join(dir, name), Buffer.from(m[1]!, 'base64'));
@@ -605,9 +654,131 @@ export async function redrawSketch(input: RedrawOptions): Promise<RedrawResult> 
     const fills = cut?.views.front
       ? await sketchFills(browser, cut.views.front, input.spec, tile)
       : null;
+    const garment = await sketchGarmentOf(browser, cut?.views);
     archiveSketch(input.dir);
-    writeSketchFiles(input.dir, checked, cut, fills);
+    writeSketchFiles(input.dir, checked, cut, fills, input.spec, garment);
     return { ok: true, views: cut ? cut.boxes.map((b) => b.view) : [] };
+  } finally {
+    await browser.close();
+  }
+}
+
+export interface ProposeSketchOptions extends RedrawOptions {
+  /** Куда положить лист предложения — отдельная папка, пак не трогается. */
+  outDir: string;
+  /** Изменения относительно снимков и прошлого листа — по-английски. */
+  changes: readonly string[];
+  /** Прошлый лист как опорное изображение: правка рисуется от него. */
+  currentSketchPath?: string | null;
+}
+
+/**
+ * Лист эскиза для ПРЕДЛОЖЕНИЯ правки — в отдельную папку.
+ *
+ * Правка фразой сначала показывается, потом принимается: человек видит
+ * новый лист рядом с прежним и решает. Поэтому лист рисуется не в пак,
+ * а рядом, и в пак переезжает только по слову человека (`acceptProposedSketch`).
+ * Опорные изображения — снимок изделия ДО правки и прошлый лист: модель
+ * рисует ту же вещь с перечисленными изменениями, а не вещь по описанию.
+ */
+export async function proposeSketch(input: ProposeSketchOptions): Promise<RedrawResult> {
+  const browser = await chromium.launch();
+  try {
+    const shots = input.photoPaths.map(parsePhotoArg);
+    const references: ReferenceImage[] = (await sketchReferences(browser, shots)).slice(0, 1);
+    if (input.currentSketchPath) {
+      try {
+        const bytes = readFileSync(input.currentSketchPath);
+        const mediaType = input.currentSketchPath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        references.push({ bytes, mediaType });
+      } catch {
+        /* прошлого листа нет — рисуем от снимка */
+      }
+    }
+    const { checked } = await drawSketch(input.spec, {
+      offline: false,
+      cache: new FileRenderCache(join(input.renderCacheDir ?? '.cache/render', 'sketch')),
+      ...(input.logger ? { logger: input.logger } : {}),
+      ledger: new CostLedger(),
+      references,
+      nonce: new Date().toISOString(),
+      changes: input.changes,
+      ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
+    });
+    if (!checked.ok) return { ok: false, reason: checked.reason, userMessage: checked.userMessage };
+    const cut = await cutSketchViews(browser, checked);
+    const tile = readTile(input.spec, input.tileDir ?? 'brand-library/artwork');
+    const fills = cut?.views.front
+      ? await sketchFills(browser, cut.views.front, input.spec, tile)
+      : null;
+    const garment = await sketchGarmentOf(browser, cut?.views);
+    mkdirSync(input.outDir, { recursive: true });
+    writeSketchFiles(input.outDir, checked, cut, fills, input.spec, garment);
+    return { ok: true, views: cut ? cut.boxes.map((b) => b.view) : [] };
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
+ * Принять лист предложения: прошлый лист — в историю, новый — на его место.
+ * Возвращает метку архива прошлого листа: по ней откат правки вернёт и рисунок.
+ */
+export function acceptProposedSketch(dir: string, proposalDir: string): string | null {
+  const names = readdirSync(proposalDir).filter((n) => SKETCH_FILE.test(n));
+  if (names.length === 0) return null;
+  const archived = archiveSketch(dir);
+  clearSketchFiles(dir);
+  for (const n of names) renameSync(join(proposalDir, n), join(dir, n));
+  return archived;
+}
+
+/**
+ * Отпечаток спецификации для «Внешнего вида»: по нему кабинет знает, что
+ * картинка нарисована для прежней вещи. Считается от промпта визуализации:
+ * изменилось то, что попадает в промпт, — картинка отстала.
+ */
+export function renderFingerprint(spec: StyleSpec): string {
+  // По форме, цвету и полотну, а не по тексту промпта: см. shapeFingerprint.
+  return `look:${lookFingerprint(spec)}`;
+}
+
+export interface RerenderOptions {
+  dir: string;
+  spec: StyleSpec;
+  renderCacheDir?: string;
+  logger?: GenerateOptions['logger'];
+}
+
+/**
+ * Перестроить «Внешний вид» по новой спецификации — после принятой правки.
+ *
+ * Картинка строится из спеки (ADR-0005), поэтому после правки узлов она
+ * обязана перестроиться сама, без второго запроса от человека: у конкурента
+ * это отдельная платная кнопка «синхронизировать рендер», у нас — следствие
+ * того, что картинка проекция данных. Отказ сервиса не ломает пак: старая
+ * картинка остаётся, и кабинет говорит, что она устарела.
+ */
+export async function rerenderVisual(input: RerenderOptions): Promise<boolean> {
+  const visual = await visualize(input.spec, {
+    cache: new FileRenderCache(input.renderCacheDir ?? '.cache/render'),
+    offline: false,
+    base: kb(),
+    ledger: new CostLedger(),
+    ...(input.logger ? { logger: input.logger } : {}),
+  });
+  if (!visual.ok) return false;
+  const browser = await chromium.launch();
+  try {
+    const fitted = await fitImage(browser, visual.image.dataUri);
+    const base64 = fitted.split(',')[1];
+    if (!base64) return false;
+    writeFileSync(join(input.dir, 'render.png'), Buffer.from(base64, 'base64'));
+    writeFileSync(
+      join(input.dir, 'render.json'),
+      JSON.stringify({ fingerprint: renderFingerprint(input.spec), at: new Date().toISOString() }),
+    );
+    return true;
   } finally {
     await browser.close();
   }
@@ -692,6 +863,8 @@ async function drawSketch(
     references: readonly ReferenceImage[];
     cacheDir?: string;
     nonce?: string;
+    /** Правка фразой: изменения относительно опорных изображений. */
+    changes?: readonly string[];
   },
 ): Promise<{ checked: Awaited<ReturnType<typeof flatSketch>>; note: string; doubts: string[] }> {
   const reasons: string[] = [];
@@ -709,6 +882,7 @@ async function drawSketch(
       ledger: input.ledger,
       ...(input.references.length ? { references: input.references } : {}),
       ...(input.nonce ? { nonce: input.nonce } : {}),
+      ...(input.changes?.length ? { changes: input.changes } : {}),
     });
     if (!sketch.ok) {
       last = sketch;
@@ -717,13 +891,43 @@ async function drawSketch(
       if (input.offline) break;
       continue;
     }
-    const { checked, doubts } = await checkSketch(spec, sketch, {
+    const guard = {
       ...(input.cacheDir ? { cacheDir: input.cacheDir } : {}),
       ...(input.logger ? { logger: input.logger } : {}),
-    });
-    if (checked.ok) return { checked, note: '', doubts };
-    last = checked;
-    reasons.push(`${model} — ${checked.userMessage}`);
+    };
+    const first = await checkSketch(spec, sketch, guard);
+    if (first.checked.ok) return { checked: first.checked, note: '', doubts: first.doubts };
+    last = first.checked;
+    reasons.push(`${model} — ${first.checked.userMessage}`);
+    // Второй проход той же моделью: ей говорят, что именно было не так.
+    // Сторож смотрит на лист как на снимок, и его отказ — конкретный
+    // список; без второго прохода верная модель отбрасывалась из-за одной
+    // ошибки, а следующая начинала с нуля.
+    if (first.corrections.length && !input.offline) {
+      input.logger?.warn('эскиз: лист не принят, второй проход с поправками', {
+        model,
+        corrections: first.corrections.join('; '),
+      });
+      const retry = await flatSketch(spec, {
+        model,
+        offline: input.offline,
+        cache: input.cache,
+        ...(input.logger ? { logger: input.logger } : {}),
+        ledger: input.ledger,
+        ...(input.references.length ? { references: input.references } : {}),
+        ...(input.nonce ? { nonce: input.nonce } : {}),
+        ...(input.changes?.length ? { changes: input.changes } : {}),
+        corrections: first.corrections,
+      });
+      if (retry.ok) {
+        const second = await checkSketch(spec, retry, guard);
+        if (second.checked.ok) return { checked: second.checked, note: '', doubts: second.doubts };
+        last = second.checked;
+        reasons.push(`${model}, второй проход — ${second.checked.userMessage}`);
+      } else {
+        reasons.push(`${model}, второй проход — ${retry.userMessage}`);
+      }
+    }
     input.logger?.warn('эскиз: лист не принят, пробуем следующую модель', { model });
   }
   return {
@@ -752,8 +956,13 @@ async function checkSketch(
   spec: StyleSpec,
   sketch: Awaited<ReturnType<typeof flatSketch>>,
   options: Pick<GenerateOptions, 'cacheDir' | 'logger'>,
-): Promise<{ checked: Awaited<ReturnType<typeof flatSketch>>; doubts: string[] }> {
-  if (!sketch.ok) return { checked: sketch, doubts: [] };
+): Promise<{
+  checked: Awaited<ReturnType<typeof flatSketch>>;
+  doubts: string[];
+  /** Что нарисовать иначе на втором проходе — по-английски. */
+  corrections: string[];
+}> {
+  if (!sketch.ok) return { checked: sketch, doubts: [], corrections: [] };
   try {
     // Дизайн-признаки сверяются чек-листом в том же взгляде: свободное
     // описание рисунка со спекой словами не сойдётся, а по списку взгляд
@@ -776,7 +985,7 @@ async function checkSketch(
         options.logger?.warn('эскиз: не все признаки найдены на листе', {
           doubts: doubts.join('; '),
         });
-      return { checked: sketch, doubts };
+      return { checked: sketch, doubts, corrections: [] };
     }
     options.logger?.warn('эскиз: не сошёлся со спекой', { why });
     return {
@@ -786,11 +995,12 @@ async function checkSketch(
         userMessage: `Эскиз не сошёлся со спецификацией: ${why}.`,
       },
       doubts: [],
+      corrections: sketchCorrections(spec, seen),
     };
   } catch {
     // Сторож не смог посмотреть — это не повод отказывать рисунку.
     // Иначе сбой стороннего сервиса роняет то, что уже нарисовано верно.
-    return { checked: sketch, doubts: [] };
+    return { checked: sketch, doubts: [], corrections: [] };
   }
 }
 
@@ -972,6 +1182,8 @@ export function specInputFrom(
     ...defined(rest),
     ...(report ? { photo_ratios: photoRatiosFrom(report.proportions) } : {}),
     ...(report ? { visible_elements: report.visible_elements } : {}),
+    // Словари — главный ответ разбора: узлы выбираются по ним, не по словам.
+    ...(report?.observations ? { observations: report.observations } : {}),
     // Дизайн-признаки — единственное, что с фото уходит в задание художнику
     // выше чек-листа узлов: окат буф, пояс, клинья.
     ...(report?.design_features.length ? { design_features: report.design_features } : {}),
@@ -1032,7 +1244,7 @@ export function specInputFrom(
 export async function generate(options: GenerateOptions): Promise<GenerateResult> {
   const ledger = new CostLedger();
   const base = options.kb ?? kb();
-  const answers = readAnswers(options.answersPath);
+  const answersGiven = readAnswers(options.answersPath);
 
   // --- 1. Разбор фотографий (единственная недетерминированная стадия) ----------
   let report: VisionReport | null = null;
@@ -1045,9 +1257,9 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     options.onStage?.('vision', `снимков: ${shots.length}`);
     const result = await analyzePhotos({
       photos: shots.map((s) => readPhoto(s.path, s.view)),
-      category: answers.category,
-      fabric: answers.fabric_kind,
-      answersFingerprint: answersFingerprint(answers),
+      category: answersGiven.category,
+      fabric: answersGiven.fabric_kind,
+      answersFingerprint: answersFingerprint(answersGiven),
       model: options.model ?? defaultModel(),
       cache: new FileVisionCache(options.cacheDir ?? '.cache/vision'),
       kb: base,
@@ -1058,6 +1270,11 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     cacheKey = result.cacheKey;
     fromCache = result.fromCache;
   }
+
+  // Категория из быстрого взгляда — черновик; полный разбор её уточняет.
+  // Человек, назвавший категорию сам, остаётся сильнее разбора.
+  const resolved = resolveCategory(answersGiven, report, base);
+  const answers = resolved.answers;
 
   const gate = categoryGate(answers, report);
   if (gate) throw gate;
@@ -1079,6 +1296,7 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
   ledger.recordFree('assembly', Math.round(performance.now() - assemblyStart));
 
   notes.push(...swatchResult.notes);
+  if (resolved.note) notes.push(resolved.note);
 
   if (report) {
     notes.push(...reconcile(answers, report, base));
@@ -1302,8 +1520,22 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     // Эскиз тоже кладётся файлом: он рисуется один раз и дальше не меняется.
     // Модель на тот же промпт отвечает каждый раз иначе, и воспроизводимость
     // документа держится именно на хранении, а не на детерминизме модели.
-    if (checked.ok) writeSketchFiles(dirname(options.outPath), checked, cut, fills);
+    if (checked.ok)
+      writeSketchFiles(
+        dirname(options.outPath),
+        checked,
+        cut,
+        fills,
+        spec,
+        await sketchGarmentOf(browser, cut?.views),
+      );
     else clearSketchFiles(dirname(options.outPath));
+    // Для какой спецификации нарисован «Внешний вид» — тем же способом.
+    if (visual.ok && built.render)
+      writeFileSync(
+        join(dirname(options.outPath), 'render.json'),
+        JSON.stringify({ fingerprint: renderFingerprint(spec), at: new Date().toISOString() }),
+      );
 
     const docOptions = { pro: true, browser, visuals, ...(changes ? { changes } : {}) };
     writeFileSync(options.outPath, await renderPdf(spec, docOptions));
@@ -1369,6 +1601,48 @@ export async function generate(options: GenerateOptions): Promise<GenerateResult
     notes,
     template: usedTemplate,
     cost: ledger.summary(),
+  };
+}
+
+/**
+ * Категория для сборки: анкета или полный разбор.
+ *
+ * Быстрый взгляд подставляет категорию в анкету за шесть секунд быстрой
+ * моделью и ошибается: джемпер с диагональной молнией он назвал кардиганом,
+ * и документ собрался с планкой и пуговицами. Полный разбор точнее, и когда
+ * человек подставленную категорию не менял, документ собирается по разбору.
+ * Названная человеком категория остаётся его словом: тогда расхождение
+ * уходит в очередь решений, а не в тихую подмену.
+ */
+export function resolveCategory(
+  answers: Answers,
+  report: VisionReport | null,
+  base: KnowledgeBase,
+): { answers: Answers; note: string | null } {
+  if (!report || answers.category_source !== 'quicklook') return { answers, note: null };
+  const seen = report.category.value;
+  if (
+    seen === 'other' ||
+    seen === answers.category ||
+    report.category.confidence === 'low' ||
+    !base.supportedCategories().includes(seen as Category)
+  )
+    return { answers, note: null };
+  // Табель и дефолты обязаны существовать для этой пары категория × полотно.
+  try {
+    base.pomTemplate(seen as Category, answers.fabric_kind);
+    base.categoryDefaultsFor(seen as Category, answers.fabric_kind);
+  } catch {
+    return { answers, note: null };
+  }
+  const label = (c: string): string => CATEGORY_LABEL_RU[c as Category] ?? c;
+  return {
+    answers: { ...answers, category: seen as Category },
+    note:
+      `Категория взята по фото: «${label(seen)}» (уверенность ${report.category.confidence}). ` +
+      `Быстрый взгляд перед сборкой предполагал «${label(answers.category)}», и вы это ` +
+      `не меняли. Если вещь всё же «${label(answers.category)}» — поменяйте категорию в ` +
+      `анкете и соберите заново: табель и узлы у категорий разные.`,
   };
 }
 

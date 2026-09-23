@@ -1,0 +1,323 @@
+{
+  "category": {
+    "value": "sweatshirt",
+    "confidence": "high",
+    "other_description": ""
+  },
+  "silhouette": {
+    "value": "loose",
+    "confidence": "medium"
+  },
+  "fabric": {
+    "woven_class": "unknown",
+    "surface": "matte",
+    "knit_class": "french_terry_2t",
+    "confidence": "medium",
+    "is_knit": true
+  },
+  "proportions": [
+    {
+      "pom_code": "T01",
+      "ratio_to_chest": 1.31,
+      "confidence": "high",
+      "reason": "HPS to hem edge, flat front"
+    },
+    {
+      "pom_code": "T04",
+      "ratio_to_chest": 0.96,
+      "confidence": "medium",
+      "reason": "waist barely narrower, side ribs"
+    },
+    {
+      "pom_code": "T05",
+      "ratio_to_chest": 0.93,
+      "confidence": "high",
+      "reason": "hem rib edge, relaxed"
+    },
+    {
+      "pom_code": "T06",
+      "ratio_to_chest": 0.86,
+      "confidence": "medium",
+      "reason": "dropped shoulder points, soft edges"
+    },
+    {
+      "pom_code": "T07",
+      "ratio_to_chest": 0.81,
+      "confidence": "medium",
+      "reason": "armhole to armhole, front view"
+    },
+    {
+      "pom_code": "T09",
+      "ratio_to_chest": 0.48,
+      "confidence": "low",
+      "reason": "chord estimate, shoulder point unclear"
+    },
+    {
+      "pom_code": "T10",
+      "ratio_to_chest": 1.15,
+      "confidence": "low",
+      "reason": "sleeve lies diagonally, foreshortened"
+    },
+    {
+      "pom_code": "T12",
+      "ratio_to_chest": 0.38,
+      "confidence": "medium",
+      "reason": "sleeve under armhole, slight fold"
+    },
+    {
+      "pom_code": "T13",
+      "ratio_to_chest": 0.17,
+      "confidence": "medium",
+      "reason": "cuff edge flat, unstretched"
+    },
+    {
+      "pom_code": "T14",
+      "ratio_to_chest": 0.32,
+      "confidence": "medium",
+      "reason": "between shoulder seams at rib"
+    },
+    {
+      "pom_code": "T15",
+      "ratio_to_chest": 0.13,
+      "confidence": "medium",
+      "reason": "front drop to band seam"
+    },
+    {
+      "pom_code": "T17",
+      "ratio_to_chest": 0.04,
+      "confidence": "medium",
+      "reason": "neck rib height, band stands"
+    },
+    {
+      "pom_code": "H07",
+      "ratio_to_chest": 0.09,
+      "confidence": "medium",
+      "reason": "hem rib seam to edge"
+    },
+    {
+      "pom_code": "H08",
+      "ratio_to_chest": 0.15,
+      "confidence": "low",
+      "reason": "cuff tall, seam partly shadowed"
+    }
+  ],
+  "observations": {
+    "neckline": {
+      "value": "crew_rib_band",
+      "confidence": "high"
+    },
+    "closure": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "hem": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "pocket": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "set_in",
+      "confidence": "medium"
+    },
+    "sleeve_length": {
+      "value": "long",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "no",
+      "confidence": "high"
+    }
+  },
+  "visible_elements": [
+    {
+      "key": "neckline_type",
+      "value": "Бейка-риб кольцом, заметная высота",
+      "confidence": "high"
+    },
+    {
+      "key": "cuff_type",
+      "value": "Риб-манжета отдельной деталью, притачана",
+      "confidence": "high"
+    },
+    {
+      "key": "waistband_type",
+      "value": "Пояс-рибана отдельной деталью",
+      "confidence": "high"
+    },
+    {
+      "key": "fabric_class",
+      "value": "Футер, лицо мелкозернистое, матовое",
+      "confidence": "medium"
+    },
+    {
+      "key": "topstitch_rows",
+      "value": "Одна отстрочка по горловине и плечу",
+      "confidence": "medium"
+    },
+    {
+      "key": "pocket_type",
+      "value": "Карманов нет",
+      "confidence": "high"
+    },
+    {
+      "key": "closure_type",
+      "value": "Без застёжки, через голову",
+      "confidence": "high"
+    },
+    {
+      "key": "drawcord",
+      "value": "Отсутствует",
+      "confidence": "high"
+    },
+    {
+      "key": "eyelets",
+      "value": "Отсутствуют",
+      "confidence": "high"
+    },
+    {
+      "key": "flatlock_seam",
+      "value": "Не просматривается",
+      "confidence": "low"
+    },
+    {
+      "key": "side_panel",
+      "value": "Боковые вставки рибаной по всей длине",
+      "confidence": "high"
+    },
+    {
+      "key": "shoulder_yoke",
+      "value": "Шов-кокетка от горловины к пройме",
+      "confidence": "medium"
+    }
+  ],
+  "design_features": [
+    {
+      "zone": "bodice",
+      "en": "Full-length vertical rib side panels in self-colour rib, framing the front panel",
+      "ru": "Вертикальные боковые вставки из рибаны в цвет, от проймы до пояса",
+      "confidence": "high"
+    },
+    {
+      "zone": "shoulder",
+      "en": "Curved shoulder yoke seam running from neckline to armhole",
+      "ru": "Изогнутый шов кокетки от горловины к пройме",
+      "confidence": "medium"
+    },
+    {
+      "zone": "sleeve",
+      "en": "Extra-long deep rib cuffs, roughly a third of forearm",
+      "ru": "Удлинённые глубокие манжеты-рибана",
+      "confidence": "medium"
+    },
+    {
+      "zone": "neckline",
+      "en": "Wide flat-set rib crew band with clean coverstitch join",
+      "ru": "Широкая плоско притачанная бейка-риб горловины",
+      "confidence": "medium"
+    }
+  ],
+  "topstitching": [
+    {
+      "location": "neckline",
+      "rows": 1,
+      "confidence": "medium"
+    },
+    {
+      "location": "shoulder",
+      "rows": 1,
+      "confidence": "medium"
+    },
+    {
+      "location": "side",
+      "rows": 1,
+      "confidence": "medium"
+    },
+    {
+      "location": "hem",
+      "rows": 0,
+      "confidence": "medium"
+    },
+    {
+      "location": "sleeve_hem",
+      "rows": 0,
+      "confidence": "medium"
+    }
+  ],
+  "colorways": [
+    {
+      "name_ru": "Светлый серо-бежевый",
+      "hex_approx": "#CFC6B6"
+    }
+  ],
+  "not_visible": [
+    {
+      "key": "internal_edge_finish",
+      "reason": "Изнанка не снята"
+    },
+    {
+      "key": "seam_reverse",
+      "reason": "Изнанка не снята"
+    },
+    {
+      "key": "shoulder_reinforcement",
+      "reason": "Скрыто внутри"
+    },
+    {
+      "key": "seam_allowances",
+      "reason": "Изнанка не снята"
+    },
+    {
+      "key": "hem_depth",
+      "reason": "Подгибка скрыта"
+    },
+    {
+      "key": "fabric_weight",
+      "reason": "По фото не определяется"
+    },
+    {
+      "key": "shrinkage",
+      "reason": "По фото не определяется"
+    },
+    {
+      "key": "stretch",
+      "reason": "По фото не определяется"
+    },
+    {
+      "key": "threads",
+      "reason": "Номер нити не читается"
+    },
+    {
+      "key": "size_label",
+      "reason": "Ракурс переда, этикетки нет"
+    },
+    {
+      "key": "interlining",
+      "reason": "Скрыто внутри"
+    },
+    {
+      "key": "back",
+      "reason": "Вид спинки отсутствует"
+    }
+  ],
+  "scale_object": {
+    "kind": "none",
+    "side": "long_side",
+    "ratio_to_anchor": 0,
+    "coplanar": false,
+    "confidence": "high",
+    "reason": "кадр пустой, только изделие"
+  },
+  "photo_quality_notes": [
+    "Только один вид — перед",
+    "Свет ровный, фактура читается умеренно",
+    "Лёгкие заломы на полочке",
+    "Тип шва проймы точно не читается"
+  ]
+}

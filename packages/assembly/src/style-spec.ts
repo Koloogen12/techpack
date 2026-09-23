@@ -1,15 +1,18 @@
+import { observationRu, track } from '@seamster/core';
 import { SPEC_VERSION, parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
 import { kb as defaultKb, type KnowledgeBase } from '@seamster/kb';
 import { buildMeasurements, countMeasurementAssumptions, type PomInput } from './pom.js';
 import {
   buildConstruction,
   countConstructionAssumptions,
+  seesZip,
   type ConstructionInput,
 } from './construction.js';
 import { buildBom, countBomAssumptions, type BomInput } from './bom.js';
 import { buildLabels, type BrandProfile } from './labels.js';
 import { buildArtwork, type ArtworkInput, type PatternPlacementInput } from './artwork.js';
 import { buildDesign, type DesignInput } from './design.js';
+import { neckHeightFromObservation } from './observations.js';
 
 /**
  * Сборка StyleSpec — детерминированная стадия пайплайна.
@@ -101,7 +104,73 @@ export function buildStyleSpec(
     }
   }
 
-  const bom = buildBom(input, base);
+  // Окантовка вместо бейки-риб: «высота бейки горловины» в табеле — это
+  // высота окантовки по узлу (около 1 см), а не 3 см стойки из типового
+  // отношения. Иначе художник рисует стойку, которой на фото нет.
+  const presentIds = new Set(construction.nodes.map((n) => n.node_id));
+  // Стойка по словарю: бейка-риб есть, а высота типовая (3 см) — стойка выше.
+  const neckHeight = neckHeightFromObservation(input.observations);
+  if (neckHeight && presentIds.has('neck_rib_band')) {
+    const note = `${observationRu('neckline', input.observations!.neckline.value)} по фото — высота бейки по типу стойки, подтвердите по образцу`;
+    measurements.points = measurements.points.map((p) =>
+      p.code === 'T17' && Math.abs(p.base.value - neckHeight) > 0.5
+        ? {
+            ...p,
+            base: track(neckHeight, 'estimated_from_photo', 'vision:observations#neckline', note),
+            graded: p.graded.map((g) => ({
+              ...g,
+              value: track(
+                neckHeight,
+                'estimated_from_photo',
+                'vision:observations#neckline',
+                note,
+              ),
+            })),
+          }
+        : p,
+    );
+  }
+  if (presentIds.has('neck_binding') && !presentIds.has('neck_rib_band')) {
+    const height = base.node('neck_binding').finished_cm?.default ?? 1.2;
+    const note = 'окантовка по фото: узкая бейка, не стойка — высота по узлу окантовки';
+    measurements.points = measurements.points.map((p) =>
+      p.code === 'T17' && p.base.value > height + 0.3
+        ? {
+            ...p,
+            base: track(height, 'default_from_base', 'kb:construction_nodes#neck_binding', note),
+            graded: p.graded.map((g) => ({
+              ...g,
+              value: track(height, 'default_from_base', 'kb:construction_nodes#neck_binding', note),
+            })),
+          }
+        : p,
+    );
+  }
+
+  // Застёжка по фото уходит и в фурнитуру: узлы планки уже заменены на
+  // молнию выше, строка пуговиц обязана уйти вместе с ними.
+  const closureSeen = (input.visible_elements ?? []).find((e) => e.key === 'closure_type');
+  const closureByVocab = (() => {
+    const o = input.observations?.closure;
+    if (!o || o.confidence === 'low') return undefined;
+    if (/^zip_/.test(o.value)) return 'zip' as const;
+    if (/^buttons_|^snaps$/.test(o.value)) return 'buttons' as const;
+    if (o.value === 'none') return 'none' as const;
+    return undefined;
+  })();
+  const bom = buildBom(
+    {
+      ...input,
+      ...(input.closure === undefined
+        ? closureByVocab
+          ? { closure: closureByVocab }
+          : closureSeen && seesZip(closureSeen.value) && !input.observations
+            ? { closure: 'zip' as const }
+            : {}
+        : {}),
+    },
+    base,
+  );
   notes.push(...bom.notes);
 
   // Дизайн-признаки не зависят ни от чего в сборке: они с фото и только с фото.

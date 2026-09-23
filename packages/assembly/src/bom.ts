@@ -50,6 +50,12 @@ export interface BomInput {
   colorways?: readonly Colorway[];
   /** Тираж. Влияет только на пересчёт расхода на партию. */
   quantity?: number;
+  /**
+   * Застёжка по фото. Молния вместо пуговиц меняет фурнитуру: пуговицы из
+   * типового набора категории уходят, разъёмная молния приходит. Пусто —
+   * фурнитура типовая.
+   */
+  closure?: 'zip' | 'buttons' | 'none';
 }
 
 /**
@@ -135,7 +141,10 @@ export function buildBom(input: BomInput, base: KnowledgeBase = defaultKb()): Bo
     ...(defaults.rib ? [{ id: defaults.rib, role: 'rib' as const }] : []),
     ...defaults.threads.map((id) => ({ id, role: 'thread' as const })),
     ...defaults.interlinings.map((id) => ({ id, role: 'interlining' as const })),
-    ...(defaults.hardware ?? []).map((id) => ({ id, role: 'hardware' as const })),
+    ...hardwareFor(input, defaults.hardware ?? [], base, notes).map((id) => ({
+      id,
+      role: 'hardware' as const,
+    })),
     ...defaults.labels.map((id) => ({ id, role: 'label' as const })),
     ...defaults.packaging.map((id) => ({ id, role: 'packaging' as const })),
   ];
@@ -387,6 +396,62 @@ function buildLine(
     supplier_article: null,
     ...(isShellFromPhoto ? { note: 'класс полотна опознан по фактуре на фото' } : {}),
   };
+}
+
+/**
+ * Одна строка спецификации для материала — для правки готового изделия.
+ *
+ * Добавленный правкой узел тянет за собой фурнитуру: капюшон — шнур и
+ * люверсы, планка — пуговицы. Строка собирается тем же кодом, что и при
+ * сборке, чтобы статусы и формулировки не разошлись с остальной таблицей.
+ */
+export function buildBomLine(
+  materialId: string,
+  role: MaterialRole,
+  code: string,
+  input: BomInput,
+  base: KnowledgeBase = defaultKb(),
+): BomLine {
+  return buildLine(base.material(materialId), role, code, input);
+}
+
+/**
+ * Фурнитура застёжки — по фото, а не по категории.
+ *
+ * Пуговицы кардигана в спецификации джемпера с молнией — строка, за которую
+ * фабрика закупит лишнее и не закупит нужное. Замена делается только когда
+ * молния для этой категории в справочнике есть; иначе набор остаётся типовым,
+ * и об этом сказано в примечаниях.
+ */
+function hardwareFor(
+  input: BomInput,
+  hardware: readonly string[],
+  base: KnowledgeBase,
+  notes: string[],
+): string[] {
+  if (input.closure !== 'zip') return [...hardware];
+  const buttons = hardware.filter((id) => /^button_/.test(id));
+  if (hardware.some((id) => /^zipper_/.test(id))) return [...hardware];
+  let zipper: Material | null = null;
+  try {
+    zipper = base.material('zipper_separating');
+  } catch {
+    zipper = null;
+  }
+  if (!zipper || !zipper.applications.includes(input.category)) {
+    notes.push(
+      'На фото застёжка — молния, но молнии для этой категории в справочнике нет: ' +
+        'фурнитура оставлена типовой, замените строку пуговиц своим артикулом молнии.',
+    );
+    return [...hardware];
+  }
+  notes.push(
+    buttons.length
+      ? `Фурнитура застёжки по фото: ${buttons.map((b) => base.material(b).name_ru).join(', ')} ` +
+          `заменены на «${zipper.name_ru}» — длину молнии сверьте с длиной планки в табеле.`
+      : `Фурнитура застёжки по фото: добавлена «${zipper.name_ru}» — длину молнии задайте по образцу.`,
+  );
+  return [...hardware.filter((id) => !buttons.includes(id)), 'zipper_separating'];
 }
 
 /** Сколько строк спецификации требуют подтверждения. */

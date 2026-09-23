@@ -248,6 +248,7 @@ const SECTIONS = [
   { id: 'pom', label: 'Замеры', sub: 'POM и градация' },
   { id: 'bom', label: 'Материалы', sub: 'BOM, колорвеи' },
   { id: 'nodes', label: 'Конструкция', sub: 'узлы и операции' },
+  { id: 'artwork', label: 'Нанесение', sub: 'принты и вышивка' },
   { id: 'labels', label: 'Ярлыки', sub: 'маркировка и SKU' },
   { id: 'review', label: 'Решения', sub: 'подтвердить и закрыть' },
   { id: 'vers', label: 'Версии', sub: 'примерки образцов' },
@@ -582,6 +583,14 @@ class Component extends DCLogic {
     wizStep: 1,
     precOpen: false,
     manual: '',
+    // Категорию назвал человек, а не подставил быстрый взгляд.
+    catByUser: false,
+    // На холсте чертежа показан векторный чертёж по табелю (со слоями),
+    // а не растровый эскиз. Слои есть только у вектора.
+    vectorOn: false,
+    // На холсте эскиз, трассированный в вектор (SVG), и режим трассировки.
+    traceOn: false,
+    traceMode: 'smart',
     closeConfirm: false,
     collections: [],
     colFormOpen: false,
@@ -622,6 +631,31 @@ class Component extends DCLogic {
     sketchEdits: null,
     editOn: false,
     redrawBusy: false,
+    // Правка фразой: текст просьбы, ожидание и предложение на рассмотрении.
+    reviseText: '',
+    reviseBusy: false,
+    proposal: null,
+    proposalBusy: false,
+    // Что в паке отстало от спецификации — с сервера, по отпечаткам.
+    stale: null,
+    // Классы стежка из справочника и узел, у которого открыт выбор.
+    stitches: null,
+    stitchPick: null,
+    // Файлы ярлыков и упаковки от бренда — карточками в разделе ярлыков.
+    labelFiles: null,
+    labelBusy: false,
+    // Нанесение: макеты с сервера, вид на холсте, выбранный макет, геометрия.
+    art: null,
+    artView: 'front',
+    artSel: null,
+    artGeo: null,
+    // Чертёж замеров: вид, найденный габарит, точка, которую ставят кликами.
+    pomView: 'front',
+    pomGeo: null,
+    pomPlacing: null,
+    pomCalib: '',
+    artBusy: false,
+    jobSketchGarment: null,
     sketchVersions: 0,
     genSketch: false,
     genRender: false,
@@ -712,7 +746,17 @@ class Component extends DCLogic {
     this._kz = (e) => {
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
       const st = this.state.undoStack;
-      if (this.state.screen !== 'doc' || !st.length) return;
+      if (this.state.screen !== 'doc') return;
+      // Набор в поле — дело самого поля; редактор рисунка отменяет своё сам.
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || this.state.editOn) return;
+      if (!st.length) {
+        // Локальных правок нет — отменяется последняя записанная версия
+        // спецификации: правка фразой, решение, замер, режим ухода.
+        e.preventDefault();
+        this.serverUndo();
+        return;
+      }
       e.preventDefault();
       const u = st[st.length - 1];
       this.setState((p) => {
@@ -986,6 +1030,7 @@ class Component extends DCLogic {
           next.flatNonce = Date.now();
         }
         this.setState(next);
+        if (r.spec) this.loadStale(id);
         this.showToast(r.changed_ru ? 'Готово: ' + r.changed_ru : 'Решение принято');
       })
       .catch((e) => this.showToast('Не принято: ' + e.message));
@@ -1042,6 +1087,7 @@ class Component extends DCLogic {
           delete vals[code];
           return { curSpec: p.spec, curDefaults: p.flat_defaults, vals };
         });
+        this.loadStale(id);
       })
       .catch((e) => {
         this.showToast('Правка отклонена: ' + e.message);
@@ -1161,6 +1207,35 @@ class Component extends DCLogic {
   }
 
   /**
+   * Скачать вектор эскиза: трассировка на сервере, файл на вид и режим.
+   * Без вида — лист целиком и все вырезки, что есть у эскиза.
+   */
+  dlTrace(view) {
+    const s = this.state;
+    if (!s.curId || !this.hasSketch()) return 0;
+    const mode = s.traceMode || 'smart';
+    const views = view ? [view] : ['all'].concat(s.jobSketchViews || []);
+    views.forEach((v, i) =>
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href =
+          '/app/api/jobs/' +
+          s.curId +
+          '/svg?view=' +
+          v +
+          '&mode=' +
+          mode +
+          '&download=1&t=' +
+          encodeURIComponent(TOKEN || '');
+        a.download = 'sketch-' + v + '-' + mode + '.svg';
+        a.click();
+      }, i * 400),
+    );
+    track('svg_trace', { id: s.curId, mode, views: views.length });
+    return views.length;
+  }
+
+  /**
    * Есть ли у эскиза вырезанный вид: перед, бок или спинка.
    *
    * Вырезки режет генератор из того же листа. Пока их нет, отдельный вид
@@ -1264,6 +1339,7 @@ class Component extends DCLogic {
           jobPhotos: r.photos || [],
           jobSketchViews: r.sketch_views || [],
           jobSketchBoxes: r.sketch_boxes || [],
+          jobSketchGarment: r.sketch_garment || null,
           sketchVersions: r.sketch_versions || 0,
           flatNonce: Date.now(),
         });
@@ -1331,6 +1407,792 @@ class Component extends DCLogic {
         track('sketch_rollback', { id });
       })
       .catch((e) => this.showToast(e.message || 'Не удалось вернуть рисунок'));
+  }
+
+  /**
+   * Что в паке отстало от спецификации.
+   *
+   * Сервер считает это по отпечаткам: рисунок и «Внешний вид» — по тому, для
+   * какой спеки нарисованы; разделы — по памяти человека и правкам фразой.
+   * Пока «Внешний вид» перестраивается, опрос повторяется сам.
+   */
+  loadStale(id) {
+    if (!id || !TOKEN || DEMO) return;
+    clearTimeout(this._stT);
+    apiCall('/jobs/' + id + '/stale')
+      .then((st) => {
+        if (this.state.curId !== id) return;
+        const wasBuilding = this.state.stale && this.state.stale.render.building;
+        this.setState({ stale: st });
+        if (st.render.building) {
+          this._stT = setTimeout(() => this.loadStale(id), 5000);
+        } else if (wasBuilding) {
+          // Картинка готова — обновить кэш браузера и обложку.
+          this.setState({ flatNonce: Date.now(), hasRender: st.render.present });
+          this.showToast('«Внешний вид» перестроен по новой спецификации');
+        }
+      })
+      .catch(() => {});
+  }
+
+  /** Человек посмотрел раздел: повод «проверьте» снят, отпечаток запомнен. */
+  markReviewed(section) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/reviewed', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ section }),
+    })
+      .then((r) => {
+        if (this.state.curId === id) this.setState({ stale: r.stale });
+        track('reviewed', { id, section });
+      })
+      .catch((e) => this.showToast(e.message || 'Не удалось отметить'));
+  }
+
+  /**
+   * Показать, что изменилось в спецификации с последней правки, — списком
+   * из диффа версий: точки, узлы, материалы.
+   */
+  showChanges() {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/diff')
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        const d = r.diff || {};
+        const rows = [];
+        (r.reasons || []).forEach((x) => rows.push('Версия: ' + x));
+        (d.points || []).forEach((pt) =>
+          rows.push(
+            (pt.kind === 'added'
+              ? 'Точка добавлена: '
+              : pt.kind === 'removed'
+                ? 'Точка убрана: '
+                : 'Замер: ') +
+              pt.code +
+              ' ' +
+              pt.name_ru +
+              (pt.kind === 'changed' ? ' — ' + pt.from_cm + ' → ' + pt.to_cm + ' см' : ''),
+          ),
+        );
+        (d.nodes && d.nodes.removed ? d.nodes.removed : []).forEach((n) =>
+          rows.push('Узел убран: ' + n),
+        );
+        (d.nodes && d.nodes.added ? d.nodes.added : []).forEach((n) =>
+          rows.push('Узел добавлен: ' + n),
+        );
+        (d.bom && d.bom.removed ? d.bom.removed : []).forEach((n) =>
+          rows.push('Материал убран: ' + n),
+        );
+        (d.bom && d.bom.added ? d.bom.added : []).forEach((n) =>
+          rows.push('Материал добавлен: ' + n),
+        );
+        this.setState({
+          modal: {
+            kind: 'diff',
+            title: 'Что изменилось',
+            text: rows.length
+              ? 'Версия ' +
+                r.from +
+                ' → ' +
+                r.to +
+                '. Разделы пересобраны из спецификации — проверьте их глазами.'
+              : 'Содержательных изменений между версиями нет.',
+            rows,
+          },
+        });
+      })
+      .catch((e) => this.showToast(e.message || 'История версий недоступна'));
+  }
+
+  /**
+   * Отмена последней записанной версии спецификации — Ctrl+Z на весь пак.
+   *
+   * Отменяется то, что ушло на сервер: правка фразой (вместе с рисунком),
+   * решение из очереди, замер, режим ухода. Локальный набор в таблице
+   * отменяется раньше и без сервера.
+   */
+  serverUndo() {
+    const id = this.state.curId;
+    if (!id || !TOKEN || this._undoBusy) return;
+    this._undoBusy = true;
+    apiCall('/jobs/' + id + '/versions/undo', { method: 'POST' })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+        delete this._thumbs[id];
+        this.setState({
+          curSpec: r.spec,
+          curDefaults: r.flat_defaults,
+          vals: {},
+          tols: {},
+          undoStack: [],
+          stale: r.stale || null,
+          jobSketchViews: r.sketch_views || this.state.jobSketchViews,
+          jobSketchBoxes: r.sketch_boxes || this.state.jobSketchBoxes,
+          sketchVersions: r.sketch_versions || 0,
+          flatNonce: Date.now(),
+        });
+        this.loadDecisions(id);
+        this.showToast(
+          'Отменено: ' + r.undone_ru + (r.sketch_restored ? ' · рисунок возвращён' : ''),
+        );
+        track('undo', { id });
+      })
+      .catch((e) => this.showToast(e.message || 'Отменять нечего'))
+      .then(() => {
+        this._undoBusy = false;
+      });
+  }
+
+  /**
+   * Правка фразой: «убери капюшон», «рукав до локтя».
+   *
+   * Сервер переводит фразу в правку СПЕЦИФИКАЦИИ и рисует новый лист в
+   * отдельную папку. Пак не меняется, пока человек не нажмёт «Оставить»:
+   * он видит новый рисунок рядом с прежним и список того, что изменится
+   * в таблицах. Ошибка разбора — словами, ничего не тронуто.
+   */
+  sendRevise() {
+    const s = this.state;
+    const id = s.curId;
+    const text = (s.reviseText || '').trim();
+    if (!id || !TOKEN || s.reviseBusy) return;
+    if (text.length < 3) return this.showToast('Напишите, что изменить — например «убери капюшон»');
+    this.setState({ reviseBusy: true });
+    apiCall('/jobs/' + id + '/revise', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        if (!r.ok) {
+          this.setState({
+            modal: {
+              kind: 'revise-fail',
+              title: 'Не получилось понять',
+              text: (r.error || 'Не удалось разобрать просьбу.') + (r.action ? ' ' + r.action : ''),
+            },
+          });
+          return;
+        }
+        this.setState({
+          proposal: r.proposal,
+          modal: { kind: 'proposal', title: 'Правка: ' + text },
+        });
+        track('revise', {
+          id,
+          changed: (r.proposal.changed_ru || []).length,
+          sketch: r.proposal.sketch.ok,
+        });
+      })
+      .catch((e) => this.showToast(e.message || 'Не удалось отправить правку', e.action))
+      .then(() => {
+        if (this.state.curId === id) this.setState({ reviseBusy: false });
+      });
+  }
+
+  /** Оставить предложение: спека и рисунок переезжают в пак, «Внешний вид» перестраивается. */
+  acceptProposal() {
+    const s = this.state;
+    const id = s.curId;
+    const pr = s.proposal;
+    if (!id || !TOKEN || !pr || s.proposalBusy) return;
+    this.setState({ proposalBusy: true });
+    apiCall('/jobs/' + id + '/proposals/' + pr.id + '/accept', { method: 'POST' })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+        delete this._thumbs[id];
+        this.setState({
+          curSpec: r.spec,
+          curDefaults: r.flat_defaults,
+          proposal: null,
+          modal: null,
+          reviseText: '',
+          vals: {},
+          tols: {},
+          undoStack: [],
+          stale: r.stale || null,
+          jobSketchViews: r.sketch_views || [],
+          jobSketchBoxes: r.sketch_boxes || [],
+          sketchVersions: r.sketch_versions || 0,
+          flatNonce: Date.now(),
+        });
+        this.reloadFiles(id);
+        this.loadDecisions(id);
+        if (r.stale && r.stale.render.building)
+          this._stT = setTimeout(() => this.loadStale(id), 5000);
+        this.showToast('Правка принята — спецификация и рисунок обновлены. Ctrl+Z вернёт как было');
+        track('revise_accept', { id });
+      })
+      .catch((e) => this.showToast(e.message || 'Не удалось принять правку'))
+      .then(() => {
+        if (this.state.curId === id) this.setState({ proposalBusy: false });
+      });
+  }
+
+  /** Отменить предложение: в паке ничего не менялось, лист удаляется. */
+  rejectProposal() {
+    const s = this.state;
+    const id = s.curId;
+    const pr = s.proposal;
+    if (!id || !TOKEN || !pr) return this.set('modal', null);
+    apiCall('/jobs/' + id + '/proposals/' + pr.id + '/reject', { method: 'POST' }).catch(() => {});
+    this.setState({ proposal: null, modal: null });
+    track('revise_reject', { id });
+  }
+
+  /**
+   * Класс стежка узла — выбор бренда. Сервер пересчитывает машину, проверку
+   * парка и операцию; кабинет получает спеку целиком и перерисовывает
+   * таблицу узлов тем же кодом, что после любой правки.
+   */
+  setStitch(nodeId, code) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    this.setState({ stitchPick: null });
+    apiCall('/jobs/' + id + '/nodes', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ node_id: nodeId, stitch_code: code }),
+    })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+        this.setState({ curSpec: r.spec, curDefaults: r.flat_defaults, stale: r.stale || null });
+        if (r.changed_ru) this.showToast(r.changed_ru);
+        track('node_stitch', { id, node: nodeId, code });
+      })
+      .catch((e) => this.showToast('Не принято: ' + e.message));
+  }
+
+  // ------------------------------------------------------------ ярлыки
+
+  loadLabelFiles(id) {
+    if (!id || !TOKEN || DEMO) return;
+    apiCall('/jobs/' + id + '/labels/files')
+      .then((r) => {
+        if (this.state.curId === id) this.setState({ labelFiles: r.files || [] });
+      })
+      .catch(() => {});
+  }
+
+  /**
+   * Несколько файлов ярлыков разом: каждый уходит своим запросом, как снимки,
+   * и появляется своей карточкой. Ошибка одного не роняет остальные.
+   */
+  uploadLabelFiles() {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.png,.jpg,.jpeg,.webp,.svg,.pdf,image/*,application/pdf';
+    input.onchange = () => {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+      this.setState({ labelBusy: true });
+      let ok = 0;
+      const errors = [];
+      const one = (file) =>
+        fetch(
+          '/app/api/jobs/' +
+            id +
+            '/labels/files?name=' +
+            encodeURIComponent(file.name) +
+            '&t=' +
+            encodeURIComponent(TOKEN),
+          {
+            method: 'POST',
+            headers: { 'content-type': file.type || 'application/octet-stream' },
+            body: file,
+          },
+        )
+          .then((r) => r.json().then((b) => ({ ok: r.ok, b })))
+          .then(({ ok: fine, b }) => {
+            if (!fine) throw new Error((b && b.error) || 'не принят');
+            ok++;
+            if (this.state.curId === id) this.setState({ labelFiles: b.files || [] });
+          })
+          .catch((e) => errors.push(file.name + ': ' + e.message));
+      files
+        .reduce((chain, f) => chain.then(() => one(f)), Promise.resolve())
+        .then(() => {
+          if (this.state.curId !== id) return;
+          this.setState({ labelBusy: false });
+          this.showToast(
+            (ok
+              ? 'Файлов добавлено: ' + ok + ' — в документе отдельный лист'
+              : 'Файлы не приняты') + (errors.length ? '. ' + errors.join('; ') : ''),
+          );
+          track('label_files', { id, count: ok });
+        });
+    };
+    input.click();
+  }
+
+  removeLabelFile(n) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/labels/files/' + n, { method: 'DELETE' })
+      .then((r) => {
+        if (this.state.curId === id) this.setState({ labelFiles: r.files || [] });
+        this.showToast('Файл убран');
+      })
+      .catch((e) => this.showToast(e.message || 'Не удалось убрать'));
+  }
+
+  // ------------------------------------------------------------ нанесение
+
+  /**
+   * Макеты нанесения: строки, которые задал человек, зоны и техники из
+   * справочника и собранные макеты из спеки — одним ответом.
+   */
+  loadArtwork(id) {
+    if (!id || !TOKEN || DEMO) return;
+    apiCall('/jobs/' + id + '/artwork')
+      .then((r) => {
+        if (this.state.curId === id) this.setState({ art: r });
+      })
+      .catch(() => {});
+  }
+
+  /** Сохранить строки макетов: сервер пересобирает раздел спеки и возвращает её. */
+  saveArtwork(items, toast) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    this.setState({ artBusy: true });
+    apiCall('/jobs/' + id + '/artwork', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+        this.setState({
+          curSpec: r.spec,
+          curDefaults: r.flat_defaults,
+          art: {
+            ...(this.state.art || {}),
+            items: r.items,
+            placements: (r.spec.artwork || {}).placements || [],
+          },
+          stale: r.stale || this.state.stale,
+        });
+        if (toast) this.showToast(toast);
+        track('artwork', { id, count: items.length });
+      })
+      .catch((e) => this.showToast('Не сохранилось: ' + e.message))
+      .then(() => {
+        if (this.state.curId === id) this.setState({ artBusy: false });
+      });
+  }
+
+  /** Правка одного поля макета — тем же сохранением. */
+  patchArtwork(pid, patch, toast) {
+    const items = ((this.state.art && this.state.art.items) || []).map((it) =>
+      it.pid === pid ? { ...it, ...patch } : it,
+    );
+    this.saveArtwork(items, toast);
+  }
+
+  /** Файл макета — сырым телом, как снимки; размер растра сервер читает сам. */
+  uploadArtworkFile(pid) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.png,.jpg,.jpeg,.webp,.svg,.pdf,image/*';
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (file.size > 12 * 1024 * 1024) return this.showToast('Файл больше 12 МБ');
+      this.setState({ artBusy: true });
+      fetch(
+        '/app/api/jobs/' +
+          id +
+          '/artwork/' +
+          pid +
+          '/file?name=' +
+          encodeURIComponent(file.name) +
+          '&t=' +
+          encodeURIComponent(TOKEN),
+        {
+          method: 'POST',
+          headers: { 'content-type': file.type || 'application/octet-stream' },
+          body: file,
+        },
+      )
+        .then((r) => r.json().then((b) => ({ ok: r.ok, b })))
+        .then(({ ok, b }) => {
+          if (!ok) throw new Error((b && b.error) || 'не принят');
+          if (this.state.curId !== id) return;
+          this._specs[id] = { spec: b.spec, flat_defaults: b.flat_defaults };
+          this.setState({
+            curSpec: b.spec,
+            curDefaults: b.flat_defaults,
+            art: {
+              ...(this.state.art || {}),
+              items: b.items,
+              placements: (b.spec.artwork || {}).placements || [],
+            },
+            stale: b.stale || this.state.stale,
+          });
+          this.showToast('Файл макета приложен — проверки пересчитаны');
+          track('artwork_file', { id, pid });
+        })
+        .catch((e) => this.showToast('Файл не принят: ' + e.message))
+        .then(() => {
+          if (this.state.curId === id) this.setState({ artBusy: false });
+        });
+    };
+    input.click();
+  }
+
+  /** Геометрия вида: из файла генератора, иначе из габарита, найденного редактором. */
+  artGeometry(view) {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    if (!E || !E.garmentGeometry || !s.curSpec) return null;
+    const stored = s.jobSketchGarment && s.jobSketchGarment[view];
+    const found = s.artGeo && s.artGeo.view === view ? s.artGeo.box : null;
+    const box = stored || found;
+    if (!box) return null;
+    return E.garmentGeometry(s.curSpec, box, view);
+  }
+
+  /** Рамки макетов текущего вида — в пикселях картинки. */
+  artBoxes(view) {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    const g = this.artGeometry(view);
+    const placements = (s.art && s.art.placements) || [];
+    if (!g || !E || !E.placementRect) return [];
+    return placements
+      .filter((p) => p.kind === 'placement' && E.imageViewOfZone(p.zone) === view)
+      .map((p) => {
+        const rect = E.placementRect(p, g);
+        const item = ((s.art && s.art.items) || [])[placements.indexOf(p)];
+        return rect && item
+          ? { pid: item.pid, letter: p.id.replace(/^A/, ''), rect, active: s.artSel === item.pid }
+          : null;
+      })
+      .filter(Boolean);
+  }
+
+  /** Редактор раскладки на холсте раздела: рисунок вида и рамки поверх. */
+  syncArtEditor() {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    const host = document.getElementById('art-host');
+    const on =
+      s.screen === 'doc' && s.section === 'artwork' && !!s.curId && this.hasSketchView(s.artView);
+    if (!on || !host || !E || !E.mountArtworkEditor) return this.unmountArtEditor();
+    const url =
+      '/app/api/jobs/' +
+      s.curId +
+      '/sketch?view=' +
+      s.artView +
+      '&t=' +
+      encodeURIComponent(TOKEN || '') +
+      '&n=' +
+      (s.flatNonce || 0);
+    if (this._art && this._art.url === url) {
+      this._art.handle.update(this.artBoxes(s.artView));
+      return;
+    }
+    this.unmountArtEditor();
+    const view = s.artView;
+    const handle = E.mountArtworkEditor({
+      host,
+      imageUrl: url,
+      boxes: this.artBoxes(view),
+      onReady: (image, box) => {
+        if (this.state.artView !== view) return;
+        this.setState({ artGeo: box ? { view, box } : null, artImg: image });
+        setTimeout(() => this.syncArtEditor(), 30);
+      },
+      onChange: (pid, rect) => {
+        const g = this.artGeometry(view);
+        const item = ((this.state.art && this.state.art.items) || []).find((x) => x.pid === pid);
+        if (!g || !item) return;
+        const cm = E.rectToCm(rect, g, item.zone);
+        this.patchArtwork(pid, cm);
+      },
+      onSelect: (pid) => this.setState({ artSel: pid }),
+    });
+    this._art = { url, handle };
+  }
+
+  unmountArtEditor() {
+    if (this._art) {
+      this._art.handle.destroy();
+      this._art = null;
+    }
+  }
+
+  // ------------------------------------------------------------ чертёж замеров
+
+  /** Геометрия вида для чертежа замеров — та же, что у раскладки нанесения. */
+  pomGeometry(view) {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    if (!E || !E.garmentGeometry || !s.curSpec) return null;
+    const stored = s.jobSketchGarment && s.jobSketchGarment[view];
+    const found = s.pomGeo && s.pomGeo.view === view ? s.pomGeo.box : null;
+    const box = stored || found;
+    if (!box) return null;
+    return E.garmentGeometry(s.curSpec, box, view);
+  }
+
+  pomImageSize(view) {
+    const s = this.state;
+    const stored = s.jobSketchGarment && s.jobSketchGarment[view];
+    if (stored && stored.w) return { w: stored.w, h: stored.h };
+    return s.pomGeo && s.pomGeo.view === view ? s.pomGeo.image : null;
+  }
+
+  pomEditorState(view) {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    const g = this.pomGeometry(view);
+    const size = this.pomImageSize(view);
+    if (!g || !E || !E.pomLines || !size)
+      return { lines: [], grid: null, active: s.sel, placing: null };
+    return {
+      lines: E.pomLines(s.curSpec, g, view),
+      grid: E.pomGrid(g, size),
+      active: s.sel,
+      placing: s.pomPlacing,
+    };
+  }
+
+  syncPomEditor() {
+    const s = this.state;
+    const E = window.SeamsterEngine;
+    const host = document.getElementById('pom-host');
+    const on =
+      s.screen === 'doc' && s.section === 'pom' && !!s.curId && this.hasSketchView(s.pomView);
+    if (!on || !host || !E || !E.mountPomEditor) return this.unmountPomEditor();
+    const url =
+      '/app/api/jobs/' +
+      s.curId +
+      '/sketch?view=' +
+      s.pomView +
+      '&t=' +
+      encodeURIComponent(TOKEN || '') +
+      '&n=' +
+      (s.flatNonce || 0);
+    if (this._pom && this._pom.url === url) {
+      this._pom.handle.update(this.pomEditorState(s.pomView));
+      return;
+    }
+    this.unmountPomEditor();
+    const view = s.pomView;
+    const handle = E.mountPomEditor({
+      host,
+      imageUrl: url,
+      ...this.pomEditorState(view),
+      onReady: (image, box) => {
+        if (this.state.pomView !== view) return;
+        this.setState({ pomGeo: box ? { view, box, image } : null });
+        setTimeout(() => this.syncPomEditor(), 30);
+      },
+      onChange: (code, pts) => {
+        const g = this.pomGeometry(view);
+        if (!g || !E.toDrawing) return;
+        this.savePomDrawing(
+          { code, view, pts: E.toDrawing(pts, g.box) },
+          'Место замера ' + code + ' записано',
+        );
+        this.setState({ pomPlacing: null, sel: code });
+      },
+      onSelect: (code) => this.set('sel', code),
+    });
+    this._pom = { url, handle };
+  }
+
+  unmountPomEditor() {
+    if (this._pom) {
+      this._pom.handle.destroy();
+      this._pom = null;
+    }
+  }
+
+  /** Записать место замера в спеку: точки, подтверждение или возврат к типовому. */
+  savePomDrawing(body, toast) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/pom-drawing', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+        this.setState({ curSpec: r.spec, curDefaults: r.flat_defaults, stale: r.stale || null });
+        this.showToast(toast || r.changed_ru || 'Записано');
+        track('pom_drawing', { id, code: body.code });
+      })
+      .catch((e) => this.showToast('Не принято: ' + e.message));
+  }
+
+  /** Масштаб по одному замеру на образце: все точки от якоря пересчитываются. */
+  calibrateByMeasurement(code, valueCm) {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/measurements/calibrate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code, value_cm: valueCm }),
+    })
+      .then((r) => {
+        if (this.state.curId !== id) return;
+        this._specs[id] = { spec: r.spec, flat_defaults: r.flat_defaults };
+        this.setState({
+          curSpec: r.spec,
+          curDefaults: r.flat_defaults,
+          stale: r.stale || null,
+          pomCalib: '',
+          vals: {},
+        });
+        this.showToast(r.changed_ru || 'Масштаб пересчитан');
+        track('calibrate', { id, code, factor: r.factor });
+      })
+      .catch((e) => this.showToast('Не принято: ' + e.message));
+  }
+
+  /** Чертёж замеров в разделе замеров: чипы видов, статус точки, действия. */
+  pomDrawingBindings(chip) {
+    const s = this.state;
+    const on = s.screen === 'doc' && s.section === 'pom' && !!s.curId && !DEMO && !!TOKEN;
+    if (on) setTimeout(() => this.syncPomEditor(), 40);
+    const hasViews = this.hasSketchView('front') || this.hasSketchView('back');
+    const view = s.pomView;
+    const st = on && hasViews ? this.pomEditorState(view) : { lines: [], grid: null };
+    const line = s.sel ? st.lines.find((l) => l.code === s.sel) : null;
+    const point =
+      s.sel && s.curSpec
+        ? (s.curSpec.measurements.points || []).find((p) => p.code === s.sel)
+        : null;
+    const actions = [];
+    const btn = (label, go) => ({ label, style: chip(false), go });
+    if (point && !s.pomPlacing) {
+      if (line && !line.confirmed)
+        actions.push(
+          btn('Подтвердить место', () =>
+            this.savePomDrawing(
+              { code: point.code, view, confirm: true },
+              'Место ' + point.code + ' подтверждено',
+            ),
+          ),
+        );
+      if (line && line.custom)
+        actions.push(
+          btn('К типовому', () =>
+            this.savePomDrawing(
+              { code: point.code, reset: true },
+              'Место ' + point.code + ' — типовое',
+            ),
+          ),
+        );
+      actions.push(
+        btn(line ? 'Поставить заново' : 'Поставить на чертёж', () =>
+          this.setState({ pomPlacing: point.code }),
+        ),
+      );
+    }
+    if (s.pomPlacing) actions.push(btn('Отмена', () => this.setState({ pomPlacing: null })));
+    if (hasViews && this.hasSketchView(view))
+      actions.push(
+        btn('Скачать SVG', () => {
+          const a = document.createElement('a');
+          a.href =
+            '/app/api/jobs/' +
+            s.curId +
+            '/pom-drawing.svg?view=' +
+            view +
+            '&download=1&t=' +
+            encodeURIComponent(TOKEN || '');
+          a.download = 'pom-drawing-' + view + '.svg';
+          a.click();
+          track('pom_drawing_svg', { id: s.curId, view });
+        }),
+      );
+    const g = on && hasViews ? this.pomGeometry(view) : null;
+    const calibOn = !!point && !s.pomPlacing;
+    return {
+      // Один замер по образцу задаёт масштаб всего табеля: поле у выбранной
+      // точки, пересчёт — по кнопке. Это не правка одного числа, а множитель.
+      pomCalibOn: calibOn,
+      pomCalibLabel: point ? 'На образце ' + point.code : '',
+      pomCalibVal: s.pomCalib || '',
+      pomCalibInput: (e) => this.setState({ pomCalib: e.target.value }),
+      pomCalibGo: () => {
+        const n = parseFloat(String(s.pomCalib || '').replace(',', '.'));
+        if (!point || !isFinite(n) || n <= 0) return this.showToast('Введите замер в сантиметрах');
+        this.calibrateByMeasurement(point.code, n);
+      },
+      pomCalibStyle: chip(false),
+      pomDrawOn: on && hasViews,
+      pomDrawNoSketch: on && !hasViews,
+      pomDrawTitle:
+        'Чертёж замеров · ' +
+        (st.grid ? 'сетка ' + st.grid.stepCm + ' см · ' : '') +
+        st.lines.length +
+        ' ' +
+        plural(st.lines.length, 'точка', 'точки', 'точек') +
+        ' на виде',
+      pomViewChips: ['front', 'back']
+        .filter((v) => this.hasSketchView(v))
+        .map((v) => ({
+          label: v === 'front' ? 'Перед' : 'Спинка',
+          style: chip(view === v),
+          go: () => this.setState({ pomView: v, pomPlacing: null }),
+        })),
+      pomDrawStatus: s.pomPlacing
+        ? 'Кликните по рисунку два раза — начало и конец линии ' + s.pomPlacing + '.'
+        : !point
+          ? 'Кликните по коду на чертеже или по строке таблицы: линию можно подвинуть за концы, подтвердить место или поставить заново.'
+          : line
+            ? point.code +
+              ' · ' +
+              point.name_ru +
+              ' · ' +
+              (line.custom
+                ? line.confirmed
+                  ? 'место подтверждено'
+                  : 'место задано вами'
+                : 'типовое место по коду') +
+              ' · ' +
+              this.fmtU(point.base.value)
+            : point.code +
+              ' · ' +
+              point.name_ru +
+              ' · на этом виде линии нет — поставьте её двумя кликами',
+      pomDrawActions: actions,
+      pomDrawNote:
+        (g ? g.note_ru + ' ' : '') +
+        'Линии показывают, где снимается замер; значения и допуски — в таблице ниже. Место замера хранится в спецификации, как любая правка: версия, отмена, документ.',
+    };
+  }
+
+  /** Перестроить «Внешний вид» по текущей спецификации — в фоне. */
+  rebuildRender() {
+    const id = this.state.curId;
+    if (!id || !TOKEN) return;
+    apiCall('/jobs/' + id + '/render/rebuild', { method: 'POST' })
+      .then(() => {
+        this.showToast('«Внешний вид» перестраивается — около минуты');
+        this.loadStale(id);
+      })
+      .catch((e) => this.showToast(e.message || 'Не удалось запустить'));
   }
 
   /**
@@ -1444,6 +2306,26 @@ class Component extends DCLogic {
    */
   viewUrl(view, layers) {
     const s = this.state;
+    // Векторный режим: чертёж строится из табеля в браузере, и только у него
+    // есть слои — контур, швы, строчки, фурнитура. Эскиз и силуэт — растр.
+    if (s.vectorOn) return view === 'all' ? this.flatAllUrl(layers) : this.flatUrl(view, layers);
+    // Режим SVG: тот же эскиз, трассированный в вектор на сервере. Это не
+    // другой рисунок — те же линии кривыми, в режиме, который выбрал человек.
+    if (s.traceOn && s.curId && (view === 'all' ? this.hasSketch() : this.hasSketchView(view))) {
+      return (
+        'url("/app/api/jobs/' +
+        s.curId +
+        '/svg?view=' +
+        view +
+        '&mode=' +
+        (s.traceMode || 'smart') +
+        '&t=' +
+        encodeURIComponent(TOKEN || '') +
+        '&n=' +
+        (s.flatNonce || 0) +
+        '")'
+      );
+    }
     if (view === 'all' && s.curId && this.hasSketch()) {
       return (
         'url("/app/api/jobs/' +
@@ -1608,6 +2490,7 @@ class Component extends DCLogic {
         this.setState((p) => ({
           quick: q,
           quickBusy: false,
+          ...(catLabel ? { catByUser: false } : {}),
           picks: {
             ...p.picks,
             ...(catLabel ? { cat: catLabel } : {}),
@@ -1664,6 +2547,9 @@ class Component extends DCLogic {
       name: s.picks.cat,
       article: 'DEMO-' + String(Date.now()).slice(-6),
       category: CAT_OF[s.picks.cat] || 'hoodie',
+      // Категорию подставил быстрый взгляд, и человек её не трогал: полный
+      // разбор вправе её уточнить. Названная руками — слово человека.
+      category_source: s.quick && !s.catByUser ? 'quicklook' : 'user',
       gender: s.picks.gender === 'Мужское' ? 'men' : 'women',
       base_size_ru: base,
       base_height_cm: s.picks.gender === 'Мужское' ? 176 : 170,
@@ -1850,6 +2736,8 @@ class Component extends DCLogic {
       n.machine,
       !!n.requires_special_equipment,
       n.alternative || null,
+      n.node_id,
+      !!n.stitch_by_user,
     ]);
   }
 
@@ -1919,6 +2807,153 @@ class Component extends DCLogic {
     clearTimeout(this._t);
     this.setState({ toast: text, toastAct: act || null });
     this._t = setTimeout(() => this.setState({ toast: null, toastAct: null }), act ? 4000 : 2200);
+  }
+
+  /**
+   * Раздел «Нанесение»: раскладка макетов на техническом рисунке и строки
+   * макетов с сантиметрами, техникой, файлом и проверками печатника.
+   *
+   * Собран из слов раздела чертежа: те же чипы видов, та же карточка, тот же
+   * холст. Новых визуальных слов нет — только рамки поверх рисунка.
+   */
+  artworkBindings() {
+    const s = this.state;
+    const on = s.screen === 'doc' && s.section === 'artwork';
+    // Монтирование редактора — после отрисовки; функция идемпотентна.
+    if (!DEMO && TOKEN) setTimeout(() => this.syncArtEditor(), 40);
+    const art = s.art || { items: [], zones: [], techniques: [], placements: [] };
+    const items = art.items || [];
+    const placements = art.placements || [];
+    const hasViews = this.hasSketchView('front') || this.hasSketchView('back');
+    const chip = (active) =>
+      'padding:5px 10px;border-radius:8px;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap;' +
+      (active ? 'background:#0E0E0E;color:#fff' : 'background:rgba(14,14,14,.05);color:#5A5A56');
+    const CHECK = { ok: '●', warn: '▲', fail: '■' };
+    const CHECK_COLOR = { ok: '#2F7C5A', warn: '#B7791F', fail: '#C0392B' };
+    const g = on ? this.artGeometry(s.artView) : null;
+    return {
+      artOn: on && !DEMO && !!TOKEN,
+      artDemo: on && (DEMO || !TOKEN),
+      artCanvasOn: on && hasViews,
+      artNoSketch: on && !hasViews,
+      artViewChips: ['front', 'back']
+        .filter((v) => this.hasSketchView(v))
+        .map((v) => ({
+          label: v === 'front' ? 'Перед' : 'Спинка',
+          style: chip(s.artView === v),
+          go: () => this.setState({ artView: v, artSel: null }),
+        })),
+      artScaleNote: g
+        ? g.note_ru
+        : 'Масштаб считается по длине изделия из табеля: как только рисунок загрузится, рамки встанут по местам.',
+      artEmpty: on && items.length === 0,
+      artBusyNote: s.artBusy
+        ? 'Сохраняем…'
+        : 'Каждая правка сохраняется и пересчитывает проверки печатника.',
+      artZoneChips: (art.zones || []).map((z) => ({
+        label: '+ ' + z.label_ru,
+        style:
+          'padding:5px 10px;border-radius:8px;border:1px solid rgba(14,14,14,.12);background:#fff;font:600 10px/14px Sora,sans-serif;cursor:pointer;white-space:nowrap',
+        go: () => {
+          const pid = Math.random().toString(36).slice(2, 10);
+          this.setState({ artSel: pid });
+          this.saveArtwork([...items, { pid, zone: z.id }], 'Макет добавлен: ' + z.label_ru);
+        },
+      })),
+      artRows: items.map((it, i) => {
+        const p = placements[i] || null;
+        const zone = (art.zones || []).find((z) => z.id === it.zone);
+        const active = s.artSel === it.pid;
+        const val = (tracked, fallback) => (tracked ? tracked.value : fallback);
+        const field = (key, current, unit) => ({
+          val: String(current).replace('.', ','),
+          unit,
+          on: (e) => {
+            const n = parseFloat(String(e.target.value).replace(',', '.'));
+            if (!isFinite(n)) return;
+            const patch = {};
+            patch[key] = n;
+            this.patchArtwork(it.pid, patch);
+          },
+        });
+        const width = val(
+          p && p.size_cm && p.size_cm.width,
+          it.width_cm || (zone ? zone.typical_size_cm.width : 20),
+        );
+        const height = val(
+          p && p.size_cm && p.size_cm.height,
+          it.height_cm || (zone ? zone.typical_size_cm.height : 20),
+        );
+        const offset = val(
+          p && p.offset_from_anchor_cm,
+          it.offset_cm || (zone ? zone.typical_offset_cm : 8),
+        );
+        const lateral = val(p && p.lateral_offset_cm, it.lateral_cm || 0);
+        return {
+          letter: p ? p.id.replace(/^A/, '') : String(i + 1),
+          zone: zone ? zone.label_ru : it.zone,
+          anchor: p ? p.anchor_label_ru : '',
+          cardStyle:
+            'border-radius:10px;border:1px solid ' +
+            (active ? '#0E0E0E' : '#E4E1DC') +
+            ';background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:9px',
+          numStyle:
+            "width:22px;height:22px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 10px/1 'JetBrains Mono',monospace;" +
+            (active
+              ? 'background:#0E0E0E;color:#fff'
+              : 'background:rgba(192,57,43,.09);color:#C0392B'),
+          select: () => this.setState({ artSel: it.pid }),
+          w: field('width_cm', width, 'см'),
+          h: field('height_cm', height, 'см'),
+          off: field('offset_cm', offset, 'см'),
+          lat: field('lateral_cm', lateral, 'см'),
+          latOn: !/^sleeve/.test(it.zone),
+          techChips: (art.techniques || []).map((t) => ({
+            label: t.label_ru,
+            style: chip(p ? p.technique.value === t.id : it.technique === t.id),
+            go: (e) => {
+              e.stopPropagation();
+              this.patchArtwork(it.pid, { technique: t.id });
+            },
+          })),
+          techNote:
+            p && p.technique && p.technique.confidence !== 'user_input'
+              ? 'техника подобрана по полотну и тиражу — выберите свою, если знаете'
+              : '',
+          file: it.file
+            ? it.file.name +
+              (it.file.pixels
+                ? ' · ' + it.file.pixels.width + '×' + it.file.pixels.height + ' px'
+                : ' · вектор')
+            : 'файл макета не приложен',
+          fileStyle:
+            'flex:1;min-width:0;font:400 10.5px/15px Sora,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
+            (it.file ? 'color:#0E0E0E' : 'color:#C0392B'),
+          upload: (e) => {
+            e.stopPropagation();
+            this.uploadArtworkFile(it.pid);
+          },
+          uploadLabel: it.file ? 'Заменить файл' : 'Загрузить файл',
+          remove: (e) => {
+            e.stopPropagation();
+            this.setState({ artSel: null });
+            this.saveArtwork(
+              items.filter((x) => x.pid !== it.pid),
+              'Макет убран',
+            );
+          },
+          checks: (p ? p.checks : []).map((c) => ({
+            mark: CHECK[c.status] || '●',
+            markStyle:
+              'font:600 10px/15px Sora,sans-serif;color:' +
+              (CHECK_COLOR[c.status] || '#5A5A56') +
+              ';flex:none;width:12px',
+            text: c.label_ru + ' — ' + c.detail_ru,
+          })),
+          warnings: (p ? p.warnings_ru : []).map((w) => ({ text: w })),
+        };
+      }),
+    };
   }
 
   /**
@@ -2043,11 +3078,32 @@ class Component extends DCLogic {
       cmpShot: 0,
       // Вид «бок» есть не у каждой работы — у следующей его может не быть.
       view: 'all',
+      vectorOn: false,
+      traceOn: false,
       sketchEdits: null,
+      proposal: null,
+      stale: null,
+      reviseText: '',
+      art: null,
+      artSel: null,
+      artGeo: null,
+      artView: 'front',
+      pomView: 'front',
+      pomGeo: null,
+      pomPlacing: null,
     });
+    this.unmountArtEditor();
+    this.unmountPomEditor();
+    this.loadArtwork(this.state.curId);
+    this.loadLabelFiles(this.state.curId);
     this._dl = setTimeout(() => this.setState({ docLoading: false }), 550);
     this.loadSilhouette(this.state.curId);
     this.loadDecisions(this.state.curId);
+    this.loadStale(this.state.curId);
+    if (!DEMO && TOKEN && !this.state.stitches)
+      apiCall('/kb/stitches')
+        .then((r) => this.setState({ stitches: r.stitches || [] }))
+        .catch(() => {});
     if (!DEMO && TOKEN && this.state.curId) {
       const fid = this.state.curId;
       apiCall('/jobs/' + fid + '/files')
@@ -2058,6 +3114,7 @@ class Component extends DCLogic {
               jobPhotos: r.photos || [],
               jobSketchViews: r.sketch_views || [],
               jobSketchBoxes: r.sketch_boxes || [],
+              jobSketchGarment: r.sketch_garment || null,
               sketchVersions: r.sketch_versions || 0,
             });
         })
@@ -2225,6 +3282,54 @@ class Component extends DCLogic {
     const infoReal = this.curInfo(fmtDay(curJob && curJob.created_at));
     const liveOn = !!doc;
     const liveFrontUrl = liveOn ? this.viewUrl('front') : null;
+    const stale = s.stale;
+    const sketchStale = !!(stale && stale.sketch && stale.sketch.stale);
+    const staleBanner = (section) => {
+      const hit =
+        stale && stale.sections ? stale.sections.find((x) => x.section === section) : null;
+      const renderStale = section === 'cover' && stale && stale.render;
+      const on =
+        (s.screen === 'doc' && !s.docLoading && s.section === section && !!hit) ||
+        (section === 'cover' &&
+          s.screen === 'doc' &&
+          !s.docLoading &&
+          s.section === 'cover' &&
+          !!renderStale &&
+          (renderStale.stale || renderStale.building));
+      const title = hit
+        ? hit.from_revision
+          ? 'Раздел изменился: ' + hit.reason_ru
+          : hit.reason_ru
+        : renderStale && renderStale.building
+          ? '«Внешний вид» перестраивается по новой спецификации'
+          : '«Внешний вид» нарисован для прошлой версии спецификации';
+      const sub = hit
+        ? 'Таблица пересобрана из спецификации и верна. Проверьте её глазами и отметьте — или посмотрите, что именно изменилось.'
+        : renderStale && renderStale.building
+          ? 'Около минуты. Картинка обновится сама.'
+          : 'Картинка — проекция спецификации, и после правки узлов её стоит перестроить.';
+      return {
+        on,
+        title,
+        sub,
+        showOn: !!hit,
+        reviewLabel: hit
+          ? 'Проверено'
+          : renderStale && renderStale.building
+            ? 'Ждём'
+            : 'Перестроить',
+        review: () => {
+          if (hit) this.markReviewed(section);
+          else if (renderStale && !renderStale.building) this.rebuildRender();
+        },
+        show: () => this.showChanges(),
+      };
+    };
+    const staleCover = staleBanner('cover');
+    const stalePom = staleBanner('pom');
+    const staleBom = staleBanner('bom');
+    const staleNodes = staleBanner('nodes');
+    const staleLabels = staleBanner('labels');
 
     const POM = pomReal || POM_DEMO;
     const FIT = pomReal
@@ -2619,10 +3724,34 @@ class Component extends DCLogic {
       zone: r[1],
       name: r[2],
       desc: this.tw(r[3], 3 + ni),
-      stitch: r[4],
+      stitch: r[4] + (r[10] ? ' · задан вами' : ''),
       spi: r[5],
       machine: r[6],
       flagged: r[7],
+      // Выбор класса стежка — чипами под строкой, из справочника. Только у
+      // живого пака: у макета узлы нарисованы.
+      stitchStyle:
+        "padding:3px 7px;border-radius:6px;background:rgba(14,14,14,.05);font:400 9.7px/14px 'JetBrains Mono',monospace;color:#5A5A56" +
+        (nodesReal && TOKEN ? ';cursor:pointer;border:1px solid transparent' : '') +
+        (s.stitchPick === r[9] ? ';border-color:#0E0E0E;background:#fff' : ''),
+      pickStitch: (e) => {
+        if (!nodesReal || !TOKEN) return;
+        e.stopPropagation();
+        this.setState({ stitchPick: s.stitchPick === r[9] ? null : r[9] });
+      },
+      pickOn: !!(nodesReal && s.stitchPick === r[9] && s.stitches && s.stitches.length),
+      stitchOpts: (s.stitches || []).map((st) => ({
+        label: st.code + ' · ' + st.name_ru,
+        sub: st.machine + ' · ' + st.application_ru,
+        style:
+          'display:flex;flex-direction:column;gap:1px;padding:6px 9px;border-radius:8px;border:1px solid ' +
+          (r[4].indexOf(st.code + ' /') === 0 ? '#0E0E0E' : '#E4E1DC') +
+          ';background:#fff;cursor:pointer;min-width:0;max-width:260px',
+        go: (e) => {
+          e.stopPropagation();
+          this.setStitch(r[9], st.code);
+        },
+      })),
       numStyle:
         "width:22px;height:22px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 10px/1 'JetBrains Mono',monospace;" +
         (s.selNode === r[0]
@@ -2765,9 +3894,25 @@ class Component extends DCLogic {
         style: chip(s.cmp) + ';margin-left:6px',
         go: () => this.setState((p) => ({ cmp: !p.cmp, cmpShot: 0 })),
       });
+    // Эскиз ↔ вектор: растр рисует модель по фото, вектор строится из табеля
+    // и несёт слои. Чип показывает, куда можно переключиться.
+    // SVG — тот же эскиз в векторе: трассировка растра на сервере, режим
+    // выбирается в ряду под холстом. Чип горит, пока показан вектор.
+    if (liveOn && this.hasSketch() && !s.vectorOn && !s.editOn)
+      views.push({
+        label: 'SVG',
+        style: chip(!!s.traceOn) + ';margin-left:6px',
+        go: () => this.setState((p) => ({ traceOn: !p.traceOn, cmp: false })),
+      });
+    if (liveOn && (this.hasSketch() || (s.silh && s.silh.id)))
+      views.push({
+        label: s.vectorOn ? 'Эскиз' : 'Схема по табелю',
+        style: chip(false) + ';margin-left:6px',
+        go: () => this.setState((p) => ({ vectorOn: !p.vectorOn, traceOn: false, cmp: false })),
+      });
     // Правки — слой поверх эскиза, открывается на листе целиком. Пока
     // редактор открыт, чип не нужен: у редактора свои «Сохранить» и «Отмена».
-    if (liveOn && this.hasSketch() && !s.editOn)
+    if (liveOn && this.hasSketch() && !s.editOn && !s.vectorOn && !s.traceOn)
       views.push({
         label: 'Править рисунок',
         style: chip(false) + ';margin-left:6px',
@@ -2812,7 +3957,9 @@ class Component extends DCLogic {
     // Картинка берётся из единственной точки решения: что показать человеку,
     // знает viewUrl. Бок сюда не попадает — библиотека его не рисует.
     const libUrl =
-      (s.view !== 'side' || this.hasSketchView('side')) && (silhId || this.hasSketch())
+      !s.vectorOn &&
+      (s.view !== 'side' || this.hasSketchView('side')) &&
+      (silhId || this.hasSketch())
         ? this.viewUrl(s.view)
         : null;
     const drawingUrl = libUrl
@@ -2837,7 +3984,8 @@ class Component extends DCLogic {
             go: noShot,
           }));
     // Слой правок — вторым фоном в тот же прямоугольник, что рисунок.
-    const editsUrl = liveOn && !cmpPhoto && drawingUrl ? this.editsOverlayUrl(s.view) : null;
+    const editsUrl =
+      liveOn && !cmpPhoto && drawingUrl && !s.vectorOn ? this.editsOverlayUrl(s.view) : null;
     if (editsUrl)
       liveShots.push({
         bg:
@@ -3086,8 +4234,9 @@ class Component extends DCLogic {
         a.download = artShortVal + '-' + v + '.svg';
         a.click();
       };
-      // Скачивается то, что человек видит: силуэт из библиотеки, когда он
-      // есть. Мастер — только без силуэта.
+      // Скачивается рисунок вещи: вектор из эскиза, когда эскиз есть.
+      // Силуэт из библиотеки — без эскиза, мастер — без обоих.
+      if (this.hasSketch() && s.curId) return this.dlTrace();
       if (s.silh && s.silh.id && s.curId) {
         viewsToSave.forEach((v) =>
           fetch(
@@ -3163,7 +4312,7 @@ class Component extends DCLogic {
                 n +
                 ' ' +
                 plural(n, 'вид', 'вида', 'видов') +
-                ', живой чертёж из спеки',
+                (this.hasSketch() ? ', вектор из эскиза' : ', живой чертёж из спеки'),
             );
         }
         this.showToast(
@@ -3192,7 +4341,11 @@ class Component extends DCLogic {
         (s.picks[key] === label
           ? 'background:#0E0E0E;color:#fff'
           : 'background:#fff;border:1px solid rgba(14,14,14,.12);color:#0E0E0E'),
-      pick: () => this.setState((p) => ({ picks: { ...p.picks, [key]: label } })),
+      pick: () =>
+        this.setState((p) => ({
+          picks: { ...p.picks, [key]: label },
+          ...(key === 'cat' ? { catByUser: true } : {}),
+        })),
     });
     const questions = [
       {
@@ -3529,6 +4682,7 @@ class Component extends DCLogic {
       secCover: s.screen === 'doc' && !s.docLoading && s.section === 'cover',
       secFlats: s.screen === 'doc' && !s.docLoading && s.section === 'flats',
       secPom: s.screen === 'doc' && !s.docLoading && s.section === 'pom',
+      ...this.pomDrawingBindings(chip),
       secBom: s.screen === 'doc' && !s.docLoading && s.section === 'bom',
       secNodes: s.screen === 'doc' && !s.docLoading && s.section === 'nodes',
       secExport: s.screen === 'doc' && !s.docLoading && s.section === 'export',
@@ -3592,15 +4746,18 @@ class Component extends DCLogic {
       ledgerRows: (lim.ledger || []).map((e) => {
         const failed = e.kind === 'failed';
         const credit = e.kind === 'credit';
+        const free = e.kind === 'revision';
         return {
           name: credit
             ? 'Подарена генерация' + (e.note ? ' · ' + e.note : '')
             : failed
               ? 'Ошибка генерации — не списано' + (e.name ? ' · ' + e.name : '')
-              : e.name || 'Техпак',
+              : free
+                ? (e.note || 'Правка') + ' — без списания' + (e.name ? ' · ' + e.name : '')
+                : e.name || 'Техпак',
           nameStyle:
             'font:400 11px/16px Sora,sans-serif;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' +
-            (failed ? ';color:#6B6B67' : ''),
+            (failed || free ? ';color:#6B6B67' : ''),
           when: fmtDay(e.at),
           delta: e.delta > 0 ? '+' + e.delta : e.delta < 0 ? String(e.delta) : '0',
           deltaStyle:
@@ -3612,6 +4769,22 @@ class Component extends DCLogic {
       ledgerEmpty: !DEMO && !(lim.ledger && lim.ledger.length),
       // Приватность и данные — факты, а не обещания: что храним, кто видит,
       // куда уходит на обработку, как забрать и удалить.
+      // Что входит в генерацию — факты о тарифе, а не обещания: конкурент
+      // берёт кредиты за подсказки и за принятую правку, у нас всё в паке.
+      includedRows: [
+        {
+          k: 'Одна генерация — весь пак',
+          v: 'Разбор фото, табель с допусками и градацией, конструкция, материалы, ярлыки, эскиз, «Внешний вид», PDF по ролям и языкам, лист на просчёт.',
+        },
+        {
+          k: 'Правки бесплатны',
+          v: 'Правка фразой с превью, перерисовка эскиза, выбор стежка, раскладка нанесения, пересборка PDF — без списаний. Превью правки не списывает ничего, даже если вы его отклоните.',
+        },
+        {
+          k: 'Списание только за успех',
+          v: 'Сбой разбора или сборки в журнале стоит нулём: ошибки и повторы — за наш счёт.',
+        },
+      ],
       privacyRows: [
         {
           k: 'Что храним',
@@ -3749,24 +4922,67 @@ class Component extends DCLogic {
         ? 'Слева снимок заказчика, справа рисунок: сверяйте узлы — карман, капюшон, манжеты, шнур. Расхождение правится в разделе конструкции, и эскиз перерисуется по узлам; сам снимок не редактируется. Размеры берутся из табеля мер.'
         : !liveOn
           ? 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.'
-          : (this.hasSketch() && s.view === 'all') || this.hasSketchView(s.view)
-            ? 'Эскиз построен по узлам этой вещи и меняется вместе с ними: добавьте или снимите узел — он перерисуется. Профиль показывает глубину капюшона и ход бокового шва. Размеры берутся из табеля мер, а не с рисунка.'
-            : s.silh && s.silh.id
-              ? 'Силуэт взят из библиотеки и вписан в габарит по табелю мер. Правка замера меняет табель и документ, но не пропорции рисунка: размеры берутся из табеля, а не с него.'
-              : 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.',
+          : s.vectorOn
+            ? 'Это схема по табелю, а не рисунок вещи: пропорции из таблицы, узлы из справочника, нестандартная застёжка — условной линией. Она нужна для слоёв, выносок и векторной выгрузки; как вещь выглядит на самом деле, показывает эскиз по фото — чип «Эскиз» вернёт его.'
+            : s.traceOn && this.hasSketch()
+              ? 'Это тот же эскиз, переведённый в вектор: линии стали кривыми, файл масштабируется без потерь и открывается в Illustrator и CorelDRAW. «Чистая» оставляет контур и швы, «Детальная» держит пунктир строчек и штрих рубчика, «Умная» — между ними. «Штрихи» — трассировка по осевым линиям: не заливка, а линии со своей толщиной по слоям (контур, швы, пунктир, штриховка), их можно править. Размеры берутся из табеля мер, а не с рисунка.'
+              : (this.hasSketch() && s.view === 'all') || this.hasSketchView(s.view)
+                ? 'Эскиз построен по узлам этой вещи и меняется вместе с ними: добавьте или снимите узел — он перерисуется. Профиль показывает глубину капюшона и ход бокового шва. Размеры берутся из табеля мер, а не с рисунка.'
+                : s.silh && s.silh.id
+                  ? 'Силуэт взят из библиотеки и вписан в габарит по табелю мер. Правка замера меняет табель и документ, но не пропорции рисунка: размеры берутся из табеля, а не с него.'
+                  : 'Геометрия правится только через данные: измените замер или узел — чертёж перестроится сам. Кликните по номеру на чертеже, чтобы открыть узел конструкции.',
+      // Ряд слоёв показывается только со схемой по табелю: у растрового
+      // эскиза и силуэта слоёв нет, и чипы там были бы обещанием без действия.
+      layersOn: !liveOn || s.vectorOn || !(this.hasSketch() || (s.silh && s.silh.id)),
+      layersOff: liveOn && !s.vectorOn && !s.traceOn && (this.hasSketch() || (s.silh && s.silh.id)),
+      layersNote: 'слои — у схемы по табелю, чип «Схема по табелю» в ряду видов',
+      // Ряд трассировки — вместо ряда слоёв, пока на холсте вектор эскиза.
+      traceOn: liveOn && !!s.traceOn && !s.vectorOn && this.hasSketch(),
+      traceModes: [
+        ['smart', 'Умная'],
+        ['clean', 'Чистая'],
+        ['detailed', 'Детальная'],
+        ['strokes', 'Штрихи'],
+      ].map(([id, label]) => ({
+        label,
+        style: chip((s.traceMode || 'smart') === id),
+        go: () => this.setState({ traceMode: id }),
+      })),
+      traceDl: () => {
+        const n = this.dlTrace();
+        if (n)
+          this.showToast(
+            'SVG сохранён — ' + n + ' ' + plural(n, 'вид', 'вида', 'видов') + ', вектор из эскиза',
+          );
+      },
+      traceDlStyle: chip(false) + ';margin-left:6px',
+      traceNote: 'вектор трассирован из эскиза; размеры — из табеля мер',
       viewBadge: cmpOn
         ? 'сравнение · снимок ↔ рисунок'
-        : s.view === 'all'
-          ? liveOn
-            ? this.hasSketch()
-              ? '3 вида · эскиз по узлам этой вещи'
-              : s.silh && s.silh.id
-                ? '2 вида · силуэт из библиотеки'
-                : '2 вида · чертёж из спеки'
-            : '2 вида · клик по номеру откроет узел'
-          : 'вид: ' +
-            { front: 'перед', side: 'бок', back: 'спинка' }[s.view] +
-            (this.hasSketchView(s.view) ? ' · эскиз по узлам этой вещи' : ''),
+        : s.vectorOn && liveOn
+          ? (s.view === 'all'
+              ? '2 вида'
+              : 'вид: ' + { front: 'перед', side: 'бок', back: 'спинка' }[s.view]) +
+            ' · схема по табелю, не рисунок вещи · слои'
+          : s.traceOn && liveOn && this.hasSketch()
+            ? (s.view === 'all'
+                ? '3 вида'
+                : 'вид: ' + { front: 'перед', side: 'бок', back: 'спинка' }[s.view]) +
+              ' · SVG из эскиза · трассировка ' +
+              ({ smart: 'умная', clean: 'чистая', detailed: 'детальная', strokes: 'штрихи' }[
+                s.traceMode
+              ] || 'умная')
+            : s.view === 'all'
+              ? liveOn
+                ? this.hasSketch()
+                  ? '3 вида · эскиз по узлам этой вещи'
+                  : s.silh && s.silh.id
+                    ? '2 вида · силуэт из библиотеки'
+                    : '2 вида · чертёж из спеки'
+                : '2 вида · клик по номеру откроет узел'
+              : 'вид: ' +
+                { front: 'перед', side: 'бок', back: 'спинка' }[s.view] +
+                (this.hasSketchView(s.view) ? ' · эскиз по узлам этой вещи' : ''),
       pager: secIdx + 1 + ' / ' + SECTIONS.length,
       // У каждого пункта меню своё действие. Раньше все четыре вели в раздел
       // «Экспорт», где карточки нашлись для PDF и SVG, но не для таблицы
@@ -5020,6 +6236,39 @@ class Component extends DCLogic {
         'display:flex;align-items:center;gap:9px;padding:11px 10px;border-radius:12px;cursor:pointer;' +
         (s.screen === 'plan' ? 'background:rgba(14,14,14,.055)' : ''),
       secLabels: s.screen === 'doc' && !s.docLoading && s.section === 'labels',
+      secArtwork: s.screen === 'doc' && !s.docLoading && s.section === 'artwork',
+      ...this.artworkBindings(),
+      // Файлы ярлыков и упаковки: карточка под SKU-матрицей, только у живого пака.
+      labelFilesOn: !DEMO && !!TOKEN && !!s.curId,
+      labelFilesEmpty: !((s.labelFiles || []).length > 0),
+      labelFilesNote: s.labelBusy
+        ? 'Загружаем…'
+        : (s.labelFiles || []).length
+          ? 'Файлов: ' + s.labelFiles.length + ' · каждый уходит в документ своей карточкой'
+          : 'PNG, JPG, WebP, SVG или PDF, до 12 МБ каждый; можно выбрать несколько разом',
+      labelUpload: () => this.uploadLabelFiles(),
+      labelCards: (s.labelFiles || []).map((f) => ({
+        name: f.name,
+        sub:
+          f.format.toUpperCase() +
+          (f.pixels ? ' · ' + f.pixels.width + '×' + f.pixels.height + ' px' : '') +
+          ' · ' +
+          Math.max(1, Math.round(f.bytes / 1024)) +
+          ' КБ',
+        thumbStyle:
+          'display:block;height:86px;border-radius:7px;border:1px solid #EFEDE9;background:#fff ' +
+          (f.format === 'pdf'
+            ? ''
+            : 'url("/app/api/jobs/' +
+              s.curId +
+              '/labels/files/' +
+              f.n +
+              '?t=' +
+              encodeURIComponent(TOKEN || '') +
+              '") 50% 50%/contain no-repeat'),
+        thumbText: f.format === 'pdf' ? 'PDF' : '',
+        remove: () => this.removeLabelFile(f.n),
+      })),
       secReview: s.screen === 'doc' && !s.docLoading && s.section === 'review',
       ...this.reviewBindings(),
       secVers: s.screen === 'doc' && !s.docLoading && s.section === 'vers',
@@ -5516,7 +6765,10 @@ class Component extends DCLogic {
       onClaimNote: (e) => this.set('claimNote', e.target.value),
       modalCancelOn: !!(
         s.modal &&
-        (s.modal.kind === 'referral' || s.modal.kind === 'claim' || s.modal.kind === 'silhouette')
+        (s.modal.kind === 'referral' ||
+          s.modal.kind === 'claim' ||
+          s.modal.kind === 'silhouette' ||
+          s.modal.kind === 'proposal')
       ),
       modalCta: s.modal
         ? {
@@ -5527,12 +6779,16 @@ class Component extends DCLogic {
             // кнопка «применить» потребовала бы второго решения там, где
             // человек уже выбрал.
             silhouette: 'Оставить как есть',
+            proposal: s.proposalBusy ? 'Принимаем…' : 'Оставить правку',
+            diff: 'Понятно',
+            'revise-fail': 'Понятно',
           }[s.modal.kind] || 'Понятно'
         : '',
       modalCtaStyle:
         'flex:1;height:34px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;justify-content:center;font:600 11px/16px Sora,sans-serif;cursor:pointer',
       modalGo: () => {
         const kind = s.modal && s.modal.kind;
+        if (kind === 'proposal') return this.acceptProposal();
         // Лист, ушедший от имени бренда, бренд обязан увидеть: отправлять
         // документ и не показывать его — это просить доверия даром.
         if (kind === 'quote-sent') {
@@ -5582,15 +6838,36 @@ class Component extends DCLogic {
       sketchBarOn: liveOn && this.hasSketch(),
       sketchNote: s.redrawBusy
         ? 'Перерисовываем эскиз по фото и узлам — около минуты. Прошлый лист останется в истории.'
-        : 'Эскиз нарисован по фото и узлам этой вещи' +
-          (s.sketchVersions ? ' · версий: ' + (s.sketchVersions + 1) : '') +
-          (s.sketchEdits && s.sketchEdits.strokes && s.sketchEdits.strokes.length
-            ? ' · правок: ' + s.sketchEdits.strokes.length
-            : ''),
+        : sketchStale
+          ? 'Эскиз нарисован для прошлой версии спецификации: узлы или признаки с тех пор изменились. Перерисуйте — или оставьте, если рисунок верен.'
+          : 'Эскиз нарисован по фото и узлам этой вещи' +
+            (s.sketchVersions ? ' · версий: ' + (s.sketchVersions + 1) : '') +
+            (s.sketchEdits && s.sketchEdits.strokes && s.sketchEdits.strokes.length
+              ? ' · правок: ' + s.sketchEdits.strokes.length
+              : ''),
       sketchCanRestore: !s.redrawBusy && s.sketchVersions > 0,
       sketchRestore: () => this.restoreSketch(),
       sketchRedraw: () => this.redrawSketch(),
-      sketchRedrawLabel: s.redrawBusy ? 'Перерисовываем…' : 'Перерисовать по фото',
+      sketchRedrawLabel: s.redrawBusy
+        ? 'Перерисовываем…'
+        : sketchStale
+          ? 'Перерисовать по спецификации'
+          : 'Перерисовать по фото',
+      // Правка фразой — под полосой эскиза: одна строка и одна кнопка.
+      reviseOn: liveOn && !DEMO && !!TOKEN && (s.jobPhotos || []).length > 0,
+      reviseText: s.reviseText,
+      onReviseText: (e) => this.set('reviseText', e.target.value),
+      onReviseKey: (e) => {
+        if (e.key === 'Enter') this.sendRevise();
+      },
+      sendRevise: () => this.sendRevise(),
+      reviseLabel: s.reviseBusy ? 'Готовим превью…' : 'Показать превью',
+      reviseBtnStyle:
+        'flex:none;height:29px;border-radius:9px;background:#0E0E0E;color:#fff;display:flex;align-items:center;padding:0 12px;font:600 11px/16px Sora,sans-serif;cursor:pointer;white-space:nowrap' +
+        (s.reviseBusy ? ';opacity:.55;pointer-events:none' : ''),
+      reviseHint: s.reviseBusy
+        ? 'Разбираем просьбу и рисуем новый лист — около минуты. В паке ничего не меняется, пока вы не оставите правку.'
+        : 'Изменение ложится в спецификацию: узлы, замеры, материалы, — а рисунок и «Внешний вид» перестраиваются по ней. Превью бесплатно.',
       silhNote: !s.silh
         ? ''
         : !s.silh.id
@@ -5612,6 +6889,43 @@ class Component extends DCLogic {
           },
         }),
       modalSilhOn: !!s.modal && s.modal.kind === 'silhouette',
+      // Плашки «раздел устарел» — по одной на раздел, тем же словом, что
+      // плашка предположений на обложке.
+      staleOn_cover: staleCover.on,
+      staleTitle_cover: staleCover.title,
+      staleSub_cover: staleCover.sub,
+      staleShowOn_cover: staleCover.showOn,
+      staleShow_cover: staleCover.show,
+      staleReview_cover: staleCover.review,
+      staleReviewLabel_cover: staleCover.reviewLabel,
+      staleOn_pom: stalePom.on,
+      staleTitle_pom: stalePom.title,
+      staleSub_pom: stalePom.sub,
+      staleShowOn_pom: stalePom.showOn,
+      staleShow_pom: stalePom.show,
+      staleReview_pom: stalePom.review,
+      staleReviewLabel_pom: stalePom.reviewLabel,
+      staleOn_bom: staleBom.on,
+      staleTitle_bom: staleBom.title,
+      staleSub_bom: staleBom.sub,
+      staleShowOn_bom: staleBom.showOn,
+      staleShow_bom: staleBom.show,
+      staleReview_bom: staleBom.review,
+      staleReviewLabel_bom: staleBom.reviewLabel,
+      staleOn_nodes: staleNodes.on,
+      staleTitle_nodes: staleNodes.title,
+      staleSub_nodes: staleNodes.sub,
+      staleShowOn_nodes: staleNodes.showOn,
+      staleShow_nodes: staleNodes.show,
+      staleReview_nodes: staleNodes.review,
+      staleReviewLabel_nodes: staleNodes.reviewLabel,
+      staleOn_labels: staleLabels.on,
+      staleTitle_labels: staleLabels.title,
+      staleSub_labels: staleLabels.sub,
+      staleShowOn_labels: staleLabels.showOn,
+      staleShow_labels: staleLabels.show,
+      staleReview_labels: staleLabels.review,
+      staleReviewLabel_labels: staleLabels.reviewLabel,
       silhCards: ((s.silh && s.silh.candidates) || []).map((c) => {
         const active = s.silh && c.id === s.silh.id;
         return {
@@ -5632,7 +6946,64 @@ class Component extends DCLogic {
           go: () => (active ? this.set('modal', null) : this.pickSilhouette(c.id)),
         };
       }),
-      closeModal: () => this.set('modal', null),
+      closeModal: () =>
+        s.modal && s.modal.kind === 'proposal' ? this.rejectProposal() : this.set('modal', null),
+      // Правка фразой: предложение на рассмотрении — прежний лист и новый
+      // рядом, список изменений в таблицах, две кнопки.
+      modalProposalOn: !!(s.modal && s.modal.kind === 'proposal' && s.proposal),
+      modalCardStyle:
+        'width:100%;border-radius:14px;background:#fff;border:1px solid rgba(14,14,14,.1);box-shadow:0 24px 56px rgba(0,0,0,.24);padding:20px 22px 18px;animation:sfup .18s ease;max-width:' +
+        (s.modal && (s.modal.kind === 'proposal' || s.modal.kind === 'diff') ? '760px' : '420px') +
+        (s.modal && s.modal.kind === 'proposal'
+          ? ';max-height:calc(100vh - 40px);overflow:auto'
+          : ''),
+      propCurStyle:
+        'flex:1;min-width:0;aspect-ratio:3/1.6;border-radius:9px;border:1px solid #E4E1DC;background:#fff url("/app/api/jobs/' +
+        (s.curId || '') +
+        '/sketch?t=' +
+        encodeURIComponent(TOKEN || '') +
+        '&n=' +
+        (s.flatNonce || 0) +
+        '") 50% 50%/contain no-repeat',
+      propNewStyle:
+        'flex:1;min-width:0;aspect-ratio:3/1.6;border-radius:9px;border:1px solid #0E0E0E;background:#fff url("/app/api/jobs/' +
+        (s.curId || '') +
+        '/proposals/' +
+        (s.proposal ? s.proposal.id : '') +
+        '/sketch?t=' +
+        encodeURIComponent(TOKEN || '') +
+        '") 50% 50%/contain no-repeat',
+      propSketchOn: !!(s.proposal && s.proposal.sketch && s.proposal.sketch.ok),
+      propSketchNote: s.proposal
+        ? s.proposal.sketch && s.proposal.sketch.ok
+          ? 'Слева — как сейчас, справа — после правки. Рисунок нарисован по новой спецификации от снимка и прошлого листа и прошёл сторожа.'
+          : 'Новый лист не нарисован: ' +
+            ((s.proposal.sketch && s.proposal.sketch.reason) || 'причина не названа') +
+            '. Спецификацию можно принять и без него — рисунок тогда отметится как устаревший.'
+        : '',
+      propSummary: s.proposal ? s.proposal.summary_ru || '' : '',
+      propRows: s.proposal
+        ? (s.proposal.changed_ru || []).map((t) => ({
+            t,
+            style: 'font:400 11px/16px Sora,sans-serif;padding:6px 0;border-top:1px solid #EFEDE9',
+          }))
+        : [],
+      propWarnOn: !!(
+        s.proposal &&
+        ((s.proposal.rejected_ru && s.proposal.rejected_ru.length) || s.proposal.unclear_ru)
+      ),
+      propWarn: s.proposal
+        ? [s.proposal.unclear_ru || '']
+            .concat(s.proposal.rejected_ru || [])
+            .filter(Boolean)
+            .join(' · ')
+        : '',
+      propAccept: () => this.acceptProposal(),
+      propReject: () => this.rejectProposal(),
+      propAcceptLabel: s.proposalBusy ? 'Принимаем…' : 'Оставить',
+      // Список строк в модалке — «что изменилось» между версиями.
+      modalListOn: !!(s.modal && s.modal.kind === 'diff' && s.modal.rows && s.modal.rows.length),
+      modalRows: s.modal && s.modal.rows ? s.modal.rows.map((t) => ({ t })) : [],
       // Клик внутри карточки не должен доходить до затемнения: иначе
       // «Отправить» открывал бы новое состояние и тут же его закрывал.
       modalStop: (e) => e.stopPropagation(),

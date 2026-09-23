@@ -394,6 +394,9 @@ ul.dash li::before { content: '— '; color: var(--secondary); }
 .cw .frame img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
 .cw-flat svg { width: 100%; height: auto; max-height: 100%; }
 .cw-flat img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.art-layout figure.raster { margin: 0; text-align: center; min-width: 0; }
+.art-layout figure.raster .sheet { display: inline-block; max-height: 96mm; }
+.art-layout figure.raster img { max-height: 96mm; width: auto; max-width: 100%; display: block; }
 .flat figure.raster .sheet { display: inline-block; max-height: 100mm; }
 .flat figure.raster img { max-height: 100mm; width: auto; max-width: 100%; display: block; }
 .cw table.plain { margin-top: 2.5mm; font-size: 7.6pt; }

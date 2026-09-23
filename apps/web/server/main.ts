@@ -33,23 +33,71 @@ import { join } from 'node:path';
 import { isSeamsterError } from '@seamster/core';
 import {
   applyDecision,
+  applyRevision,
   confirmMeasurement,
   editMeasurement,
+  interpretRevision,
+  markPending,
+  markReviewed,
   openDecisions,
+  parseReview,
+  REVIEW_SECTIONS,
   setCareProfile,
+  setNodeStitch,
+  staleSections,
+  stitchOptions,
+  type ReviewSection,
+  type ReviewState,
+  calibrateSpec,
 } from '@seamster/fit';
-import { flatDefaults, parseSketchEdits, type SketchEdits } from '@seamster/flats';
-import { kb } from '@seamster/kb';
+import { TRACE_MODES, traceSketch, traceStrokes, type TraceMode } from '@seamster/trace';
+import { sketchFingerprint } from '@seamster/render';
+import { diffSpecs, VersionStore, type VersionEntry } from '@seamster/versions';
+import {
+  flatDefaults,
+  garmentGeometry,
+  parseSketchEdits,
+  pomDrawingDocument,
+  pomGrid,
+  pomLines,
+  toDrawing,
+  type SketchEdits,
+} from '@seamster/flats';
+import { kb, type Category } from '@seamster/kb';
 import { parseStyleSpec, type StyleSpec } from '@seamster/stylespec';
 import type { DocImage, DocVisuals } from '@seamster/docgen';
 import { messages } from '@seamster/i18n';
-import { archiveSketch, generate, redrawSketch } from '../../cli/src/generate.js';
+import {
+  acceptProposedSketch,
+  archiveSketch,
+  generate,
+  proposeSketch,
+  redrawSketch,
+  renderFingerprint,
+  rerenderVisual,
+} from '../../cli/src/generate.js';
 import { parseAnswers } from '../../cli/src/answers.js';
 import { FREE_PER_MONTH, Limits } from './limits.js';
 import { Notifications } from './notify.js';
 import { Referrals, refCode } from './referrals.js';
 import { tgDocument, tgNotify, tgTrace, telegramReady } from './telegram.js';
 import { buildRfq } from './rfq.js';
+import {
+  addLabelFile,
+  labelFileBytes,
+  labelFileImages,
+  readLabelFiles,
+  removeLabelFile,
+} from './label-files.js';
+import {
+  applyArtwork,
+  artworkFileDataUri,
+  mergeArtworkInput,
+  readArtwork,
+  removeArtworkFiles,
+  saveArtworkFile,
+  writeArtwork,
+} from './artwork.js';
 import { findTemplate } from '@seamster/templates';
 import {
   candidatesFor,
@@ -76,6 +124,13 @@ const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN ?? 'https://seamster.pro';
 const MAX_PHOTOS = 6;
 /** Перерисовка эскиза — платный вызов модели; чаще минуты её не зовут. */
 const redrawAt = new Map<string, number>();
+/** Правка фразой — два вызова моделей; пауза между просьбами по одному паку. */
+const reviseAt = new Map<string, number>();
+/** Правок фразой в сутки на человека — предохранитель кошелька, не тариф. */
+const REVISE_PER_DAY = Number(process.env.SEAMSTER_REVISE_PER_DAY ?? 40);
+const reviseDay = new Map<string, { day: string; n: number }>();
+/** Паки, у которых «Внешний вид» перестраивается прямо сейчас. */
+const rendering = new Set<string>();
 
 mkdirSync(join(DATA, 'jobs'), { recursive: true });
 
@@ -387,7 +442,24 @@ function jobVisuals(dir: string, spec: StyleSpec, locale: 'ru' | 'en' | 'zh'): D
   const sketchPattern = existsSync(patternPath)
     ? { dataUri: `data:image/jpeg;base64,${readFileSync(patternPath).toString('base64')}` }
     : null;
+  // Файлы макетов — по номеру макета в спеке (A1, A2…): порядок строк
+  // хранилища и порядок макетов в спеке один и тот же.
+  const artworkFiles: Record<string, DocImage> = {};
+  readArtwork(dir).forEach((item, i) => {
+    const uri = artworkFileDataUri(dir, item);
+    if (uri) artworkFiles[`A${i + 1}`] = { dataUri: uri };
+  });
+  const sketchGarment = sketchGarmentOf(dir);
+  // Макеты ярлыков и упаковки от бренда — отдельным листом раздела ярлыков.
+  const labelFiles = labelFileImages(dir).map((f) => ({
+    label: f.name,
+    note: f.note,
+    ...(f.dataUri ? { dataUri: f.dataUri } : {}),
+  }));
   return {
+    ...(labelFiles.length ? { labelFiles } : {}),
+    ...(Object.keys(artworkFiles).length ? { artworkFiles } : {}),
+    ...(sketchGarment ? { sketchGarment } : {}),
     ...(library ? { libraryFlats: { [locale]: library } } : {}),
     ...(render ? { render } : {}),
     ...(sketch ? { sketch } : {}),
@@ -487,6 +559,17 @@ function sketchPath(dir: string, view?: SketchView): { path: string; type: strin
     if (existsSync(path)) return { path, type };
   }
   return null;
+}
+
+/** Габарит изделия на вырезках переда и спинки — его пишет генератор рядом с листом. */
+function sketchGarmentOf(dir: string): DocVisuals['sketchGarment'] | null {
+  try {
+    return JSON.parse(
+      readFileSync(join(dir, 'sketch-garment.json'), 'utf8'),
+    ) as DocVisuals['sketchGarment'];
+  } catch {
+    return null;
+  }
 }
 
 /** Границы видов на листе эскиза — их пишет генератор рядом с вырезками. */
@@ -591,6 +674,50 @@ function sketchViewsOf(dir: string): SketchView[] {
   return SKETCH_VIEWS.filter((v) => sketchPath(dir, v) !== null);
 }
 
+/**
+ * Трассировка эскиза в вектор — Potrace, три набора настроек. Считается один
+ * раз на растр и режим и лежит рядом с листом; ключ — размер и время файла,
+ * так что перерисованный или исправленный эскиз трассируется заново, а не
+ * отдаётся из кэша. Параллельные запросы одного и того же ждут один расчёт.
+ */
+/** Содержимое SVG без обёртки и заголовка — для сборки в другой документ. */
+function svgInner(svg: string): string {
+  const open = svg.indexOf('>', svg.indexOf('<svg'));
+  const close = svg.lastIndexOf('</svg>');
+  if (open < 0 || close < 0) return '';
+  return svg
+    .slice(open + 1, close)
+    .replace(/<title>[^<]*<\/title>/, '')
+    .trim();
+}
+
+const tracing = new Map<string, Promise<string>>();
+async function tracedSketch(dir: string, view: SketchView | 'all', mode: TraceMode | 'strokes') {
+  const found = sketchPath(dir, view === 'all' ? undefined : view);
+  if (!found) return null;
+  const st = statSync(found.path);
+  const stamp = `${st.size}-${Math.round(st.mtimeMs)}`;
+  const cache = join(dir, `sketch-trace-${view}-${mode}.svg`);
+  if (existsSync(cache)) {
+    const head = readFileSync(cache, 'utf8').slice(0, 200);
+    if (head.includes(`data-source="${stamp}"`)) return readFileSync(cache, 'utf8');
+  }
+  const key = `${cache}:${stamp}`;
+  let pending = tracing.get(key);
+  if (!pending) {
+    const raster = readFileSync(found.path);
+    pending = (mode === 'strokes' ? traceStrokes(raster) : traceSketch(raster, mode))
+      .then((r) => {
+        const svg = r.svg.replace('<svg ', `<svg data-source="${stamp}" `);
+        writeFileSync(cache, svg);
+        return svg;
+      })
+      .finally(() => tracing.delete(key));
+    tracing.set(key, pending);
+  }
+  return pending;
+}
+
 function jobDir(id: string): string {
   return join(DATA, 'jobs', id);
 }
@@ -641,6 +768,12 @@ async function pump(): Promise<void> {
       onStage: (stage, detail) => setStage(id, stage, detail),
     });
     writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
+    // Первая версия — сборка. Всё, что человек поправит дальше, ляжет поверх неё.
+    try {
+      versionsOf(dir).save(VERSION_KEY, result.spec, 'сборка документа');
+    } catch (e) {
+      console.error(`job ${id}: версия не записана`, e);
+    }
     // Чем нарисован чертёж — рядом со спекой. Вопрос «почему тут другой
     // карман» задают чаще всего именно про силуэт, и ответ должен лежать
     // в джобе, а не выводиться заново при каждом показе.
@@ -776,6 +909,127 @@ function specOf(id: string): StyleSpec | null {
 /** Спека + величины чертежа, которых нет в табеле. Один ответ — один рендер. */
 function specPayload(spec: StyleSpec): unknown {
   return { spec, flat_defaults: flatDefaults(spec, kb()) };
+}
+
+// ---------------------------------------------------------------- версии спеки
+
+/**
+ * Версии спецификации живут В ПАКЕ: каждая правка — новая версия, прошлая не
+ * переписывается (ADR-0001 §4). На этом держатся отмена (Ctrl+Z), список
+ * «что изменилось» и пометки «раздел устарел». Ключ один на пак: артикул
+ * бывает кириллическим, а хранилищу нужно имя каталога.
+ */
+const VERSION_KEY = 'spec';
+
+function versionsOf(dir: string): VersionStore {
+  return new VersionStore(join(dir, 'versions'));
+}
+
+/**
+ * Записать спеку как новую версию. Первая правка старого пака сначала
+ * кладёт в историю то, что лежало на диске, — иначе отменять было бы не к чему.
+ */
+function commitSpec(dir: string, spec: StyleSpec, reason_ru: string): VersionEntry | null {
+  const store = versionsOf(dir);
+  const specPath = join(dir, 'spec.json');
+  if (store.list(VERSION_KEY).length === 0 && existsSync(specPath)) {
+    try {
+      store.save(
+        VERSION_KEY,
+        parseStyleSpec(JSON.parse(readFileSync(specPath, 'utf8'))),
+        'сборка документа',
+      );
+    } catch {
+      /* прошлая спека нечитаема — история начнётся с этой версии */
+    }
+  }
+  writeFileSync(specPath, JSON.stringify(spec, null, 2));
+  // PDF устарел: следующая выгрузка пересоберёт его из новой спеки.
+  writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+  return store.save(VERSION_KEY, spec, reason_ru);
+}
+
+interface RevisionLogEntry {
+  at: string;
+  text: string;
+  summary_ru: string;
+  version_n: number | null;
+  /** Метка архива прошлого листа — по ней отмена вернёт и рисунок. */
+  sketch_archived_at: string | null;
+  sections: ReviewSection[];
+}
+
+function revisionsOf(dir: string): RevisionLogEntry[] {
+  try {
+    return JSON.parse(readFileSync(join(dir, 'revisions.json'), 'utf8')) as RevisionLogEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function reviewOf(dir: string): ReviewState {
+  try {
+    return parseReview(JSON.parse(readFileSync(join(dir, 'review.json'), 'utf8')));
+  } catch {
+    return parseReview(null);
+  }
+}
+
+function saveReview(dir: string, review: ReviewState): void {
+  writeFileSync(join(dir, 'review.json'), JSON.stringify(review, null, 2));
+}
+
+/** Отпечаток, для которого нарисован файл, — из спутника рядом с ним. */
+function fingerprintOf(dir: string, name: 'sketch.json' | 'render.json'): string | null {
+  try {
+    const raw = JSON.parse(readFileSync(join(dir, name), 'utf8')) as { fingerprint?: string };
+    return typeof raw.fingerprint === 'string' ? raw.fingerprint : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Что в паке отстало от спецификации.
+ *
+ * Разделы — по памяти человека (что он проверял и что задела правка);
+ * рисунок и картинка — по отпечаткам, с которыми они нарисованы; PDF — по
+ * флагу пересборки. Старые паки без спутников честно отвечают «неизвестно».
+ */
+function staleOf(id: string, dir: string, spec: StyleSpec) {
+  const sketchFp = fingerprintOf(dir, 'sketch.json');
+  const renderFp = fingerprintOf(dir, 'render.json');
+  const hasSketch = sketchPath(dir) !== null;
+  const hasRender = existsSync(join(dir, 'render.png'));
+  const lastRevision = revisionsOf(dir).at(-1) ?? null;
+  return {
+    sections: staleSections(spec, reviewOf(dir)),
+    sketch: {
+      present: hasSketch,
+      known: hasSketch && sketchFp !== null,
+      stale: hasSketch && sketchFp !== null && sketchFp !== sketchFingerprint(spec),
+    },
+    render: {
+      present: hasRender,
+      known: hasRender && renderFp !== null,
+      stale: hasRender && renderFp !== null && renderFp !== renderFingerprint(spec),
+      building: rendering.has(id),
+    },
+    pdf: { stale: existsSync(join(dir, 'pdf-stale.flag')) },
+    last_revision: lastRevision ? { at: lastRevision.at, text: lastRevision.text } : null,
+  };
+}
+
+/** Перестроить «Внешний вид» в фоне: кабинет опрашивает /stale и увидит, когда готово. */
+function rebuildRender(id: string, dir: string, spec: StyleSpec, who: string): void {
+  if (rendering.has(id)) return;
+  rendering.add(id);
+  void rerenderVisual({ dir, spec, renderCacheDir: join(DATA, 'cache', 'render') })
+    .then((ok) => logEvent(who, 'render_rebuild', { id, ok }))
+    .catch((e) =>
+      logEvent(who, 'render_rebuild', { id, ok: false, error: String(e).slice(0, 200) }),
+    )
+    .finally(() => rendering.delete(id));
 }
 
 // ---------------------------------------------------------------- сервер
@@ -1095,6 +1349,15 @@ const server = createServer(async (req, res) => {
         'cache-control': 'public, max-age=86400, immutable',
       });
       return res.end(readFileSync(entry.preview));
+    }
+
+    // Классы стежка для выбора в таблице узлов — справочник, один на всех.
+    if (req.method === 'GET' && url.pathname === '/app/api/kb/stitches') {
+      res.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'public, max-age=3600',
+      });
+      return res.end(JSON.stringify({ stitches: stitchOptions(kb()) }));
     }
 
     if (req.method === 'GET' && url.pathname === '/app/api/me') {
@@ -1556,9 +1819,13 @@ const server = createServer(async (req, res) => {
           logEvent(invite.name, 'edit_rejected', { id, code, reason: result.rejected });
           return json(res, 422, { error: result.rejected });
         }
-        writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
-        // PDF устарел: следующая выгрузка пересоберёт его из новой спеки.
-        writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        commitSpec(
+          dir,
+          result.spec,
+          typeof confirmed === 'boolean'
+            ? `Замер ${code}: ${confirmed ? 'подтверждён по образцу' : 'подтверждение снято'}`
+            : `Замер ${code}: ${result.changed.map((c) => `${c.from_cm} → ${c.to_cm} см`).join(', ')}`,
+        );
         logEvent(invite.name, typeof confirmed === 'boolean' ? 'confirm' : 'edit', {
           id,
           code,
@@ -1576,8 +1843,7 @@ const server = createServer(async (req, res) => {
         if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
         const result = setCareProfile(spec, String(profile || ''));
         if (result.rejected) return json(res, 422, { error: result.rejected });
-        writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
-        writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        commitSpec(dir, result.spec, `Режим ухода: ${String(profile || '')}`);
         logEvent(invite.name, 'care_profile', { id, profile });
         return json(res, 200, specPayload(result.spec));
       }
@@ -1613,8 +1879,7 @@ const server = createServer(async (req, res) => {
               ...(clean.description ? { description: clean.description } : {}),
             },
           };
-          writeFileSync(join(dir, 'spec.json'), JSON.stringify(next, null, 2));
-          writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+          commitSpec(dir, next, 'Реквизиты пака');
         }
         try {
           const answers = JSON.parse(readFileSync(join(dir, 'answers.json'), 'utf8')) as Record<
@@ -1839,9 +2104,7 @@ const server = createServer(async (req, res) => {
             current.resolved.push({ id: result.resolved, action, at: new Date().toISOString() });
           writeFileSync(path, JSON.stringify(current, null, 2));
         } else if (result.spec !== spec) {
-          writeFileSync(join(dir, 'spec.json'), JSON.stringify(result.spec, null, 2));
-          // PDF устарел: следующая выгрузка пересоберёт его из новой спеки.
-          writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+          commitSpec(dir, result.spec, `Решение: ${result.changed_ru || decisionId}`);
         }
         logEvent(invite.name, 'decision', {
           id,
@@ -1856,6 +2119,471 @@ const server = createServer(async (req, res) => {
           changed_ru: result.changed_ru,
           ...(result.spec !== spec ? (specPayload(result.spec) as object) : {}),
         });
+      }
+
+      // ------------------------------------------------ правка фразой
+      //
+      // Фраза → план операций над спекой → новая спека и НОВЫЙ ЛИСТ в отдельной
+      // папке предложения. В пак ничего не пишется, пока человек не примет:
+      // он видит, что изменится в таблицах, и новый рисунок рядом с прежним.
+      if (req.method === 'POST' && rest === '/revise') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const body = await readBody(req, 4096);
+        const { text } = body ? (JSON.parse(body.toString('utf8')) as { text?: string }) : {};
+        if (typeof text !== 'string' || text.trim().length < 3)
+          return json(res, 400, { error: 'Напишите, что изменить: например, «убери капюшон».' });
+        if (Date.now() - (reviseAt.get(id) ?? 0) < 20_000)
+          return json(res, 429, {
+            error: 'Предыдущая правка ещё разбирается.',
+            action: 'Подождите несколько секунд.',
+          });
+        const day = new Date().toISOString().slice(0, 10);
+        const used = reviseDay.get(invite.token);
+        const n = used && used.day === day ? used.n : 0;
+        if (n >= REVISE_PER_DAY)
+          return json(res, 429, {
+            error: `Сегодня уже ${REVISE_PER_DAY} правок фразой — это предел на день.`,
+            action: 'Завтра счётчик обнулится. Правки в таблицах без ограничений.',
+          });
+        reviseAt.set(id, Date.now());
+        reviseDay.set(invite.token, { day, n: n + 1 });
+        const startedAt = Date.now();
+        let plan;
+        try {
+          plan = (
+            await interpretRevision({
+              spec,
+              text: text.trim(),
+              cacheDir: join(DATA, 'cache', 'revise'),
+            })
+          ).plan;
+        } catch (e) {
+          reviseAt.delete(id);
+          logEvent(invite.name, 'revise_failed', { id, error: String(e).slice(0, 200) });
+          return json(res, 200, {
+            ok: false,
+            error: isSeamsterError(e) ? e.userMessage : 'Не удалось разобрать просьбу.',
+            action: isSeamsterError(e) ? e.userAction : 'Сформулируйте иначе — попытка бесплатная.',
+          });
+        }
+        const applied = applyRevision(spec, plan);
+        if (applied.changed_ru.length === 0) {
+          reviseAt.delete(id);
+          logEvent(invite.name, 'revise_empty', { id, text: text.slice(0, 120) });
+          return json(res, 200, {
+            ok: false,
+            error: plan.unclear_ru || 'В этой просьбе не нашлось, что изменить в спецификации.',
+            action:
+              'Правка меняет узлы, замеры и дизайн-признаки. Цвет и полотно правятся в материалах, ' +
+              'реквизиты — в профиле бренда.',
+            rejected_ru: applied.rejected_ru,
+          });
+        }
+        const pid = randomBytes(6).toString('hex');
+        const pdir = join(dir, 'proposals', pid);
+        mkdirSync(pdir, { recursive: true });
+        writeFileSync(join(pdir, 'spec.json'), JSON.stringify(applied.spec, null, 2));
+        // Лист — от снимка и прошлого листа, с перечисленными изменениями.
+        // Сторож проверяет его против НОВОЙ спеки: капюшон, который остался
+        // на рисунке после «убери капюшон», будет отклонён.
+        const photos = photoList(dir);
+        let sketch: { ok: boolean; views: string[]; reason: string | null } = {
+          ok: false,
+          views: [],
+          reason: 'без снимка лист не рисуется',
+        };
+        if (photos.length && applied.sections.includes('flats')) {
+          try {
+            const drawn = await proposeSketch({
+              dir,
+              outDir: pdir,
+              spec: applied.spec,
+              photoPaths: photos.map((p) => join(dir, p.name)),
+              changes: plan.changes_en,
+              currentSketchPath: sketchPath(dir)?.path ?? null,
+              cacheDir: join(DATA, 'cache', 'vision'),
+              renderCacheDir: join(DATA, 'cache', 'render'),
+            });
+            sketch = drawn.ok
+              ? { ok: true, views: drawn.views, reason: null }
+              : { ok: false, views: [], reason: drawn.userMessage };
+          } catch (e) {
+            sketch = { ok: false, views: [], reason: String(e).slice(0, 160) };
+          }
+        } else if (!applied.sections.includes('flats')) {
+          sketch = { ok: false, views: [], reason: 'рисунок эта правка не меняет' };
+        }
+        const proposal = {
+          id: pid,
+          at: new Date().toISOString(),
+          text: text.trim(),
+          summary_ru: plan.summary_ru,
+          changes_en: plan.changes_en,
+          unclear_ru: plan.unclear_ru,
+          changed_ru: applied.changed_ru,
+          rejected_ru: applied.rejected_ru,
+          sections: applied.sections,
+          sketch,
+          diff: diffSpecs(spec, applied.spec),
+          ms: Date.now() - startedAt,
+        };
+        writeFileSync(join(pdir, 'plan.json'), JSON.stringify(proposal, null, 2));
+        logEvent(invite.name, 'revise', {
+          id,
+          pid,
+          text: text.slice(0, 120),
+          changed: applied.changed_ru.length,
+          sketch: sketch.ok,
+          ms: proposal.ms,
+        });
+        return json(res, 200, { ok: true, proposal });
+      }
+
+      const proposalMatch = rest.match(/^\/proposals\/([a-f0-9]{12})(\/[a-z]+)?$/);
+      if (proposalMatch) {
+        const pid = proposalMatch[1]!;
+        const action = proposalMatch[2] ?? '';
+        const pdir = join(dir, 'proposals', pid);
+        if (!existsSync(join(pdir, 'plan.json')))
+          return json(res, 404, { error: 'такого предложения нет — возможно, оно уже принято' });
+        const proposal = JSON.parse(readFileSync(join(pdir, 'plan.json'), 'utf8')) as {
+          text: string;
+          summary_ru: string;
+          sections: ReviewSection[];
+          sketch: { ok: boolean };
+        };
+        if (req.method === 'GET' && action === '') return json(res, 200, { proposal });
+        if (req.method === 'GET' && action === '/sketch') {
+          const wanted = url.searchParams.get('view');
+          const view = SKETCH_VIEWS.find((v) => v === wanted);
+          const found = sketchPath(pdir, view);
+          if (!found) return json(res, 404, { error: 'листа у предложения нет' });
+          res.writeHead(200, { 'content-type': found.type, 'cache-control': 'no-cache' });
+          return res.end(readFileSync(found.path));
+        }
+        if (req.method === 'POST' && action === '/reject') {
+          rmSync(pdir, { recursive: true, force: true });
+          logEvent(invite.name, 'revise_reject', { id, pid });
+          return json(res, 200, { ok: true });
+        }
+        if (req.method === 'POST' && action === '/accept') {
+          const next = parseStyleSpec(JSON.parse(readFileSync(join(pdir, 'spec.json'), 'utf8')));
+          const archivedAt = proposal.sketch.ok ? acceptProposedSketch(dir, pdir) : null;
+          const entry = commitSpec(dir, next, `Правка фразой: «${proposal.text}»`);
+          // Разделы, которые задела правка, ждут взгляда человека: таблицы
+          // верны, но его память о них — нет.
+          const touched = proposal.sections.filter((x): x is ReviewSection =>
+            (REVIEW_SECTIONS as readonly string[]).includes(x),
+          );
+          saveReview(
+            dir,
+            markPending(reviewOf(dir), touched, `Изделие изменено фразой «${proposal.text}»`),
+          );
+          const log = revisionsOf(dir);
+          log.push({
+            at: new Date().toISOString(),
+            text: proposal.text,
+            summary_ru: proposal.summary_ru,
+            version_n: entry?.n ?? null,
+            sketch_archived_at: archivedAt,
+            sections: touched,
+          });
+          writeFileSync(join(dir, 'revisions.json'), JSON.stringify(log, null, 2));
+          rmSync(pdir, { recursive: true, force: true });
+          // «Внешний вид» — проекция спеки, перестраивается сам, в фоне.
+          if (existsSync(join(dir, 'render.png'))) rebuildRender(id, dir, next, invite.name);
+          limits.noteFree(invite.token, {
+            job: id,
+            name: next.style.name,
+            note: `Правка фразой: «${proposal.text.slice(0, 60)}»`,
+          });
+          logEvent(invite.name, 'revise_accept', { id, pid, version: entry?.n ?? null });
+          return json(res, 200, {
+            ok: true,
+            ...(specPayload(next) as object),
+            version: entry,
+            sketch_views: sketchViewsOf(dir),
+            sketch_boxes: sketchBoxesOf(dir),
+            sketch_versions: sketchHistoryOf(dir).length,
+            stale: staleOf(id, dir, next),
+          });
+        }
+      }
+
+      // ------------------------------------------------ версии и отмена
+      if (req.method === 'GET' && rest === '/versions') {
+        return json(res, 200, {
+          versions: versionsOf(dir).list(VERSION_KEY),
+          revisions: revisionsOf(dir),
+        });
+      }
+      if (req.method === 'POST' && rest === '/versions/undo') {
+        const store = versionsOf(dir);
+        const list = store.list(VERSION_KEY);
+        const last = list.at(-1);
+        const prev = list.at(-2);
+        if (!last || !prev)
+          return json(res, 409, {
+            error: 'Отменять нечего: спецификация не менялась после сборки.',
+          });
+        if (last.reason_ru.startsWith('Отмена: ') && list.length < 3)
+          return json(res, 409, { error: 'Отменять больше нечего.' });
+        const restored = store.read(VERSION_KEY, prev.n);
+        const entry = commitSpec(dir, restored, `Отмена: ${last.reason_ru}`);
+        // Правка фразой уносила рисунок в историю — отмена возвращает и его.
+        const revision = revisionsOf(dir).find((r) => r.version_n === last.n);
+        let sketchRestored = false;
+        if (revision?.sketch_archived_at && restoreSketch(dir, revision.sketch_archived_at)) {
+          sketchRestored = true;
+          const review = reviewOf(dir);
+          for (const sec of revision.sections) delete review.pending[sec];
+          saveReview(dir, review);
+        }
+        if (existsSync(join(dir, 'render.png')) && staleOf(id, dir, restored).render.stale)
+          rebuildRender(id, dir, restored, invite.name);
+        logEvent(invite.name, 'undo', { id, undone: last.reason_ru, version: entry?.n ?? null });
+        return json(res, 200, {
+          ok: true,
+          undone_ru: last.reason_ru,
+          sketch_restored: sketchRestored,
+          ...(specPayload(restored) as object),
+          version: entry,
+          sketch_views: sketchViewsOf(dir),
+          sketch_boxes: sketchBoxesOf(dir),
+          sketch_versions: sketchHistoryOf(dir).length,
+          stale: staleOf(id, dir, restored),
+        });
+      }
+      if (req.method === 'GET' && rest === '/diff') {
+        const store = versionsOf(dir);
+        const list = store.list(VERSION_KEY);
+        const to = Number(url.searchParams.get('to') ?? list.at(-1)?.n ?? 0);
+        const from = Number(url.searchParams.get('from') ?? Math.max(1, to - 1));
+        if (!list.some((v) => v.n === from) || !list.some((v) => v.n === to))
+          return json(res, 404, { error: 'таких версий нет' });
+        const before = store.read(VERSION_KEY, from);
+        const after = store.read(VERSION_KEY, to);
+        const diff = diffSpecs(before, after);
+        // Узлы и материалы — именами, а не кодами: список читает человек.
+        const nodeLabel = (id: string): string => {
+          const found = [
+            ...(after.construction?.nodes ?? []),
+            ...(before.construction?.nodes ?? []),
+          ].find((n) => n.node_id === id);
+          return found?.label_ru ?? id;
+        };
+        const bomLabel = (code: string): string => {
+          const found = [...(after.bom?.lines ?? []), ...(before.bom?.lines ?? [])].find(
+            (l) => l.code === code,
+          );
+          return found?.name_ru ?? code;
+        };
+        return json(res, 200, {
+          from,
+          to,
+          diff: {
+            ...diff,
+            nodes: {
+              added: diff.nodes.added.map(nodeLabel),
+              removed: diff.nodes.removed.map(nodeLabel),
+            },
+            bom: { added: diff.bom.added.map(bomLabel), removed: diff.bom.removed.map(bomLabel) },
+          },
+          reasons: list.filter((v) => v.n > from && v.n <= to).map((v) => v.reason_ru),
+        });
+      }
+
+      // ------------------------------------------------ устаревание
+      if (req.method === 'GET' && rest === '/stale') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        return json(res, 200, staleOf(id, dir, spec));
+      }
+      if (req.method === 'POST' && rest === '/reviewed') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const body = await readBody(req, 1024);
+        const { section } = body ? (JSON.parse(body.toString('utf8')) as { section?: string }) : {};
+        const sec = REVIEW_SECTIONS.find((x) => x === section);
+        if (!sec) return json(res, 400, { error: 'неизвестный раздел' });
+        saveReview(dir, markReviewed(reviewOf(dir), spec, sec));
+        logEvent(invite.name, 'reviewed', { id, section: sec });
+        return json(res, 200, { ok: true, stale: staleOf(id, dir, spec) });
+      }
+      if (req.method === 'POST' && rest === '/render/rebuild') {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        if (rendering.has(id)) return json(res, 200, { ok: true, building: true });
+        rebuildRender(id, dir, spec, invite.name);
+        limits.noteFree(invite.token, {
+          job: id,
+          name: spec.style.name,
+          note: 'Внешний вид заново',
+        });
+        return json(res, 200, { ok: true, building: true });
+      }
+
+      // Класс стежка узла — выбор бренда. За ним пересчитываются машина,
+      // проверка парка и операция техпоследовательности.
+      if (req.method === 'PATCH' && rest === '/nodes') {
+        const body = await readBody(req, 2048);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const { node_id, stitch_code } = JSON.parse(body.toString('utf8')) as {
+          node_id?: string;
+          stitch_code?: string;
+        };
+        if (typeof node_id !== 'string' || !/^\d{3}$/.test(String(stitch_code ?? '')))
+          return json(res, 400, { error: 'нужны node_id и трёхзначный код стежка' });
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const result = setNodeStitch(spec, node_id, String(stitch_code), kb());
+        if (result.rejected) return json(res, 422, { error: result.rejected });
+        if (result.changed_ru) commitSpec(dir, result.spec, result.changed_ru);
+        logEvent(invite.name, 'node_stitch', { id, node_id, stitch_code });
+        return json(res, 200, {
+          ...(specPayload(result.spec) as object),
+          changed_ru: result.changed_ru,
+          stale: staleOf(id, dir, result.spec),
+        });
+      }
+
+      // ------------------------------------------------ файлы ярлыков
+      //
+      // Готовые макеты ярлыков и упаковки от бренда: несколько файлов, каждый
+      // своей карточкой, в документ — отдельным листом. Сырым телом, как снимки.
+      if (rest === '/labels/files' && req.method === 'GET')
+        return json(res, 200, {
+          files: readLabelFiles(dir).map(({ path: _path, ...f }) => f),
+        });
+      if (rest === '/labels/files' && req.method === 'POST') {
+        const body = await readBody(req, MAX_PHOTO);
+        if (!body || body.length === 0)
+          return json(res, 413, { error: 'файл больше 12 МБ или пуст' });
+        const name = decodeURIComponent(url.searchParams.get('name') ?? 'label');
+        const added = addLabelFile(dir, body, name);
+        if (added.rejected) return json(res, 422, { error: added.rejected });
+        // Документ обязан перепечататься с новым листом.
+        writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+        logEvent(invite.name, 'label_file', { id, name: name.slice(0, 60), bytes: body.length });
+        return json(res, 200, { files: added.files.map(({ path: _path, ...f }) => f) });
+      }
+      const labelFile = rest.match(/^\/labels\/files\/(\d{1,4})$/);
+      if (labelFile) {
+        const n = Number(labelFile[1]);
+        if (req.method === 'GET') {
+          const found = labelFileBytes(dir, n);
+          if (!found) return json(res, 404, { error: 'такого файла нет' });
+          res.writeHead(200, { 'content-type': found.type, 'cache-control': 'no-cache' });
+          return res.end(found.bytes);
+        }
+        if (req.method === 'DELETE') {
+          const files = removeLabelFile(dir, n);
+          writeFileSync(join(dir, 'pdf-stale.flag'), '1');
+          logEvent(invite.name, 'label_file_removed', { id, n });
+          return json(res, 200, { files: files.map(({ path: _path, ...f }) => f) });
+        }
+      }
+
+      // ------------------------------------------------ нанесение
+      //
+      // Макеты задаёт человек: зона, техника, сантиметры, файл. Спека хранит
+      // их собранными тем же движком, что при генерации, — проверки и
+      // предупреждения пересчитываются на каждую правку.
+      if (rest === '/artwork' && (req.method === 'GET' || req.method === 'PUT')) {
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        if (req.method === 'GET')
+          return json(res, 200, {
+            items: readArtwork(dir).map(({ file, ...rest }) => ({
+              ...rest,
+              ...(file
+                ? {
+                    file: {
+                      name: file.name,
+                      format: file.format,
+                      pixels: file.pixels ?? null,
+                      bytes: file.bytes,
+                    },
+                  }
+                : {}),
+            })),
+            zones: kb()
+              .printZones(spec.style.category as Category)
+              .map((z) => ({
+                id: z.id,
+                label_ru: z.label_ru,
+                anchor: z.anchor,
+                typical_size_cm: z.typical_size_cm,
+                typical_offset_cm: z.typical_offset_cm,
+              })),
+            techniques: kb()
+              .printTechniques()
+              .map((t) => ({ id: t.id, label_ru: t.label_ru })),
+            placements: spec.artwork?.placements ?? [],
+          });
+        const body = await readBody(req, 64 * 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const { items: incoming } = JSON.parse(body.toString('utf8')) as { items?: unknown };
+        const previous = readArtwork(dir);
+        const merged = mergeArtworkInput(previous, incoming, spec.style.category as Category, kb());
+        if (merged.rejected) return json(res, 422, { error: merged.rejected });
+        // Файлы макетов, которых больше нет, стираются с диска.
+        for (const was of previous)
+          if (!merged.items.some((x) => x.pid === was.pid)) removeArtworkFiles(dir, was);
+        writeArtwork(dir, merged.items);
+        const applied = applyArtwork(spec, merged.items, kb());
+        commitSpec(dir, applied.spec, `Нанесение: макетов ${merged.items.length}`);
+        logEvent(invite.name, 'artwork', { id, count: merged.items.length });
+        return json(res, 200, {
+          ...(specPayload(applied.spec) as object),
+          items: merged.items,
+          notes: applied.notes,
+          stale: staleOf(id, dir, applied.spec),
+        });
+      }
+      const artFile = rest.match(/^\/artwork\/([a-z0-9]{4,16})\/file$/);
+      if (artFile) {
+        const pid = artFile[1]!;
+        const items = readArtwork(dir);
+        const item = items.find((x) => x.pid === pid);
+        if (!item) return json(res, 404, { error: 'такого макета нет' });
+        if (req.method === 'GET') {
+          const uri = artworkFileDataUri(dir, item);
+          if (!uri) return json(res, 404, { error: 'файла у макета нет' });
+          const m = /^data:([^;]+);base64,(.+)$/.exec(uri)!;
+          res.writeHead(200, { 'content-type': m[1]!, 'cache-control': 'no-cache' });
+          return res.end(Buffer.from(m[2]!, 'base64'));
+        }
+        if (req.method === 'POST') {
+          const spec = specOf(id);
+          if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+          const body = await readBody(req, MAX_PHOTO);
+          if (!body || body.length === 0)
+            return json(res, 413, { error: 'файл больше 12 МБ или пуст' });
+          const name = decodeURIComponent(url.searchParams.get('name') ?? 'artwork');
+          const saved = saveArtworkFile(dir, items, pid, body, name);
+          if (saved.rejected) return json(res, 422, { error: saved.rejected });
+          writeArtwork(dir, saved.items);
+          const applied = applyArtwork(spec, saved.items, kb());
+          commitSpec(dir, applied.spec, `Нанесение: файл макета ${name.slice(0, 40)}`);
+          logEvent(invite.name, 'artwork_file', { id, pid, bytes: body.length });
+          return json(res, 200, {
+            ...(specPayload(applied.spec) as object),
+            items: saved.items,
+            stale: staleOf(id, dir, applied.spec),
+          });
+        }
+        if (req.method === 'DELETE') {
+          const spec = specOf(id);
+          if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+          removeArtworkFiles(dir, item);
+          delete item.file;
+          writeArtwork(dir, items);
+          const applied = applyArtwork(spec, items, kb());
+          commitSpec(dir, applied.spec, 'Нанесение: файл макета снят');
+          return json(res, 200, { ...(specPayload(applied.spec) as object), items });
+        }
       }
 
       if (req.method === 'GET' && rest === '/files') {
@@ -1881,6 +2609,7 @@ const server = createServer(async (req, res) => {
           photos: photoList(dir).map(({ n, view }) => ({ n, view })),
           sketch_views: sketchViewsOf(dir),
           sketch_boxes: sketchBoxesOf(dir),
+          sketch_garment: sketchGarmentOf(dir),
           sketch_edits: sketchEditsOf(dir)?.saved_at ?? null,
           sketch_versions: sketchHistoryOf(dir).length,
         });
@@ -1922,6 +2651,8 @@ const server = createServer(async (req, res) => {
           ok: result.ok,
           ...(result.ok ? {} : { reason: result.reason }),
         });
+        if (result.ok)
+          limits.noteFree(invite.token, { job: id, name: spec.style.name, note: 'Эскиз заново' });
         if (!result.ok)
           return json(res, 200, {
             ok: false,
@@ -1990,6 +2721,187 @@ const server = createServer(async (req, res) => {
           return json(res, 404, { error: view ? 'этого вида у эскиза нет' : 'эскиза нет' });
         res.writeHead(200, { 'content-type': found.type, 'cache-control': 'no-cache' });
         return res.end(readFileSync(found.path));
+      }
+
+      // Вектор из эскиза: трассировка растра, а не схема по табелю. Режим —
+      // порог и шумодав, как у любого трассировщика; «умная» по умолчанию.
+      if (req.method === 'GET' && rest === '/svg') {
+        const wanted = url.searchParams.get('view') ?? 'all';
+        const view = wanted === 'all' ? 'all' : SKETCH_VIEWS.find((v) => v === wanted);
+        if (!view) return json(res, 400, { error: 'неизвестный вид эскиза' });
+        const modeWanted = url.searchParams.get('mode') ?? 'smart';
+        const mode =
+          modeWanted === 'strokes'
+            ? ('strokes' as const)
+            : TRACE_MODES.find((m) => m === modeWanted);
+        if (!mode)
+          return json(res, 400, { error: 'режим трассировки: smart, clean, detailed, strokes' });
+        let svg: string | null;
+        try {
+          svg = await tracedSketch(dir, view, mode);
+        } catch (e) {
+          return json(res, 500, { error: 'трассировка не удалась: ' + (e as Error).message });
+        }
+        if (!svg)
+          return json(res, 404, {
+            error: view === 'all' ? 'эскиза нет' : 'этого вида у эскиза нет',
+          });
+        res.writeHead(200, {
+          'content-type': 'image/svg+xml; charset=utf-8',
+          'cache-control': 'no-cache',
+          ...(url.searchParams.get('download')
+            ? { 'content-disposition': `attachment; filename="sketch-${view}-${mode}.svg"` }
+            : {}),
+        });
+        return res.end(svg);
+      }
+
+      // ------------------------------------------------ чертёж замеров
+      //
+      // Линии точек табеля на рисунке этой вещи. Типовые места считает
+      // движок по коду; человек двигает концы, подтверждает место или
+      // возвращает типовое. Место живёт в спеке у точки (доли габарита) —
+      // это версия, отмена и документ, как у любой правки.
+      if (req.method === 'PUT' && rest === '/pom-drawing') {
+        const body = await readBody(req, 4096);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const input = JSON.parse(body.toString('utf8')) as {
+          code?: string;
+          view?: string;
+          pts?: { u: number; v: number }[];
+          confirm?: boolean;
+          reset?: boolean;
+        };
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const point = spec.measurements.points.find((p) => p.code === input.code);
+        if (!point) return json(res, 400, { error: 'такой точки в табеле нет' });
+        const view = input.view === 'back' ? 'back' : 'front';
+        let drawing: (typeof point)['drawing'] | undefined;
+        let reason: string;
+        if (input.reset) {
+          drawing = undefined;
+          reason = `Место замера ${point.code} — типовое`;
+        } else if (Array.isArray(input.pts)) {
+          const pts = input.pts.slice(0, 3).map((q) => ({ u: Number(q.u), v: Number(q.v) }));
+          if (pts.length < 2 || pts.some((q) => !isFinite(q.u) || !isFinite(q.v)))
+            return json(res, 400, { error: 'нужны две-три точки линии' });
+          if (pts.some((q) => q.u < -0.5 || q.u > 1.5 || q.v < -0.5 || q.v > 1.5))
+            return json(res, 400, { error: 'линия ушла далеко за рисунок' });
+          drawing = {
+            view,
+            pts,
+            ...(input.confirm ? { confirmed_at: new Date().toISOString() } : {}),
+          };
+          reason = `Место замера ${point.code} на чертеже${input.confirm ? ' подтверждено' : ''}`;
+        } else if (input.confirm) {
+          // Подтверждение типового места: линия фиксируется долями габарита,
+          // чтобы перерисованный лист не сдвинул то, что человек проверил.
+          if (point.drawing) {
+            drawing = { ...point.drawing, confirmed_at: new Date().toISOString() };
+          } else {
+            const box = sketchGarmentOf(dir)?.[view];
+            const g = box ? garmentGeometry(spec, box, view) : null;
+            const line = g ? pomLines(spec, g, view).find((l) => l.code === point.code) : null;
+            if (!line || !g)
+              return json(res, 409, { error: 'у точки нет линии на этом виде — поставьте её' });
+            drawing = {
+              view,
+              pts: toDrawing(line.pts, g.box),
+              confirmed_at: new Date().toISOString(),
+            };
+          }
+          reason = `Место замера ${point.code} подтверждено`;
+        } else {
+          return json(res, 400, { error: 'нужны точки, подтверждение или сброс' });
+        }
+        const next: StyleSpec = {
+          ...spec,
+          measurements: {
+            ...spec.measurements,
+            points: spec.measurements.points.map((p) => {
+              if (p.code !== point.code) return p;
+              const { drawing: _old, ...rest } = p;
+              return drawing ? { ...rest, drawing } : rest;
+            }),
+          },
+        };
+        commitSpec(dir, next, reason);
+        logEvent(invite.name, 'pom_drawing', { id, code: point.code, reason });
+        return json(res, 200, {
+          ...(specPayload(next) as object),
+          changed_ru: reason,
+          stale: staleOf(id, dir, next),
+        });
+      }
+
+      // Масштаб по одному замеру на образце: все точки, что считались от
+      // якоря, пересчитываются одним множителем. Версия, как любая правка.
+      if (req.method === 'POST' && rest === '/measurements/calibrate') {
+        const body = await readBody(req, 1024);
+        if (!body) return json(res, 413, { error: 'слишком большой запрос' });
+        const { code, value_cm } = JSON.parse(body.toString('utf8')) as {
+          code?: string;
+          value_cm?: number;
+        };
+        if (typeof code !== 'string' || typeof value_cm !== 'number')
+          return json(res, 400, { error: 'нужны код точки и значение в сантиметрах' });
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const result = calibrateSpec(spec, code, value_cm, kb());
+        if (result.rejected) return json(res, 422, { error: result.rejected });
+        commitSpec(dir, result.spec, result.changed_ru);
+        logEvent(invite.name, 'calibrate', { id, code, value_cm, factor: result.factor });
+        return json(res, 200, {
+          ...(specPayload(result.spec) as object),
+          changed_ru: result.changed_ru,
+          factor: result.factor,
+          rescaled: result.rescaled,
+          stale: staleOf(id, dir, result.spec),
+        });
+      }
+
+      // Чертёж замеров одним SVG: трассировка вида и слой линий с сеткой.
+      if (req.method === 'GET' && rest === '/pom-drawing.svg') {
+        const wanted = url.searchParams.get('view') ?? 'front';
+        const view = wanted === 'back' ? 'back' : wanted === 'front' ? 'front' : null;
+        if (!view) return json(res, 400, { error: 'вид чертежа замеров: front или back' });
+        const spec = specOf(id);
+        if (!spec) return json(res, 404, { error: 'спека ещё не готова' });
+        const box = sketchGarmentOf(dir)?.[view];
+        if (!box)
+          return json(res, 404, { error: 'у вида нет габарита изделия — эскиз без вырезок' });
+        const g = garmentGeometry(spec, box, view);
+        if (!g)
+          return json(res, 404, { error: 'масштаб не назначить: в табеле нет длины изделия' });
+        const modeWanted = url.searchParams.get('mode') ?? 'smart';
+        const mode = TRACE_MODES.find((m) => m === modeWanted) ?? 'smart';
+        let picture: { svgInner?: string; dataUri?: string } = {};
+        try {
+          const traced = await tracedSketch(dir, view, mode);
+          if (traced) picture = { svgInner: svgInner(traced) };
+        } catch {
+          picture = {};
+        }
+        if (!picture.svgInner) {
+          const found = sketchPath(dir, view);
+          if (found)
+            picture = {
+              dataUri: `data:${found.type};base64,${readFileSync(found.path).toString('base64')}`,
+            };
+        }
+        const image = { w: box.w, h: box.h };
+        const svg = pomDrawingDocument(picture, pomLines(spec, g, view), pomGrid(g, image), image, {
+          grid: url.searchParams.get('grid') !== '0',
+        });
+        res.writeHead(200, {
+          'content-type': 'image/svg+xml; charset=utf-8',
+          'cache-control': 'no-store',
+          ...(url.searchParams.get('download')
+            ? { 'content-disposition': `attachment; filename="pom-drawing-${view}.svg"` }
+            : {}),
+        });
+        return res.end(svg);
       }
 
       if (req.method === 'GET' && rest === '/flat') {
@@ -2100,6 +3012,9 @@ const server = createServer(async (req, res) => {
           mtime('sketch.jpg'),
           mtime('sketch.png'),
           mtime('sketch-edits.json'),
+          // Габарит изделия на видах: с ним появляется лист раскладки нанесения.
+          mtime('sketch-garment.json'),
+          mtime('label-files.json'),
         );
         if (!existsSync(pdfPath) || statSync(pdfPath).mtimeMs < sourceM) {
           const { renderPdf, roleProfile } = await import('@seamster/docgen');

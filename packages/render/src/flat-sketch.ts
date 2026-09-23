@@ -1,5 +1,20 @@
-import { isSeamsterError, type CostLedger, type Logger, silentLogger } from '@seamster/core';
-import { CATEGORY_CLASS, categoryVisual, type Category } from '@seamster/kb';
+import {
+  isSeamsterError,
+  type CostLedger,
+  type Logger,
+  silentLogger,
+  OBSERVATION_KEYS,
+  observationEn,
+  observationRu,
+} from '@seamster/core';
+import { CATEGORY_CLASS, type Category } from '@seamster/kb';
+import {
+  acceptedCategories,
+  effectiveVisual,
+  shapeFingerprint,
+  sleeveLengthClass,
+  sleeveWords,
+} from './effective.js';
 import type { StyleSpec } from '@seamster/stylespec';
 import { generateImage, isImagesApiModel, type ReferenceImage } from './client.js';
 import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
@@ -23,7 +38,7 @@ import { MemoryRenderCache, renderKey, type RenderCache } from './cache.js';
  * и отвечает на то, чего не видно ни на одном из них: насколько глубок
  * капюшон, куда уходит боковой шов, как далеко вылетело плечо.
  */
-export const SKETCH_PROMPT_VERSION = 'v7';
+export const SKETCH_PROMPT_VERSION = 'v9';
 
 /** Что модель должна нарисовать, если узел есть в конструкции. */
 const NODE_ENGLISH: Record<string, string> = {
@@ -36,10 +51,13 @@ const NODE_ENGLISH: Record<string, string> = {
   cuff_rib: 'ribbed cuffs drawn with fine vertical lines',
   waistband_rib: 'a ribbed waistband drawn with fine vertical lines',
   neck_rib_band: 'a narrow ribbed neckband',
-  neck_binding: 'a bound neckline edge',
+  neck_binding: 'a narrow bound neckline edge about 1 cm wide, no standing collar or neckband',
   hem_coverstitch: 'a plain turned hem with a twin stitch line',
   sleeve_hem_coverstitch: 'coverstitched sleeve hems',
   zip_full_length: 'a full-length front zipper with a visible zipper tape and pull',
+  zip_set_in:
+    'a separating front zipper set into narrow plackets, with a visible zipper tape and pull',
+  zip_placket_topstitch: 'an edge stitch along each zipper placket',
   placket_buttonholes: 'a buttoned front placket',
   cardigan_placket:
     'the front open all the way down the centre with a full-length button placket band along each front edge',
@@ -80,6 +98,7 @@ const NODE_SIDE_ENGLISH: Record<string, string> = {
   sleeve_set_in: 'the armhole seam where the sleeve joins the body',
   side_sleeve_seam: 'one continuous seam running from the underarm down the side of the body',
   zip_full_length: 'the front zipper edge',
+  zip_set_in: 'the front zipper edge',
   cardigan_placket: 'the front placket band at the body edge',
   side_seam_plain: 'the side seam running from the underarm down to the hem',
   sleeve_set_in_woven: 'the armhole seam where the sleeve joins the body',
@@ -104,6 +123,19 @@ export interface SketchPromptOptions {
    * рисунок читается как другое изделие (ADR-0010).
    */
   fromPhoto?: boolean;
+  /**
+   * Правка фразой: снимки показывают ПРЕЖНЕЕ изделие, и лист рисуется
+   * с перечисленными изменениями. Без этой оговорки «нарисуй именно эту
+   * вещь» и «убери капюшон» противоречат друг другу, и модель слушается
+   * снимка. Фразы — по-английски, коротко, от интерпретатора правки.
+   */
+  changes?: readonly string[];
+  /**
+   * Второй проход: прошлый лист сторож отбраковал, и вот что на нём было не
+   * так. Снимки при этом — правда, а не «изделие до правки», поэтому это
+   * не changes: модели говорят, что именно она обязана нарисовать иначе.
+   */
+  corrections?: readonly string[];
 }
 
 /** Зона дизайн-признака словами художника: «sleeves», а не «sleeve». */
@@ -126,7 +158,8 @@ const DESIGN_ZONE_EN: Record<NonNullable<StyleSpec['design']>['features'][number
 
 export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions = {}): string {
   const category = spec.style.category as Category;
-  const garment = categoryVisual(category, spec.base.fabric_kind);
+  // Вещь называется тем, чем читается: худи без капюшона — свитшот.
+  const garment = effectiveVisual(spec);
   const fit = FIT_ENGLISH[spec.base.fit_intent] ?? 'regular';
 
   const nodes = spec.construction?.nodes ?? [];
@@ -223,21 +256,49 @@ export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions 
       ? `What defines this garment, as seen in the photographs — it takes precedence over the construction checklist below: ${defining.join('; ')}.`
       : `What defines this garment beyond the standard construction: ${defining.join('; ')}.`
     : '';
+  // Наблюдения по словарям — то, что взгляд выбрал из закрытого списка:
+  // горловина, застёжка, края, карман, рукав. Стоят выше чек-листа узлов
+  // и выше дизайн-признаков: это единственные слова, которые сторож потом
+  // сверит буквально.
+  const observed = observationLines(spec);
+  const observedLine = observed.length
+    ? `Observed on the garment and mandatory on the drawing: ${observed.join('; ')}.`
+    : '';
 
-  const identity = options.fromPhoto
-    ? [
-        'Reference photographs of the actual garment are attached.',
-        `Draw a technical flat sketch sheet of EXACTLY this garment, a ${fit} ${garment}: ${same.join(', ')} as in the photographs.`,
-        design,
-        'Do not restyle it: add nothing the photographs do not show and drop nothing they do.',
-        'The sheet shows THREE views of the SAME garment side by side in one row:',
-      ]
-    : [
-        `A technical flat sketch sheet showing THREE views of the SAME ${fit} ${garment}, side by side in one row:`,
-      ];
+  const changes = (options.changes ?? []).map((c) => c.trim()).filter(Boolean);
+  const corrections = (options.corrections ?? []).map((c) => c.trim()).filter(Boolean);
+  const correctionLine = corrections.length
+    ? `A previous drawing of this garment was rejected because it got these wrong — draw them exactly as stated this time: ${corrections.join('; ')}.`
+    : '';
+  const identity =
+    options.fromPhoto && changes.length
+      ? [
+          "Reference images of the garment BEFORE the change are attached: the designer's photographs and, if present, the previous technical flat sketch.",
+          `Draw a technical flat sketch sheet of this same ${fit} ${garment} WITH THESE CHANGES APPLIED: ${changes.join('; ')}.`,
+          'Everything not named in the changes stays exactly as in the reference images: ' +
+            same.join(', ') +
+            '.',
+          observedLine,
+          design,
+          'Apply only the listed changes; add nothing else and drop nothing else.',
+          'The sheet shows THREE views of the SAME garment side by side in one row:',
+        ]
+      : options.fromPhoto
+        ? [
+            'Reference photographs of the actual garment are attached.',
+            `Draw a technical flat sketch sheet of EXACTLY this garment, a ${fit} ${garment}: ${same.join(', ')} as in the photographs.`,
+            observedLine,
+            design,
+            'Do not restyle it: add nothing the photographs do not show and drop nothing they do.',
+            'The sheet shows THREE views of the SAME garment side by side in one row:',
+          ]
+        : [
+            `A technical flat sketch sheet showing THREE views of the SAME ${fit} ${garment}, side by side in one row:`,
+          ];
 
   return [
     ...identity,
+    correctionLine,
     // Колонки одной ширины с чистым просветом — не ради красоты: по просвету
     // лист режется на отдельные виды для обложки и листа на просчёт.
     'front view on the left, side profile view in the middle, back view on the right, each centred in its own equal-width column, with a clear white gutter between the columns and a common baseline.',
@@ -246,27 +307,36 @@ export function buildSketchPrompt(spec: StyleSpec, options: SketchPromptOptions 
     // четыреста пикселей — для обложки PDF этого мало.
     'The sheet is landscape, about three times wider than tall, and the three views fill its full height with only a small margin; no empty space above or below the garments.',
     'All three are the same garment at the same scale: identical body length, identical sleeve length, identical rib depth.',
-    options.fromPhoto
-      ? 'The construction on record is listed below as a checklist; where the photographs disagree with it, follow the photographs.'
-      : '',
+    options.fromPhoto && changes.length
+      ? 'The construction on record AFTER the change is listed below as a checklist; where the reference images disagree with it, the checklist wins — that is the change.'
+      : options.fromPhoto
+        ? 'The construction on record is listed below as a checklist; where the photographs disagree with it, follow the photographs.'
+        : '',
     'Front and back are laid flat and symmetrical; the side view is a narrow profile silhouette, roughly a third of the width of the front view, showing the garment from the left side with one sleeve hanging along the body.',
     'Pure black line drawing on plain white background, uniform line weight, no shading, no gradients, no fabric texture, no colour, no fill.',
     'Apparel industry CAD flat: closed outline, seam lines solid, topstitching shown as dashed lines.',
+    options.fromPhoto ? '' : observedLine,
     options.fromPhoto ? '' : design,
     front.length ? `Front shows: ${front.join(', ')}.` : '',
     side.length ? `Side profile shows: ${side.join(', ')}.` : '',
     backOnly.length ? `Back shows: ${backOnly.join(', ')}, and a plain back panel.` : '',
     shape,
     hem,
+    // Длина рукава — из табеля: после «рукав до локтя» узлы те же, а рукав другой.
+    sleeveWords(spec),
     'Centred, evenly spaced, no perspective, no mannequin, no person, no shadow, no text, no labels, no logo, no measurements.',
   ]
     .filter(Boolean)
     .join(' ');
 }
 
-/** Отпечаток: правка промпта или узлов меняет ключ, и эскиз пересобирается. */
+/**
+ * Отпечаток формы, для которой нарисован лист. Считается по узлам и признакам,
+ * а не по тексту промпта: правка формулировки для художника не делает
+ * нарисованную вещь другой.
+ */
 export function sketchFingerprint(spec: StyleSpec): string {
-  return `${SKETCH_PROMPT_VERSION}|${buildSketchPrompt(spec)}`;
+  return `shape:${shapeFingerprint(spec)}`;
 }
 
 // --------------------------------------------------------------- генерация
@@ -290,6 +360,9 @@ export interface SketchOptions {
    * бесплатно, но бессмысленно для человека, который просит другой вариант.
    */
   nonce?: string;
+  /** Правка фразой: изменения относительно опорных изображений. */
+  changes?: readonly string[];
+  corrections?: readonly string[];
 }
 
 /**
@@ -344,7 +417,11 @@ export async function flatSketch(
   // Цепочка запасных здесь не нужна: без эскиза документ живёт.
   const model = options.model ?? sketchModels()[0]!;
   const references = options.references ?? [];
-  const prompt = buildSketchPrompt(spec, { fromPhoto: references.length > 0 });
+  const prompt = buildSketchPrompt(spec, {
+    fromPhoto: references.length > 0,
+    ...(options.changes?.length ? { changes: options.changes } : {}),
+    ...(options.corrections?.length ? { corrections: options.corrections } : {}),
+  });
   const key = renderKey({
     prompt: `${SKETCH_PROMPT_VERSION}|${prompt}${options.nonce ? `|${options.nonce}` : ''}`,
     model,
@@ -441,7 +518,7 @@ export interface SketchChecklistItem {
  * о них нечего. Нумерация устойчивая: ответ взгляда сверяется по id.
  */
 export function sketchChecklist(spec: StyleSpec): SketchChecklistItem[] {
-  return (spec.design?.features ?? [])
+  const features = (spec.design?.features ?? [])
     .filter((f) => f.certainty !== 'low')
     .map((f, i) => ({
       id: `d${i + 1}`,
@@ -449,6 +526,69 @@ export function sketchChecklist(spec: StyleSpec): SketchChecklistItem[] {
       ru: f.ru,
       certainty: f.certainty as 'high' | 'medium',
     }));
+  // Наблюдения по словарям — тем же чек-листом: горловина, застёжка, края,
+  // карман, рукав. Уверенное наблюдение, которого на листе нет, — другая
+  // вещь, и лист бракуется; среднее — сомнение в примечание.
+  const obs = spec.design?.observations;
+  const observed: SketchChecklistItem[] = obs
+    ? OBSERVATION_KEYS.filter((key) => {
+        const o = obs[key];
+        return o.confidence !== 'low' && o.value !== 'not_visible' && o.value !== 'other';
+      }).map((key) => ({
+        id: `o_${key}`,
+        en: observationEn(key, obs[key].value),
+        ru: observationRu(key, obs[key].value),
+        certainty: obs[key].confidence as 'high' | 'medium',
+      }))
+    : [];
+  return [...observed, ...features];
+}
+
+/** Строки наблюдений для задания художнику — только уверенные и видимые. */
+export function observationLines(spec: StyleSpec): string[] {
+  const obs = spec.design?.observations;
+  if (!obs) return [];
+  return OBSERVATION_KEYS.filter((key) => {
+    const o = obs[key];
+    return o.confidence !== 'low' && o.value !== 'not_visible' && o.value !== 'other';
+  }).map((key) => observationEn(key, obs[key].value));
+}
+
+/**
+ * Что нарисовать иначе на втором проходе — по-английски, из тех же
+ * расхождений, по которым лист отбракован: категория, капюшон, застёжка,
+ * карман, длина рукава и пункты чек-листа с ответом «нет».
+ */
+export function sketchCorrections(spec: StyleSpec, seen: SketchSeen): string[] {
+  const out: string[] = [];
+  const nodes = new Set((spec.construction?.nodes ?? []).map((n) => n.node_id));
+  const has = (...ids: string[]): boolean => ids.some((id) => nodes.has(id));
+  if (!acceptedCategories(spec).includes(seen.category as Category))
+    out.push(`this is a ${effectiveVisual(spec)}, not a ${seen.category}`);
+  const wantHood = has('hood_set_in', 'hood_center_seam', 'hood_drawcord_casing');
+  if (wantHood !== seen.elements.hood) out.push(wantHood ? 'it has a hood' : 'it has no hood');
+  const wantZip = has('zip_full_length', 'zip_set_in');
+  if (!has('invisible_zip_back') && wantZip !== (seen.elements.closure === 'zip'))
+    out.push(wantZip ? 'it has a visible zipper' : 'it has no closure at all');
+  const wantPocket = has('kangaroo_pocket', 'patch_pocket');
+  if (wantPocket !== (seen.elements.pocket !== 'none'))
+    out.push(wantPocket ? 'it has a front pocket' : 'it has no pockets');
+  const byTable = sleeveLengthClass(spec);
+  const wantSleeve =
+    byTable === 'short' || byTable === 'long'
+      ? byTable
+      : byTable === 'three_quarter'
+        ? null
+        : SLEEVE_BY_CATEGORY[spec.style.category as Category];
+  if (wantSleeve && seen.elements.sleeve !== 'other' && seen.elements.sleeve !== wantSleeve)
+    out.push(
+      wantSleeve === 'none'
+        ? 'it is sleeveless'
+        : `the sleeves are ${wantSleeve === 'long' ? 'long, to the wrist' : 'short'}`,
+    );
+  const answers = new Map((seen.features ?? []).map((f) => [f.id, f.seen]));
+  for (const f of sketchChecklist(spec)) if (answers.get(f.id) === 'no') out.push(f.en);
+  return out.filter((x, i, all) => all.indexOf(x) === i);
 }
 
 /**
@@ -518,7 +658,11 @@ const SLEEVE_BY_CATEGORY: Record<Category, 'long' | 'short' | 'none' | null> = {
  */
 export function sketchMismatch(spec: StyleSpec, seen: SketchSeen): string | null {
   const category = spec.style.category as Category;
-  if (seen.category !== category) return `на эскизе ${seen.category}, а в спецификации ${category}`;
+  // Худи без капюшона читается свитшотом, и это верно: сторож принимает и
+  // заявленную категорию, и ту, которой вещь стала после правки.
+  const accepted = acceptedCategories(spec);
+  if (!accepted.includes(seen.category as Category))
+    return `на эскизе ${seen.category}, а в спецификации ${category}`;
 
   const nodes = new Set((spec.construction?.nodes ?? []).map((n) => n.node_id));
   const has = (...ids: string[]): boolean => ids.some((id) => nodes.has(id));
@@ -532,7 +676,7 @@ export function sketchMismatch(spec: StyleSpec, seen: SketchSeen): string | null
   // её на рисунке значит браковать верные листы, а считать лишней —
   // браковать те, где она нарисована правильно.
   const concealed = has('invisible_zip_back');
-  const wantZip = has('zip_full_length');
+  const wantZip = has('zip_full_length', 'zip_set_in');
   const seenZip = seen.elements.closure === 'zip';
   if (!concealed && wantZip !== seenZip)
     return wantZip ? 'на эскизе нет молнии' : 'на эскизе лишняя застёжка';
@@ -542,7 +686,16 @@ export function sketchMismatch(spec: StyleSpec, seen: SketchSeen): string | null
   if (wantPocket !== seenPocket)
     return wantPocket ? 'на эскизе нет кармана' : 'на эскизе лишний карман';
 
-  const wantSleeve = SLEEVE_BY_CATEGORY[category];
+  // Рукав — по табелю, если он там есть: категория говорит «длинный», а
+  // правка «рукав до локтя» уже укоротила T10. Три четверти не сверяются:
+  // взгляд отвечает «long» или «short», и оба ответа честны.
+  const byTable = sleeveLengthClass(spec);
+  const wantSleeve =
+    byTable === 'short' || byTable === 'long'
+      ? byTable
+      : byTable === 'three_quarter'
+        ? null
+        : SLEEVE_BY_CATEGORY[category];
   // 'other' — не приговор: взгляд так отвечает, когда не уверен, и городить
   // на неуверенности отказ значит терять хорошие эскизы.
   if (

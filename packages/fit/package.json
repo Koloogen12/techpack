@@ -11,9 +11,10 @@
     "@seamster/kb": "workspace:*",
     "@seamster/stylespec": "workspace:*",
     "zod": "^4.4.3",
-    "@seamster/i18n": "workspace:*"
+    "@seamster/i18n": "workspace:*",
+    "@seamster/assembly": "workspace:*",
+    "@anthropic-ai/sdk": "^0.120.0",
+    "@seamster/vision": "workspace:*"
   },
-  "devDependencies": {
-    "@seamster/assembly": "workspace:*"
-  }
+  "devDependencies": {}
 }

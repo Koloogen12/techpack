@@ -1,0 +1,263 @@
+{
+  "category": {
+    "value": "longsleeve",
+    "confidence": "medium",
+    "other_description": ""
+  },
+  "silhouette": {
+    "value": "semi_fitted",
+    "confidence": "medium"
+  },
+  "fabric": {
+    "woven_class": "unknown",
+    "surface": "matte",
+    "knit_class": "single_jersey",
+    "confidence": "low",
+    "is_knit": true
+  },
+  "proportions": [
+    {
+      "pom_code": "T01",
+      "ratio_to_chest": 1.85,
+      "confidence": "medium",
+      "reason": "Плечевая точка до низа, тело узкое"
+    },
+    {
+      "pom_code": "T04",
+      "ratio_to_chest": 0.95,
+      "confidence": "medium",
+      "reason": "Лёгкое сужение в талии на раскладке"
+    },
+    {
+      "pom_code": "T05",
+      "ratio_to_chest": 0.98,
+      "confidence": "medium",
+      "reason": "Низ почти равен груди, край подшит"
+    },
+    {
+      "pom_code": "T06",
+      "ratio_to_chest": 1.05,
+      "confidence": "low",
+      "reason": "Плечевой шов нечёткий, силуэт сливается"
+    },
+    {
+      "pom_code": "T07",
+      "ratio_to_chest": 0.9,
+      "confidence": "low",
+      "reason": "Пройма читается по силуэту, не по шву"
+    },
+    {
+      "pom_code": "T09",
+      "ratio_to_chest": 0.45,
+      "confidence": "low",
+      "reason": "Хорда оценена, шов проймы неразличим"
+    },
+    {
+      "pom_code": "T10",
+      "ratio_to_chest": 1.8,
+      "confidence": "medium",
+      "reason": "По верхнему сгибу рукава до манжеты"
+    },
+    {
+      "pom_code": "T12",
+      "ratio_to_chest": 0.32,
+      "confidence": "medium",
+      "reason": "Рукав узкий, замер ниже проймы"
+    },
+    {
+      "pom_code": "T13",
+      "ratio_to_chest": 0.23,
+      "confidence": "medium",
+      "reason": "Край рукава в плоском виде"
+    },
+    {
+      "pom_code": "T14",
+      "ratio_to_chest": 0.47,
+      "confidence": "low",
+      "reason": "Линия втачивания видна частично"
+    },
+    {
+      "pom_code": "T15",
+      "ratio_to_chest": 0.12,
+      "confidence": "low",
+      "reason": "Вырез мелкий, молния искажает край"
+    }
+  ],
+  "observations": {
+    "neckline": {
+      "value": "crew_binding",
+      "confidence": "medium"
+    },
+    "closure": {
+      "value": "zip_asymmetric",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "turned_hem",
+      "confidence": "medium"
+    },
+    "hem": {
+      "value": "turned_hem",
+      "confidence": "medium"
+    },
+    "pocket": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "set_in",
+      "confidence": "medium"
+    },
+    "sleeve_length": {
+      "value": "long",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "no",
+      "confidence": "high"
+    }
+  },
+  "visible_elements": [
+    {
+      "key": "neckline_type",
+      "value": "круглый вырез, узкая окантовка",
+      "confidence": "medium"
+    },
+    {
+      "key": "closure_type",
+      "value": "металлическая молния по диагонали от горловины",
+      "confidence": "high"
+    },
+    {
+      "key": "fabric_class",
+      "value": "тонкое гладкое трикотажное полотно",
+      "confidence": "low"
+    },
+    {
+      "key": "cuff_type",
+      "value": "подгибка низа рукава, отдельной детали нет",
+      "confidence": "medium"
+    },
+    {
+      "key": "waistband_type",
+      "value": "подгибка низа, пояса-рибаны нет",
+      "confidence": "medium"
+    },
+    {
+      "key": "topstitch_rows",
+      "value": "строчки не читаются на чёрном",
+      "confidence": "low"
+    }
+  ],
+  "design_features": [
+    {
+      "zone": "closure",
+      "en": "asymmetric silver metal zipper running diagonally from right neckline across chest, contrast against black knit",
+      "ru": "асимметричная серебристая молния по диагонали от горловины через грудь",
+      "confidence": "high"
+    },
+    {
+      "zone": "neckline",
+      "en": "contrast silver zipper tape edging along right neckline, visible as light line",
+      "ru": "светлая тесьма молнии по правой стороне горловины",
+      "confidence": "medium"
+    },
+    {
+      "zone": "bodice",
+      "en": "narrow body-skimming fit with slight waist suppression",
+      "ru": "узкий корпус с лёгким прилеганием по талии",
+      "confidence": "medium"
+    }
+  ],
+  "topstitching": [
+    {
+      "location": "neckline",
+      "rows": 0,
+      "confidence": "low"
+    },
+    {
+      "location": "hem",
+      "rows": 0,
+      "confidence": "low"
+    },
+    {
+      "location": "sleeve_hem",
+      "rows": 0,
+      "confidence": "low"
+    }
+  ],
+  "colorways": [
+    {
+      "name_ru": "чёрный",
+      "hex_approx": "#0E0E0E"
+    }
+  ],
+  "not_visible": [
+    {
+      "key": "internal_edge_finish",
+      "reason": "только лицевая сторона"
+    },
+    {
+      "key": "seam_reverse",
+      "reason": "изнанка не снята"
+    },
+    {
+      "key": "interlining",
+      "reason": "скрыто внутри"
+    },
+    {
+      "key": "shoulder_reinforcement",
+      "reason": "скрыто внутри"
+    },
+    {
+      "key": "seam_allowances",
+      "reason": "изнанка не снята"
+    },
+    {
+      "key": "hem_depth",
+      "reason": "подгибка видна только с лица"
+    },
+    {
+      "key": "lining",
+      "reason": "не видно"
+    },
+    {
+      "key": "fabric_weight",
+      "reason": "не определяется по фото"
+    },
+    {
+      "key": "shrinkage",
+      "reason": "не определяется по фото"
+    },
+    {
+      "key": "stretch",
+      "reason": "не определяется по фото"
+    },
+    {
+      "key": "threads",
+      "reason": "чёрный на чёрном"
+    },
+    {
+      "key": "size_label",
+      "reason": "изнанка не снята"
+    },
+    {
+      "key": "back",
+      "reason": "вид спинки отсутствует"
+    }
+  ],
+  "scale_object": {
+    "kind": "none",
+    "side": "long_side",
+    "ratio_to_anchor": 0,
+    "coplanar": false,
+    "confidence": "high",
+    "reason": "В кадре только изделие на фоне"
+  },
+  "photo_quality_notes": [
+    "Чёрное полотно скрывает швы и строчки",
+    "Один кадр, спинки и деталей нет",
+    "Изделие мелко в кадре, детали теряются",
+    "Фактура полотна не читается"
+  ]
+}

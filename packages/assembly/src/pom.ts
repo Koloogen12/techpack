@@ -99,6 +99,11 @@ export function photoRatiosFrom(
 
 export interface PomInput {
   category: Category;
+  /**
+   * Класс полотна с фото (идентификатор материала справочника). Рубчик тянется
+   * и меряется в свободном состоянии: якорь из сетки для него уже.
+   */
+  fabric_class?: string;
   gender: Gender;
   base_size_ru: number;
   base_height_cm: Centimeters;
@@ -192,6 +197,13 @@ const REFERENCE_CHEST_HALF = 46;
 /** Размер, к которому привязан эталон шагов. Тот же, от которого считается REFERENCE_CHEST_HALF. */
 const REFERENCE_SIZE_RU = 46;
 
+/**
+ * На сколько рубчик в свободном состоянии уже сетки. Инженерная оценка по
+ * типовому кашкорсе 2×2 и рибане 1×1: растяжимость 30–60 %, носится с
+ * отрицательной прибавкой. Калибруется по образцам (RAT-3), пока — константа.
+ */
+export const RIB_RELAXED_SHARE = 0.12;
+
 export function buildMeasurements(input: PomInput, base: KnowledgeBase = defaultKb()): PomResult {
   const notes: string[] = [];
   const template = base.pomTemplate(input.category, input.fabric_kind);
@@ -271,7 +283,18 @@ export function buildMeasurements(input: PomInput, base: KnowledgeBase = default
 
   // Прибавка задана как ПОЛНЫЙ обхват изделия минус обхват тела,
   // а якорь — половинный замер: делим на два ровно один раз.
-  const anchorFromChart = (girth + ease.entry.default) / 2;
+  // Рубчик (кашкорсе, рибана) в свободном состоянии заметно уже той же
+  // вещи из кулирки: полотно тянется на теле, а меряется без натяжения
+  // (ГОСТ 4103-82 — изделие расправлено, не растянуто). Сетка и прибавка
+  // считаны для нетянущегося полотна, поэтому якорь для рубчика меньше.
+  const rib = /^rib_/.test(input.fabric_class ?? '');
+  const anchorFromChart = ((girth + ease.entry.default) / 2) * (rib ? 1 - RIB_RELAXED_SHARE : 1);
+  if (rib)
+    notes.push(
+      `Полотно в рубчик: ширина по груди в свободном состоянии взята на ` +
+        `${Math.round(RIB_RELAXED_SHARE * 100)}% уже сетки — рубчик тянется на теле, а ` +
+        `меряется без натяжения (ГОСТ 4103-82). Один замер по образцу уточнит масштаб.`,
+    );
 
   // Предмет известного размера в кадре, если он там был, задаёт масштаб
   // ИЗМЕРЕНИЕМ, а не расчётом от заявленного размера.

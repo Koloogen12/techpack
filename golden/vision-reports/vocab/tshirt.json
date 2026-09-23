@@ -1,0 +1,313 @@
+{
+  "category": {
+    "value": "tshirt",
+    "confidence": "high",
+    "other_description": ""
+  },
+  "silhouette": {
+    "value": "semi_fitted",
+    "confidence": "medium"
+  },
+  "fabric": {
+    "woven_class": "unknown",
+    "surface": "matte",
+    "knit_class": "single_jersey",
+    "confidence": "medium",
+    "is_knit": true
+  },
+  "proportions": [
+    {
+      "pom_code": "T01",
+      "ratio_to_chest": 1.48,
+      "confidence": "medium",
+      "reason": "от HPS до низа, плоская раскладка"
+    },
+    {
+      "pom_code": "T03",
+      "ratio_to_chest": 1,
+      "confidence": "high",
+      "reason": "опорная величина, края чётко видны"
+    },
+    {
+      "pom_code": "T04",
+      "ratio_to_chest": 0.96,
+      "confidence": "medium",
+      "reason": "бок почти прямой, талия условна"
+    },
+    {
+      "pom_code": "T05",
+      "ratio_to_chest": 0.98,
+      "confidence": "medium",
+      "reason": "низ чуть уже груди"
+    },
+    {
+      "pom_code": "T06",
+      "ratio_to_chest": 0.88,
+      "confidence": "medium",
+      "reason": "плечевые точки читаются слабо"
+    },
+    {
+      "pom_code": "T07",
+      "ratio_to_chest": 0.8,
+      "confidence": "low",
+      "reason": "проймы спереди без чёткой отметки"
+    },
+    {
+      "pom_code": "T09",
+      "ratio_to_chest": 0.45,
+      "confidence": "low",
+      "reason": "хорда оценочно, шов проймы слабо виден"
+    },
+    {
+      "pom_code": "T10",
+      "ratio_to_chest": 0.34,
+      "confidence": "medium",
+      "reason": "по верхнему сгибу до края рукава"
+    },
+    {
+      "pom_code": "T12",
+      "ratio_to_chest": 0.39,
+      "confidence": "medium",
+      "reason": "ширина рукава под проймой, плоско"
+    },
+    {
+      "pom_code": "T13",
+      "ratio_to_chest": 0.34,
+      "confidence": "medium",
+      "reason": "край рукава без растяжения"
+    },
+    {
+      "pom_code": "T14",
+      "ratio_to_chest": 0.36,
+      "confidence": "medium",
+      "reason": "по линии втачивания бейки"
+    },
+    {
+      "pom_code": "T15",
+      "ratio_to_chest": 0.16,
+      "confidence": "medium",
+      "reason": "от линии плеч до шва переда"
+    },
+    {
+      "pom_code": "T17",
+      "ratio_to_chest": 0.035,
+      "confidence": "medium",
+      "reason": "бейка узкая, край чёткий"
+    },
+    {
+      "pom_code": "T18",
+      "ratio_to_chest": 0.06,
+      "confidence": "low",
+      "reason": "наклон оценён по контуру плеча"
+    }
+  ],
+  "observations": {
+    "neckline": {
+      "value": "crew_rib_band",
+      "confidence": "high"
+    },
+    "closure": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "turned_hem",
+      "confidence": "high"
+    },
+    "hem": {
+      "value": "turned_hem",
+      "confidence": "high"
+    },
+    "pocket": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "set_in",
+      "confidence": "high"
+    },
+    "sleeve_length": {
+      "value": "short",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "no",
+      "confidence": "high"
+    }
+  },
+  "visible_elements": [
+    {
+      "key": "neckline_type",
+      "value": "Бейка-риб кольцом, заметной высоты",
+      "confidence": "high"
+    },
+    {
+      "key": "topstitch_rows",
+      "value": "Низ и низ рукава: две строчки",
+      "confidence": "high"
+    },
+    {
+      "key": "topstitch_width",
+      "value": "Узкая, примерно ширина шва горловины",
+      "confidence": "medium"
+    },
+    {
+      "key": "cuff_type",
+      "value": "Подгибка, отдельной детали нет",
+      "confidence": "high"
+    },
+    {
+      "key": "waistband_type",
+      "value": "Подгибка низа, пояса нет",
+      "confidence": "high"
+    },
+    {
+      "key": "closure_type",
+      "value": "Без застёжки, через голову",
+      "confidence": "high"
+    },
+    {
+      "key": "pocket_type",
+      "value": "Карманов не видно",
+      "confidence": "high"
+    },
+    {
+      "key": "fabric_class",
+      "value": "Кулирка, гладкая ровная поверхность",
+      "confidence": "medium"
+    },
+    {
+      "key": "shoulder_seam",
+      "value": "Плечевой шов с отстрочкой, возможна тесьма",
+      "confidence": "medium"
+    },
+    {
+      "key": "drawcord",
+      "value": "Отсутствует",
+      "confidence": "high"
+    },
+    {
+      "key": "eyelets",
+      "value": "Отсутствуют",
+      "confidence": "high"
+    },
+    {
+      "key": "flatlock_seam",
+      "value": "Не наблюдается",
+      "confidence": "medium"
+    }
+  ],
+  "design_features": [],
+  "topstitching": [
+    {
+      "location": "hem",
+      "rows": 2,
+      "confidence": "high"
+    },
+    {
+      "location": "sleeve_hem",
+      "rows": 2,
+      "confidence": "high"
+    },
+    {
+      "location": "neckline",
+      "rows": 1,
+      "confidence": "medium"
+    },
+    {
+      "location": "shoulder",
+      "rows": 1,
+      "confidence": "medium"
+    }
+  ],
+  "colorways": [
+    {
+      "name_ru": "Приглушённый шалфейно-зелёный",
+      "hex_approx": "#7C9B85"
+    }
+  ],
+  "not_visible": [
+    {
+      "key": "internal_edge_finish",
+      "reason": "Изнанка не снята"
+    },
+    {
+      "key": "seam_reverse",
+      "reason": "Изнанка не снята"
+    },
+    {
+      "key": "hem_depth",
+      "reason": "Подгибка видна только снаружи"
+    },
+    {
+      "key": "shoulder_reinforcement",
+      "reason": "Внутренняя тесьма не видна"
+    },
+    {
+      "key": "seam_allowances",
+      "reason": "Скрыто внутри"
+    },
+    {
+      "key": "fabric_weight",
+      "reason": "По фото не определяется"
+    },
+    {
+      "key": "shrinkage",
+      "reason": "По фото не определяется"
+    },
+    {
+      "key": "stretch",
+      "reason": "По фото не определяется"
+    },
+    {
+      "key": "threads",
+      "reason": "Номер нити не читается"
+    },
+    {
+      "key": "size_label",
+      "reason": "Спинка и изнанка не сняты"
+    },
+    {
+      "key": "interlining",
+      "reason": "Скрыто внутри"
+    },
+    {
+      "key": "back_neck_tape",
+      "reason": "Спинка не снята"
+    },
+    {
+      "key": "T02",
+      "reason": "Спинка не снята"
+    },
+    {
+      "key": "T08",
+      "reason": "Спинка не снята"
+    },
+    {
+      "key": "T11",
+      "reason": "Спинка не снята"
+    },
+    {
+      "key": "T16",
+      "reason": "Спинка не снята"
+    },
+    {
+      "key": "T18",
+      "reason": "Ракурс не даёт наклон плеча"
+    }
+  ],
+  "scale_object": {
+    "kind": "none",
+    "side": "long_side",
+    "ratio_to_anchor": 0,
+    "coplanar": false,
+    "confidence": "high",
+    "reason": "в кадре только изделие на фоне"
+  },
+  "photo_quality_notes": [
+    "Только один вид — перед",
+    "Свет ровный, бликов нет",
+    "Изделие разложено аккуратно, мелких заломов мало",
+    "Края рукавов слегка подвёрнуты при раскладке"
+  ]
+}

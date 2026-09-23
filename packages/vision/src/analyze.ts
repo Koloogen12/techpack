@@ -21,6 +21,7 @@ import {
 import {
   ProportionsPartSchema,
   StructurePartSchema,
+  VisionModelSchema,
   VisionReportSchema,
   type VisionReport,
 } from './report.js';
@@ -287,7 +288,7 @@ async function analyzeViaProxy(
   base: KnowledgeBase,
   logger: Logger,
 ): Promise<VisionReport> {
-  const schema = JSON.stringify(z.toJSONSchema(VisionReportSchema));
+  const schema = JSON.stringify(z.toJSONSchema(VisionModelSchema));
   const instruction =
     `Ответь ЕДИНСТВЕННЫМ JSON-объектом, строго по этой JSON-схеме, ` +
     `без пояснений до или после и без markdown-ограждений:\n${schema}`;
@@ -348,7 +349,7 @@ async function analyzeViaProxy(
       continue;
     }
     try {
-      return VisionReportSchema.parse(JSON.parse(text.slice(start, end + 1)));
+      return VisionModelSchema.parse(JSON.parse(text.slice(start, end + 1)));
     } catch (cause) {
       lastError = String(cause).slice(0, 400);
       logger.warn('vision(proxy): не сошлось со схемой, повтор', {

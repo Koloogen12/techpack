@@ -1,0 +1,350 @@
+{
+  "category": {
+    "value": "hoodie",
+    "confidence": "high",
+    "other_description": ""
+  },
+  "silhouette": {
+    "value": "loose",
+    "confidence": "medium"
+  },
+  "fabric": {
+    "woven_class": "unknown",
+    "surface": "matte",
+    "knit_class": "french_terry_2t",
+    "confidence": "medium",
+    "is_knit": true
+  },
+  "proportions": [
+    {
+      "pom_code": "T01",
+      "ratio_to_chest": 1.4,
+      "confidence": "medium",
+      "reason": "плечевая точка до низа, край рибаны"
+    },
+    {
+      "pom_code": "T04",
+      "ratio_to_chest": 0.97,
+      "confidence": "medium",
+      "reason": "корпус почти прямой, талия условна"
+    },
+    {
+      "pom_code": "T05",
+      "ratio_to_chest": 0.95,
+      "confidence": "medium",
+      "reason": "по нижнему краю пояса, без растяжения"
+    },
+    {
+      "pom_code": "T06",
+      "ratio_to_chest": 0.95,
+      "confidence": "medium",
+      "reason": "спущенное плечо, швы видны спереди"
+    },
+    {
+      "pom_code": "T07",
+      "ratio_to_chest": 0.85,
+      "confidence": "low",
+      "reason": "высота отмерена на глаз"
+    },
+    {
+      "pom_code": "T09",
+      "ratio_to_chest": 0.46,
+      "confidence": "low",
+      "reason": "хорда, шов проймы читается слабо"
+    },
+    {
+      "pom_code": "T10",
+      "ratio_to_chest": 1.05,
+      "confidence": "medium",
+      "reason": "рукав по диагонали, ракурс укорачивает"
+    },
+    {
+      "pom_code": "T12",
+      "ratio_to_chest": 0.34,
+      "confidence": "low",
+      "reason": "рукав под углом, замер приблизителен"
+    },
+    {
+      "pom_code": "T13",
+      "ratio_to_chest": 0.2,
+      "confidence": "medium",
+      "reason": "манжета сложена, без растяжения"
+    },
+    {
+      "pom_code": "T14",
+      "ratio_to_chest": 0.45,
+      "confidence": "low",
+      "reason": "линия втачивания капюшона перекрыта"
+    },
+    {
+      "pom_code": "T18",
+      "ratio_to_chest": 0.08,
+      "confidence": "low",
+      "reason": "наклон плеча в раскладке сглажен"
+    },
+    {
+      "pom_code": "H01",
+      "ratio_to_chest": 0.56,
+      "confidence": "medium",
+      "reason": "от шва втачивания до верха капюшона"
+    },
+    {
+      "pom_code": "H02",
+      "ratio_to_chest": 0.6,
+      "confidence": "low",
+      "reason": "капюшон объёмный, ширина завышена"
+    },
+    {
+      "pom_code": "H03",
+      "ratio_to_chest": 1,
+      "confidence": "medium",
+      "reason": "лицевой край по кривой, угол-угол"
+    },
+    {
+      "pom_code": "H04",
+      "ratio_to_chest": 0.54,
+      "confidence": "high",
+      "reason": "верхний край кармана чётко виден"
+    },
+    {
+      "pom_code": "H05",
+      "ratio_to_chest": 0.4,
+      "confidence": "medium",
+      "reason": "низ кармана уходит в пояс"
+    },
+    {
+      "pom_code": "H06",
+      "ratio_to_chest": 0.3,
+      "confidence": "medium",
+      "reason": "диагональный вход читается по отстрочке"
+    },
+    {
+      "pom_code": "H07",
+      "ratio_to_chest": 0.09,
+      "confidence": "high",
+      "reason": "пояс-рибана, шов притачивания виден"
+    },
+    {
+      "pom_code": "H08",
+      "ratio_to_chest": 0.09,
+      "confidence": "medium",
+      "reason": "манжета видна, край слегка смят"
+    }
+  ],
+  "observations": {
+    "neckline": {
+      "value": "hood",
+      "confidence": "high"
+    },
+    "closure": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "hem": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "pocket": {
+      "value": "kangaroo",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "dropped",
+      "confidence": "medium"
+    },
+    "sleeve_length": {
+      "value": "long",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "yes",
+      "confidence": "high"
+    }
+  },
+  "visible_elements": [
+    {
+      "key": "neckline_type",
+      "value": "капюшон, двухпанельный, шов по центру верха",
+      "confidence": "high"
+    },
+    {
+      "key": "drawcord",
+      "value": "плоский шнур в кулиске, цвет основной",
+      "confidence": "high"
+    },
+    {
+      "key": "eyelets",
+      "value": "металлические люверсы по центру переда",
+      "confidence": "medium"
+    },
+    {
+      "key": "pocket_type",
+      "value": "кенгуру, диагональные входы",
+      "confidence": "high"
+    },
+    {
+      "key": "cuff_type",
+      "value": "риб-манжета отдельной деталью",
+      "confidence": "high"
+    },
+    {
+      "key": "waistband_type",
+      "value": "пояс-рибана отдельной деталью",
+      "confidence": "high"
+    },
+    {
+      "key": "closure_type",
+      "value": "без застёжки, через голову",
+      "confidence": "high"
+    },
+    {
+      "key": "topstitch_rows",
+      "value": "одна строчка по лицевому краю капюшона",
+      "confidence": "medium"
+    },
+    {
+      "key": "fabric_class",
+      "value": "футер, лицо гладкое с мелким зерном",
+      "confidence": "medium"
+    },
+    {
+      "key": "flatlock_seam",
+      "value": "не наблюдается",
+      "confidence": "medium"
+    },
+    {
+      "key": "topstitch_width",
+      "value": "узкая, близко к краю",
+      "confidence": "low"
+    }
+  ],
+  "design_features": [
+    {
+      "zone": "shoulder",
+      "en": "pronounced curved yoke seam from neckline to underarm, self fabric, tonal",
+      "ru": "выраженный изогнутый шов кокетки от горловины к пройме, из основного полотна",
+      "confidence": "medium"
+    },
+    {
+      "zone": "sleeve",
+      "en": "dropped shoulder with seam set well below shoulder point",
+      "ru": "спущенное плечо, шов заметно ниже плечевой точки",
+      "confidence": "medium"
+    },
+    {
+      "zone": "pocket",
+      "en": "kangaroo pocket with steep diagonal entries, self fabric",
+      "ru": "карман кенгуру с крутыми диагональными входами, основное полотно",
+      "confidence": "high"
+    }
+  ],
+  "topstitching": [
+    {
+      "location": "neckline",
+      "rows": 1,
+      "confidence": "medium"
+    },
+    {
+      "location": "pocket",
+      "rows": 1,
+      "confidence": "medium"
+    },
+    {
+      "location": "shoulder",
+      "rows": 1,
+      "confidence": "low"
+    },
+    {
+      "location": "hem",
+      "rows": 0,
+      "confidence": "medium"
+    },
+    {
+      "location": "sleeve_hem",
+      "rows": 0,
+      "confidence": "medium"
+    }
+  ],
+  "colorways": [
+    {
+      "name_ru": "пыльно-синий",
+      "hex_approx": "#6B82A0"
+    }
+  ],
+  "not_visible": [
+    {
+      "key": "internal_edge_finish",
+      "reason": "виден только лицевой вид"
+    },
+    {
+      "key": "seam_reverse",
+      "reason": "изнанка не снята"
+    },
+    {
+      "key": "pocket_bag",
+      "reason": "скрыто внутри"
+    },
+    {
+      "key": "seam_allowances",
+      "reason": "изнанка не снята"
+    },
+    {
+      "key": "hem_depth",
+      "reason": "подгибка внутри"
+    },
+    {
+      "key": "lining",
+      "reason": "не снято изнутри"
+    },
+    {
+      "key": "fabric_weight",
+      "reason": "не определяется по фото"
+    },
+    {
+      "key": "shrinkage",
+      "reason": "нужен тест образца"
+    },
+    {
+      "key": "stretch",
+      "reason": "нужен образец"
+    },
+    {
+      "key": "threads",
+      "reason": "тон в тон, не читается"
+    },
+    {
+      "key": "size_label",
+      "reason": "нет кадра изнутри"
+    },
+    {
+      "key": "shoulder_reinforcement",
+      "reason": "скрыто внутри"
+    },
+    {
+      "key": "interlining",
+      "reason": "скрыто внутри"
+    },
+    {
+      "key": "back",
+      "reason": "спинка не снята"
+    }
+  ],
+  "scale_object": {
+    "kind": "none",
+    "side": "long_side",
+    "ratio_to_anchor": 0,
+    "coplanar": false,
+    "confidence": "high",
+    "reason": "в кадре только изделие на фоне"
+  },
+  "photo_quality_notes": [
+    "Только один вид — перед, плоская раскладка",
+    "Ровный свет, бликов нет — полотно матовое",
+    "Спинка, изнанка и капюшон внутри не показаны",
+    "Люверсы мелкие, тип фурнитуры уточнить по образцу"
+  ]
+}

@@ -92,6 +92,12 @@ export interface FlatPaths {
   seams: SeamLine[];
   /** Отделочные строчки. Каждая линия — одна реальная строчка. */
   stitches: SeamLine[];
+  /**
+   * Односторонние линии — рисуются один раз, без зеркала: асимметричная
+   * молния лежит на одной стороне переда, и зеркало нарисовало бы крест.
+   * Швы и строчки в одной паре списков.
+   */
+  single: { seams: SeamLine[]; stitches: SeamLine[] };
   /** Рубчик отделочных деталей — условное обозначение рибаны. */
   ribs: string[];
   /** Капюшон: контур, лицевой край, люверс. Пусто, если капюшона нет. */
@@ -264,6 +270,7 @@ export function buildPaths(
   // сам край, и он уже нарисован контуром. Второй раз его не проводим,
   // но линия узла нужна: пройму окантовывают, и это операция.
   const seams: SeamLine[] = [{ id: 'armhole', d: `${M(g.shoulderPoint)} ${armhole}` }];
+  const single: FlatPaths['single'] = { seams: [], stitches: [] };
 
   // Шов втачивания бейки — тот же эллипс с полуосями, увеличенными на высоту
   // бейки. Бейки может не быть вовсе: у худи горловина закрыта капюшоном,
@@ -456,7 +463,21 @@ export function buildPaths(
   // Молния идёт по центру переда от горловины до низа, планка — полосой
   // вдоль неё. Рисуется только на переде: со спины застёжки не видно, и
   // линия там означала бы шов, которого нет.
-  if (view === 'front' && m.zipPlacketWidth !== undefined) {
+  if (view === 'front' && m.zipPlacketWidth !== undefined && m.zipPath === 'asymmetric') {
+    // Асимметричная молния: от края горловины по диагонали к боковому шву
+    // ниже проймы. Ход схематичный — точный рисует эскиз по фото; схема
+    // показывает, что застёжка не по центру, и где она кончается.
+    const start = { x: -m.neckWidth / 2, y: neckDrop * 0.35 };
+    const end = { x: g.underarm.x, y: g.underarm.y + (g.hem.y - g.underarm.y) * 0.45 };
+    const len = Math.hypot(end.x - start.x, end.y - start.y) || 1;
+    const nx = (-(end.y - start.y) / len) * m.zipPlacketWidth;
+    const ny = ((end.x - start.x) / len) * m.zipPlacketWidth;
+    single.seams.push({ id: 'zip_line', d: `${M(start)} L ${f(end.x)} ${f(end.y)}` });
+    single.stitches.push({
+      id: 'zip_stitch',
+      d: `${M({ x: start.x + nx, y: start.y + ny })} L ${f(end.x + nx)} ${f(end.y + ny)}`,
+    });
+  } else if (view === 'front' && m.zipPlacketWidth !== undefined) {
     const top = neckDrop;
     const bottom = g.hem.y;
     seams.push({ id: 'zip_line', d: `${M({ x: 0, y: top })} L 0 ${f(bottom)}` });
@@ -576,6 +597,7 @@ export function buildPaths(
       outline,
       seams,
       stitches,
+      single,
       ribs,
       hood,
       parts: [],

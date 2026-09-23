@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CATEGORIES } from '@seamster/kb';
+import { ObservationsSchema } from './observations.js';
 
 /**
  * VisionReport — строго типизированный выход анализа фото.
@@ -15,7 +16,7 @@ import { CATEGORIES } from '@seamster/kb';
  */
 
 /** Версия схемы отчёта. Входит в ключ кэша: смена схемы = смена ключа. */
-export const VISION_SCHEMA_VERSION = '5';
+export const VISION_SCHEMA_VERSION = '6';
 
 export const VisionConfidenceSchema = z.enum(['high', 'medium', 'low']);
 export type VisionConfidence = z.infer<typeof VisionConfidenceSchema>;
@@ -128,6 +129,15 @@ export const VisionReportSchema = z.object({
     }),
   ),
 
+  /**
+   * Наблюдения по закрытым словарям — главный ответ (packages/core/src/observations.ts).
+   *
+   * Необязательно ТОЛЬКО ради старых отчётов в кэше и голден-наборе: модели
+   * поле объявляется обязательным (VisionModelSchema). Без него сборка
+   * читает свободный текст visible_elements регулярками — путь второго сорта.
+   */
+  observations: ObservationsSchema.optional(),
+
   /** Конструктивные элементы, которые видно. Каждый — с уверенностью. */
   visible_elements: z.array(
     z.object({
@@ -225,11 +235,15 @@ export const VisionReportSchema = z.object({
 
 export type VisionReport = z.infer<typeof VisionReportSchema>;
 
+/** Схема для МОДЕЛИ: словари обязательны. Хранение и старые отчёты — по VisionReportSchema. */
+export const VisionModelSchema = VisionReportSchema.required({ observations: true });
+
 /** Половина отчёта: структура и видимость — всё, кроме пропорций. */
-export const StructurePartSchema = VisionReportSchema.pick({
+export const StructurePartSchema = VisionModelSchema.pick({
   category: true,
   silhouette: true,
   fabric: true,
+  observations: true,
   visible_elements: true,
   design_features: true,
   topstitching: true,
@@ -238,7 +252,7 @@ export const StructurePartSchema = VisionReportSchema.pick({
   photo_quality_notes: true,
 });
 /** Половина отчёта: пропорции и опорный предмет. */
-export const ProportionsPartSchema = VisionReportSchema.pick({
+export const ProportionsPartSchema = VisionModelSchema.pick({
   proportions: true,
   scale_object: true,
 });

@@ -271,12 +271,111 @@ else
 fi
 
 step "13u. журнал списаний: генерация записана строкой, данные забираются архивом"
-led=$(curl -s -H "$H" "$BASE/me" | python3 -c "import json,sys; L=json.load(sys.stdin).get('limits',{}).get('ledger',[]); e=[x for x in L if x.get('job')=='$ID']; print((e[0]['kind']+':'+str(e[0]['delta'])) if e else 'none')" 2>/dev/null)
+# Перерисовка и правки тоже пишут строки (нулём); строка за пак — та, что 'generation'.
+led=$(curl -s -H "$H" "$BASE/me" | python3 -c "import json,sys; L=json.load(sys.stdin).get('limits',{}).get('ledger',[]); e=[x for x in L if x.get('job')=='$ID' and x.get('kind')=='generation']; print((e[0]['kind']+':'+str(e[0]['delta'])) if e else 'none')" 2>/dev/null)
 exp=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' -H "$H" "$BASE/me/export")
 case "$led|$exp" in
   generation:-1\|200*gzip*) ok "(строка −1 за пак, архив отдан)" ;;
   *) bad "журнал: $led · архив: $exp" ;;
 esac
+
+step "13v. версии спеки: правка замера пишет версию, Ctrl+Z на сервере её отменяет"
+curl -s -o /dev/null -X PATCH -H "$H" -H 'content-type: application/json' -d '{"code":"T01","value_cm":70}' $BASE/jobs/$ID/measurements
+vn=$(curl -s -H "$H" $BASE/jobs/$ID/versions | python3 -c "import json,sys; v=json.load(sys.stdin)['versions']; print(len(v), v[-1]['reason_ru'][:12])" 2>/dev/null)
+u=$(curl -s -X POST -H "$H" $BASE/jobs/$ID/versions/undo | python3 -c "
+import json,sys; d=json.load(sys.stdin)
+t01=[p for p in d['spec']['measurements']['points'] if p['code']=='T01'][0]['base']['value']
+print(d.get('ok'), t01 != 70, d.get('undone_ru','')[:12])" 2>/dev/null)
+case "$vn|$u" in
+  [2-9]*Замер*\|True\ True\ Замер*) ok "(версий: ${vn%% *}, откат вернул T01)" ;;
+  *) bad "версии: $vn · отмена: $u" ;;
+esac
+
+step "13w. устаревание: отметка «проверено» помнит отпечаток раздела, правка его снимает"
+curl -s -o /dev/null -X POST -H "$H" -H 'content-type: application/json' -d '{"section":"pom"}' $BASE/jobs/$ID/reviewed
+curl -s -o /dev/null -X PATCH -H "$H" -H 'content-type: application/json' -d '{"code":"T01","value_cm":71}' $BASE/jobs/$ID/measurements
+st=$(curl -s -H "$H" $BASE/jobs/$ID/stale | python3 -c "import json,sys; d=json.load(sys.stdin); print(','.join(x['section'] for x in d['sections']), d['pdf']['stale'])" 2>/dev/null)
+case "$st" in pom*True) ok "(раздел замеров ждёт взгляда, PDF устарел)";; *) bad "stale: $st";; esac
+curl -s -o /dev/null -X POST -H "$H" -H 'content-type: application/json' -d '{"section":"pom"}' $BASE/jobs/$ID/reviewed
+
+step "13x. класс стежка узла: выбор человека меняет машину и операцию, документ говорит об этом"
+node=$(curl -s -H "$H" $BASE/jobs/$ID/spec | python3 -c "import json,sys; s=json.load(sys.stdin)['spec']; print(s['construction']['nodes'][0]['node_id'])" 2>/dev/null)
+r=$(curl -s -X PATCH -H "$H" -H 'content-type: application/json' -d "{\"node_id\":\"$node\",\"stitch_code\":\"301\"}" $BASE/jobs/$ID/nodes | python3 -c "
+import json,sys; d=json.load(sys.stdin)
+n=[x for x in d['spec']['construction']['nodes'] if x['node_id']=='$node'][0]
+op=[x for x in d['spec']['construction']['sequence'] if x['node_id']=='$node']
+print(n['stitch_code'], n.get('stitch_by_user'), n['machine'], (op[0]['machine']==n['machine']) if op else 'no-op')" 2>/dev/null)
+case "$r" in 301\ True*True*|301\ True*no-op*) ok "($node → 301, $r)";; *) bad "стежок: ${r:-нет ответа}";; esac
+curl -s -H "$H" "$BASE/jobs/$ID/preview" | grep -q "стежок задан брендом" && ok "документ помечает выбор" || bad "в документе нет пометки о выборе стежка"
+curl -s -o /dev/null -X POST -H "$H" $BASE/jobs/$ID/versions/undo
+
+step "13y. раскладка нанесения: макет ставится сантиметрами, файл проверяется на dpi, лист в документе"
+a=$(curl -s -X PUT -H "$H" -H 'content-type: application/json' -d '{"items":[{"pid":"qa000001","zone":"chest_center","width_cm":28,"height_cm":20,"offset_cm":10}]}' $BASE/jobs/$ID/artwork | python3 -c "import json,sys; d=json.load(sys.stdin); p=d['spec']['artwork']['placements'][0]; print(p['id'], p['size_cm']['width']['value'], p['offset_from_anchor_cm']['value'])" 2>/dev/null)
+f=$(curl -s -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-front.png "$BASE/jobs/$ID/artwork/qa000001/file?name=logo.png" | python3 -c "import json,sys; d=json.load(sys.stdin); p=d['spec']['artwork']['placements'][0]; print(p['file_name'], [c['id'] for c in p['checks'] if c['id']=='dpi'][0])" 2>/dev/null)
+case "$a|$f" in A1\ 28\ 10\|logo.png\ dpi) ok "(A1 28×… см, файл с проверкой dpi)";; *) bad "нанесение: $a · файл: $f";; esac
+curl -s -H "$H" "$BASE/jobs/$ID/preview" | grep -q "A1 · Грудь по центру" && ok "лист нанесения в документе" || bad "в документе нет листа нанесения"
+curl -s -o /dev/null -X PUT -H "$H" -H 'content-type: application/json' -d '{"items":[]}' $BASE/jobs/$ID/artwork
+
+step "13z. файлы ярлыков: несколько файлов карточками, свой лист в документе"
+curl -s -o /dev/null -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-front.png "$BASE/jobs/$ID/labels/files?name=care.png"
+curl -s -o /dev/null -X POST -H "$H" -H 'content-type: image/png' --data-binary @golden/photos/hoodie-back.png "$BASE/jobs/$ID/labels/files?name=hangtag.png"
+lf=$(curl -s -H "$H" $BASE/jobs/$ID/labels/files | python3 -c "import json,sys; print(len(json.load(sys.stdin)['files']))" 2>/dev/null)
+[ "${lf:-0}" -ge 2 ] && ok "(файлов: $lf)" || bad "файлы ярлыков не приняты ($lf)"
+curl -s -H "$H" "$BASE/jobs/$ID/preview" | grep -q "Макеты ярлыков и упаковки" && ok "лист макетов в документе" || bad "в документе нет листа макетов ярлыков"
+
+step "13ж. правка фразой: план без изменений отклоняется словами, не трогая спеку"
+rv=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d '{"text":"сделай его синим"}' $BASE/jobs/$ID/revise | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('ok'), (d.get('error') or '')[:40])" 2>/dev/null)
+case "$rv" in False*) ok "(отказ словами: ${rv#False })";; True*) ok "(модель нашла, что менять)";; *) bad "revise: ${rv:-нет ответа}";; esac
+
+step "13и. SVG из эскиза: три режима трассировки, «чистая» легче «детальной», файл скачивается с именем"
+sk=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/sketch")
+if [ "$sk" = "200" ]; then
+  clean=$(curl -s -H "$H" "$BASE/jobs/$ID/svg?view=all&mode=clean" | wc -c | tr -d ' ')
+  det=$(curl -s -H "$H" "$BASE/jobs/$ID/svg?view=all&mode=detailed" | wc -c | tr -d ' ')
+  vb=$(curl -s -H "$H" "$BASE/jobs/$ID/svg?view=all&mode=smart" | head -c 300 | grep -c 'viewBox=')
+  cd=$(curl -s -o /dev/null -D - -H "$H" "$BASE/jobs/$ID/svg?view=all&mode=smart&download=1" | grep -ci 'attachment; filename="sketch-all-smart.svg"')
+  badm=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/svg?mode=fancy")
+  [ "$vb" = "1" ] && [ "${det:-0}" -gt "${clean:-0}" ] && [ "$cd" = "1" ] && [ "$badm" = "400" ] && ok \
+    || bad "svg: viewBox=$vb clean=$clean detailed=$det download=$cd режим=$badm"
+else
+  echo "пропуск (эскиза нет: $sk)"
+fi
+
+step "13к. чертёж замеров: линии точек на рисунке, место переживает подтверждение и сброс, SVG одним файлом"
+if [ -n "$(curl -s -H "$H" "$BASE/jobs/$ID/files" | python3 -c "import json,sys; print(json.load(sys.stdin).get('sketch_garment') or '')" 2>/dev/null)" ]; then
+  pd=$(curl -s -H "$H" "$BASE/jobs/$ID/pom-drawing.svg?view=front")
+  n_lines=$(echo "$pd" | grep -o 'data-pom="[A-Z0-9]*"' | sort -u | wc -l | tr -d ' ')
+  has_grid=$(echo "$pd" | grep -c 'data-grid=')
+  put=$(curl -s -X PUT -H "$H" -H 'content-type: application/json' -d '{"code":"T03","view":"front","pts":[{"u":0.1,"v":0.4},{"u":0.9,"v":0.4}]}' "$BASE/jobs/$ID/pom-drawing" | python3 -c "import json,sys; d=json.load(sys.stdin); p=[p for p in d['spec']['measurements']['points'] if p['code']=='T03'][0]; print(p.get('drawing',{}).get('view',''))" 2>/dev/null)
+  conf=$(curl -s -X PUT -H "$H" -H 'content-type: application/json' -d '{"code":"T03","confirm":true}' "$BASE/jobs/$ID/pom-drawing" | python3 -c "import json,sys; d=json.load(sys.stdin); p=[p for p in d['spec']['measurements']['points'] if p['code']=='T03'][0]; print('да' if p.get('drawing',{}).get('confirmed_at') else 'нет')" 2>/dev/null)
+  custom=$(curl -s -H "$H" "$BASE/jobs/$ID/pom-drawing.svg?view=front" | grep -c 'data-pom="T03" data-custom="1" data-confirmed="1"')
+  reset=$(curl -s -X PUT -H "$H" -H 'content-type: application/json' -d '{"code":"T03","reset":true}' "$BASE/jobs/$ID/pom-drawing" | python3 -c "import json,sys; d=json.load(sys.stdin); p=[p for p in d['spec']['measurements']['points'] if p['code']=='T03'][0]; print('типовое' if not p.get('drawing') else 'осталось')" 2>/dev/null)
+  bad_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H "$H" -H 'content-type: application/json' -d '{"code":"X99","reset":true}' "$BASE/jobs/$ID/pom-drawing")
+  [ "${n_lines:-0}" -ge 8 ] && [ "$has_grid" = "1" ] && [ "$put" = "front" ] && [ "$conf" = "да" ] && [ "$custom" = "1" ] && [ "$reset" = "типовое" ] && [ "$bad_code" = "400" ] && ok \
+    || bad "чертёж: линий=$n_lines сетка=$has_grid put=$put confirm=$conf svg=$custom reset=$reset чужой код=$bad_code"
+else
+  echo "пропуск (у пака нет габарита видов)"
+fi
+
+step "13л. масштаб по одному замеру: точки от якоря пересчитаны множителем, чужой код отклонён"
+t01=$(curl -s -H "$H" "$BASE/jobs/$ID/spec" | python3 -c "import json,sys; d=json.load(sys.stdin); print([p['base']['value'] for p in d['spec']['measurements']['points'] if p['code']=='T03'][0])" 2>/dev/null)
+cal=$(curl -s -X POST -H "$H" -H 'content-type: application/json' -d "{\"code\":\"T03\",\"value_cm\":$(python3 -c "print(round(float('${t01:-50}')*0.9,1))")}" "$BASE/jobs/$ID/measurements/calibrate" | python3 -c "
+import json,sys; d=json.load(sys.stdin)
+p=[p for p in d['spec']['measurements']['points'] if p['code']=='T03'][0]
+print('ok' if abs(d.get('factor',0)-0.9)<0.02 and p['base']['confidence']=='measured_by_scale' and len(d.get('rescaled',[]))>=3 else 'bad '+str(d.get('error') or d.get('factor')))" 2>/dev/null)
+bad_cal=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$H" -H 'content-type: application/json' -d '{"code":"X99","value_cm":10}' "$BASE/jobs/$ID/measurements/calibrate")
+[ "$cal" = "ok" ] && [ "$bad_cal" = "422" ] && ok || bad "калибровка: $cal, чужой код=$bad_cal"
+
+step "13м. трассировка штрихами: слои контур/швы/пунктир, без заливки"
+sk=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/sketch")
+if [ "$sk" = "200" ]; then
+  st=$(curl -s -H "$H" "$BASE/jobs/$ID/svg?view=front&mode=strokes")
+  has_outline=$(echo "$st" | grep -c 'data-layer="outline"')
+  has_fill=$(echo "$st" | grep -c 'fill="#0E0E0E"')
+  [ "$has_outline" = "1" ] && [ "$has_fill" = "0" ] && ok || bad "штрихи: контур=$has_outline заливка=$has_fill"
+else
+  echo "пропуск (эскиза нет: $sk)"
+fi
 
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")

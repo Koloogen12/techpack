@@ -246,6 +246,17 @@ export interface Messages {
   /** Слово после числа: «3 плашечных». Число печатается со своим статусом. */
   art_colors_spot: string;
   art_file: string;
+  /** Чертёж замеров: лист с линиями точек табеля на рисунке вещи. */
+  pom_drawing_title: string;
+  pom_drawing_note: string;
+  pom_grid: string;
+  art_layout_title: string;
+  art_lateral: string;
+  art_layout_note: string;
+  art_place_title: string;
+  art_place_note: string;
+  label_files_title: string;
+  label_files_note: string;
   art_file_none: string;
   art_repeat_type: string;
   art_repeat_mirror: string;

@@ -48,7 +48,10 @@
     "qa:consistency": "tsx golden/qa/consistency.ts",
     "qa:cabinet": "./golden/qa/cabinet.sh",
     "brand:logo": "tsx brand-kit/logo/build.ts",
-    "sketches:refresh": "tsx --env-file-if-exists=.env apps/cli/src/sketches-refresh.ts"
+    "sketches:refresh": "tsx --env-file-if-exists=.env apps/cli/src/sketches-refresh.ts",
+    "sketches:garment": "tsx apps/cli/src/sketch-garment.ts",
+    "fingerprints:refresh": "tsx apps/cli/src/refresh-fingerprints.ts",
+    "golden:vocab": "SEAMSTER_GOLDEN_LIVE=1 vitest run golden/vocabulary.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

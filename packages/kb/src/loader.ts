@@ -495,6 +495,17 @@ export class KnowledgeBase {
    * и распошивом. Отдать одно вместо другого значит выдать фабрике
    * несуществующую технологию.
    */
+  /**
+   * Все категорийные дефолты разом.
+   *
+   * Нужны там, где узел ищется по всем категориям, а не по одной: операция
+   * техпоследовательности для узла, добавленного в изделие правкой, живёт
+   * в дефолтах той категории, где этот узел типовой.
+   */
+  allCategoryDefaults(): readonly CategoryDefaultsFile[] {
+    return [...this.categoryDefaults.values()];
+  }
+
   categoryDefaultsFor(category: Category, fabric: FabricKind): CategoryDefaultsFile {
     const found =
       this.categoryDefaults.get(`${category}:${fabric}`) ?? this.categoryDefaults.get(category);
@@ -516,6 +527,11 @@ export class KnowledgeBase {
 
   nodesFor(category: Category): ConstructionNode[] {
     return this.construction.nodes.filter((n) => n.applies_to.includes(category));
+  }
+
+  /** Все классы стежка — для выбора человеком в кабинете. */
+  stitchCodes(): readonly StitchCode[] {
+    return this.stitches.stitches;
   }
 
   stitch(code: string): StitchCode {
