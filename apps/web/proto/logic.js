@@ -4916,7 +4916,10 @@ class Component extends DCLogic {
       layStitch: layS('stitch'),
       layTrims: layS('trims'),
       calloutsOn: s.layers.callouts && !liveOn,
-      liveFlatOn: liveOn,
+      // Слой живого рисунка лежит поверх сцены. На обзоре во вкладке «Фото»
+      // сцена показывает снимок или «Внешний вид» — слой эскиза её закрывал,
+      // и визуализация не была видна нигде, кроме PDF (QA прода, 24.09.2026).
+      liveFlatOn: liveOn && !(s.screen === 'doc' && s.section === 'cover' && s.gal === 'photo'),
       liveFlatOff: !liveOn,
       editOn: !!s.editOn,
       liveShots,
