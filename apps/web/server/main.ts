@@ -1046,6 +1046,11 @@ function rebuildRender(id: string, dir: string, spec: StyleSpec, who: string): v
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
+  // HEAD — тот же GET без тела: кабинет спрашивает им, есть ли уже эскиз и
+  // визуализация, а маршруты ниже сравнивают метод с GET и отвечали 404 —
+  // «Внешний вид» не показывался ни у одного пака. Тело для HEAD Node не
+  // шлёт сам: он решил это по методу ещё при разборе запроса.
+  if (req.method === 'HEAD') req.method = 'GET';
   const invite = inviteOf(req, url);
 
   try {

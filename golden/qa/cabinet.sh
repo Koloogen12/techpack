@@ -384,6 +384,14 @@ else
   echo "пропуск (эскиза нет: $sk)"
 fi
 
+step "13н. HEAD отвечает как GET: кабинет узнаёт эскиз и визуализацию без байтов"
+for f in sketch render; do
+  g=$(curl -s -o /dev/null -w '%{http_code}' -H "$H" "$BASE/jobs/$ID/$f")
+  h=$(curl -s -o /dev/null -w '%{http_code}' -I -H "$H" "$BASE/jobs/$ID/$f")
+  [ "$g" = "$h" ] || { bad "$f: GET $g, HEAD $h"; break; }
+done
+[ "$g" = "$h" ] && ok
+
 step "13n. очередь открытых решений: подтверждение убирает решение и меняет спеку"
 q=$(curl -s -H "$H" "$BASE/jobs/$ID/decisions")
 open0=$(echo "$q" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['summary']['open'])" 2>/dev/null)
