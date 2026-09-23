@@ -167,7 +167,6 @@ describe('золотой набор по словарям', () => {
       JSON.stringify({ summary, scores }, null, 2),
     );
     appendFileSync(`${ROOT}reports/vocabulary-history.jsonl`, JSON.stringify(summary) + '\n');
-    // eslint-disable-next-line no-console
     console.log(
       `словари: точность ${fmt(summary.observation_accuracy)}, узлы: полнота ${fmt(summary.node_recall)}, ` +
         `лишних нет ${fmt(summary.node_precision_absent)}; прогнано ${scores.length}, пропущено ${skipped.length}`,
