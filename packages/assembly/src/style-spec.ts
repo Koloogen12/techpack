@@ -5,7 +5,6 @@ import { buildMeasurements, countMeasurementAssumptions, type PomInput } from '.
 import {
   buildConstruction,
   countConstructionAssumptions,
-  seesZip,
   type ConstructionInput,
 } from './construction.js';
 import { buildBom, countBomAssumptions, type BomInput } from './bom.js';
@@ -149,7 +148,6 @@ export function buildStyleSpec(
 
   // Застёжка по фото уходит и в фурнитуру: узлы планки уже заменены на
   // молнию выше, строка пуговиц обязана уйти вместе с ними.
-  const closureSeen = (input.visible_elements ?? []).find((e) => e.key === 'closure_type');
   const closureByVocab = (() => {
     const o = input.observations?.closure;
     if (!o || o.confidence === 'low') return undefined;
@@ -161,13 +159,7 @@ export function buildStyleSpec(
   const bom = buildBom(
     {
       ...input,
-      ...(input.closure === undefined
-        ? closureByVocab
-          ? { closure: closureByVocab }
-          : closureSeen && seesZip(closureSeen.value) && !input.observations
-            ? { closure: 'zip' as const }
-            : {}
-        : {}),
+      ...(input.closure === undefined && closureByVocab ? { closure: closureByVocab } : {}),
     },
     base,
   );

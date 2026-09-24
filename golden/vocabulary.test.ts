@@ -24,13 +24,24 @@ import { parseAnswers, specInputFrom } from '@seamster/cli';
  * (SEAMSTER_GOLDEN_LIVE=1, нужен ключ) или последний сохранённый отчёт из
  * `golden/vision-reports/vocab/`, считает точность по каждому словарю,
  * полноту и точность узлов, пишет `golden/reports/vocabulary-latest.json`
- * и строку истории. Ночной прогон — `pnpm golden:vocab`.
+ * и строку истории. Ночной прогон — `pnpm golden:vocab` локально или
+ * `scripts/golden-nightly.sh --container` на проде.
+ *
+ * SEAMSTER_GOLDEN_OUT переносит отчёты и живые ответы модели в другой каталог
+ * (на проде — том данных: образ контейнера пересобирается, и всё внутри него
+ * пропадает). SEAMSTER_GOLDEN_NOCACHE=1 отключает файловый кэш разбора:
+ * ночной прогон обязан спросить модель заново, иначе дрейф модели при том же
+ * промпте не виден — кэш отдавал бы прошлый ответ.
  *
  * Без ключа набор проверяет только себя: ожидания валидны, снимки на месте,
  * сохранённые отчёты читаются. Дрейф точности ловится ночью, а не в CI.
  */
 const ROOT = new URL('./', import.meta.url).pathname;
 const LIVE = process.env.SEAMSTER_GOLDEN_LIVE === '1';
+const OUT = process.env.SEAMSTER_GOLDEN_OUT
+  ? process.env.SEAMSTER_GOLDEN_OUT.replace(/\/?$/, '/')
+  : `${ROOT}reports/`;
+const NOCACHE = process.env.SEAMSTER_GOLDEN_NOCACHE === '1';
 const AT = new Date('2026-09-24T00:00:00.000Z');
 
 interface Entry {
@@ -66,10 +77,13 @@ async function reportFor(entry: Entry): Promise<VisionReport | null> {
       category: answers.category,
       fabric: answers.fabric_kind,
       answersFingerprint: `golden-vocab-${entry.id}`,
-      cache: new FileVisionCache(`${ROOT}../.cache/vision`),
+      ...(NOCACHE ? {} : { cache: new FileVisionCache(`${ROOT}../.cache/vision`) }),
     });
-    mkdirSync(`${ROOT}vision-reports/vocab`, { recursive: true });
-    writeFileSync(reportPath(entry.id), JSON.stringify(report, null, 2));
+    // Живой ответ — в фикстуры репозитория (следующий прогон без ключа читает
+    // его) или, при своём каталоге вывода, рядом с отчётами.
+    const dir = process.env.SEAMSTER_GOLDEN_OUT ? `${OUT}vision` : `${ROOT}vision-reports/vocab`;
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(`${dir}/${entry.id}.json`, JSON.stringify(report, null, 2));
     return report;
   }
   const path = reportPath(entry.id);
@@ -161,12 +175,11 @@ describe('золотой набор по словарям', () => {
         ]),
       ),
     };
-    mkdirSync(`${ROOT}reports`, { recursive: true });
-    writeFileSync(
-      `${ROOT}reports/vocabulary-latest.json`,
-      JSON.stringify({ summary, scores }, null, 2),
-    );
-    appendFileSync(`${ROOT}reports/vocabulary-history.jsonl`, JSON.stringify(summary) + '\n');
+    mkdirSync(OUT, { recursive: true });
+    writeFileSync(`${OUT}vocabulary-latest.json`, JSON.stringify({ summary, scores }, null, 2));
+    // История — только живые прогоны: строка с кэшированными фикстурами
+    // повторяла бы прошлую точность и засоряла бы дрейф.
+    if (LIVE) appendFileSync(`${OUT}vocabulary-history.jsonl`, JSON.stringify(summary) + '\n');
     console.log(
       `словари: точность ${fmt(summary.observation_accuracy)}, узлы: полнота ${fmt(summary.node_recall)}, ` +
         `лишних нет ${fmt(summary.node_precision_absent)}; прогнано ${scores.length}, пропущено ${skipped.length}`,

@@ -14,9 +14,16 @@ const INPUT: StyleSpecInput = {
   fabric_kind: 'knit',
   size_range: [44, 46, 48],
   generated_at: new Date('2026-09-23T00:00:00.000Z'),
-  visible_elements: [
-    { key: 'closure_type', value: 'диагональная молния от горловины к боку', confidence: 'high' },
-  ],
+  observations: {
+    neckline: { value: 'not_visible', confidence: 'low' },
+    closure: { value: 'zip_center_full', confidence: 'high' },
+    cuff: { value: 'not_visible', confidence: 'low' },
+    hem: { value: 'not_visible', confidence: 'low' },
+    pocket: { value: 'not_visible', confidence: 'low' },
+    sleeve: { value: 'not_visible', confidence: 'low' },
+    sleeve_length: { value: 'not_visible', confidence: 'low' },
+    hood: { value: 'not_visible', confidence: 'low' },
+  },
 };
 
 /**
@@ -27,6 +34,10 @@ const INPUT: StyleSpecInput = {
 describe('ход молнии на схеме по табелю', () => {
   const asym = buildStyleSpec({
     ...INPUT,
+    observations: {
+      ...INPUT.observations!,
+      closure: { value: 'zip_asymmetric', confidence: 'high' },
+    },
     design_features: [
       {
         zone: 'closure',

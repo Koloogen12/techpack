@@ -429,6 +429,18 @@ function hardwareFor(
   base: KnowledgeBase,
   notes: string[],
 ): string[] {
+  if (input.closure === 'none') {
+    // «Застёжки нет» по словарю: узлы планки уже убраны, фурнитура застёжки
+    // обязана уйти вместе с ними — иначе фабрика закупит пуговицы к вещи без
+    // петель.
+    const fasteners = hardware.filter((id) => /^(button_|zipper_)/.test(id));
+    if (!fasteners.length) return [...hardware];
+    notes.push(
+      `На фото застёжки нет: фурнитура застёжки из типового набора ` +
+        `(${fasteners.map((b) => base.material(b).name_ru).join(', ')}) убрана.`,
+    );
+    return hardware.filter((id) => !fasteners.includes(id));
+  }
   if (input.closure !== 'zip') return [...hardware];
   const buttons = hardware.filter((id) => /^button_/.test(id));
   if (hardware.some((id) => /^zipper_/.test(id))) return [...hardware];

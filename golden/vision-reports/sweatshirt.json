@@ -131,6 +131,40 @@
       "reason": "Манжета отдельной деталью, край чёткий"
     }
   ],
+  "observations": {
+    "neckline": {
+      "value": "crew_rib_band",
+      "confidence": "high"
+    },
+    "closure": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "hem": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "pocket": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "set_in",
+      "confidence": "medium"
+    },
+    "sleeve_length": {
+      "value": "long",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "no",
+      "confidence": "high"
+    }
+  },
   "visible_elements": [
     {
       "key": "neckline_type",

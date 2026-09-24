@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildStyleSpec,
-  seesNarrowNeck,
-  seesNoBand,
-  seesZip,
-  type StyleSpecInput,
-} from '../src/index.js';
+import type { Observations } from '@seamster/core';
+import { buildStyleSpec, type StyleSpecInput } from '../src/index.js';
 
 /**
  * Застёжка по фото сильнее застёжки категории.
@@ -15,6 +10,10 @@ import {
  * дизайн-признаки — молнию. Документ нарисовал обе застёжки разом. Теперь
  * увиденная молния заменяет планку, а пуговицы уходят вместе с операциями
  * и строкой фурнитуры.
+ *
+ * Снимок говорит словарями (ADR-0013): свободный текст элементов сборка не
+ * читает, регулярки по нему сняты 24.09.2026 вместе с последним отчётом без
+ * словарей в эталонном наборе.
  */
 const INPUT: StyleSpecInput = {
   id: 'closure-test',
@@ -30,7 +29,21 @@ const INPUT: StyleSpecInput = {
   generated_at: new Date('2026-09-23T00:00:00.000Z'),
 };
 
+/** Словари: всё «не видно», кроме того, что задано. «Не видно» узлов не трогает. */
+const seen = (over: Partial<Observations>): Observations => ({
+  neckline: { value: 'not_visible', confidence: 'low' },
+  closure: { value: 'not_visible', confidence: 'low' },
+  cuff: { value: 'not_visible', confidence: 'low' },
+  hem: { value: 'not_visible', confidence: 'low' },
+  pocket: { value: 'not_visible', confidence: 'low' },
+  sleeve: { value: 'not_visible', confidence: 'low' },
+  sleeve_length: { value: 'not_visible', confidence: 'low' },
+  hood: { value: 'not_visible', confidence: 'low' },
+  ...over,
+});
+
 const ZIP_SEEN = {
+  observations: seen({ closure: { value: 'zip_asymmetric', confidence: 'high' } }),
   visible_elements: [
     {
       key: 'closure_type',
@@ -67,16 +80,27 @@ describe('застёжка по фото сильнее категории', () 
     expect(hardware).not.toContain('button_cardigan');
     // Шаг петель без петель не печатается.
     expect(spec.measurements.points.map((p) => p.code)).not.toContain('Z03');
-    expect(notes.join('\n')).toMatch(/молния/);
+    expect(notes.join('\n')).toMatch(/молни/);
   });
 
   it('без наблюдения застёжки кардиган остаётся на пуговицах', () => {
-    const { spec } = buildStyleSpec(INPUT);
+    for (const input of [INPUT, { ...INPUT, observations: seen({}) }]) {
+      const { spec } = buildStyleSpec(input);
+      const ids = spec.construction!.nodes.map((n) => n.node_id);
+      expect(ids).toContain('cardigan_placket');
+      expect(ids).toContain('button_sew');
+      expect(spec.bom!.lines.map((l) => l.material_id)).toContain('button_cardigan');
+      expect(spec.measurements.points.map((p) => p.code)).toContain('Z03');
+    }
+  });
+
+  it('свободный текст элементов без словарей узлов не меняет', () => {
+    // Старый кэш без словарей: «молния» словами — не молния. Типовой набор
+    // остаётся, а не угадывается регулярками (ADR-0013).
+    const { spec } = buildStyleSpec({ ...INPUT, visible_elements: ZIP_SEEN.visible_elements });
     const ids = spec.construction!.nodes.map((n) => n.node_id);
     expect(ids).toContain('cardigan_placket');
-    expect(ids).toContain('button_sew');
-    expect(spec.bom!.lines.map((l) => l.material_id)).toContain('button_cardigan');
-    expect(spec.measurements.points.map((p) => p.code)).toContain('Z03');
+    expect(ids).not.toContain('zip_set_in');
   });
 
   it('свитер с молнией на снимке получает узлы молнии и строку фурнитуры', () => {
@@ -97,7 +121,7 @@ describe('застёжка по фото сильнее категории', () 
     expect(zipAt).toBeLessThan(sleeveAt);
     expect(ops.map((o) => o.step)).toEqual(ops.map((_, i) => i + 1));
     expect(spec.bom!.lines.map((l) => l.material_id)).toContain('zipper_separating');
-    expect(notes.join('\n')).toMatch(/Добавлены втачивание разъёмной молнии/);
+    expect(notes.join('\n')).toMatch(/добавлены втачивание разъёмной молнии/);
   });
 
   it('рибана сплошная: манжета и пояс по фото становятся подгибкой, высоты уходят', () => {
@@ -105,18 +129,10 @@ describe('застёжка по фото сильнее категории', () 
       ...INPUT,
       category: 'sweater',
       article: 'RIB-001',
-      visible_elements: [
-        {
-          key: 'cuff_type',
-          value: 'низ рукава в рибану, без отдельной манжеты',
-          confidence: 'medium',
-        },
-        {
-          key: 'waistband_type',
-          value: 'низ прямой, отдельный пояс не читается',
-          confidence: 'medium',
-        },
-      ],
+      observations: seen({
+        cuff: { value: 'turned_hem', confidence: 'medium' },
+        hem: { value: 'turned_hem', confidence: 'medium' },
+      }),
     });
     const ids = spec.construction!.nodes.map((n) => n.node_id);
     expect(ids).not.toContain('cuff_rib');
@@ -131,18 +147,20 @@ describe('застёжка по фото сильнее категории', () 
     expect(notes.join('\n')).toMatch(/подгибку/);
   });
 
-  it('«манжета-риб отдельной деталью» остаётся манжетой', () => {
-    const { spec } = buildStyleSpec({
-      ...INPUT,
-      category: 'sweater',
-      article: 'RIB-002',
-      visible_elements: [
-        { key: 'cuff_type', value: 'широкая манжета-риб отдельной деталью', confidence: 'high' },
-      ],
-    });
-    expect(spec.construction!.nodes.map((n) => n.node_id)).toContain('cuff_rib');
-    expect(seesNoBand('широкая манжета-риб отдельной деталью')).toBe(false);
-    expect(seesNoBand('подгибка низа')).toBe(true);
+  it('манжета-риб на снимке остаётся манжетой; низкая уверенность — тоже', () => {
+    const cuffs: Observations['cuff'][] = [
+      { value: 'rib_band', confidence: 'high' },
+      { value: 'turned_hem', confidence: 'low' },
+    ];
+    for (const cuff of cuffs) {
+      const { spec } = buildStyleSpec({
+        ...INPUT,
+        category: 'sweater',
+        article: 'RIB-002',
+        observations: seen({ cuff }),
+      });
+      expect(spec.construction!.nodes.map((n) => n.node_id)).toContain('cuff_rib');
+    }
   });
 
   it('узкая окантовка по фото заменяет бейку-риб, высота бейки становится высотой окантовки', () => {
@@ -151,14 +169,10 @@ describe('застёжка по фото сильнее категории', () 
       ...ZIP_SEEN,
       category: 'sweater',
       article: 'NECK-001',
-      visible_elements: [
-        ...ZIP_SEEN.visible_elements,
-        {
-          key: 'neckline_type',
-          value: 'узкая бейка-риб, вырез круглый невысокий',
-          confidence: 'medium',
-        },
-      ],
+      observations: seen({
+        closure: { value: 'zip_asymmetric', confidence: 'high' },
+        neckline: { value: 'crew_binding', confidence: 'medium' },
+      }),
     });
     const ids = spec.construction!.nodes.map((n) => n.node_id);
     expect(ids).toContain('neck_binding');
@@ -167,15 +181,18 @@ describe('застёжка по фото сильнее категории', () 
     expect(t17.base.value).toBeLessThanOrEqual(1.5);
     expect(t17.graded.every((g) => g.value.value === t17.base.value)).toBe(true);
     expect(notes.join('\n')).toMatch(/окантовк/);
-    expect(seesNarrowNeck('воротник-стойка из рибаны')).toBe(false);
-    expect(seesNarrowNeck('collarless V-notch, narrow binding')).toBe(true);
   });
 
-  it('«без молнии» — не молния', () => {
-    expect(seesZip('диагональная металлическая молния')).toBe(true);
-    expect(seesZip('exposed metal zip')).toBe(true);
-    expect(seesZip('застёжки нет, без молнии')).toBe(false);
-    expect(seesZip('пуговицы на планке')).toBe(false);
+  it('«застёжки нет» на снимке кардигана убирает планку и пуговицы', () => {
+    const { spec } = buildStyleSpec({
+      ...INPUT,
+      observations: seen({ closure: { value: 'none', confidence: 'high' } }),
+    });
+    const ids = spec.construction!.nodes.map((n) => n.node_id);
+    expect(ids).not.toContain('cardigan_placket');
+    expect(ids).not.toContain('button_sew');
+    expect(ids).not.toContain('zip_set_in');
+    expect(spec.bom!.lines.map((l) => l.material_id)).not.toContain('button_cardigan');
   });
 
   it('воспроизводимо: один вход — одна спека', () => {

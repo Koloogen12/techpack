@@ -47,9 +47,31 @@ ssh root@167.233.109.195 'docker exec seamster-app-1 sh -c "cd /app && pnpm --fi
 | Postgres | нет; ночной `pg_dumpall` продукт не касается |
 | Данные | файловый том `seamster_app-files`; дампа со старого сервера нет — Selectel выключен раньше, чем с него сняли копию |
 | Health | `/app/api/health`, отдаёт `{"ok":true}` |
-| Воркеры, очереди, крон | нет |
+| Воркеры, очереди, крон | очередей и воркеров нет; один cron на хосте — ночной золотой набор (см. ниже) |
 | Тяжёлое | Chromium (playwright), ~400 МБ в образе |
 | Простой при переключении | не было: старый сервер уже не отвечал |
+
+## Ночной золотой набор
+
+Единственный cron продукта, в crontab root на хосте:
+
+    30 4 * * * /opt/stacks/seamster/scripts/golden-nightly.sh --container seamster-app-1 >> /var/log/seamster-golden.log 2>&1
+
+Скрипт заходит в контейнер (`docker exec`), там уже есть снимки, vitest и
+ключи из `secrets.env`, и гоняет `golden/vocabulary.test.ts` живым разбором
+без кэша. Отчёты — в томе данных, не в образе: `/data/golden/` внутри, на
+хосте `/var/lib/docker/volumes/seamster_app-files/_data/golden/`
+(`vocabulary-latest.json`, `vocabulary-history.jsonl`, `vision/<id>.json`).
+Итог одной строкой уходит в админский Телеграм: тихо, если планка взята,
+громко — если нет или отчёта за сегодня не появилось. Лог —
+`/var/log/seamster-golden.log`. Прогнать руками:
+
+```bash
+ssh root@167.233.109.195 '/opt/stacks/seamster/scripts/golden-nightly.sh --container seamster-app-1'
+```
+
+Скрипт едет на сервер вместе с кодом (rsync каталога стека), править его в
+`/opt/stacks/seamster` бесполезно — следующая выкатка перезапишет.
 
 ## Грабли этого переезда
 

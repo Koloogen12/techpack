@@ -149,6 +149,40 @@
       "reason": "Диагональный вход читается на переде"
     }
   ],
+  "observations": {
+    "neckline": {
+      "value": "hood",
+      "confidence": "high"
+    },
+    "closure": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "hem": {
+      "value": "rib_band",
+      "confidence": "high"
+    },
+    "pocket": {
+      "value": "kangaroo",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "dropped",
+      "confidence": "medium"
+    },
+    "sleeve_length": {
+      "value": "long",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "yes",
+      "confidence": "high"
+    }
+  },
   "visible_elements": [
     {
       "key": "neckline_type",

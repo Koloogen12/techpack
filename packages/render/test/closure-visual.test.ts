@@ -29,9 +29,16 @@ const INPUT: StyleSpecInput = {
 describe('застёжка в словах художника идёт за узлами', () => {
   const zipped = buildStyleSpec({
     ...INPUT,
-    visible_elements: [
-      { key: 'closure_type', value: 'диагональная молния от горловины к боку', confidence: 'high' },
-    ],
+    observations: {
+      neckline: { value: 'not_visible', confidence: 'low' },
+      closure: { value: 'zip_asymmetric', confidence: 'high' },
+      cuff: { value: 'not_visible', confidence: 'low' },
+      hem: { value: 'not_visible', confidence: 'low' },
+      pocket: { value: 'not_visible', confidence: 'low' },
+      sleeve: { value: 'not_visible', confidence: 'low' },
+      sleeve_length: { value: 'not_visible', confidence: 'low' },
+      hood: { value: 'not_visible', confidence: 'low' },
+    },
   }).spec;
   const buttoned = buildStyleSpec(INPUT).spec;
 

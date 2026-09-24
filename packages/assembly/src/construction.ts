@@ -130,21 +130,19 @@ export function buildConstruction(
     }
   }
 
-  // --- 1b. Застёжка по фото: молния вместо планки с пуговицами ---------------
-  //
-  // Категория даёт типовую застёжку: у кардигана это планка с петлями и
-  // пуговицами. Снимок сильнее категории: если взгляд увидел молнию, узлы
-  // планки заменяются на втачивание молнии, петли и пуговицы уходят вместе
-  // со своими операциями. Без этого документ рисовал ОБЕ застёжки разом —
-  // пуговицы из справочника и молнию из дизайн-признаков (джемпер с
-  // диагональной молнией, 23.09.2026).
+  // Узлы, убранные и добавленные по снимку: операции уходят и приходят вместе
+  // с ними (buildSequence). Снимок сильнее категории — без этого документ
+  // рисовал ОБЕ застёжки разом: пуговицы из справочника и молнию из
+  // дизайн-признаков (джемпер с диагональной молнией, 23.09.2026).
   const dropped = new Set<string>();
   const added: string[] = [];
 
-  // --- 1a. Наблюдения по словарям: узлы выбираются детерминированно ----------
+  // --- 1b. Наблюдения по словарям: узлы выбираются детерминированно ----------
   //
-  // Есть словари — свободный текст ниже не читается вовсе: две дороги к
-  // одному узлу дают два ответа. Правила — в observations.ts.
+  // Снимок говорит перечислениями (ADR-0013), правила — в observations.ts.
+  // Свободный текст элементов сборка не читает: две дороги к одному узлу
+  // давали два ответа. Отчёт без словарей (старый кэш) оставляет типовые
+  // узлы категории.
   if (input.observations) {
     const plan = planFromObservations(
       input.observations,
@@ -183,110 +181,6 @@ export function buildConstruction(
     notes.push(...plan.notes);
   }
 
-  const closure = input.observations ? undefined : observed.get('closure_type');
-  if (closure && seesZip(closure.value) && nodeIds.includes('cardigan_placket')) {
-    const applicable = new Set(base.nodesFor(input.category).map((n) => n.id));
-    if (applicable.has('zip_set_in')) {
-      const swap: [string, string][] = [
-        ['cardigan_placket', 'zip_set_in'],
-        ['cardigan_placket_topstitch', 'zip_placket_topstitch'],
-      ];
-      for (const [from, to] of swap) {
-        const at = nodeIds.indexOf(from);
-        if (at >= 0 && applicable.has(to)) {
-          nodeIds[at] = to;
-          substitutions.set(from, to);
-        }
-      }
-      for (const id of ['placket_buttonholes', 'button_sew']) {
-        const at = nodeIds.indexOf(id);
-        if (at >= 0) {
-          nodeIds.splice(at, 1);
-          dropped.add(id);
-        }
-      }
-      notes.push(
-        `На фото застёжка — молния (${closure.value}), а не планка с пуговицами из ` +
-          `типового набора категории. Узлы планки заменены на втачивание разъёмной ` +
-          `молнии, петли и пуговицы убраны вместе с операциями. Асимметрию и ход ` +
-          `молнии смотрите в дизайн-признаках и на рисунке.`,
-      );
-    }
-  } else if (
-    closure &&
-    seesZip(closure.value) &&
-    !nodeIds.some((id) =>
-      /^(zip_|cardigan_placket|front_placket|polo_placket|fly_zip|invisible_zip)/.test(id),
-    )
-  ) {
-    // Категория без застёжки вовсе (свитер, лонгслив), а на снимке молния:
-    // узлы молнии добавляются — иначе она осталась бы только рисунком, без
-    // операции и без строки фурнитуры.
-    const applicable = new Set(base.nodesFor(input.category).map((n) => n.id));
-    if (applicable.has('zip_set_in')) {
-      const after = Math.max(
-        nodeIds.lastIndexOf('neck_topstitch_tape'),
-        nodeIds.lastIndexOf('neck_rib_band'),
-        nodeIds.lastIndexOf('neck_binding'),
-      );
-      const extra = [
-        'zip_set_in',
-        ...(applicable.has('zip_placket_topstitch') ? ['zip_placket_topstitch'] : []),
-      ];
-      nodeIds.splice(after + 1, 0, ...extra);
-      for (const id of extra) added.push(id);
-      notes.push(
-        `На фото застёжка — молния (${closure.value}), а в типовом наборе категории ` +
-          `застёжки нет. Добавлены втачивание разъёмной молнии и отстрочка планок; ` +
-          `место операций в последовательности подтверждает технолог.`,
-      );
-    }
-  }
-
-  // --- 1c. Манжета и пояс по фото: рибана сплошная, отдельной детали нет ------
-  //
-  // Категория даёт манжету-риб и пояс-риб отдельными деталями. На вещи из
-  // рубчика низ часто просто подшит, и взгляд это называет: «без отдельной
-  // манжеты», «отдельный пояс не читается». Тогда узлы детали заменяются на
-  // подгибку распошивом, а высоты манжеты и пояса уходят из табеля.
-  const bands: [string, string, string, string][] = [
-    ['cuff_type', 'cuff_rib', 'sleeve_hem_coverstitch', 'манжеты'],
-    ['waistband_type', 'waistband_rib', 'hem_coverstitch', 'пояса'],
-  ];
-  for (const [key, from, to, what] of bands) {
-    const seen = input.observations ? undefined : observed.get(key);
-    const at = nodeIds.indexOf(from);
-    if (!seen || at < 0 || seen.confidence === 'low' || !seesNoBand(seen.value)) continue;
-    if (!base.nodesFor(input.category).some((n) => n.id === to)) continue;
-    nodeIds[at] = to;
-    substitutions.set(from, to);
-    notes.push(
-      `На фото нет отдельной детали ${what} (${seen.value}): узел заменён на подгибку ` +
-        `распошивом, высота ${what} из табеля убрана. Подтвердите по образцу.`,
-    );
-  }
-
-  // --- 1d. Горловина по фото: узкая окантовка вместо бейки-риб -----------------
-  //
-  // Категория даёт бейку-риб кольцом, и художник рисует её стойкой в 3 см.
-  // На вещи из рубчика край горловины часто просто окантован узкой бейкой
-  // (или лентой молнии), и взгляд это называет: «узкая бейка», «без
-  // воротника», «V-образный вырез». Тогда узел заменяется на окантовку, а
-  // высота бейки в табеле приводится к высоте окантовки (см. style-spec).
-  const neck = input.observations ? undefined : observed.get('neckline_type');
-  const neckAt = nodeIds.indexOf('neck_rib_band');
-  if (neck && neckAt >= 0 && neck.confidence !== 'low' && seesNarrowNeck(neck.value)) {
-    if (base.nodesFor(input.category).some((n) => n.id === 'neck_binding')) {
-      nodeIds[neckAt] = 'neck_binding';
-      substitutions.set('neck_rib_band', 'neck_binding');
-      notes.push(
-        `Горловина по фото — узкая окантовка, не бейка-стойка (${neck.value}): узел ` +
-          `заменён на окантовку бейкой, высота бейки в табеле приведена к высоте окантовки. ` +
-          `Подтвердите по образцу.`,
-      );
-    }
-  }
-
   // --- 2. Сборка узлов --------------------------------------------------------
   const nodes = nodeIds.map((id) => buildNode(base.node(id), observed, input, base, notes));
 
@@ -301,37 +195,6 @@ export function buildConstruction(
   );
 
   return { nodes, sequence, notes };
-}
-
-/**
- * Взгляд сказал, что отдельной манжеты или пояса нет: подгибка, «без
- * отдельной», «не читается». Просто «рибана» отдельной деталью не считается:
- * сплошной рубчик тоже рибана.
- */
-export function seesNoBand(value: string): boolean {
-  const v = value.toLowerCase();
-  if (/подгиб|подшит/.test(v)) return true;
-  return (
-    /(без|нет|не читается|не видно|отсутств)/.test(v) && /(отдельн|манжет|пояс|деталь)/.test(v)
-  );
-}
-
-/**
- * Взгляд назвал узкую окантовку, безворотниковую или V-образную горловину —
- * то, что бейкой-стойкой не рисуется. «Стойка», «воротник-стойка», «высокая
- * бейка» остаются бейкой.
- */
-export function seesNarrowNeck(value: string): boolean {
-  const v = value.toLowerCase();
-  // «Невысокий» — не «высокий»: отрицание убирается до проверки.
-  if (/стойк|mock|turtle/.test(v) || /высок/.test(v.replace(/невысок/g, ''))) return false;
-  return /узк|окантов|без воротник|безворотник|v-образ|v-neck|уголк|binding|collarless/.test(v);
-}
-
-/** Взгляд назвал молнию, а не её отсутствие: «без молнии» — не молния. */
-export function seesZip(value: string): boolean {
-  const v = value.toLowerCase();
-  return /молни|zip/.test(v) && !/(без|нет|отсутств|no |not )/.test(v);
 }
 
 function buildNode(

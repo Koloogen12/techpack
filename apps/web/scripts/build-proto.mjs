@@ -1119,6 +1119,23 @@ subAll('font:700 9.2px', 'font:650 9.2px', 2);
   replaced += n;
 }
 
+// SVG чертежа замеров: атрибуты с биндингами браузер разбирает при загрузке
+// документа раньше рантайма, и viewBox="{{ flatVB }}" даёт ошибку в консоли
+// на каждый такой атрибут (восемь на страницу, дважды). Префикс sc-camel-
+// рантайм снимает сам (collectProps → kebabToCamel), а браузер видит
+// неизвестный атрибут и молчит. Пиксели те же: значения ставит React после
+// привязки, как и раньше.
+sub('viewBox="{{ flatVB }}"', 'sc-camel-view-box="{{ flatVB }}"', 1);
+sub(
+  'cx="{{ c.x }}" cy="{{ c.y }}" r="{{ c.r }}"',
+  'sc-camel-cx="{{ c.x }}" sc-camel-cy="{{ c.y }}" sc-camel-r="{{ c.r }}"',
+  1,
+);
+sub('transform="{{ c.tf }}"', 'sc-camel-transform="{{ c.tf }}"', 3);
+// Хвост «274 30» у контура на чертеже — две координаты без команды: браузер
+// обрывал разбор на них и рисовал всё до. Хвост снят, рисунок тот же.
+sub('272 42 274 30"', '272 42"', 1);
+
 const logic = readFileSync(join(webRoot, 'proto', 'logic.js'), 'utf8');
 if (!logic.includes('class Component extends DCLogic')) {
   throw new Error('proto/logic.js обязан определять class Component extends DCLogic');

@@ -113,6 +113,40 @@
       "reason": "наклон плеча на спинке приблизительно"
     }
   ],
+  "observations": {
+    "neckline": {
+      "value": "crew_binding",
+      "confidence": "medium"
+    },
+    "closure": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "cuff": {
+      "value": "turned_hem",
+      "confidence": "high"
+    },
+    "hem": {
+      "value": "turned_hem",
+      "confidence": "high"
+    },
+    "pocket": {
+      "value": "none",
+      "confidence": "high"
+    },
+    "sleeve": {
+      "value": "set_in",
+      "confidence": "medium"
+    },
+    "sleeve_length": {
+      "value": "long",
+      "confidence": "high"
+    },
+    "hood": {
+      "value": "no",
+      "confidence": "high"
+    }
+  },
   "visible_elements": [
     {
       "key": "neckline_type",

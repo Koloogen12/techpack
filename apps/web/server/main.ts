@@ -1151,7 +1151,10 @@ const server = createServer(async (req, res) => {
       if (rel === 'index.html' || !rel.includes('.')) {
         const idx = join(root, 'index.html');
         if (existsSync(idx)) {
-          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          res.writeHead(200, {
+            'content-type': 'text/html; charset=utf-8',
+            'cache-control': 'no-cache, must-revalidate',
+          });
           return res.end(readFileSync(idx));
         }
       }
