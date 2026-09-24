@@ -422,4 +422,66 @@ ul.dash li::before { content: '— '; color: var(--secondary); }
 .node .desc { font-size: 7.8pt; color: var(--secondary); line-height: 1.4; margin-top: 0.6mm; }
 .node .params { font-size: 7.8pt; margin-top: 1mm; font-variant-numeric: tabular-nums; }
 .node .params .sep { color: var(--hairline); margin: 0 1.2mm; }
+
+/*
+ * --- Экран телефона (ADR-0014). ---
+ *
+ * Ссылку для фабрики открывают в мессенджере с телефона. Лист A4 там
+ * уменьшается в три раза и читается только зумом. Уже 768 px на экране лист
+ * перестаёт быть листом: одна колонка, шрифт от 11pt, таблицы прокручиваются
+ * по горизонтали, футер встаёт в поток. Печать (@media print) и десктоп не
+ * трогаются: правила только для screen.
+ */
+@media screen and (max-width: 767px) {
+  html, body { font-size: 11pt; }
+  .page {
+    width: auto;
+    height: auto;
+    min-height: 0;
+    padding: 16px 14px 18px;
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .page + .page { border-top: 6px solid var(--hairline); }
+  .ml { font-size: 8pt; }
+  .masthead { flex-wrap: wrap; gap: 2mm; }
+  .meta { grid-template-columns: repeat(2, 1fr); gap: 3mm 4mm; }
+  .meta .value { font-size: 10pt; }
+  .body { padding-bottom: 0; }
+  .foot { position: static; margin-top: 5mm; flex-wrap: wrap; gap: 2mm 4mm; font-size: 7.5pt; }
+  .foot .legend { justify-content: flex-start; }
+  h1 { font-size: 17pt; }
+  h2 { font-size: 12pt; }
+  h3 { font-size: 10pt; }
+  .cover, .grid2, .preview, .cw-row, .zones { display: flex; flex-direction: column; gap: 5mm; }
+  .zones { gap: 1mm 0; }
+  .canvas { flex: none; flex-direction: column; gap: 5mm; padding: 4mm; }
+  .canvas > .ml { position: static; }
+  .canvas svg, .canvas img, .canvas img.sketch, .canvas img.sketch-view { max-height: none; }
+  .canvas.sketch .sketch-row { flex-direction: column; }
+  .canvas.sketch .reference {
+    width: auto;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 0.5pt solid var(--hairline);
+    padding-top: 3mm;
+  }
+  .canvas.sketch .reference .frame { min-height: 40mm; }
+  .flat { flex: none; flex-direction: column; }
+  .flat svg { max-height: none; }
+  .preview .frame, .cw .frame, .cw-flat { flex: none; min-height: 40mm; }
+  .placeholder { flex: none; padding: 6mm; }
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 9.5pt; }
+  thead th { font-size: 7.5pt; padding: 2mm; }
+  tbody td { padding: 2mm; }
+  table.plain td.k { width: 28mm; font-size: 8.5pt; }
+  .mono { font-size: 9.5pt; }
+  .note, .fn { font-size: 8.5pt; }
+  ul.plain, ul.dash { font-size: 9.5pt; }
+  .node .name { font-size: 10pt; }
+  .node .desc, .node .params { font-size: 9pt; }
+  .flag { font-size: 7.5pt; }
+  .cw table.plain { font-size: 8.5pt; }
+  sup.fn-ref { font-size: 7.5pt; }
+}
 `;

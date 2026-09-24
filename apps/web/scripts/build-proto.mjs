@@ -1136,6 +1136,117 @@ sub('transform="{{ c.tf }}"', 'sc-camel-transform="{{ c.tf }}"', 3);
 // обрывал разбор на них и рисовал всё до. Хвост снят, рисунок тот же.
 sub('272 42 274 30"', '272 42"', 1);
 
+// ---------------------------------------------------------------- мобильный слой
+//
+// Телефон (< 768 px) в прототипе не нарисован. Слой ниже — ADR-0014: разметка
+// прототипа не меняется, к ней добавляются классы-хуки по известным шаблонам
+// инлайн-стилей и несколько элементов, которые рендерятся только на телефоне
+// (sc-if по биндингам phone*). Правила — apps/web/proto/mobile.css, всё под
+// @media (max-width: 767px); на десктопе и планшете ни один хук не действует,
+// потому что класс без правила — просто атрибут.
+let hooked = 0;
+const hook = (when, cls, atLeast, tags = 'span|div|a|button|input') => {
+  let n = 0;
+  tpl = tpl.replace(new RegExp(`<(${tags})\\b([^>]*?)(/?)>`, 'g'), (m, tag, attrs, slash) => {
+    const st = /\sstyle="([^"]*)"/.exec(attrs);
+    const style = st ? st[1] : '';
+    if (style.includes('{{') || !when(style, tag)) return m;
+    n++;
+    const has = /\sclass="([^"]*)"/.exec(attrs);
+    const next = has
+      ? attrs.replace(has[0], ` class="${has[1]} ${cls}"`)
+      : ` class="${cls}"` + attrs;
+    return `<${tag}${next}${slash}>`;
+  });
+  if (n < atLeast)
+    throw new Error(`мобильный хук ${cls}: ожидалось не меньше ${atLeast}, найдено ${n}`);
+  hooked += n;
+};
+const fontOf = (re) => (style) => re.test(style);
+// Кегли прототипа: 5–8.8 px — кикеры и счётчики, 9–9.8 — подписи и моно,
+// 10–10.5 — кнопки и таблицы, 11–11.5 — текст, 12–12.5 — основной текст.
+const tiny = /(^|;)font:\d{3} (5|6(\.\d)?|7(\.\d)?|8(\.\d)?)px\//;
+hook((st) => tiny.test(st) && /text-transform:uppercase/.test(st), 'm-kicker', 30);
+hook((st) => tiny.test(st) && !/text-transform:uppercase/.test(st), 'm-t8', 8);
+hook(fontOf(/(^|;)font:\d{3} 9(\.\d)?px\//), 'm-t9', 100);
+hook(fontOf(/(^|;)font:\d{3} 10(\.5)?px\//), 'm-t10', 150);
+hook(fontOf(/(^|;)font:\d{3} 11(\.5)?px\//), 'm-t11', 120);
+hook(fontOf(/(^|;)font:\d{3} 12(\.5)?px\//), 'm-t12', 30);
+const low = /(^|;)height:(2[2-9]|3[0-3])px(;|$)/;
+const narrowBox = /(^|;)width:(2[2-9]|3[0-3])px(;|$)/;
+hook((st) => /cursor:pointer/.test(st) && low.test(st) && !narrowBox.test(st), 'm-tap', 30);
+hook((st) => /cursor:pointer/.test(st) && low.test(st) && narrowBox.test(st), 'm-tap-sq', 8);
+hook(fontOf(/(^|;)grid-template-columns:1fr 1(\.\d)?fr(;|$)/), 'm-grid2', 7);
+hook(fontOf(/(^|;)grid-template-columns:(1fr 1fr 1fr|repeat\(4,1fr\))(;|$)/), 'm-grid4', 1);
+// Карточка «Производство через платформу»: кнопка уходит под текст.
+hook(
+  fontOf(/grid-column:1\/-1;border-radius:14px;background:rgba\(217,242,227,\.4\)/),
+  'm-wrap',
+  1,
+);
+// Макеты ярлыков (составник, навесной, вшивной) — вещь в масштабе, их текст
+// мелкий по замыслу: на телефоне макет увеличивается целиком (zoom), а не
+// кеглем, и сторож его не считает.
+hook(fontOf(/box-shadow:0 6px 16px rgba\(14,14,14,\.06\)/), 'm-keep', 1);
+
+// Динамические стили хуками выше не ловятся — им классы ставятся адресно.
+sub('<div style="{{ stripStyle }}">', '<div class="m-strip" style="{{ stripStyle }}">', 1);
+sub(
+  '<div onMouseEnter="{{ railEnter }}" onMouseLeave="{{ railLeave }}" style="position:absolute;left:0;top:110px;z-index:6">',
+  '<div class="m-rail" onMouseEnter="{{ railEnter }}" onMouseLeave="{{ railLeave }}" style="position:absolute;left:0;top:110px;z-index:6">',
+  1,
+);
+sub(
+  'padding:8px 13px">\n<span class="m-t10" style="font:600 10px/20px Manrope,Sora,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#6B6B67">Замеры и ',
+  'padding:8px 13px" class="m-pomhead">\n<span class="m-t10" style="font:600 10px/20px Manrope,Sora,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#6B6B67">Замеры и ',
+  1,
+);
+sub(
+  '<div style="overflow-x:auto"><div style="min-width:760px">',
+  '<div style="overflow-x:auto"><div class="m-pomtable" style="min-width:760px">',
+  1,
+);
+sub(
+  '<div style="overflow-x:auto"><div style="min-width:720px">',
+  '<div style="overflow-x:auto"><div class="m-pomtable" style="min-width:720px">',
+  1,
+);
+sub(
+  '<span class="m-t9" style="padding:8px 11px;font:600 9.2px/14px Manrope,Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">Код</span>\n<span class="m-t9" style="padding:8px 11px;font:600 9.2px/14px Manrope,Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">Точка измерения</span>',
+  '<span class="m-t9 m-pomcode" style="padding:8px 11px;font:600 9.2px/14px Manrope,Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">Код</span>\n<span class="m-t9" style="padding:8px 11px;font:600 9.2px/14px Manrope,Sora,sans-serif;letter-spacing:1.1px;text-transform:uppercase;color:#6B6B67">Точка измерения</span>',
+  1,
+);
+sub(
+  `<span class="m-t9" style="padding:0 11px;font:400 9.7px/1 'JetBrains Mono',monospace;color:#5A5A56;display:flex;align-items:center;gap:7px"><span style="{{ r.selBar }}"></span>{{ r.code }}</span>`,
+  `<span class="m-t9 m-pomcode" style="padding:0 11px;font:400 9.7px/1 'JetBrains Mono',monospace;color:#5A5A56;display:flex;align-items:center;gap:7px"><span style="{{ r.selBar }}"></span>{{ r.code }}</span>`,
+  1,
+);
+// Чёрная полоса вкладок над документом: на телефоне текст уходит из-под бургера.
+sub(
+  '<div style="height:45px;background:linear-gradient(180deg,#171717,#0B0B0B);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 16px 0 22px">',
+  '<div class="m-tabbar" style="height:45px;background:linear-gradient(180deg,#171717,#0B0B0B);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 16px 0 22px">',
+  1,
+);
+// Подсказка дропзоны: на телефоне «перетащите» бессмысленно.
+sub('>Перетащите или кликните</span>', '>{{ dropHint }}</span>', 1);
+// Строка чипов разделов — только на телефоне, вместо рейла.
+sub(
+  '<sc-if value="{{ isDoc }}" hint-placeholder-val="{{ true }}">\n<div style="background:#fff;border-bottom:1px solid rgba(14,14,14,.06);padding:13px 16px 13px 22px;',
+  '<sc-if value="{{ secBarOn }}" hint-placeholder-val="{{ false }}">\n<div class="m-secbar">\n<sc-for list="{{ rail }}" as="s" hint-placeholder-count="6">\n<span onClick="{{ s.go }}" class="m-secchip" style="{{ s.chipStyle }}"><b>{{ s.chipNum }}</b>{{ s.label }}</span>\n</sc-for>\n</div>\n</sc-if>\n<sc-if value="{{ isDoc }}" hint-placeholder-val="{{ true }}">\n<div style="background:#fff;border-bottom:1px solid rgba(14,14,14,.06);padding:13px 16px 13px 22px;',
+  1,
+);
+// Скримы: под панелью мастера и под боковой панелью (телефон).
+sub(
+  '<sc-if value="{{ toolOpen }}" hint-placeholder-val="{{ false }}">\n<div style="{{ toolPanelPos }}">',
+  '<sc-if value="{{ toolScrimOn }}" hint-placeholder-val="{{ false }}"><div class="m-scrim" onClick="{{ closeTool }}"></div></sc-if>\n<sc-if value="{{ toolOpen }}" hint-placeholder-val="{{ false }}">\n<div style="{{ toolPanelPos }}">',
+  1,
+);
+sub(
+  '</span>\n</sc-if>\n\n<div style="{{ gridStyle }}">',
+  '</span>\n</sc-if>\n<sc-if value="{{ sideScrimOn }}" hint-placeholder-val="{{ false }}"><div class="m-scrim" onClick="{{ closeSide }}"></div></sc-if>\n\n<div style="{{ gridStyle }}">',
+  1,
+);
+
 const logic = readFileSync(join(webRoot, 'proto', 'logic.js'), 'utf8');
 if (!logic.includes('class Component extends DCLogic')) {
   throw new Error('proto/logic.js обязан определять class Component extends DCLogic');
@@ -1162,6 +1273,7 @@ const page = `<!DOCTYPE html>
 <link rel="icon" href="./favicon.svg">
 <link rel="stylesheet" href="./fonts.css">
 <link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./mobile.css">
 <title>Seamster</title>
 <script src="./react.js"></script>
 <script src="./react-dom.js"></script>
@@ -1183,6 +1295,8 @@ copyFileSync(join(handoff, 'support.js'), join(dist, 'support.js'));
 // Дизайн-токены — из packages/ui одним файлом: кабинет и новые компоненты
 // берут цвета, шрифты и тайминги оттуда, а не из литералов.
 copyFileSync(join(repoRoot, 'packages', 'ui', 'tokens.css'), join(dist, 'tokens.css'));
+// Мобильный слой (ADR-0014): правила только под @media (max-width: 767px).
+copyFileSync(join(webRoot, 'proto', 'mobile.css'), join(dist, 'mobile.css'));
 // Шрифты — файлами рядом с кабинетом (OFL), см. packages/ui/fonts.css.
 copyFileSync(join(repoRoot, 'packages', 'ui', 'fonts.css'), join(dist, 'fonts.css'));
 cpSync(join(repoRoot, 'packages', 'ui', 'fonts'), join(dist, 'fonts'), { recursive: true });
@@ -1202,5 +1316,5 @@ copyFileSync(join(brand, 'seamster-s.svg'), join(dist, 'mark-s.svg'));
 copyFileSync(join(brand, 'favicon.svg'), join(dist, 'favicon.svg'));
 
 console.log(
-  `dist собран: шаблон ${Math.round(tpl.length / 1024)} КБ · подстановок ${replaced} · логика ${Math.round(logic.length / 1024)} КБ`,
+  `dist собран: шаблон ${Math.round(tpl.length / 1024)} КБ · подстановок ${replaced} · мобильных хуков ${hooked} · логика ${Math.round(logic.length / 1024)} КБ`,
 );

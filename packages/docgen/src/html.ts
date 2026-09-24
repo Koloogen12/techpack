@@ -460,6 +460,9 @@ export function renderHtml(spec: StyleSpec, options: HtmlOptions = {}): string {
 
   return (
     `<!doctype html><html lang="ru"><head><meta charset="utf-8">` +
+    // Ссылку для фабрики открывают с телефона: без viewport страница A4
+    // рендерится уменьшенной до нечитаемости. Печать это не трогает.
+    `<meta name="viewport" content="width=device-width, initial-scale=1">` +
     `<title>${esc(spec.style.name)} — ${esc(spec.style.article)}</title>` +
     `<style>${docFontFaces()}${DOC_CSS}</style></head><body>${html}</body></html>`
   );

@@ -781,6 +781,26 @@ class Component extends DCLogic {
       this.showToast('Отменено: ' + u.code + (u.type === 'val' ? ' — значение' : ' — допуск'));
     };
     window.addEventListener('keydown', this._kz);
+    // Escape закрывает верхний слой: модалку, панель мастера, меню пака,
+    // уведомления, боковую панель; в мастере — как крестик.
+    this._esc = (e) => {
+      if (e.key !== 'Escape') return;
+      const st = this.state;
+      if (st.modal) {
+        if (st.modal.kind !== 'proposal') this.set('modal', null);
+        return;
+      }
+      if (st.toolMode) {
+        clearInterval(this._tb);
+        return this.setState({ toolMode: null, toolBusy: null, toolResult: null });
+      }
+      if (st.packMenu) return this.set('packMenu', null);
+      if (st.notifOpen) return this.set('notifOpen', false);
+      if (st.sideOpen && st.w < 1024) return this.set('sideOpen', false);
+      if (st.screen === 'wizard' && !st.closeConfirm)
+        return st.wizStep === 1 ? this.set('screen', 'home') : this.set('closeConfirm', true);
+    };
+    window.addEventListener('keydown', this._esc);
 
     if (!DEMO) this.setState({ wshots: [] });
     if (!TOKEN && REF) {
@@ -837,6 +857,21 @@ class Component extends DCLogic {
     }
   }
 
+  componentDidUpdate(prev) {
+    // Телефон: боковая панель — навигация, после перехода она закрывается
+    // сама, иначе скрим и панель остаются поверх открытого пака.
+    const st = this.state;
+    if (
+      st.sideOpen &&
+      st.w < 768 &&
+      (prev.screen !== st.screen ||
+        prev.tab !== st.tab ||
+        prev.curId !== st.curId ||
+        prev.section !== st.section)
+    )
+      this.setState({ sideOpen: false });
+  }
+
   componentWillUnmount() {
     clearInterval(this._g);
     clearInterval(this._gs);
@@ -851,6 +886,7 @@ class Component extends DCLogic {
     clearTimeout(this._pp);
     window.removeEventListener('resize', this._rs);
     window.removeEventListener('keydown', this._kz);
+    window.removeEventListener('keydown', this._esc);
   }
 
   /* ------------------------------------------------------------- проводка */
@@ -2998,7 +3034,9 @@ class Component extends DCLogic {
               detail: it.detail_ru,
               kindLabel: k[0],
               kindStyle:
-                'flex:none;height:22px;border-radius:7px;padding:0 8px;display:flex;align-items:center;font:600 9.5px/14px Sora,sans-serif;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;color:' +
+                'flex:none;height:22px;border-radius:7px;padding:0 8px;display:flex;align-items:center;font:600 ' +
+                this.fs(9.5) +
+                '/14px Sora,sans-serif;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;color:' +
                 k[1] +
                 ';background:' +
                 k[2],
@@ -3413,7 +3451,17 @@ class Component extends DCLogic {
           'px;border-bottom:1px solid #EFEDE9;cursor:pointer;background:' +
           // Зебра: глаз держит строку на длинной таблице замеров. Выбранная
           // строка темнее зебры, чтобы читалась и на чётной, и на нечётной.
-          (isSel ? 'rgba(14,14,14,.04)' : i % 2 ? '#FAF9F7' : 'transparent'),
+          // На телефоне фон непрозрачный: колонка кода прилипает и ложится
+          // поверх прокручиваемых ячеек.
+          (isSel
+            ? this.state.w < 768
+              ? '#EDEBE7'
+              : 'rgba(14,14,14,.04)'
+            : i % 2
+              ? '#FAF9F7'
+              : this.state.w < 768
+                ? '#F4F2EF'
+                : 'transparent'),
         inputStyle:
           'width:62px;text-align:right;padding:4px 6px;border-radius:7px;border:1px solid transparent;background:transparent;cursor:text;' +
           'font:300 12px/18px Inter,sans-serif;color:#C0392B;font-variant-numeric:tabular-nums' +
@@ -4159,7 +4207,9 @@ class Component extends DCLogic {
             ? 'background:rgba(14,14,14,.055);box-shadow:inset 0 0 0 1px rgba(0,0,0,.035)'
             : 'background:transparent'),
         chipStyle:
-          'padding:5px 8px;border-radius:10px;font:400 9px/9px Sora,sans-serif;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;' +
+          'padding:5px 8px;border-radius:10px;font:400 ' +
+          this.fs(9) +
+          '/9px Sora,sans-serif;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;' +
           (row.status === 'Готов'
             ? 'background:rgba(52,114,82,.07);border:1px solid rgba(52,114,82,.12);color:#2A6649'
             : row.status === 'На просчёте' ||
@@ -4208,6 +4258,12 @@ class Component extends DCLogic {
       return {
         num: '0' + (i + 1) + '.',
         label: sec.label,
+        chipNum: String(i + 1).padStart(2, '0') + '.',
+        chipStyle:
+          'background:' +
+          (on ? '#0E0E0E' : 'rgba(14,14,14,.05)') +
+          ';color:' +
+          (on ? '#fff' : '#0E0E0E'),
         sub: sec.sub,
         dashStyle:
           'height:2px;border-radius:2px;transition:all .16s ease;background:' +
@@ -4337,7 +4393,9 @@ class Component extends DCLogic {
         (green ? 'rgba(217,242,227,.4)' : '#fff') +
         ';padding:13px 14px;cursor:pointer',
       tagStyle:
-        "flex:none;padding:3px 7px;border-radius:6px;font:400 9px/13px 'JetBrains Mono',monospace;" +
+        'flex:none;padding:3px 7px;border-radius:6px;font:400 ' +
+        this.fs(9) +
+        "/13px 'JetBrains Mono',monospace;" +
         (green
           ? 'background:rgba(31,138,76,.12);color:#0D4F2B'
           : 'background:rgba(14,14,14,.05);color:#5A5A56'),
@@ -4624,7 +4682,9 @@ class Component extends DCLogic {
         status,
         bg: 'display:block;width:88%;height:128px;background:' + (bg || 'none'),
         chipStyle:
-          'flex:none;padding:5px 8px;border-radius:10px;font:400 9px/9px Sora,sans-serif;letter-spacing:.5px;text-transform:uppercase;' +
+          'flex:none;padding:5px 8px;border-radius:10px;font:400 ' +
+          this.fs(9) +
+          '/9px Sora,sans-serif;letter-spacing:.5px;text-transform:uppercase;' +
           (status === 'Готов'
             ? 'background:rgba(52,114,82,.07);border:1px solid rgba(52,114,82,.12);color:#2A6649'
             : status === 'На просчёте' || status === 'Генерация…' || status === 'В очереди'
@@ -4647,6 +4707,10 @@ class Component extends DCLogic {
 
     const wizCtaOn = true;
     const narrow = s.w < 1024 || s.sideHid;
+    // Телефон (ADR-0014): рейл заменён чипами, панель мастера во всю ширину,
+    // боковая панель и панель мастера не открываются разом.
+    const phone = s.w < 768;
+    const sideOpen = s.sideOpen && !(phone && s.toolMode);
     const PV = {
       Русский: {
         sec: 'Обзор',
@@ -4718,16 +4782,25 @@ class Component extends DCLogic {
         (s.railPin ? 'background:#0E0E0E;color:#fff' : 'color:#B0ADA6'),
       pomCols: this.pomColsRaw(pro),
       burgerOn: narrow,
+      phone,
+      secBarOn: phone && s.screen === 'doc',
+      toolScrimOn: phone && !!s.toolMode,
+      sideScrimOn: phone && sideOpen,
+      closeSide: () => this.set('sideOpen', false),
+      dropHint: phone ? 'Снимите или выберите фото' : 'Перетащите или кликните',
       toggleSide: () =>
         s.w < 1024
-          ? this.set('sideOpen', !s.sideOpen)
+          ? phone && !s.sideOpen && s.toolMode
+            ? (clearInterval(this._tb),
+              this.setState({ sideOpen: true, toolMode: null, toolBusy: null, toolResult: null }))
+            : this.set('sideOpen', !s.sideOpen)
           : this.setState({ sideHid: !s.sideHid, sideOpen: false }),
       sideWrapStyle: narrow
         ? 'min-width:0;padding:0;overflow:' +
-          (s.sideOpen ? 'visible;position:relative;z-index:38' : 'hidden')
+          (sideOpen ? 'visible;position:relative;z-index:38' : 'hidden')
         : 'padding:0 12px;min-width:0',
       sideCardStyle:
-        narrow && s.sideOpen
+        narrow && sideOpen
           ? 'position:fixed;left:8px;top:52px;bottom:8px;width:300px;z-index:38;border-radius:18px;background:#F4F2EF;border:1px solid rgba(14,14,14,.12);box-shadow:0 30px 80px rgba(14,14,14,.28);display:flex;flex-direction:column;overflow:hidden'
           : 'height:100%;border-radius:18px;background:rgba(255,255,255,.48);border:1px solid rgba(14,14,14,.08);box-shadow:inset 0 1px 0 1px rgba(255,255,255,.7);display:flex;flex-direction:column;overflow:hidden',
       sideTotals: fresh
@@ -4855,7 +4928,7 @@ class Component extends DCLogic {
         ? 'position:relative;width:100%;margin:0 auto'
         : 'position:relative;width:100%;max-width:1030px;min-width:820px;margin:0 auto',
       docCardStyle:
-        (narrow ? 'margin-left:58px;' : 'margin-left:74px;') +
+        (phone ? 'margin-left:0;' : narrow ? 'margin-left:58px;' : 'margin-left:74px;') +
         'border-radius:14px;background:#F4F2EF;border:1px solid #E4E1DC;box-shadow:0 20px 48px rgba(14,14,14,.1),0 4px 14px rgba(14,14,14,.06);overflow:hidden',
       toolColStyle:
         'position:relative;display:flex;align-items:center;justify-content:center' +
@@ -4863,9 +4936,11 @@ class Component extends DCLogic {
       toolPillStyle:
         (narrow || s.screen === 'lib' || s.screen === 'plan' ? 'display:none' : 'display:flex') +
         ';border-radius:999px;background:rgba(255,255,255,.76);border:1px solid rgba(14,14,14,.08);box-shadow:0 16px 42px rgba(0,0,0,.1),inset 0 1px 0 1px rgba(255,255,255,.8);padding:9px 0;flex-direction:column;align-items:center;gap:9px',
-      toolPanelPos: narrow
-        ? 'position:fixed;right:8px;top:46px;bottom:8px;width:312px;z-index:38'
-        : 'position:absolute;right:64px;top:11px;bottom:11px;width:312px;z-index:12',
+      toolPanelPos: phone
+        ? 'position:fixed;left:8px;right:8px;top:46px;bottom:8px;z-index:38'
+        : narrow
+          ? 'position:fixed;right:8px;top:46px;bottom:8px;width:312px;z-index:38'
+          : 'position:absolute;right:64px;top:11px;bottom:11px;width:312px;z-index:12',
       greetText: fresh
         ? 'Привет' + (s.me ? ', ' + s.me.name : '') + ' — добро пожаловать в Seamster.'
         : 'Привет' + (s.me ? ', ' + s.me.name : DEMO ? ', Данил' : '') + ' — с возвращением.',
@@ -5065,7 +5140,9 @@ class Component extends DCLogic {
         const n = (s.wshots || [1, 2, 3]).length;
         return n >= 6
           ? 'Максимум 6 файлов — удалите лишние'
-          : 'Перетащите фото или эскиз — ' + n + ' из 6';
+          : (s.w < 768 ? 'Снимите или выберите фото — ' : 'Перетащите фото или эскиз — ') +
+              n +
+              ' из 6';
       })(),
       wizAddShot: () => {
         if (!DEMO) {
@@ -5272,7 +5349,9 @@ class Component extends DCLogic {
           labelStyle:
             'font:' +
             (active && !s.genDone ? '700' : '400') +
-            ' 9px/13px Sora,sans-serif;letter-spacing:1.3px;text-transform:uppercase;color:' +
+            ' ' +
+            this.fs(9) +
+            '/13px Sora,sans-serif;letter-spacing:1.3px;text-transform:uppercase;color:' +
             (done || active ? '#0E0E0E' : '#B0ADA6'),
         };
       }),
@@ -5674,7 +5753,9 @@ class Component extends DCLogic {
       precChip:
         s.scaleShot || (s.manual || '').trim() ? '±1 см активно' : 'сейчас ±2 см · можно улучшить',
       precChipStyle:
-        'flex:none;padding:3px 9px;border-radius:999px;font:600 9.5px/13px Sora,sans-serif;' +
+        'flex:none;padding:3px 9px;border-radius:999px;font:600 ' +
+        this.fs(9.5) +
+        '/13px Sora,sans-serif;' +
         (s.scaleShot || (s.manual || '').trim()
           ? 'background:rgba(228,247,239,.76);border:1px solid rgba(41,117,82,.18);color:#2F7C5A'
           : 'background:rgba(14,14,14,.05);border:1px solid rgba(14,14,14,.08);color:#6B6B67'),
@@ -5808,7 +5889,9 @@ class Component extends DCLogic {
         titleStyle:
           'display:block;font:600 11px/15px Sora,sans-serif' + (n.read ? ';color:#6B6B67' : ''),
         subStyle:
-          'display:block;font:400 9.5px/13px Sora,sans-serif;color:' +
+          'display:block;font:400 ' +
+          this.fs(9.5) +
+          '/13px Sora,sans-serif;color:' +
           (n.read ? '#B0ADA6' : '#6B6B67'),
         go: () => {
           this.setState({ notifOpen: false });
@@ -6311,7 +6394,9 @@ class Component extends DCLogic {
             (d === null ? '#B0ADA6' : ok ? '#5A5A56' : '#C0392B'),
           ok: d === null ? '—' : ok ? 'да' : 'нет',
           okStyle:
-            'display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font:700 9px/11px Sora,sans-serif;letter-spacing:.4px;text-transform:uppercase;' +
+            'display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font:700 ' +
+            this.fs(9) +
+            '/11px Sora,sans-serif;letter-spacing:.4px;text-transform:uppercase;' +
             (d === null || ok
               ? 'background:rgba(228,247,239,.76);border:1px solid rgba(41,117,82,.18);color:#2F7C5A'
               : 'background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.2);color:#C0392B'),
@@ -7271,7 +7356,16 @@ class Component extends DCLogic {
     return { items, pct: Math.round((done / items.length) * 100) + '%' };
   }
 
+  /** Кегль динамических стилей: на телефоне ничего мельче 10.5 px (ADR-0014). */
+  fs(px) {
+    return (this.state.w < 768 ? Math.max(px, 10.5) : px) + 'px';
+  }
+
   pomColsRaw(pro) {
+    // Телефон: колонки уже, таблица прокручивается по горизонтали, колонка
+    // кода прилипает (m-pomcode в mobile.css).
+    if (this.state.w < 768)
+      return '46px minmax(0,1fr) 76px 60px 52px 52px 52px 52px' + (pro ? ' 60px' : '') + ' 120px';
     return '54px minmax(0,1fr) 92px 74px 62px 62px 62px 62px' + (pro ? ' 74px' : '') + ' 150px';
   }
 }

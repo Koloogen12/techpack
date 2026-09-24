@@ -1,0 +1,153 @@
+/*
+ * Мобильный слой кабинета (ADR-0014).
+ *
+ * Телефон в прототипе не нарисован, поэтому на десктопе и планшете разметка
+ * прототипа остаётся как есть — ни одно правило отсюда там не действует.
+ * Всё включается только уже 768 px. Классы-хуки m-* навешивает сборка
+ * (apps/web/scripts/build-proto.mjs) по известным шаблонам инлайн-стилей
+ * прототипа; сами инлайн-стили не меняются, поэтому здесь !important.
+ */
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    touch-action: manipulation;
+  }
+
+  /* Баннер раннего доступа: текст уходит из-под плавающего бургера. */
+  .m-strip {
+    padding-left: 52px !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  /* Рейл разделов (полоска слева, раскрывается наведением) на телефоне
+     не работает: вместо него строка чипов над документом. */
+  .m-rail {
+    display: none !important;
+  }
+  .m-secbar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px 10px;
+    background: #fff;
+    border-bottom: 1px solid rgba(14, 14, 14, 0.06);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .m-secbar::-webkit-scrollbar {
+    display: none;
+  }
+  .m-secchip {
+    flex: none;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font:
+      600 12.5px/1 Manrope,
+      Sora,
+      sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .m-secchip b {
+    font:
+      400 10.5px/1 'JetBrains Mono',
+      monospace;
+    opacity: 0.6;
+  }
+
+  /* Скрим под боковой панелью и панелью мастера: тап мимо закрывает. */
+  .m-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 37;
+    background: rgba(14, 14, 14, 0.34);
+  }
+
+  /* Двухколоночные сетки прототипа — в одну колонку. */
+  .m-grid2 {
+    grid-template-columns: 1fr !important;
+  }
+  .m-grid4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .m-wrap {
+    flex-wrap: wrap !important;
+  }
+
+  /* Таблицы: шапка переносится, таблица уже, колонка кода прилипает. */
+  .m-pomhead {
+    flex-wrap: wrap !important;
+  }
+  .m-pomtable {
+    min-width: 640px !important;
+  }
+  .m-pomcode {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: inherit;
+  }
+  /* Шапка таблицы полупрозрачная — под прилипшей ячейкой просвечивали бы
+     прокручиваемые колонки. */
+  .m-pomtable > div:first-child {
+    background: #f0eeeb !important;
+  }
+
+  /* Типографика: ничего мельче 10 px, основной текст от 13 px. */
+  .m-kicker {
+    font-size: 10px !important;
+    letter-spacing: 0.9px !important;
+  }
+  .m-t8 {
+    font-size: 10px !important;
+  }
+  .m-t9 {
+    font-size: 10.5px !important;
+  }
+  .m-t10 {
+    font-size: 11.5px !important;
+  }
+  .m-t11 {
+    font-size: 13px !important;
+  }
+  .m-t12 {
+    font-size: 13.5px !important;
+  }
+
+  /* Цели касания не ниже 36 px; квадратные иконки-кнопки — 36×36. */
+  .m-tap {
+    min-height: 36px !important;
+  }
+  .m-tap-sq {
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  /* Макеты ярлыков — вещь в масштабе: увеличиваются целиком, кегль внутри
+     остаётся масштабным (хук m-t8 внутри макета отменяется). */
+  .m-keep {
+    zoom: 1.5;
+  }
+  .m-keep .m-t8 {
+    font-size: 6.8px !important;
+  }
+
+  /* Поля ввода: 16 px, иначе iOS приближает страницу при фокусе. */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Полоса вкладок над документом: текст уходит из-под бургера. */
+  .m-tabbar {
+    padding-left: 52px !important;
+  }
+}
