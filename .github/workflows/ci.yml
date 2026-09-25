@@ -23,6 +23,12 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Часть тестов печатает лист и снимает его в браузере (packages/pattern,
+      # golden/pattern и соседние). На раннере кэш ms-playwright пустой, и
+      # launch падает «Executable doesn't exist». Ставим только chromium.
+      - name: Chromium для тестов
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Формат, линт, типы, тесты
         run: pnpm verify
 
@@ -48,6 +54,12 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      # Часть тестов печатает лист и снимает его в браузере (packages/pattern,
+      # golden/pattern и соседние). На раннере кэш ms-playwright пустой, и
+      # launch падает «Executable doesn't exist». Ставим только chromium.
+      - name: Chromium для тестов
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Прогон голден-сета
         env:
