@@ -11,9 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Версия pnpm — только из packageManager в package.json. Указать её ещё
+      # и здесь значит уронить прогон: action-setup v4 отказывается выбирать
+      # между двумя источниками (ERR_PNPM_BAD_PM_VERSION).
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -36,9 +37,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Версия pnpm — только из packageManager в package.json. Указать её ещё
+      # и здесь значит уронить прогон: action-setup v4 отказывается выбирать
+      # между двумя источниками (ERR_PNPM_BAD_PM_VERSION).
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
