@@ -9,7 +9,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
+      # Бинарники репозитория лежат в Git LFS (.gitattributes). Без lfs: true
+      # checkout кладёт текстовые указатели вместо картинок, и тесты, которые
+      # читают настоящее фото, падают на декодировании.
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       # Версия pnpm — только из packageManager в package.json. Указать её ещё
       # и здесь значит уронить прогон: action-setup v4 отказывается выбирать
@@ -41,7 +46,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
+      # Бинарники репозитория лежат в Git LFS (.gitattributes). Без lfs: true
+      # checkout кладёт текстовые указатели вместо картинок, и тесты, которые
+      # читают настоящее фото, падают на декодировании.
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       # Версия pnpm — только из packageManager в package.json. Указать её ещё
       # и здесь значит уронить прогон: action-setup v4 отказывается выбирать
